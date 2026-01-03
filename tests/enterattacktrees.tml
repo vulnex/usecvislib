@@ -1,0 +1,35 @@
+[tree]
+name = "Open Safe"
+description = "Classic attack tree example demonstrating safe-cracking attack vectors"
+engineversion = "0.2.5"
+version = "1.0.0"
+type = "Attack Tree"
+date = "2025-12-25"
+last_modified = "2025-12-25"
+author = "VULNEX"
+email = "info@vulnex.com"
+url = "https://www.vulnex.com"
+root = "Open Safe"
+
+# Nodes with CVSS scores for leaf attack techniques
+[nodes]
+"Open Safe" = { style="filled", color="lightgrey", shape="ellipse"}
+"Pick Lock" = { style="filled", shape="box", cvss_vector="CVSS:3.1/AV:P/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N"}
+"Learn Combo" = { style="filled", color="lightblue", shape="box"}
+"Cut Open Safe" = { style="filled", shape="box", cvss=4.0}
+"Install Improperly" = { style="filled", shape="box", cvss_vector="CVSS:3.1/AV:P/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"}
+"Find Written Combo" = { style="filled", shape="box", cvss=5.5}
+"Get Combo From Target" = { style="filled", color="lightblue", shape="box"}
+"Threaten" = { style="filled", shape="box", cvss_vector="CVSS:3.1/AV:P/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N"}
+"Blackmail" = { style="filled", shape="box", cvss=6.5}
+"Eavesdrop" = { style="filled", color="lightblue", shape="box"}
+"Bribe" = { style="filled", shape="box", cvss_vector="CVSS:3.1/AV:P/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N"}
+"Listen to Conversation" = { style="filled", shape="box", cvss=3.5}
+"Get Target to State Combo" = { style="filled", shape="box", cvss_vector="CVSS:3.1/AV:P/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N"}
+
+[edges]
+"Open Safe" = [{to = "Pick Lock"},{to ="Learn Combo"}, {to ="Cut Open Safe"}, {to ="Install Improperly"}]
+"Learn Combo" = [{to = "Find Written Combo", color="red", style="dashed"}, {to ="Get Combo From Target"}]
+"Get Combo From Target" = [{to ="Threaten"}, {to ="Blackmail"}, {to ="Eavesdrop"}, {to ="Bribe"}]
+"Eavesdrop" = [{to ="Listen to Conversation"}, {to ="Get Target to State Combo"}]
+

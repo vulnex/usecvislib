@@ -1,0 +1,223 @@
+#
+# UML Sequence Diagram Template
+# Object interaction over time
+#
+
+[diagram]
+title = "UML Sequence Diagram"
+description = "Object interaction over time"
+layout = "hierarchical"
+direction = "TB"
+style = "cd_default"
+splines = "ortho"
+nodesep = 1.0
+ranksep = 0.5
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.actor]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#9B59B6", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.object]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["class"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "{name}:{class}"
+
+[schema.nodes.boundary]
+shape = "rectangle"
+required_fields = ["name"]
+style = { fillcolor = "#27AE60", fontcolor = "white", style = "filled,rounded" }
+label_template = "<<boundary>>\\n{name}"
+
+[schema.nodes.control]
+shape = "circle"
+required_fields = ["name"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.entity]
+shape = "rectangle"
+required_fields = ["name"]
+style = { fillcolor = "#E74C3C", fontcolor = "white" }
+label_template = "<<entity>>\\n{name}"
+
+[schema.nodes.database]
+shape = "database"
+required_fields = ["name"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.edges.sync_call]
+style = "solid"
+color = "#333333"
+arrowhead = "normal"
+label_field = "message"
+
+[schema.edges.async_call]
+style = "dashed"
+color = "#333333"
+arrowhead = "normal"
+label_field = "message"
+
+[schema.edges.return]
+style = "dashed"
+color = "#666666"
+arrowhead = "vee"
+label_field = "value"
+
+[schema.edges.self_call]
+style = "solid"
+color = "#333333"
+arrowhead = "normal"
+label_field = "message"
+
+[schema.edges.create]
+style = "dashed"
+color = "#27AE60"
+arrowhead = "normal"
+label_field = "message"
+
+[schema.edges.destroy]
+style = "dashed"
+color = "#E74C3C"
+arrowhead = "normal"
+label_field = "message"
+
+# =============================================================================
+# Example Data - User Login Sequence
+# =============================================================================
+
+[[nodes]]
+id = "user"
+type = "actor"
+name = "User"
+
+[[nodes]]
+id = "ui"
+type = "boundary"
+name = "LoginPage"
+
+[[nodes]]
+id = "auth_ctrl"
+type = "control"
+name = "AuthController"
+
+[[nodes]]
+id = "auth_svc"
+type = "object"
+name = "authService"
+class = "AuthService"
+
+[[nodes]]
+id = "user_repo"
+type = "entity"
+name = "UserRepository"
+
+[[nodes]]
+id = "db"
+type = "database"
+name = "Database"
+
+[[nodes]]
+id = "token_svc"
+type = "object"
+name = "tokenService"
+class = "TokenService"
+
+[[edges]]
+from = "user"
+to = "ui"
+type = "sync_call"
+message = "1: enterCredentials(email, password)"
+
+[[edges]]
+from = "ui"
+to = "auth_ctrl"
+type = "sync_call"
+message = "2: login(email, password)"
+
+[[edges]]
+from = "auth_ctrl"
+to = "auth_svc"
+type = "sync_call"
+message = "3: authenticate(email, password)"
+
+[[edges]]
+from = "auth_svc"
+to = "user_repo"
+type = "sync_call"
+message = "4: findByEmail(email)"
+
+[[edges]]
+from = "user_repo"
+to = "db"
+type = "sync_call"
+message = "5: SELECT * FROM users WHERE email = ?"
+
+[[edges]]
+from = "db"
+to = "user_repo"
+type = "return"
+value = "6: User record"
+
+[[edges]]
+from = "user_repo"
+to = "auth_svc"
+type = "return"
+value = "7: User object"
+
+[[edges]]
+from = "auth_svc"
+to = "token_svc"
+type = "sync_call"
+message = "8: generateToken(user)"
+
+[[edges]]
+from = "token_svc"
+to = "auth_svc"
+type = "return"
+value = "9: JWT token"
+
+[[edges]]
+from = "auth_svc"
+to = "auth_ctrl"
+type = "return"
+value = "10: AuthResult"
+
+[[edges]]
+from = "auth_ctrl"
+to = "ui"
+type = "return"
+value = "11: LoginResponse"
+
+[[edges]]
+from = "ui"
+to = "user"
+type = "return"
+value = "12: Display dashboard"
+
+# Group by layer
+[[clusters]]
+id = "presentation"
+label = "Presentation Layer"
+nodes = ["user", "ui"]
+style = { color = "#9B59B6", style = "dashed" }
+
+[[clusters]]
+id = "business"
+label = "Business Layer"
+nodes = ["auth_ctrl", "auth_svc", "token_svc"]
+style = { color = "#3498DB", style = "dashed" }
+
+[[clusters]]
+id = "data"
+label = "Data Layer"
+nodes = ["user_repo", "db"]
+style = { color = "#27AE60", style = "dashed" }

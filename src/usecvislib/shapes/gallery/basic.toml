@@ -1,0 +1,223 @@
+# Basic Shapes Gallery
+# Category: basic
+# General purpose geometric shapes for any diagram type
+
+[shapes.rectangle]
+id = "rectangle"
+name = "Rectangle"
+category = "basic"
+description = "A standard rectangle shape"
+graphviz = { shape = "box", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "square"
+ports = ["n", "s", "e", "w", "ne", "nw", "se", "sw"]
+tags = ["geometry", "basic", "box"]
+
+[shapes.square]
+id = "square"
+name = "Square"
+category = "basic"
+description = "A square shape with equal sides"
+graphviz = { shape = "box", style = "filled", width = "1", height = "1", fixedsize = "true" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "square"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic"]
+
+[shapes.rounded_rectangle]
+id = "rounded_rectangle"
+name = "Rounded Rectangle"
+category = "basic"
+description = "A rectangle with rounded corners"
+graphviz = { shape = "box", style = "filled,rounded" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "square"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic", "rounded"]
+
+[shapes.circle]
+id = "circle"
+name = "Circle"
+category = "basic"
+description = "A perfect circle shape"
+graphviz = { shape = "circle", style = "filled", fixedsize = "true" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "circle"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic", "round"]
+
+[shapes.ellipse]
+id = "ellipse"
+name = "Ellipse"
+category = "basic"
+description = "An oval/ellipse shape"
+graphviz = { shape = "ellipse", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "circle"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic", "oval"]
+
+[shapes.diamond]
+id = "diamond"
+name = "Diamond"
+category = "basic"
+description = "A diamond/rhombus shape for decisions"
+graphviz = { shape = "diamond", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "diamond"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic", "decision", "rhombus"]
+
+[shapes.parallelogram]
+id = "parallelogram"
+name = "Parallelogram"
+category = "basic"
+description = "A parallelogram shape for I/O operations"
+graphviz = { shape = "parallelogram", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "parallelogram"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic", "io"]
+
+[shapes.hexagon]
+id = "hexagon"
+name = "Hexagon"
+category = "basic"
+description = "A six-sided polygon"
+graphviz = { shape = "hexagon", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "hexagon"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic", "polygon"]
+
+[shapes.octagon]
+id = "octagon"
+name = "Octagon"
+category = "basic"
+description = "An eight-sided polygon"
+graphviz = { shape = "octagon", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "octagon"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic", "polygon", "stop"]
+
+[shapes.pentagon]
+id = "pentagon"
+name = "Pentagon"
+category = "basic"
+description = "A five-sided polygon"
+graphviz = { shape = "pentagon", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "pentagon"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic", "polygon"]
+
+[shapes.triangle]
+id = "triangle"
+name = "Triangle"
+category = "basic"
+description = "A triangle pointing upward"
+graphviz = { shape = "triangle", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "triangle"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic"]
+
+[shapes.invtriangle]
+id = "invtriangle"
+name = "Inverted Triangle"
+category = "basic"
+description = "A triangle pointing downward"
+graphviz = { shape = "invtriangle", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "triangle"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic"]
+
+[shapes.trapezium]
+id = "trapezium"
+name = "Trapezoid"
+category = "basic"
+description = "A trapezoid/trapezium shape"
+graphviz = { shape = "trapezium", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "trapezium"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic"]
+
+[shapes.house]
+id = "house"
+name = "House"
+category = "basic"
+description = "A pentagon shape resembling a house"
+graphviz = { shape = "house", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "home"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic", "building"]
+
+[shapes.star]
+id = "star"
+name = "Star"
+category = "basic"
+description = "A star shape for highlighting important items"
+graphviz = { shape = "star", style = "filled" }
+default_style = { fillcolor = "#FFD700", color = "#DAA520" }
+icon = "star"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic", "highlight"]
+
+[shapes.point]
+id = "point"
+name = "Point"
+category = "basic"
+description = "A small point/dot for connection nodes"
+graphviz = { shape = "point" }
+default_style = { color = "#333333" }
+icon = "circle"
+ports = ["c"]
+tags = ["geometry", "basic", "connector"]
+
+[shapes.plain]
+id = "plain"
+name = "Plain Text"
+category = "basic"
+description = "Plain text without any shape border"
+graphviz = { shape = "plaintext" }
+default_style = { fontcolor = "#333333" }
+icon = "text"
+ports = ["n", "s", "e", "w"]
+tags = ["text", "basic", "label"]
+
+[shapes.note]
+id = "note"
+name = "Note"
+category = "basic"
+description = "A note/annotation shape with folded corner"
+graphviz = { shape = "note", style = "filled" }
+default_style = { fillcolor = "#FFFACD", color = "#DAA520" }
+icon = "sticky-note"
+ports = ["n", "s", "e", "w"]
+tags = ["basic", "annotation", "comment"]
+
+[shapes.egg]
+id = "egg"
+name = "Egg"
+category = "basic"
+description = "An egg/oval shape"
+graphviz = { shape = "egg", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "egg"
+ports = ["n", "s", "e", "w"]
+tags = ["geometry", "basic", "oval"]
+
+[shapes.tab]
+id = "tab"
+name = "Tab"
+category = "basic"
+description = "A tab shape for file/folder representations"
+graphviz = { shape = "tab", style = "filled" }
+default_style = { fillcolor = "#FFFFFF", color = "#333333" }
+icon = "folder"
+ports = ["n", "s", "e", "w"]
+tags = ["basic", "file", "folder"]

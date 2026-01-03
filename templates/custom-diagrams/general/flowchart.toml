@@ -1,0 +1,158 @@
+#
+# Flowchart Template
+# Basic flowchart with process, decision, and terminal nodes
+#
+
+[diagram]
+title = "Flowchart"
+description = "Basic flowchart diagram"
+layout = "hierarchical"
+direction = "TB"
+style = "cd_default"
+splines = "ortho"
+nodesep = 0.6
+ranksep = 0.8
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.start]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.end]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#E74C3C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.process]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.decision]
+shape = "diamond"
+required_fields = ["name"]
+optional_fields = ["condition"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.io]
+shape = "parallelogram"
+required_fields = ["name"]
+optional_fields = ["data"]
+style = { fillcolor = "#9B59B6", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.document]
+shape = "note"
+required_fields = ["name"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.subroutine]
+shape = "rectangle"
+required_fields = ["name"]
+style = { fillcolor = "#34495E", fontcolor = "white", style = "filled,bold" }
+label_template = "{name}"
+
+[schema.edges.flow]
+style = "solid"
+color = "#333333"
+arrowhead = "normal"
+
+[schema.edges.yes]
+style = "solid"
+color = "#27AE60"
+arrowhead = "normal"
+label_field = "label"
+
+[schema.edges.no]
+style = "solid"
+color = "#E74C3C"
+arrowhead = "normal"
+label_field = "label"
+
+# =============================================================================
+# Example Data
+# =============================================================================
+
+[[nodes]]
+id = "start"
+type = "start"
+name = "Start"
+
+[[nodes]]
+id = "input"
+type = "io"
+name = "Get Input"
+data = "user data"
+
+[[nodes]]
+id = "validate"
+type = "decision"
+name = "Valid?"
+condition = "input != null"
+
+[[nodes]]
+id = "process"
+type = "process"
+name = "Process Data"
+
+[[nodes]]
+id = "output"
+type = "io"
+name = "Display Result"
+
+[[nodes]]
+id = "error"
+type = "process"
+name = "Show Error"
+
+[[nodes]]
+id = "end"
+type = "end"
+name = "End"
+
+[[edges]]
+from = "start"
+to = "input"
+type = "flow"
+
+[[edges]]
+from = "input"
+to = "validate"
+type = "flow"
+
+[[edges]]
+from = "validate"
+to = "process"
+type = "yes"
+label = "Yes"
+
+[[edges]]
+from = "validate"
+to = "error"
+type = "no"
+label = "No"
+
+[[edges]]
+from = "process"
+to = "output"
+type = "flow"
+
+[[edges]]
+from = "output"
+to = "end"
+type = "flow"
+
+[[edges]]
+from = "error"
+to = "end"
+type = "flow"

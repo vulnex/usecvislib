@@ -1,0 +1,256 @@
+#
+# UML Deployment Diagram Template
+# Physical deployment of software components
+#
+
+[diagram]
+title = "UML Deployment Diagram"
+description = "Physical deployment of software components"
+layout = "hierarchical"
+direction = "TB"
+style = "cd_blueprint"
+splines = "ortho"
+nodesep = 0.8
+ranksep = 1.0
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.node]
+shape = "artifact"
+required_fields = ["name"]
+optional_fields = ["stereotype", "os", "ip"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "<<device>>\\n{name}\\n{ip}"
+
+[schema.nodes.execution_env]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["technology"]
+style = { fillcolor = "#27AE60", fontcolor = "white", style = "filled,rounded" }
+label_template = "<<executionEnvironment>>\\n{name}"
+
+[schema.nodes.artifact]
+shape = "note"
+required_fields = ["name"]
+optional_fields = ["version"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "<<artifact>>\\n{name}\\n{version}"
+
+[schema.nodes.container]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["image"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+label_template = "<<container>>\\n{name}"
+
+[schema.nodes.database]
+shape = "database"
+required_fields = ["name"]
+optional_fields = ["engine", "port"]
+style = { fillcolor = "#9B59B6", fontcolor = "white" }
+label_template = "{name}\\n:{port}"
+
+[schema.nodes.loadbalancer]
+shape = "trapezium"
+required_fields = ["name"]
+optional_fields = ["algorithm"]
+style = { fillcolor = "#E74C3C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.cdn]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#95A5A6", fontcolor = "white", style = "filled,dashed" }
+label_template = "<<CDN>>\\n{name}"
+
+[schema.edges.deploys]
+style = "dashed"
+color = "#333333"
+arrowhead = "vee"
+label_field = "protocol"
+
+[schema.edges.communicates]
+style = "solid"
+color = "#3498DB"
+arrowhead = "normal"
+label_field = "protocol"
+
+[schema.edges.manifests]
+style = "dashed"
+color = "#27AE60"
+arrowhead = "empty"
+
+# =============================================================================
+# Example Data - Cloud Deployment
+# =============================================================================
+
+[[nodes]]
+id = "cdn"
+type = "cdn"
+name = "CloudFront"
+
+[[nodes]]
+id = "lb"
+type = "loadbalancer"
+name = "ALB"
+algorithm = "round-robin"
+
+[[nodes]]
+id = "web1"
+type = "node"
+name = "Web Server 1"
+os = "Amazon Linux 2"
+ip = "10.0.1.10"
+
+[[nodes]]
+id = "web2"
+type = "node"
+name = "Web Server 2"
+os = "Amazon Linux 2"
+ip = "10.0.1.11"
+
+[[nodes]]
+id = "docker_web1"
+type = "execution_env"
+name = "Docker"
+technology = "Docker 24.0"
+
+[[nodes]]
+id = "docker_web2"
+type = "execution_env"
+name = "Docker"
+technology = "Docker 24.0"
+
+[[nodes]]
+id = "app_container1"
+type = "container"
+name = "app:latest"
+image = "app:v2.1.0"
+
+[[nodes]]
+id = "app_container2"
+type = "container"
+name = "app:latest"
+image = "app:v2.1.0"
+
+[[nodes]]
+id = "app_artifact"
+type = "artifact"
+name = "app.jar"
+version = "v2.1.0"
+
+[[nodes]]
+id = "db_primary"
+type = "database"
+name = "PostgreSQL Primary"
+engine = "PostgreSQL 15"
+port = "5432"
+
+[[nodes]]
+id = "db_replica"
+type = "database"
+name = "PostgreSQL Replica"
+engine = "PostgreSQL 15"
+port = "5432"
+
+[[nodes]]
+id = "cache"
+type = "database"
+name = "Redis Cluster"
+engine = "Redis 7"
+port = "6379"
+
+[[edges]]
+from = "cdn"
+to = "lb"
+type = "communicates"
+protocol = "HTTPS"
+
+[[edges]]
+from = "lb"
+to = "web1"
+type = "communicates"
+protocol = "HTTP"
+
+[[edges]]
+from = "lb"
+to = "web2"
+type = "communicates"
+protocol = "HTTP"
+
+[[edges]]
+from = "docker_web1"
+to = "app_container1"
+type = "deploys"
+
+[[edges]]
+from = "docker_web2"
+to = "app_container2"
+type = "deploys"
+
+[[edges]]
+from = "app_artifact"
+to = "app_container1"
+type = "manifests"
+
+[[edges]]
+from = "app_artifact"
+to = "app_container2"
+type = "manifests"
+
+[[edges]]
+from = "app_container1"
+to = "db_primary"
+type = "communicates"
+protocol = "TCP/5432"
+
+[[edges]]
+from = "app_container2"
+to = "db_primary"
+type = "communicates"
+protocol = "TCP/5432"
+
+[[edges]]
+from = "db_primary"
+to = "db_replica"
+type = "communicates"
+protocol = "Replication"
+
+[[edges]]
+from = "app_container1"
+to = "cache"
+type = "communicates"
+protocol = "TCP/6379"
+
+[[edges]]
+from = "app_container2"
+to = "cache"
+type = "communicates"
+protocol = "TCP/6379"
+
+# Deployment zones
+[[clusters]]
+id = "public_zone"
+label = "Public Zone"
+nodes = ["cdn", "lb"]
+style = { color = "#E74C3C", style = "dashed" }
+
+[[clusters]]
+id = "app_zone"
+label = "Application Zone (AZ-1)"
+nodes = ["web1", "docker_web1", "app_container1"]
+style = { color = "#3498DB", style = "dashed" }
+
+[[clusters]]
+id = "app_zone2"
+label = "Application Zone (AZ-2)"
+nodes = ["web2", "docker_web2", "app_container2"]
+style = { color = "#3498DB", style = "dashed" }
+
+[[clusters]]
+id = "data_zone"
+label = "Data Zone"
+nodes = ["db_primary", "db_replica", "cache"]
+style = { color = "#27AE60", style = "dashed" }

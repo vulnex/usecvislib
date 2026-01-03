@@ -1,0 +1,461 @@
+#
+# Access Control Diagram Template
+# Access control and permission visualization
+#
+
+[diagram]
+title = "Access Control Diagram"
+description = "Access control and permission visualization"
+layout = "hierarchical"
+direction = "TB"
+style = "cd_default"
+splines = "ortho"
+nodesep = 0.8
+ranksep = 1.0
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.user]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["email", "department"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.group]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description", "member_count"]
+style = { fillcolor = "#9B59B6", fontcolor = "white", style = "filled,rounded" }
+label_template = "{name}"
+
+[schema.nodes.role]
+shape = "hexagon"
+required_fields = ["name"]
+optional_fields = ["level", "description"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.permission]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["action", "scope"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.resource]
+shape = "artifact"
+required_fields = ["name"]
+optional_fields = ["resource_type", "sensitivity"]
+style = { fillcolor = "#E74C3C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.policy]
+shape = "note"
+required_fields = ["name"]
+optional_fields = ["effect", "condition"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.service_account]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["owner"]
+style = { fillcolor = "#95A5A6", fontcolor = "white", style = "filled,dashed" }
+label_template = "{name}"
+
+[schema.edges.member_of]
+style = "solid"
+color = "#333333"
+arrowhead = "none"
+
+[schema.edges.has_role]
+style = "solid"
+color = "#27AE60"
+arrowhead = "normal"
+
+[schema.edges.grants]
+style = "dashed"
+color = "#F39C12"
+arrowhead = "vee"
+label_field = "action"
+
+[schema.edges.applies_to]
+style = "solid"
+color = "#E74C3C"
+arrowhead = "normal"
+
+[schema.edges.inherits]
+style = "dotted"
+color = "#9B59B6"
+arrowhead = "empty"
+
+# =============================================================================
+# Example Data - RBAC Model
+# =============================================================================
+
+# Users
+[[nodes]]
+id = "alice"
+type = "user"
+name = "Alice"
+email = "alice@example.com"
+department = "Engineering"
+
+[[nodes]]
+id = "bob"
+type = "user"
+name = "Bob"
+email = "bob@example.com"
+department = "Engineering"
+
+[[nodes]]
+id = "charlie"
+type = "user"
+name = "Charlie"
+email = "charlie@example.com"
+department = "Security"
+
+[[nodes]]
+id = "diana"
+type = "user"
+name = "Diana"
+email = "diana@example.com"
+department = "HR"
+
+[[nodes]]
+id = "svc_deploy"
+type = "service_account"
+name = "deploy-bot"
+owner = "Platform Team"
+
+# Groups
+[[nodes]]
+id = "grp_eng"
+type = "group"
+name = "Engineering"
+member_count = 50
+
+[[nodes]]
+id = "grp_sec"
+type = "group"
+name = "Security"
+member_count = 10
+
+[[nodes]]
+id = "grp_hr"
+type = "group"
+name = "HR"
+member_count = 15
+
+[[nodes]]
+id = "grp_admins"
+type = "group"
+name = "Administrators"
+member_count = 5
+
+# Roles
+[[nodes]]
+id = "role_viewer"
+type = "role"
+name = "Viewer"
+level = "1"
+description = "Read-only access"
+
+[[nodes]]
+id = "role_developer"
+type = "role"
+name = "Developer"
+level = "2"
+description = "Development access"
+
+[[nodes]]
+id = "role_devops"
+type = "role"
+name = "DevOps"
+level = "3"
+description = "Deployment access"
+
+[[nodes]]
+id = "role_secops"
+type = "role"
+name = "SecOps"
+level = "3"
+description = "Security operations"
+
+[[nodes]]
+id = "role_admin"
+type = "role"
+name = "Admin"
+level = "4"
+description = "Full access"
+
+# Permissions
+[[nodes]]
+id = "perm_read"
+type = "permission"
+name = "Read"
+action = "GET"
+
+[[nodes]]
+id = "perm_write"
+type = "permission"
+name = "Write"
+action = "PUT/POST"
+
+[[nodes]]
+id = "perm_delete"
+type = "permission"
+name = "Delete"
+action = "DELETE"
+
+[[nodes]]
+id = "perm_deploy"
+type = "permission"
+name = "Deploy"
+action = "DEPLOY"
+
+[[nodes]]
+id = "perm_audit"
+type = "permission"
+name = "Audit"
+action = "AUDIT"
+
+[[nodes]]
+id = "perm_manage"
+type = "permission"
+name = "Manage"
+action = "ADMIN"
+
+# Resources
+[[nodes]]
+id = "res_code"
+type = "resource"
+name = "Source Code"
+resource_type = "Repository"
+sensitivity = "High"
+
+[[nodes]]
+id = "res_db_prod"
+type = "resource"
+name = "Production DB"
+resource_type = "Database"
+sensitivity = "Critical"
+
+[[nodes]]
+id = "res_db_dev"
+type = "resource"
+name = "Development DB"
+resource_type = "Database"
+sensitivity = "Medium"
+
+[[nodes]]
+id = "res_logs"
+type = "resource"
+name = "Audit Logs"
+resource_type = "Logs"
+sensitivity = "High"
+
+[[nodes]]
+id = "res_hr"
+type = "resource"
+name = "HR Data"
+resource_type = "PII"
+sensitivity = "Critical"
+
+[[nodes]]
+id = "res_infra"
+type = "resource"
+name = "Infrastructure"
+resource_type = "Cloud"
+sensitivity = "Critical"
+
+# Policies
+[[nodes]]
+id = "pol_mfa"
+type = "policy"
+name = "Require MFA"
+effect = "ENFORCE"
+condition = "Sensitive resources"
+
+[[nodes]]
+id = "pol_time"
+type = "policy"
+name = "Business Hours Only"
+effect = "RESTRICT"
+condition = "9AM-6PM"
+
+# Relationships
+[[edges]]
+from = "alice"
+to = "grp_eng"
+type = "member_of"
+
+[[edges]]
+from = "bob"
+to = "grp_eng"
+type = "member_of"
+
+[[edges]]
+from = "charlie"
+to = "grp_sec"
+type = "member_of"
+
+[[edges]]
+from = "diana"
+to = "grp_hr"
+type = "member_of"
+
+[[edges]]
+from = "alice"
+to = "grp_admins"
+type = "member_of"
+
+[[edges]]
+from = "grp_eng"
+to = "role_developer"
+type = "has_role"
+
+[[edges]]
+from = "grp_sec"
+to = "role_secops"
+type = "has_role"
+
+[[edges]]
+from = "grp_hr"
+to = "role_viewer"
+type = "has_role"
+
+[[edges]]
+from = "grp_admins"
+to = "role_admin"
+type = "has_role"
+
+[[edges]]
+from = "svc_deploy"
+to = "role_devops"
+type = "has_role"
+
+[[edges]]
+from = "role_developer"
+to = "role_viewer"
+type = "inherits"
+
+[[edges]]
+from = "role_devops"
+to = "role_developer"
+type = "inherits"
+
+[[edges]]
+from = "role_admin"
+to = "role_devops"
+type = "inherits"
+
+[[edges]]
+from = "role_viewer"
+to = "perm_read"
+type = "grants"
+action = "allows"
+
+[[edges]]
+from = "role_developer"
+to = "perm_write"
+type = "grants"
+action = "allows"
+
+[[edges]]
+from = "role_devops"
+to = "perm_deploy"
+type = "grants"
+action = "allows"
+
+[[edges]]
+from = "role_secops"
+to = "perm_audit"
+type = "grants"
+action = "allows"
+
+[[edges]]
+from = "role_admin"
+to = "perm_delete"
+type = "grants"
+action = "allows"
+
+[[edges]]
+from = "role_admin"
+to = "perm_manage"
+type = "grants"
+action = "allows"
+
+[[edges]]
+from = "perm_read"
+to = "res_code"
+type = "applies_to"
+
+[[edges]]
+from = "perm_write"
+to = "res_code"
+type = "applies_to"
+
+[[edges]]
+from = "perm_read"
+to = "res_db_dev"
+type = "applies_to"
+
+[[edges]]
+from = "perm_deploy"
+to = "res_db_prod"
+type = "applies_to"
+
+[[edges]]
+from = "perm_audit"
+to = "res_logs"
+type = "applies_to"
+
+[[edges]]
+from = "perm_manage"
+to = "res_infra"
+type = "applies_to"
+
+[[edges]]
+from = "pol_mfa"
+to = "res_db_prod"
+type = "applies_to"
+
+[[edges]]
+from = "pol_mfa"
+to = "res_hr"
+type = "applies_to"
+
+# Groupings
+[[clusters]]
+id = "principals"
+label = "Principals"
+nodes = ["alice", "bob", "charlie", "diana", "svc_deploy"]
+style = { color = "#3498DB", style = "dashed" }
+
+[[clusters]]
+id = "groups"
+label = "Groups"
+nodes = ["grp_eng", "grp_sec", "grp_hr", "grp_admins"]
+style = { color = "#9B59B6", style = "dashed" }
+
+[[clusters]]
+id = "roles"
+label = "Roles"
+nodes = ["role_viewer", "role_developer", "role_devops", "role_secops", "role_admin"]
+style = { color = "#27AE60", style = "dashed" }
+
+[[clusters]]
+id = "permissions"
+label = "Permissions"
+nodes = ["perm_read", "perm_write", "perm_delete", "perm_deploy", "perm_audit", "perm_manage"]
+style = { color = "#F39C12", style = "dashed" }
+
+[[clusters]]
+id = "resources"
+label = "Resources"
+nodes = ["res_code", "res_db_prod", "res_db_dev", "res_logs", "res_hr", "res_infra"]
+style = { color = "#E74C3C", style = "dashed" }

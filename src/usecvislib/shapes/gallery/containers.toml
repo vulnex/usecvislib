@@ -1,0 +1,223 @@
+# Container Shapes Gallery
+# Category: containers
+# Shapes for grouping, clustering, and container elements
+
+[shapes.cluster]
+id = "cluster"
+name = "Cluster"
+category = "containers"
+description = "A general-purpose container for grouping nodes"
+graphviz = { shape = "box", style = "rounded" }
+default_style = { color = "#333333", bgcolor = "#F8F9FA", penwidth = "1" }
+icon = "group"
+ports = []
+tags = ["group", "container", "boundary"]
+
+[shapes.boundary]
+id = "boundary"
+name = "Boundary"
+category = "containers"
+description = "A boundary or security zone"
+graphviz = { shape = "box", style = "dashed" }
+default_style = { color = "#E74C3C", bgcolor = "transparent", penwidth = "2" }
+icon = "border"
+ports = []
+tags = ["zone", "perimeter", "security"]
+
+[shapes.zone]
+id = "zone"
+name = "Zone"
+category = "containers"
+description = "A zone or segment"
+graphviz = { shape = "box", style = "solid" }
+default_style = { color = "#3498DB", bgcolor = "#EBF5FB", penwidth = "1" }
+icon = "zone"
+ports = []
+tags = ["segment", "area", "region"]
+
+[shapes.subnet]
+id = "subnet"
+name = "Subnet"
+category = "containers"
+description = "A network subnet"
+graphviz = { shape = "box", style = "dashed" }
+default_style = { color = "#27AE60", bgcolor = "#E8F8F5", penwidth = "1" }
+icon = "network"
+ports = []
+tags = ["network", "ip", "vlan"]
+
+[shapes.region]
+id = "region"
+name = "Cloud Region"
+category = "containers"
+description = "A cloud region or availability zone"
+graphviz = { shape = "box", style = "rounded,dashed" }
+default_style = { color = "#9B59B6", bgcolor = "#F5EEF8", penwidth = "2" }
+icon = "cloud"
+ports = []
+tags = ["cloud", "aws", "azure", "gcp"]
+
+[shapes.vpc]
+id = "vpc"
+name = "VPC"
+category = "containers"
+description = "Virtual Private Cloud"
+graphviz = { shape = "box", style = "rounded" }
+default_style = { color = "#F39C12", bgcolor = "#FEF9E7", penwidth = "2" }
+icon = "cloud-private"
+ports = []
+tags = ["cloud", "network", "private"]
+
+[shapes.security_group]
+id = "security_group"
+name = "Security Group"
+category = "containers"
+description = "A security group or firewall rules container"
+graphviz = { shape = "box", style = "bold" }
+default_style = { color = "#E74C3C", bgcolor = "#FDEDEC", penwidth = "2" }
+icon = "shield"
+ports = []
+tags = ["firewall", "rules", "cloud"]
+
+[shapes.namespace]
+id = "namespace"
+name = "Namespace"
+category = "containers"
+description = "A Kubernetes namespace or logical grouping"
+graphviz = { shape = "box", style = "rounded,dashed" }
+default_style = { color = "#326CE5", bgcolor = "#EBF3FD", penwidth = "1" }
+icon = "k8s"
+ports = []
+tags = ["kubernetes", "k8s", "container"]
+
+[shapes.pod]
+id = "pod"
+name = "Pod"
+category = "containers"
+description = "A Kubernetes pod"
+graphviz = { shape = "box", style = "rounded" }
+default_style = { color = "#326CE5", bgcolor = "#FFFFFF", penwidth = "1" }
+icon = "k8s-pod"
+ports = []
+tags = ["kubernetes", "k8s", "container"]
+
+[shapes.deployment]
+id = "deployment"
+name = "Deployment"
+category = "containers"
+description = "A Kubernetes deployment"
+graphviz = { shape = "box", style = "rounded,bold" }
+default_style = { color = "#326CE5", bgcolor = "#EBF3FD", penwidth = "2" }
+icon = "k8s-deploy"
+ports = []
+tags = ["kubernetes", "k8s", "workload"]
+
+[shapes.service_mesh]
+id = "service_mesh"
+name = "Service Mesh"
+category = "containers"
+description = "A service mesh boundary"
+graphviz = { shape = "box", style = "dotted" }
+default_style = { color = "#1ABC9C", bgcolor = "#E8F8F5", penwidth = "2" }
+icon = "mesh"
+ports = []
+tags = ["istio", "microservices", "sidecar"]
+
+[shapes.trust_zone]
+id = "trust_zone"
+name = "Trust Zone"
+category = "containers"
+description = "A trust boundary zone"
+graphviz = { shape = "box", style = "bold,dashed" }
+default_style = { color = "#C0392B", bgcolor = "#FADBD8", penwidth = "3" }
+icon = "trust"
+ports = []
+tags = ["security", "boundary", "threat-model"]
+
+[shapes.dmz]
+id = "dmz"
+name = "DMZ"
+category = "containers"
+description = "Demilitarized zone"
+graphviz = { shape = "box", style = "bold" }
+default_style = { color = "#E67E22", bgcolor = "#FEF5E7", penwidth = "2" }
+icon = "dmz"
+ports = []
+tags = ["network", "security", "perimeter"]
+
+[shapes.lan]
+id = "lan"
+name = "LAN"
+category = "containers"
+description = "Local Area Network"
+graphviz = { shape = "box", style = "rounded" }
+default_style = { color = "#2980B9", bgcolor = "#EBF5FB", penwidth = "1" }
+icon = "lan"
+ports = []
+tags = ["network", "internal", "local"]
+
+[shapes.wan]
+id = "wan"
+name = "WAN"
+category = "containers"
+description = "Wide Area Network"
+graphviz = { shape = "box", style = "rounded,dashed" }
+default_style = { color = "#8E44AD", bgcolor = "#F5EEF8", penwidth = "1" }
+icon = "wan"
+ports = []
+tags = ["network", "external", "wide"]
+
+[shapes.swimlane]
+id = "swimlane"
+name = "Swimlane"
+category = "containers"
+description = "A swimlane for process diagrams"
+graphviz = { shape = "box", style = "solid" }
+default_style = { color = "#7F8C8D", bgcolor = "#F8F9FA", penwidth = "1" }
+icon = "lane"
+ports = []
+tags = ["process", "role", "bpmn"]
+
+[shapes.frame]
+id = "frame"
+name = "Frame"
+category = "containers"
+description = "A UML frame or diagram boundary"
+graphviz = { shape = "box", style = "solid" }
+default_style = { color = "#333333", bgcolor = "#FFFFFF", penwidth = "1" }
+icon = "frame"
+ports = []
+tags = ["uml", "diagram", "container"]
+
+[shapes.layer]
+id = "layer"
+name = "Layer"
+category = "containers"
+description = "An architectural layer"
+graphviz = { shape = "box", style = "filled" }
+default_style = { color = "#333333", bgcolor = "#ECF0F1", penwidth = "1" }
+icon = "layer"
+ports = []
+tags = ["architecture", "tier", "level"]
+
+[shapes.module_container]
+id = "module_container"
+name = "Module"
+category = "containers"
+description = "A module or component container"
+graphviz = { shape = "box", style = "rounded" }
+default_style = { color = "#16A085", bgcolor = "#E8F8F5", penwidth = "1" }
+icon = "module"
+ports = []
+tags = ["component", "library", "package"]
+
+[shapes.environment]
+id = "environment"
+name = "Environment"
+category = "containers"
+description = "A deployment environment (dev, staging, prod)"
+graphviz = { shape = "box", style = "rounded,bold" }
+default_style = { color = "#2C3E50", bgcolor = "#D5D8DC", penwidth = "2" }
+icon = "env"
+ports = []
+tags = ["deployment", "ci-cd", "infrastructure"]

@@ -1,0 +1,287 @@
+#
+# USecVisLib - Cloud Attack Graph with Bundled Icons
+#
+# This template demonstrates using bundled icons in attack graph visualizations.
+# Icons can be from any bundled category: aws, azure, or bootstrap.
+#
+# Usage:
+#   usecvis -m 2 -i cloud_with_icons.toml -o output -f png
+#
+# Icon Reference Formats:
+#   image = "bundled:aws/Category/IconName"
+#   image = "bundled:bootstrap/icons/icons/icon-name"
+#
+
+[graph]
+name = "Cloud Infrastructure Attack Graph with Icons"
+description = "Attack graph demonstrating icon support for cloud infrastructure visualization"
+engineversion = "0.3.1"
+version = "1.0.0"
+type = "Attack Graph"
+date = "2025-12-30"
+author = "VULNEX"
+email = "info@vulnex.com"
+url = "https://www.vulnex.com"
+
+# =============================================================================
+# Hosts with Icons
+# =============================================================================
+
+[[hosts]]
+id = "attacker"
+label = "Attacker"
+description = "External threat actor"
+zone = "external"
+image = "bundled:bootstrap/icons/icons/person-fill-exclamation"
+
+[[hosts]]
+id = "waf"
+label = "WAF/CDN"
+description = "Web Application Firewall"
+ip = "10.0.0.1"
+zone = "edge"
+image = "bundled:aws/Security-Identity-Compliance/WAF"
+
+[[hosts]]
+id = "loadbalancer"
+label = "Load Balancer"
+description = "Application Load Balancer"
+ip = "10.0.1.10"
+zone = "dmz"
+image = "bundled:aws/Networking-Content-Delivery/Elastic-Load-Balancing"
+
+[[hosts]]
+id = "webserver"
+label = "Web Server"
+description = "EC2 Web Server instances"
+ip = "10.0.2.10"
+zone = "web"
+os = "Amazon Linux 2"
+image = "bundled:aws/Compute/EC2"
+
+[[hosts]]
+id = "appserver"
+label = "Application Server"
+description = "Lambda application backend"
+ip = "10.0.3.10"
+zone = "application"
+image = "bundled:aws/Compute/Lambda"
+
+[[hosts]]
+id = "database"
+label = "RDS Database"
+description = "PostgreSQL RDS instance"
+ip = "10.0.4.10"
+zone = "data"
+os = "PostgreSQL 14"
+image = "bundled:aws/Database/RDS"
+
+[[hosts]]
+id = "secrets"
+label = "Secrets Manager"
+description = "AWS Secrets Manager"
+ip = "10.0.5.10"
+zone = "secure"
+image = "bundled:aws/Security-Identity-Compliance/Secrets-Manager"
+
+# =============================================================================
+# Vulnerabilities with CVSS Vectors
+# =============================================================================
+
+[[vulnerabilities]]
+id = "vuln_waf_bypass"
+label = "WAF Bypass"
+description = "WAF rule bypass via encoding"
+cvss_vector = "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:L/A:N"
+affected_host = "waf"
+
+[[vulnerabilities]]
+id = "vuln_web_ssrf"
+label = "SSRF Vulnerability"
+description = "Server-side request forgery in web app"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:L/A:N"
+affected_host = "webserver"
+
+[[vulnerabilities]]
+id = "vuln_app_rce"
+label = "Remote Code Execution"
+description = "RCE in Lambda function"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+affected_host = "appserver"
+
+[[vulnerabilities]]
+id = "vuln_db_sqli"
+label = "SQL Injection"
+description = "SQL injection in API"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N"
+affected_host = "database"
+
+[[vulnerabilities]]
+id = "vuln_secrets_iam"
+label = "IAM Misconfiguration"
+description = "Overly permissive IAM role"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:N/A:N"
+affected_host = "secrets"
+
+# =============================================================================
+# Privileges
+# =============================================================================
+
+[[privileges]]
+id = "priv_waf_access"
+label = "WAF Bypass"
+description = "Bypass WAF protection"
+host = "waf"
+level = "bypass"
+
+[[privileges]]
+id = "priv_web_user"
+label = "Web User Shell"
+description = "User-level access on web server"
+host = "webserver"
+level = "user"
+
+[[privileges]]
+id = "priv_app_exec"
+label = "Lambda Execution"
+description = "Code execution in Lambda"
+host = "appserver"
+level = "function"
+
+[[privileges]]
+id = "priv_db_read"
+label = "Database Read"
+description = "Read access to database"
+host = "database"
+level = "read"
+
+[[privileges]]
+id = "priv_db_admin"
+label = "Database Admin"
+description = "Admin access to database"
+host = "database"
+level = "admin"
+
+[[privileges]]
+id = "priv_secrets_read"
+label = "Secrets Access"
+description = "Read secrets from manager"
+host = "secrets"
+level = "read"
+
+# =============================================================================
+# Services
+# =============================================================================
+
+[[services]]
+id = "svc_https"
+label = "HTTPS"
+host = "waf"
+port = 443
+protocol = "tcp"
+
+[[services]]
+id = "svc_http"
+label = "HTTP"
+host = "webserver"
+port = 80
+protocol = "tcp"
+
+[[services]]
+id = "svc_api"
+label = "REST API"
+host = "appserver"
+port = 443
+protocol = "tcp"
+
+[[services]]
+id = "svc_postgres"
+label = "PostgreSQL"
+host = "database"
+port = 5432
+protocol = "tcp"
+
+# =============================================================================
+# Exploits
+# =============================================================================
+
+[[exploits]]
+id = "exploit_waf_bypass"
+label = "WAF Encoding Bypass"
+description = "Bypass WAF using unicode encoding"
+vulnerability = "vuln_waf_bypass"
+precondition = "attacker"
+postcondition = "priv_waf_access"
+
+[[exploits]]
+id = "exploit_ssrf"
+label = "SSRF to Internal"
+description = "SSRF to access internal services"
+vulnerability = "vuln_web_ssrf"
+precondition = "priv_waf_access"
+postcondition = "priv_web_user"
+
+[[exploits]]
+id = "exploit_rce"
+label = "Lambda RCE"
+description = "Exploit RCE to get Lambda execution"
+vulnerability = "vuln_app_rce"
+precondition = "priv_web_user"
+postcondition = "priv_app_exec"
+
+[[exploits]]
+id = "exploit_sqli"
+label = "SQL Injection Attack"
+description = "SQL injection to extract data"
+vulnerability = "vuln_db_sqli"
+precondition = "priv_app_exec"
+postcondition = "priv_db_read"
+
+[[exploits]]
+id = "exploit_secrets"
+label = "IAM Role Abuse"
+description = "Abuse IAM misconfiguration"
+vulnerability = "vuln_secrets_iam"
+precondition = "priv_app_exec"
+postcondition = "priv_secrets_read"
+
+[[exploits]]
+id = "exploit_db_admin"
+label = "Privilege Escalation"
+description = "Escalate to database admin"
+precondition = "priv_db_read"
+postcondition = "priv_db_admin"
+
+# =============================================================================
+# Network Edges
+# =============================================================================
+
+[[network_edges]]
+from = "attacker"
+to = "waf"
+label = "Internet Access"
+
+[[network_edges]]
+from = "waf"
+to = "loadbalancer"
+label = "Filtered Traffic"
+
+[[network_edges]]
+from = "loadbalancer"
+to = "webserver"
+label = "Load Balanced"
+
+[[network_edges]]
+from = "webserver"
+to = "appserver"
+label = "API Calls"
+
+[[network_edges]]
+from = "appserver"
+to = "database"
+label = "DB Connection"
+
+[[network_edges]]
+from = "appserver"
+to = "secrets"
+label = "Secrets Access"

@@ -1,0 +1,221 @@
+graph:
+  name: Corporate Network Attack Scenario
+  description: Attack graph modeling potential intrusion paths in a corporate network
+  engineversion: 0.2.5
+  version: 1.0.0
+  type: Attack Graph
+  date: '2025-12-25'
+  last_modified: '2025-12-25'
+  author: VULNEX
+  email: info@vulnex.com
+  url: https://www.vulnex.com
+hosts:
+- id: attacker
+  label: External Attacker
+  description: Threat actor on the internet
+  ip: 0.0.0.0
+  zone: external
+- id: firewall
+  label: Perimeter Firewall
+  description: Corporate firewall/IDS
+  ip: 10.0.0.1
+  zone: dmz
+- id: webserver
+  label: Web Server
+  description: Public-facing web application server
+  ip: 10.0.1.10
+  zone: dmz
+  os: Linux
+- id: mailserver
+  label: Mail Server
+  description: Corporate email server
+  ip: 10.0.1.20
+  zone: dmz
+  os: Windows Server
+- id: workstation1
+  label: User Workstation
+  description: Employee desktop
+  ip: 10.0.2.50
+  zone: internal
+  os: Windows 10
+- id: dbserver
+  label: Database Server
+  description: SQL database with sensitive data
+  ip: 10.0.3.10
+  zone: internal
+  os: Linux
+- id: adserver
+  label: Active Directory
+  description: Domain controller
+  ip: 10.0.3.5
+  zone: internal
+  os: Windows Server
+- id: fileserver
+  label: File Server
+  description: Corporate file share
+  ip: 10.0.3.15
+  zone: internal
+  os: Windows Server
+vulnerabilities:
+- id: vuln_rce_web
+  label: Web App RCE
+  description: Remote code execution in web application
+  cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+  cve: CVE-2023-XXXX
+  affected_host: webserver
+- id: vuln_sqli
+  label: SQL Injection
+  description: SQL injection in web application
+  cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
+  cve: CVE-2023-YYYY
+  affected_host: webserver
+- id: vuln_phishing
+  label: Phishing Vulnerability
+  description: Users susceptible to phishing attacks
+  cvss: 7.5
+  affected_host: workstation1
+- id: vuln_eternalblue
+  label: SMB Vulnerability
+  description: EternalBlue-like SMB vulnerability
+  cvss_vector: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:H
+  cve: CVE-2017-0144
+  affected_host: fileserver
+- id: vuln_zerologon
+  label: Zerologon
+  description: Netlogon privilege escalation
+  cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
+  cve: CVE-2020-1472
+  affected_host: adserver
+- id: vuln_db_misconfig
+  label: DB Misconfiguration
+  description: Database with weak authentication
+  cvss: 7.2
+  affected_host: dbserver
+privileges:
+- id: priv_web_shell
+  label: Web Shell Access
+  description: Command execution on web server
+  host: webserver
+  level: user
+- id: priv_web_root
+  label: Web Server Root
+  description: Root access on web server
+  host: webserver
+  level: root
+- id: priv_user_access
+  label: User Workstation Access
+  description: Access to user workstation
+  host: workstation1
+  level: user
+- id: priv_domain_user
+  label: Domain User
+  description: Active Directory domain user
+  host: adserver
+  level: user
+- id: priv_domain_admin
+  label: Domain Admin
+  description: Full domain administrator
+  host: adserver
+  level: admin
+- id: priv_db_access
+  label: Database Access
+  description: Access to database server
+  host: dbserver
+  level: user
+- id: priv_db_admin
+  label: Database Admin
+  description: DBA privileges
+  host: dbserver
+  level: admin
+services:
+- id: svc_http
+  label: HTTP/HTTPS
+  host: webserver
+  port: 443
+  protocol: tcp
+- id: svc_smtp
+  label: SMTP
+  host: mailserver
+  port: 25
+  protocol: tcp
+- id: svc_smb
+  label: SMB
+  host: fileserver
+  port: 445
+  protocol: tcp
+- id: svc_ldap
+  label: LDAP
+  host: adserver
+  port: 389
+  protocol: tcp
+- id: svc_mssql
+  label: MSSQL
+  host: dbserver
+  port: 1433
+  protocol: tcp
+exploits:
+- id: exploit_web_rce
+  label: Exploit Web RCE
+  description: Exploit RCE vulnerability in web application
+  vulnerability: vuln_rce_web
+  precondition: attacker
+  postcondition: priv_web_shell
+- id: exploit_sqli
+  label: Exploit SQLi
+  description: SQL injection to extract credentials
+  vulnerability: vuln_sqli
+  precondition: attacker
+  postcondition: priv_db_access
+- id: exploit_privesc_web
+  label: Local Privilege Escalation
+  description: Escalate from web shell to root
+  precondition: priv_web_shell
+  postcondition: priv_web_root
+- id: exploit_phishing
+  label: Phishing Attack
+  description: Spear phishing to gain workstation access
+  vulnerability: vuln_phishing
+  precondition: attacker
+  postcondition: priv_user_access
+- id: exploit_eternalblue
+  label: EternalBlue Exploit
+  description: SMB exploit for lateral movement
+  vulnerability: vuln_eternalblue
+  precondition: priv_domain_user
+  postcondition: priv_domain_admin
+- id: exploit_zerologon
+  label: Zerologon Exploit
+  description: Zerologon for domain admin
+  vulnerability: vuln_zerologon
+  precondition: priv_user_access
+  postcondition: priv_domain_admin
+- id: exploit_db_misconfig
+  label: Database Compromise
+  description: Exploit weak DB authentication
+  vulnerability: vuln_db_misconfig
+  precondition: priv_domain_user
+  postcondition: priv_db_admin
+- id: exploit_lateral_ad
+  label: AD Credential Theft
+  description: Use domain admin to access database
+  precondition: priv_domain_admin
+  postcondition: priv_db_admin
+network_edges:
+- from: attacker
+  to: webserver
+  label: Internet Access
+- from: attacker
+  to: mailserver
+  label: Internet Access
+- from: webserver
+  to: dbserver
+  label: App to DB
+- from: workstation1
+  to: adserver
+  label: Domain Member
+- from: workstation1
+  to: fileserver
+  label: File Access
+- from: adserver
+  to: dbserver
+  label: Domain Trust

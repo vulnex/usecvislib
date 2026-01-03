@@ -1,0 +1,278 @@
+#
+# System Architecture Template
+# Layered system architecture with components
+#
+
+[diagram]
+title = "System Architecture"
+description = "Layered system architecture diagram"
+layout = "hierarchical"
+direction = "TB"
+style = "cd_blueprint"
+splines = "ortho"
+nodesep = 0.6
+ranksep = 1.0
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.client]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["type", "platform"]
+style = { fillcolor = "#9B59B6", fontcolor = "white", style = "filled,rounded" }
+label_template = "{name}"
+
+[schema.nodes.service]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["technology", "port"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.api]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["protocol", "version"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white", style = "filled,bold" }
+label_template = "{name}"
+
+[schema.nodes.database]
+shape = "database"
+required_fields = ["name"]
+optional_fields = ["type", "engine"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}\n({type})"
+
+[schema.nodes.cache]
+shape = "hexagon"
+required_fields = ["name"]
+optional_fields = ["type"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.queue]
+shape = "parallelogram"
+required_fields = ["name"]
+optional_fields = ["type"]
+style = { fillcolor = "#E74C3C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.external]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["provider"]
+style = { fillcolor = "#95A5A6", fontcolor = "white", style = "filled,dashed" }
+label_template = "{name}"
+
+[schema.nodes.loadbalancer]
+shape = "trapezium"
+required_fields = ["name"]
+style = { fillcolor = "#34495E", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.edges.request]
+style = "solid"
+color = "#3498DB"
+arrowhead = "vee"
+label_field = "protocol"
+
+[schema.edges.response]
+style = "dashed"
+color = "#27AE60"
+arrowhead = "vee"
+
+[schema.edges.async]
+style = "dotted"
+color = "#E74C3C"
+arrowhead = "normal"
+label_field = "event"
+
+[schema.edges.reads]
+style = "solid"
+color = "#F39C12"
+arrowhead = "normal"
+
+[schema.edges.writes]
+style = "solid"
+color = "#E74C3C"
+arrowhead = "normal"
+
+# =============================================================================
+# Example Data - Web Application Architecture
+# =============================================================================
+
+[[nodes]]
+id = "web"
+type = "client"
+name = "Web App"
+platform = "React"
+
+[[nodes]]
+id = "mobile"
+type = "client"
+name = "Mobile App"
+platform = "React Native"
+
+[[nodes]]
+id = "lb"
+type = "loadbalancer"
+name = "Load Balancer"
+
+[[nodes]]
+id = "gateway"
+type = "api"
+name = "API Gateway"
+protocol = "REST/GraphQL"
+
+[[nodes]]
+id = "auth"
+type = "service"
+name = "Auth Service"
+technology = "Node.js"
+
+[[nodes]]
+id = "user"
+type = "service"
+name = "User Service"
+technology = "Python"
+
+[[nodes]]
+id = "order"
+type = "service"
+name = "Order Service"
+technology = "Go"
+
+[[nodes]]
+id = "notification"
+type = "service"
+name = "Notification"
+technology = "Node.js"
+
+[[nodes]]
+id = "redis"
+type = "cache"
+name = "Redis"
+
+[[nodes]]
+id = "rabbitmq"
+type = "queue"
+name = "RabbitMQ"
+
+[[nodes]]
+id = "postgres"
+type = "database"
+name = "PostgreSQL"
+
+[[nodes]]
+id = "mongodb"
+type = "database"
+name = "MongoDB"
+
+[[nodes]]
+id = "stripe"
+type = "external"
+name = "Stripe API"
+provider = "Stripe"
+
+[[nodes]]
+id = "sendgrid"
+type = "external"
+name = "SendGrid"
+provider = "Twilio"
+
+[[edges]]
+from = "web"
+to = "lb"
+type = "request"
+protocol = "HTTPS"
+
+[[edges]]
+from = "mobile"
+to = "lb"
+type = "request"
+protocol = "HTTPS"
+
+[[edges]]
+from = "lb"
+to = "gateway"
+type = "request"
+
+[[edges]]
+from = "gateway"
+to = "auth"
+type = "request"
+
+[[edges]]
+from = "gateway"
+to = "user"
+type = "request"
+
+[[edges]]
+from = "gateway"
+to = "order"
+type = "request"
+
+[[edges]]
+from = "auth"
+to = "redis"
+type = "reads"
+
+[[edges]]
+from = "user"
+to = "postgres"
+type = "reads"
+
+[[edges]]
+from = "order"
+to = "mongodb"
+type = "reads"
+
+[[edges]]
+from = "order"
+to = "rabbitmq"
+type = "async"
+event = "order.created"
+
+[[edges]]
+from = "rabbitmq"
+to = "notification"
+type = "async"
+
+[[edges]]
+from = "order"
+to = "stripe"
+type = "request"
+protocol = "HTTPS"
+
+[[edges]]
+from = "notification"
+to = "sendgrid"
+type = "request"
+protocol = "HTTPS"
+
+# Clusters for layers
+[[clusters]]
+id = "clients"
+label = "Client Layer"
+nodes = ["web", "mobile"]
+style = { color = "#9B59B6", style = "dashed" }
+
+[[clusters]]
+id = "gateway_layer"
+label = "Gateway Layer"
+nodes = ["lb", "gateway"]
+style = { color = "#1ABC9C", style = "dashed" }
+
+[[clusters]]
+id = "services"
+label = "Service Layer"
+nodes = ["auth", "user", "order", "notification"]
+style = { color = "#3498DB", style = "dashed" }
+
+[[clusters]]
+id = "data"
+label = "Data Layer"
+nodes = ["redis", "rabbitmq", "postgres", "mongodb"]
+style = { color = "#27AE60", style = "dashed" }

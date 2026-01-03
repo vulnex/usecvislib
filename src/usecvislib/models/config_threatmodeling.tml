@@ -1,0 +1,589 @@
+#
+# Config Threat Modeling Styles
+#
+
+# =============================================================================
+# Default - Clean modern style
+# =============================================================================
+[tm_default]
+[tm_default.graph]
+rankdir = "LR"
+bgcolor = "white"
+fontname = "Arial"
+
+[tm_default.process]
+shape = "rectangle"
+style = "filled"
+fillcolor = "#3498db"
+fontcolor = "white"
+fontname = "Arial"
+
+[tm_default.datastore]
+shape = "cylinder"
+style = "filled"
+fillcolor = "#2ecc71"
+fontcolor = "white"
+fontname = "Arial"
+
+[tm_default.external]
+shape = "rectangle"
+style = "filled,dashed"
+fillcolor = "#95a5a6"
+fontcolor = "white"
+fontname = "Arial"
+
+[tm_default.dataflow]
+color = "#34495e"
+style = "solid"
+fontname = "Arial"
+fontsize = "10"
+
+[tm_default.trustboundary]
+color = "#e74c3c"
+style = "dashed"
+penwidth = "2"
+fontname = "Arial"
+
+# =============================================================================
+# STRIDE - Focused threat analysis style
+# =============================================================================
+[tm_stride]
+[tm_stride.graph]
+rankdir = "TB"
+bgcolor = "#f8f9fa"
+fontname = "Helvetica"
+
+[tm_stride.process]
+shape = "ellipse"
+style = "filled"
+fillcolor = "#6c5ce7"
+fontcolor = "white"
+fontname = "Helvetica"
+
+[tm_stride.datastore]
+shape = "cylinder"
+style = "filled"
+fillcolor = "#00b894"
+fontcolor = "white"
+fontname = "Helvetica"
+
+[tm_stride.external]
+shape = "box"
+style = "filled,rounded"
+fillcolor = "#636e72"
+fontcolor = "white"
+fontname = "Helvetica"
+
+[tm_stride.dataflow]
+color = "#2d3436"
+style = "solid"
+fontname = "Helvetica"
+fontsize = "9"
+
+[tm_stride.trustboundary]
+color = "#d63031"
+style = "bold,dashed"
+penwidth = "3"
+fontname = "Helvetica"
+
+# =============================================================================
+# Dark - Dark theme for presentations
+# =============================================================================
+[tm_dark]
+[tm_dark.graph]
+rankdir = "LR"
+bgcolor = "#2c3e50"
+fontname = "Courier"
+fontcolor = "white"
+
+[tm_dark.process]
+shape = "rectangle"
+style = "filled"
+fillcolor = "#9b59b6"
+fontcolor = "white"
+fontname = "Courier"
+
+[tm_dark.datastore]
+shape = "cylinder"
+style = "filled"
+fillcolor = "#16a085"
+fontcolor = "white"
+fontname = "Courier"
+
+[tm_dark.external]
+shape = "rectangle"
+style = "filled,dashed"
+fillcolor = "#7f8c8d"
+fontcolor = "white"
+fontname = "Courier"
+
+[tm_dark.dataflow]
+color = "#ecf0f1"
+style = "solid"
+fontname = "Courier"
+fontsize = "10"
+fontcolor = "white"
+
+[tm_dark.trustboundary]
+color = "#e74c3c"
+style = "dashed"
+penwidth = "2"
+fontname = "Courier"
+fontcolor = "#e74c3c"
+
+# =============================================================================
+# Corporate - Enterprise professional style
+# =============================================================================
+[tm_corporate]
+[tm_corporate.graph]
+rankdir = "LR"
+bgcolor = "#f5f6fa"
+fontname = "Segoe UI"
+pad = "0.5"
+
+[tm_corporate.process]
+shape = "rectangle"
+style = "filled,rounded"
+fillcolor = "#1e3a5f"
+fontcolor = "white"
+fontname = "Segoe UI"
+fontsize = "11"
+
+[tm_corporate.datastore]
+shape = "cylinder"
+style = "filled"
+fillcolor = "#2c5282"
+fontcolor = "white"
+fontname = "Segoe UI"
+fontsize = "11"
+
+[tm_corporate.external]
+shape = "rectangle"
+style = "filled,rounded"
+fillcolor = "#4a5568"
+fontcolor = "white"
+fontname = "Segoe UI"
+fontsize = "11"
+
+[tm_corporate.dataflow]
+color = "#2d3748"
+style = "solid"
+fontname = "Segoe UI"
+fontsize = "9"
+penwidth = "1.2"
+
+[tm_corporate.trustboundary]
+color = "#c53030"
+style = "dashed"
+penwidth = "2.5"
+fontname = "Segoe UI Bold"
+fontcolor = "#c53030"
+
+# =============================================================================
+# Neon - Cyberpunk style
+# =============================================================================
+[tm_neon]
+[tm_neon.graph]
+rankdir = "TB"
+bgcolor = "#0a0a0f"
+fontname = "Consolas"
+fontcolor = "#00ff9f"
+
+[tm_neon.process]
+shape = "rectangle"
+style = "filled"
+fillcolor = "#1a1a2e"
+fontcolor = "#00ff9f"
+fontname = "Consolas"
+fontsize = "11"
+penwidth = "2"
+color = "#00ff9f"
+
+[tm_neon.datastore]
+shape = "cylinder"
+style = "filled"
+fillcolor = "#16213e"
+fontcolor = "#ff00ff"
+fontname = "Consolas"
+fontsize = "11"
+penwidth = "2"
+color = "#ff00ff"
+
+[tm_neon.external]
+shape = "rectangle"
+style = "filled,dashed"
+fillcolor = "#0f0f1a"
+fontcolor = "#00d4ff"
+fontname = "Consolas"
+fontsize = "11"
+penwidth = "1.5"
+color = "#00d4ff"
+
+[tm_neon.dataflow]
+color = "#ff6b6b"
+style = "solid"
+fontname = "Consolas"
+fontsize = "9"
+fontcolor = "#ff6b6b"
+penwidth = "1.5"
+
+[tm_neon.trustboundary]
+color = "#ffd93d"
+style = "dashed"
+penwidth = "3"
+fontname = "Consolas"
+fontcolor = "#ffd93d"
+
+# =============================================================================
+# Minimal - Clean black and white
+# =============================================================================
+[tm_minimal]
+[tm_minimal.graph]
+rankdir = "LR"
+bgcolor = "white"
+fontname = "Helvetica"
+
+[tm_minimal.process]
+shape = "rectangle"
+style = "filled"
+fillcolor = "white"
+fontcolor = "black"
+fontname = "Helvetica"
+fontsize = "11"
+penwidth = "2"
+color = "black"
+
+[tm_minimal.datastore]
+shape = "cylinder"
+style = "filled"
+fillcolor = "white"
+fontcolor = "black"
+fontname = "Helvetica"
+fontsize = "11"
+penwidth = "2"
+color = "black"
+
+[tm_minimal.external]
+shape = "rectangle"
+style = "filled,dashed"
+fillcolor = "#f5f5f5"
+fontcolor = "black"
+fontname = "Helvetica"
+fontsize = "11"
+penwidth = "1.5"
+color = "#666666"
+
+[tm_minimal.dataflow]
+color = "#333333"
+style = "solid"
+fontname = "Helvetica"
+fontsize = "9"
+penwidth = "1"
+
+[tm_minimal.trustboundary]
+color = "#999999"
+style = "dashed"
+penwidth = "2"
+fontname = "Helvetica"
+fontcolor = "#666666"
+
+# =============================================================================
+# Ocean - Calm blue ocean tones
+# =============================================================================
+[tm_ocean]
+[tm_ocean.graph]
+rankdir = "LR"
+bgcolor = "#e8f4f8"
+fontname = "Verdana"
+
+[tm_ocean.process]
+shape = "rectangle"
+style = "filled,rounded"
+fillcolor = "#0077b6"
+fontcolor = "white"
+fontname = "Verdana"
+fontsize = "11"
+
+[tm_ocean.datastore]
+shape = "cylinder"
+style = "filled"
+fillcolor = "#023e8a"
+fontcolor = "white"
+fontname = "Verdana"
+fontsize = "11"
+
+[tm_ocean.external]
+shape = "rectangle"
+style = "filled,rounded"
+fillcolor = "#48cae4"
+fontcolor = "#023047"
+fontname = "Verdana"
+fontsize = "11"
+
+[tm_ocean.dataflow]
+color = "#0096c7"
+style = "solid"
+fontname = "Verdana"
+fontsize = "9"
+penwidth = "1.5"
+
+[tm_ocean.trustboundary]
+color = "#03045e"
+style = "dashed"
+penwidth = "2.5"
+fontname = "Verdana Bold"
+fontcolor = "#03045e"
+
+# =============================================================================
+# Sunset - Warm sunset colors
+# =============================================================================
+[tm_sunset]
+[tm_sunset.graph]
+rankdir = "TB"
+bgcolor = "#fff8f0"
+fontname = "Georgia"
+
+[tm_sunset.process]
+shape = "rectangle"
+style = "filled,rounded"
+fillcolor = "#ff6b6b"
+fontcolor = "white"
+fontname = "Georgia"
+fontsize = "11"
+
+[tm_sunset.datastore]
+shape = "cylinder"
+style = "filled"
+fillcolor = "#c44536"
+fontcolor = "white"
+fontname = "Georgia"
+fontsize = "11"
+
+[tm_sunset.external]
+shape = "rectangle"
+style = "filled,rounded"
+fillcolor = "#ffd93d"
+fontcolor = "#772e25"
+fontname = "Georgia"
+fontsize = "11"
+
+[tm_sunset.dataflow]
+color = "#f77f00"
+style = "solid"
+fontname = "Georgia"
+fontsize = "9"
+penwidth = "1.5"
+
+[tm_sunset.trustboundary]
+color = "#772e25"
+style = "dashed"
+penwidth = "2.5"
+fontname = "Georgia Bold"
+fontcolor = "#772e25"
+
+# =============================================================================
+# Forest - Natural green tones
+# =============================================================================
+[tm_forest]
+[tm_forest.graph]
+rankdir = "LR"
+bgcolor = "#f0f7f0"
+fontname = "Palatino"
+
+[tm_forest.process]
+shape = "rectangle"
+style = "filled,rounded"
+fillcolor = "#2d6a4f"
+fontcolor = "white"
+fontname = "Palatino"
+fontsize = "11"
+
+[tm_forest.datastore]
+shape = "cylinder"
+style = "filled"
+fillcolor = "#1b4332"
+fontcolor = "white"
+fontname = "Palatino"
+fontsize = "11"
+
+[tm_forest.external]
+shape = "rectangle"
+style = "filled,rounded"
+fillcolor = "#95d5b2"
+fontcolor = "#1b4332"
+fontname = "Palatino"
+fontsize = "11"
+
+[tm_forest.dataflow]
+color = "#40916c"
+style = "solid"
+fontname = "Palatino"
+fontsize = "9"
+penwidth = "1.5"
+
+[tm_forest.trustboundary]
+color = "#081c15"
+style = "dashed"
+penwidth = "2.5"
+fontname = "Palatino Bold"
+fontcolor = "#081c15"
+
+# =============================================================================
+# Blueprint - Technical schematic style
+# =============================================================================
+[tm_blueprint]
+[tm_blueprint.graph]
+rankdir = "TB"
+bgcolor = "#1a365d"
+fontname = "Courier New"
+fontcolor = "white"
+
+[tm_blueprint.process]
+shape = "rectangle"
+style = "filled"
+fillcolor = "#2c5282"
+fontcolor = "#bee3f8"
+fontname = "Courier New"
+fontsize = "10"
+penwidth = "1.5"
+color = "#bee3f8"
+
+[tm_blueprint.datastore]
+shape = "cylinder"
+style = "filled"
+fillcolor = "#2a4365"
+fontcolor = "#bee3f8"
+fontname = "Courier New"
+fontsize = "10"
+penwidth = "1.5"
+color = "#bee3f8"
+
+[tm_blueprint.external]
+shape = "rectangle"
+style = "filled,dashed"
+fillcolor = "#1a365d"
+fontcolor = "#90cdf4"
+fontname = "Courier New"
+fontsize = "10"
+penwidth = "1"
+color = "#90cdf4"
+
+[tm_blueprint.dataflow]
+color = "#63b3ed"
+style = "dashed"
+fontname = "Courier New"
+fontsize = "8"
+fontcolor = "#90cdf4"
+penwidth = "1"
+
+[tm_blueprint.trustboundary]
+color = "#fc8181"
+style = "dashed"
+penwidth = "2"
+fontname = "Courier New"
+fontcolor = "#fc8181"
+
+# =============================================================================
+# Hacker - Matrix terminal style
+# =============================================================================
+[tm_hacker]
+[tm_hacker.graph]
+rankdir = "TB"
+bgcolor = "#000000"
+fontname = "Courier"
+fontcolor = "#00ff00"
+
+[tm_hacker.process]
+shape = "rectangle"
+style = "filled"
+fillcolor = "#001a00"
+fontcolor = "#00ff00"
+fontname = "Courier"
+fontsize = "10"
+penwidth = "1.5"
+color = "#00ff00"
+
+[tm_hacker.datastore]
+shape = "cylinder"
+style = "filled"
+fillcolor = "#002200"
+fontcolor = "#00dd00"
+fontname = "Courier"
+fontsize = "10"
+penwidth = "1.5"
+color = "#00dd00"
+
+[tm_hacker.external]
+shape = "rectangle"
+style = "filled,dashed"
+fillcolor = "#000a00"
+fontcolor = "#00bb00"
+fontname = "Courier"
+fontsize = "10"
+penwidth = "1"
+color = "#00bb00"
+
+[tm_hacker.dataflow]
+color = "#00ff00"
+style = "solid"
+fontname = "Courier"
+fontsize = "8"
+fontcolor = "#00ff00"
+penwidth = "1"
+
+[tm_hacker.trustboundary]
+color = "#ff0000"
+style = "dashed"
+penwidth = "2"
+fontname = "Courier"
+fontcolor = "#ff0000"
+
+# =============================================================================
+# Plain - No colors, just black outlines (for printing/documents)
+# =============================================================================
+[tm_plain]
+[tm_plain.graph]
+rankdir = "LR"
+bgcolor = "white"
+fontname = "Helvetica"
+
+[tm_plain.process]
+shape = "rectangle"
+style = ""
+fontcolor = "black"
+fontname = "Helvetica"
+fontsize = "11"
+penwidth = "1"
+color = "black"
+
+[tm_plain.datastore]
+shape = "cylinder"
+style = ""
+fontcolor = "black"
+fontname = "Helvetica"
+fontsize = "11"
+penwidth = "1"
+color = "black"
+
+[tm_plain.external]
+shape = "rectangle"
+style = "dashed"
+fontcolor = "black"
+fontname = "Helvetica"
+fontsize = "11"
+penwidth = "1"
+color = "black"
+
+[tm_plain.dataflow]
+color = "black"
+style = "solid"
+fontname = "Helvetica"
+fontsize = "9"
+penwidth = "1"
+
+[tm_plain.trustboundary]
+color = "black"
+style = "dashed"
+penwidth = "1.5"
+fontname = "Helvetica"
+fontcolor = "black"

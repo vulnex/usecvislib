@@ -1,0 +1,234 @@
+# Network Shapes Gallery
+# Category: network
+# Shapes for network topology and infrastructure diagrams
+
+[shapes.router]
+id = "router"
+name = "Router"
+category = "network"
+description = "A network router"
+graphviz = { shape = "box3d", style = "filled" }
+default_style = { fillcolor = "#2C3E50", fontcolor = "white" }
+icon = "router"
+ports = ["n", "s", "e", "w"]
+tags = ["infrastructure", "routing", "gateway"]
+
+[shapes.switch]
+id = "switch"
+name = "Switch"
+category = "network"
+description = "A network switch"
+graphviz = { shape = "box", style = "filled,rounded" }
+default_style = { fillcolor = "#34495E", fontcolor = "white" }
+icon = "switch"
+ports = ["n", "s", "e", "w"]
+tags = ["infrastructure", "layer2", "switching"]
+
+[shapes.hub]
+id = "hub"
+name = "Hub"
+category = "network"
+description = "A network hub"
+graphviz = { shape = "ellipse", style = "filled" }
+default_style = { fillcolor = "#7F8C8D", fontcolor = "white" }
+icon = "hub"
+ports = ["n", "s", "e", "w"]
+tags = ["infrastructure", "legacy"]
+
+[shapes.endpoint]
+id = "endpoint"
+name = "Endpoint"
+category = "network"
+description = "A generic network endpoint"
+graphviz = { shape = "box", style = "filled" }
+default_style = { fillcolor = "#95A5A6", fontcolor = "white" }
+icon = "endpoint"
+ports = ["n", "s", "e", "w"]
+tags = ["device", "host", "client"]
+
+[shapes.laptop]
+id = "laptop"
+name = "Laptop"
+category = "network"
+description = "A laptop computer"
+graphviz = { shape = "box", style = "filled,rounded" }
+default_style = { fillcolor = "#3498DB", fontcolor = "white" }
+icon = "laptop"
+ports = ["n", "s", "e", "w"]
+tags = ["device", "endpoint", "workstation"]
+
+[shapes.desktop]
+id = "desktop"
+name = "Desktop"
+category = "network"
+description = "A desktop computer"
+graphviz = { shape = "box", style = "filled" }
+default_style = { fillcolor = "#2980B9", fontcolor = "white" }
+icon = "desktop"
+ports = ["n", "s", "e", "w"]
+tags = ["device", "endpoint", "workstation"]
+
+[shapes.mobile]
+id = "mobile"
+name = "Mobile Device"
+category = "network"
+description = "A mobile phone or smartphone"
+graphviz = { shape = "box", style = "filled,rounded" }
+default_style = { fillcolor = "#9B59B6", fontcolor = "white" }
+icon = "mobile"
+ports = ["n", "s", "e", "w"]
+tags = ["device", "endpoint", "phone"]
+
+[shapes.tablet]
+id = "tablet"
+name = "Tablet"
+category = "network"
+description = "A tablet device"
+graphviz = { shape = "box", style = "filled,rounded" }
+default_style = { fillcolor = "#8E44AD", fontcolor = "white" }
+icon = "tablet"
+ports = ["n", "s", "e", "w"]
+tags = ["device", "endpoint"]
+
+[shapes.iot]
+id = "iot"
+name = "IoT Device"
+category = "network"
+description = "An Internet of Things device"
+graphviz = { shape = "hexagon", style = "filled" }
+default_style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+icon = "iot"
+ports = ["n", "s", "e", "w"]
+tags = ["device", "sensor", "smart"]
+
+[shapes.printer]
+id = "printer"
+name = "Printer"
+category = "network"
+description = "A network printer"
+graphviz = { shape = "box", style = "filled" }
+default_style = { fillcolor = "#95A5A6", fontcolor = "white" }
+icon = "printer"
+ports = ["n", "s", "e", "w"]
+tags = ["device", "peripheral"]
+
+[shapes.storage]
+id = "storage"
+name = "Storage"
+category = "network"
+description = "Network attached storage (NAS/SAN)"
+graphviz = { shape = "cylinder", style = "filled" }
+default_style = { fillcolor = "#E67E22", fontcolor = "white" }
+icon = "hdd"
+ports = ["n", "s", "e", "w"]
+tags = ["storage", "nas", "san"]
+
+[shapes.internet]
+id = "internet"
+name = "Internet"
+category = "network"
+description = "Internet/WAN connection"
+graphviz = { shape = "ellipse", style = "filled,dashed" }
+default_style = { fillcolor = "#E74C3C", fontcolor = "white" }
+icon = "globe"
+ports = ["n", "s", "e", "w"]
+tags = ["wan", "external", "cloud"]
+
+[shapes.vpn]
+id = "vpn"
+name = "VPN"
+category = "network"
+description = "VPN gateway or tunnel endpoint"
+graphviz = { shape = "box", style = "filled,bold" }
+default_style = { fillcolor = "#27AE60", fontcolor = "white", penwidth = "2" }
+icon = "vpn"
+ports = ["n", "s", "e", "w"]
+tags = ["security", "tunnel", "encrypted"]
+
+[shapes.load_balancer]
+id = "load_balancer"
+name = "Load Balancer"
+category = "network"
+description = "A load balancer or traffic distributor"
+graphviz = { shape = "trapezium", style = "filled" }
+default_style = { fillcolor = "#F39C12", fontcolor = "white" }
+icon = "balance"
+ports = ["n", "s", "e", "w"]
+tags = ["infrastructure", "ha", "distribution"]
+
+[shapes.dns]
+id = "dns"
+name = "DNS Server"
+category = "network"
+description = "A DNS server"
+graphviz = { shape = "box3d", style = "filled" }
+default_style = { fillcolor = "#16A085", fontcolor = "white" }
+icon = "dns"
+ports = ["n", "s", "e", "w"]
+tags = ["service", "naming", "resolution"]
+
+[shapes.proxy]
+id = "proxy"
+name = "Proxy"
+category = "network"
+description = "A proxy server"
+graphviz = { shape = "box", style = "filled,rounded" }
+default_style = { fillcolor = "#D35400", fontcolor = "white" }
+icon = "proxy"
+ports = ["n", "s", "e", "w"]
+tags = ["service", "gateway", "cache"]
+
+[shapes.wap]
+id = "wap"
+name = "Wireless AP"
+category = "network"
+description = "A wireless access point"
+graphviz = { shape = "hexagon", style = "filled" }
+default_style = { fillcolor = "#3498DB", fontcolor = "white" }
+icon = "wifi"
+ports = ["n", "s", "e", "w"]
+tags = ["wireless", "wifi", "infrastructure"]
+
+[shapes.modem]
+id = "modem"
+name = "Modem"
+category = "network"
+description = "A modem device"
+graphviz = { shape = "box", style = "filled" }
+default_style = { fillcolor = "#7F8C8D", fontcolor = "white" }
+icon = "modem"
+ports = ["n", "s", "e", "w"]
+tags = ["infrastructure", "wan", "isp"]
+
+[shapes.rack]
+id = "rack"
+name = "Server Rack"
+category = "network"
+description = "A server rack"
+graphviz = { shape = "box3d", style = "filled,bold" }
+default_style = { fillcolor = "#2C3E50", fontcolor = "white", penwidth = "2" }
+icon = "rack"
+ports = ["n", "s", "e", "w"]
+tags = ["infrastructure", "datacenter"]
+
+[shapes.virtual_machine]
+id = "virtual_machine"
+name = "Virtual Machine"
+category = "network"
+description = "A virtual machine"
+graphviz = { shape = "box", style = "filled,dashed" }
+default_style = { fillcolor = "#9B59B6", fontcolor = "white" }
+icon = "vm"
+ports = ["n", "s", "e", "w"]
+tags = ["virtualization", "compute", "host"]
+
+[shapes.container]
+id = "container"
+name = "Container"
+category = "network"
+description = "A container (Docker, etc.)"
+graphviz = { shape = "box3d", style = "filled" }
+default_style = { fillcolor = "#0DB7ED", fontcolor = "white" }
+icon = "docker"
+ports = ["n", "s", "e", "w"]
+tags = ["virtualization", "microservice", "docker"]

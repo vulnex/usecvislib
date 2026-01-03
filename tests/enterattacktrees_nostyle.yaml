@@ -1,0 +1,53 @@
+tree:
+  name: Open Safe (No Style)
+  description: Classic attack tree example without styling - demonstrates minimal
+    configuration
+  engineversion: 0.2.5
+  version: 1.0.0
+  type: Attack Tree
+  date: '2025-12-25'
+  last_modified: '2025-12-25'
+  author: VULNEX
+  email: info@vulnex.com
+  url: https://www.vulnex.com
+  root: Open Safe
+nodes:
+  Open Safe: {}
+  Pick Lock:
+    cvss_vector: CVSS:3.1/AV:P/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N
+  Learn Combo: {}
+  Cut Open Safe:
+    cvss: 4.0
+  Install Improperly:
+    cvss: 5.5
+  Find Written Combo:
+    cvss_vector: CVSS:3.1/AV:P/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+  Get Combo From Target: {}
+  Threaten:
+    cvss: 6.5
+  Blackmail:
+    cvss_vector: CVSS:3.1/AV:P/AC:L/PR:N/UI:R/S:U/C:H/I:N/A:N
+  Eavesdrop: {}
+  Bribe:
+    cvss: 5.0
+  Listen to Conversation:
+    cvss: 3.5
+  Get Target to State Combo:
+    cvss_vector: CVSS:3.1/AV:P/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N
+edges:
+  Open Safe:
+  - to: Pick Lock
+  - to: Learn Combo
+  - to: Cut Open Safe
+  - to: Install Improperly
+  Learn Combo:
+  - to: Find Written Combo
+  - to: Get Combo From Target
+  Get Combo From Target:
+  - to: Threaten
+  - to: Blackmail
+  - to: Eavesdrop
+  - to: Bribe
+  Eavesdrop:
+  - to: Listen to Conversation
+  - to: Get Target to State Combo

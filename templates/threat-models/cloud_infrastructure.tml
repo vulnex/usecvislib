@@ -1,0 +1,194 @@
+# Cloud Infrastructure Threat Model Template
+# AWS/Azure/GCP style cloud architecture
+
+[model]
+name = "Cloud Infrastructure"
+description = "Typical cloud deployment with VPC, load balancers, and managed services"
+engineversion = "0.2.5"
+version = "1.0.0"
+type = "Threat Model"
+date = "2025-12-25"
+last_modified = "2025-12-25"
+author = "VULNEX"
+email = "info@vulnex.com"
+url = "https://www.vulnex.com"
+
+[externals]
+[externals.internet_users]
+label = "Internet Users"
+
+[externals.developers]
+label = "Developers"
+
+[externals.admin]
+label = "Cloud Admin"
+
+[processes]
+[processes.cdn]
+label = "CDN (CloudFront/CloudFlare)"
+
+[processes.load_balancer]
+label = "Load Balancer"
+
+[processes.web_server_1]
+label = "Web Server 1"
+
+[processes.web_server_2]
+label = "Web Server 2"
+
+[processes.app_server]
+label = "Application Server"
+
+[processes.lambda_function]
+label = "Serverless Function"
+
+[processes.bastion_host]
+label = "Bastion Host"
+
+[datastores]
+[datastores.rds_primary]
+label = "RDS Primary"
+
+[datastores.rds_replica]
+label = "RDS Read Replica"
+
+[datastores.s3_bucket]
+label = "S3 Storage"
+
+[datastores.elasticache]
+label = "ElastiCache"
+
+[datastores.secrets_manager]
+label = "Secrets Manager"
+
+[dataflows]
+[dataflows.users_to_cdn]
+from = "internet_users"
+to = "cdn"
+label = "HTTPS"
+
+[dataflows.cdn_to_lb]
+from = "cdn"
+to = "load_balancer"
+label = "HTTPS (Origin)"
+
+[dataflows.lb_to_web1]
+from = "load_balancer"
+to = "web_server_1"
+label = "HTTP (Internal)"
+
+[dataflows.lb_to_web2]
+from = "load_balancer"
+to = "web_server_2"
+label = "HTTP (Internal)"
+
+[dataflows.web1_to_app]
+from = "web_server_1"
+to = "app_server"
+label = "Internal API"
+
+[dataflows.web2_to_app]
+from = "web_server_2"
+to = "app_server"
+label = "Internal API"
+
+[dataflows.app_to_rds]
+from = "app_server"
+to = "rds_primary"
+label = "SQL (TLS)"
+
+[dataflows.rds_replication]
+from = "rds_primary"
+to = "rds_replica"
+label = "Replication"
+
+[dataflows.app_to_cache]
+from = "app_server"
+to = "elasticache"
+label = "Redis Protocol"
+
+[dataflows.app_to_s3]
+from = "app_server"
+to = "s3_bucket"
+label = "S3 API"
+
+[dataflows.app_to_lambda]
+from = "app_server"
+to = "lambda_function"
+label = "Invoke"
+
+[dataflows.app_to_secrets]
+from = "app_server"
+to = "secrets_manager"
+label = "Get Secret"
+
+[dataflows.dev_to_bastion]
+from = "developers"
+to = "bastion_host"
+label = "SSH"
+
+[dataflows.bastion_to_app]
+from = "bastion_host"
+to = "app_server"
+label = "SSH"
+
+[dataflows.admin_to_console]
+from = "admin"
+to = "secrets_manager"
+label = "IAM/Console Access"
+
+[boundaries]
+[boundaries.internet]
+label = "Internet"
+elements = ["internet_users", "developers", "admin"]
+
+[boundaries.edge]
+label = "Edge Network"
+elements = ["cdn"]
+
+[boundaries.public_subnet]
+label = "Public Subnet"
+elements = ["load_balancer", "bastion_host"]
+
+[boundaries.private_subnet]
+label = "Private Subnet"
+elements = ["web_server_1", "web_server_2", "app_server", "lambda_function"]
+
+[boundaries.data_subnet]
+label = "Data Subnet"
+elements = ["rds_primary", "rds_replica", "elasticache", "s3_bucket", "secrets_manager"]
+
+# =============================================================================
+# Custom Threats with CVSS Scores
+# =============================================================================
+
+[threats]
+[threats.iam_privilege_escalation]
+element = "iam_roles"
+threat = "IAM privilege escalation via misconfigured policies"
+mitigation = "Least privilege, regular IAM audits, policy validation"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:N"
+
+[threats.ssrf_metadata]
+element = "web_servers"
+threat = "SSRF to cloud metadata service for credential theft"
+mitigation = "IMDSv2, network segmentation, SSRF protection"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:L/A:N"
+
+[threats.s3_public_exposure]
+element = "object_storage"
+threat = "S3 bucket publicly accessible with sensitive data"
+mitigation = "Block public access, bucket policies, access logging"
+cvss = 9.1
+
+[threats.vpc_misconfiguration]
+element = "network_layer"
+threat = "VPC security group allowing unauthorized access"
+mitigation = "Security group audits, flow logs, network ACLs"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+
+[threats.container_vulnerability]
+element = "container_services"
+threat = "Container image with known critical vulnerabilities"
+mitigation = "Image scanning, base image updates, runtime protection"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"

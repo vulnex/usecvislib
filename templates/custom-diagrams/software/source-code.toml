@@ -1,0 +1,244 @@
+#
+# Source Code Structure Template
+# Visualize code organization: modules, classes, functions
+#
+
+[diagram]
+title = "Source Code Structure"
+description = "Visualize code organization: modules, classes, functions"
+layout = "hierarchical"
+direction = "TB"
+style = "cd_blueprint"
+splines = "ortho"
+nodesep = 0.6
+ranksep = 0.8
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.module]
+shape = "package"
+required_fields = ["name"]
+optional_fields = ["path", "description"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.class]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["methods", "attributes", "inheritance"]
+style = { fillcolor = "#9B59B6", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.function]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["params", "returns", "complexity"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}()"
+
+[schema.nodes.variable]
+shape = "note"
+required_fields = ["name"]
+optional_fields = ["type", "scope"]
+style = { fillcolor = "#F39C12", fontcolor = "black" }
+label_template = "{name}: {type}"
+
+[schema.nodes.constant]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["value"]
+style = { fillcolor = "#E74C3C", fontcolor = "white", style = "filled,bold" }
+label_template = "{name}"
+
+[schema.nodes.decorator]
+shape = "hexagon"
+required_fields = ["name"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+label_template = "@{name}"
+
+[schema.edges.contains]
+style = "solid"
+color = "#333333"
+arrowhead = "none"
+
+[schema.edges.imports]
+style = "dashed"
+color = "#3498DB"
+arrowhead = "vee"
+label_field = "module"
+
+[schema.edges.calls]
+style = "dotted"
+color = "#E74C3C"
+arrowhead = "normal"
+label_field = "method"
+
+[schema.edges.inherits]
+style = "solid"
+color = "#9B59B6"
+arrowhead = "empty"
+
+[schema.edges.decorates]
+style = "dashed"
+color = "#1ABC9C"
+arrowhead = "vee"
+
+# =============================================================================
+# Example Data - Python Module Structure
+# =============================================================================
+
+[[nodes]]
+id = "usecvislib"
+type = "module"
+name = "usecvislib"
+path = "src/usecvislib/"
+description = "Main package"
+
+[[nodes]]
+id = "attacktrees"
+type = "module"
+name = "attacktrees"
+path = "src/usecvislib/attacktrees.py"
+
+[[nodes]]
+id = "customdiagrams"
+type = "module"
+name = "customdiagrams"
+path = "src/usecvislib/customdiagrams.py"
+
+[[nodes]]
+id = "shapes"
+type = "module"
+name = "shapes"
+path = "src/usecvislib/shapes/"
+
+[[nodes]]
+id = "base_class"
+type = "class"
+name = "VisualizationBase"
+attributes = "config, loaded"
+methods = "load(), validate(), render()"
+
+[[nodes]]
+id = "at_class"
+type = "class"
+name = "AttackTrees"
+methods = "BuildAttackTree(), analyze()"
+
+[[nodes]]
+id = "cd_class"
+type = "class"
+name = "CustomDiagrams"
+methods = "BuildCustomDiagram(), list_shapes()"
+
+[[nodes]]
+id = "registry_class"
+type = "class"
+name = "ShapeRegistry"
+methods = "get_shape(), register(), list_shapes()"
+
+[[nodes]]
+id = "load_func"
+type = "function"
+name = "load"
+params = "config_path"
+returns = "Dict"
+
+[[nodes]]
+id = "validate_func"
+type = "function"
+name = "validate"
+params = "raise_on_error"
+returns = "bool"
+
+[[nodes]]
+id = "cached"
+type = "decorator"
+name = "cached_result"
+
+[[nodes]]
+id = "version"
+type = "constant"
+name = "__version__"
+value = "0.4.0"
+
+[[edges]]
+from = "usecvislib"
+to = "attacktrees"
+type = "contains"
+
+[[edges]]
+from = "usecvislib"
+to = "customdiagrams"
+type = "contains"
+
+[[edges]]
+from = "usecvislib"
+to = "shapes"
+type = "contains"
+
+[[edges]]
+from = "usecvislib"
+to = "version"
+type = "contains"
+
+[[edges]]
+from = "attacktrees"
+to = "at_class"
+type = "contains"
+
+[[edges]]
+from = "customdiagrams"
+to = "cd_class"
+type = "contains"
+
+[[edges]]
+from = "shapes"
+to = "registry_class"
+type = "contains"
+
+[[edges]]
+from = "at_class"
+to = "base_class"
+type = "inherits"
+
+[[edges]]
+from = "cd_class"
+to = "base_class"
+type = "inherits"
+
+[[edges]]
+from = "base_class"
+to = "load_func"
+type = "contains"
+
+[[edges]]
+from = "base_class"
+to = "validate_func"
+type = "contains"
+
+[[edges]]
+from = "cd_class"
+to = "registry_class"
+type = "imports"
+module = "shapes"
+
+[[edges]]
+from = "cached"
+to = "load_func"
+type = "decorates"
+
+# Package groupings
+[[clusters]]
+id = "core"
+label = "Core Modules"
+nodes = ["attacktrees", "customdiagrams", "at_class", "cd_class", "base_class"]
+style = { color = "#3498DB", style = "dashed" }
+
+[[clusters]]
+id = "shapes_pkg"
+label = "Shapes Package"
+nodes = ["shapes", "registry_class"]
+style = { color = "#27AE60", style = "dashed" }

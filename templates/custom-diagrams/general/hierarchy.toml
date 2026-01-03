@@ -1,0 +1,185 @@
+#
+# Hierarchy Template
+# Hierarchical tree structure for organizational charts, taxonomies, etc.
+#
+
+[diagram]
+title = "Hierarchy Diagram"
+description = "Hierarchical tree structure"
+layout = "hierarchical"
+direction = "TB"
+style = "cd_default"
+splines = "ortho"
+nodesep = 0.5
+ranksep = 0.8
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.root]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description", "code"]
+style = { fillcolor = "#2C3E50", fontcolor = "white", style = "filled,bold" }
+label_template = "{name}"
+
+[schema.nodes.level1]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description", "code"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.level2]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description", "code"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.level3]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.leaf]
+shape = "rectangle"
+required_fields = ["name"]
+style = { fillcolor = "#ECF0F1", fontcolor = "#2C3E50" }
+label_template = "{name}"
+
+[schema.edges.contains]
+style = "solid"
+color = "#7F8C8D"
+arrowhead = "none"
+
+[schema.edges.reports_to]
+style = "solid"
+color = "#333333"
+arrowhead = "normal"
+
+# =============================================================================
+# Example Data - Company Structure
+# =============================================================================
+
+[[nodes]]
+id = "ceo"
+type = "root"
+name = "CEO"
+description = "Chief Executive Officer"
+
+[[nodes]]
+id = "cto"
+type = "level1"
+name = "CTO"
+description = "Chief Technology Officer"
+
+[[nodes]]
+id = "cfo"
+type = "level1"
+name = "CFO"
+description = "Chief Financial Officer"
+
+[[nodes]]
+id = "coo"
+type = "level1"
+name = "COO"
+description = "Chief Operating Officer"
+
+[[nodes]]
+id = "engineering"
+type = "level2"
+name = "Engineering"
+
+[[nodes]]
+id = "product"
+type = "level2"
+name = "Product"
+
+[[nodes]]
+id = "finance"
+type = "level2"
+name = "Finance"
+
+[[nodes]]
+id = "hr"
+type = "level2"
+name = "HR"
+
+[[nodes]]
+id = "ops"
+type = "level2"
+name = "Operations"
+
+[[nodes]]
+id = "frontend"
+type = "level3"
+name = "Frontend"
+
+[[nodes]]
+id = "backend"
+type = "level3"
+name = "Backend"
+
+[[nodes]]
+id = "devops"
+type = "level3"
+name = "DevOps"
+
+[[edges]]
+from = "ceo"
+to = "cto"
+type = "contains"
+
+[[edges]]
+from = "ceo"
+to = "cfo"
+type = "contains"
+
+[[edges]]
+from = "ceo"
+to = "coo"
+type = "contains"
+
+[[edges]]
+from = "cto"
+to = "engineering"
+type = "contains"
+
+[[edges]]
+from = "cto"
+to = "product"
+type = "contains"
+
+[[edges]]
+from = "cfo"
+to = "finance"
+type = "contains"
+
+[[edges]]
+from = "coo"
+to = "hr"
+type = "contains"
+
+[[edges]]
+from = "coo"
+to = "ops"
+type = "contains"
+
+[[edges]]
+from = "engineering"
+to = "frontend"
+type = "contains"
+
+[[edges]]
+from = "engineering"
+to = "backend"
+type = "contains"
+
+[[edges]]
+from = "engineering"
+to = "devops"
+type = "contains"

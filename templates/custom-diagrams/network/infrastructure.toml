@@ -1,0 +1,322 @@
+#
+# Infrastructure Diagram Template
+# Cloud/on-prem infrastructure visualization
+#
+
+[diagram]
+title = "Infrastructure Diagram"
+description = "Cloud/on-prem infrastructure visualization"
+layout = "hierarchical"
+direction = "TB"
+style = "cd_blueprint"
+splines = "ortho"
+nodesep = 0.8
+ranksep = 1.0
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.cloud]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["provider"]
+style = { fillcolor = "#3498DB", fontcolor = "white", style = "filled,dashed" }
+label_template = "{name}"
+
+[schema.nodes.region]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["location"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white", style = "filled,rounded" }
+label_template = "{name}\\n{location}"
+
+[schema.nodes.vpc]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["cidr"]
+style = { fillcolor = "#9B59B6", fontcolor = "white" }
+label_template = "{name}\\n{cidr}"
+
+[schema.nodes.subnet]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["cidr", "type"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}\\n{cidr}"
+
+[schema.nodes.ec2]
+shape = "artifact"
+required_fields = ["name"]
+optional_fields = ["type", "os"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}\\n{type}"
+
+[schema.nodes.rds]
+shape = "database"
+required_fields = ["name"]
+optional_fields = ["engine", "size"]
+style = { fillcolor = "#E74C3C", fontcolor = "white" }
+label_template = "{name}\\n{engine}"
+
+[schema.nodes.s3]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["bucket"]
+style = { fillcolor = "#E67E22", fontcolor = "white" }
+label_template = "S3\\n{name}"
+
+[schema.nodes.lambda]
+shape = "hexagon"
+required_fields = ["name"]
+optional_fields = ["runtime"]
+style = { fillcolor = "#8E44AD", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.elb]
+shape = "trapezium"
+required_fields = ["name"]
+optional_fields = ["type"]
+style = { fillcolor = "#2980B9", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.cloudfront]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#95A5A6", fontcolor = "white" }
+label_template = "CDN\\n{name}"
+
+[schema.nodes.route53]
+shape = "rectangle"
+required_fields = ["name"]
+style = { fillcolor = "#16A085", fontcolor = "white" }
+label_template = "DNS\\n{name}"
+
+[schema.nodes.iam]
+shape = "octagon"
+required_fields = ["name"]
+style = { fillcolor = "#C0392B", fontcolor = "white" }
+label_template = "IAM\\n{name}"
+
+[schema.nodes.elasticache]
+shape = "hexagon"
+required_fields = ["name"]
+optional_fields = ["engine"]
+style = { fillcolor = "#D35400", fontcolor = "white" }
+label_template = "{name}\\n{engine}"
+
+[schema.edges.network]
+style = "solid"
+color = "#333333"
+arrowhead = "vee"
+
+[schema.edges.security]
+style = "dashed"
+color = "#E74C3C"
+arrowhead = "vee"
+label_field = "rule"
+
+[schema.edges.data]
+style = "solid"
+color = "#27AE60"
+arrowhead = "normal"
+label_field = "protocol"
+
+# =============================================================================
+# Example Data - AWS Infrastructure
+# =============================================================================
+
+[[nodes]]
+id = "aws"
+type = "cloud"
+name = "AWS Cloud"
+provider = "Amazon"
+
+[[nodes]]
+id = "route53"
+type = "route53"
+name = "example.com"
+
+[[nodes]]
+id = "cloudfront"
+type = "cloudfront"
+name = "Distribution"
+
+[[nodes]]
+id = "us_east"
+type = "region"
+name = "us-east-1"
+location = "N. Virginia"
+
+[[nodes]]
+id = "vpc"
+type = "vpc"
+name = "Production VPC"
+cidr = "10.0.0.0/16"
+
+[[nodes]]
+id = "public_subnet"
+type = "subnet"
+name = "Public Subnet"
+cidr = "10.0.1.0/24"
+subnet_type = "public"
+
+[[nodes]]
+id = "private_subnet"
+type = "subnet"
+name = "Private Subnet"
+cidr = "10.0.2.0/24"
+subnet_type = "private"
+
+[[nodes]]
+id = "db_subnet"
+type = "subnet"
+name = "Database Subnet"
+cidr = "10.0.3.0/24"
+subnet_type = "private"
+
+[[nodes]]
+id = "alb"
+type = "elb"
+name = "Application LB"
+lb_type = "ALB"
+
+[[nodes]]
+id = "web1"
+type = "ec2"
+name = "Web Server 1"
+instance_type = "t3.medium"
+os = "Amazon Linux 2"
+
+[[nodes]]
+id = "web2"
+type = "ec2"
+name = "Web Server 2"
+instance_type = "t3.medium"
+os = "Amazon Linux 2"
+
+[[nodes]]
+id = "api_lambda"
+type = "lambda"
+name = "API Handler"
+runtime = "Python 3.11"
+
+[[nodes]]
+id = "postgres"
+type = "rds"
+name = "Primary DB"
+engine = "PostgreSQL 15"
+size = "db.r6g.large"
+
+[[nodes]]
+id = "redis"
+type = "elasticache"
+name = "Session Cache"
+engine = "Redis 7"
+
+[[nodes]]
+id = "assets"
+type = "s3"
+name = "assets-bucket"
+bucket = "prod-assets"
+
+[[nodes]]
+id = "iam"
+type = "iam"
+name = "Roles"
+
+[[edges]]
+from = "route53"
+to = "cloudfront"
+type = "network"
+
+[[edges]]
+from = "cloudfront"
+to = "alb"
+type = "network"
+
+[[edges]]
+from = "cloudfront"
+to = "assets"
+type = "network"
+
+[[edges]]
+from = "alb"
+to = "web1"
+type = "network"
+
+[[edges]]
+from = "alb"
+to = "web2"
+type = "network"
+
+[[edges]]
+from = "web1"
+to = "api_lambda"
+type = "network"
+
+[[edges]]
+from = "web2"
+to = "api_lambda"
+type = "network"
+
+[[edges]]
+from = "api_lambda"
+to = "postgres"
+type = "data"
+protocol = "TCP/5432"
+
+[[edges]]
+from = "web1"
+to = "redis"
+type = "data"
+protocol = "TCP/6379"
+
+[[edges]]
+from = "web2"
+to = "redis"
+type = "data"
+protocol = "TCP/6379"
+
+[[edges]]
+from = "iam"
+to = "api_lambda"
+type = "security"
+rule = "Execution Role"
+
+[[edges]]
+from = "iam"
+to = "web1"
+type = "security"
+rule = "Instance Profile"
+
+# Infrastructure groupings
+[[clusters]]
+id = "edge"
+label = "Edge Services"
+nodes = ["route53", "cloudfront"]
+style = { color = "#3498DB", style = "dashed" }
+
+[[clusters]]
+id = "public"
+label = "Public Subnet"
+nodes = ["alb"]
+style = { color = "#27AE60", style = "dashed" }
+
+[[clusters]]
+id = "app"
+label = "Application Tier"
+nodes = ["web1", "web2", "api_lambda"]
+style = { color = "#F39C12", style = "dashed" }
+
+[[clusters]]
+id = "data"
+label = "Data Tier"
+nodes = ["postgres", "redis"]
+style = { color = "#E74C3C", style = "dashed" }
+
+[[clusters]]
+id = "storage"
+label = "Storage"
+nodes = ["assets"]
+style = { color = "#E67E22", style = "dashed" }

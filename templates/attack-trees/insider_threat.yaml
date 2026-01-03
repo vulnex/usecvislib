@@ -1,0 +1,130 @@
+tree:
+  name: Insider Threat
+  description: Models malicious insider attack scenarios including data theft, privilege
+    abuse, and sabotage
+  engineversion: 0.2.5
+  version: 1.0.0
+  type: Attack Tree
+  date: '2025-12-25'
+  last_modified: '2025-12-25'
+  author: VULNEX
+  email: info@vulnex.com
+  url: https://www.vulnex.com
+  root: Malicious Insider
+  params:
+    rankdir: TB
+nodes:
+  Malicious Insider:
+    style: filled
+    fillcolor: '#8e44ad'
+    fontcolor: white
+    shape: oval
+  Data Theft:
+    style: filled
+    fillcolor: '#3498db'
+    shape: rectangle
+  Copy to USB:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+  Email to Personal:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+  Cloud Upload:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+  Screenshot/Photo:
+    style: filled
+    shape: rectangle
+    cvss: 5.5
+  Privilege Abuse:
+    style: filled
+    fillcolor: '#e67e22'
+    shape: rectangle
+  Access Unauthorized Data:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+  Modify Records:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:N
+  Create Backdoor:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:C/C:H/I:H/A:N
+  Sabotage:
+    style: filled
+    fillcolor: '#e74c3c'
+    shape: rectangle
+  Delete Critical Data:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:C/C:N/I:H/A:H
+  Introduce Malware:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
+  Disable Security:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:C/C:H/I:H/A:N
+  Sell Data:
+    style: filled
+    fillcolor: '#8e44ad'
+    fontcolor: white
+    shape: octagon
+  Competitor Advantage:
+    style: filled
+    fillcolor: '#8e44ad'
+    fontcolor: white
+    shape: octagon
+  Business Disruption:
+    style: filled
+    fillcolor: '#8e44ad'
+    fontcolor: white
+    shape: octagon
+edges:
+  Malicious Insider:
+  - to: Data Theft
+  - to: Privilege Abuse
+  - to: Sabotage
+  Data Theft:
+  - to: Copy to USB
+  - to: Email to Personal
+  - to: Cloud Upload
+  - to: Screenshot/Photo
+  Copy to USB:
+  - to: Sell Data
+  - to: Competitor Advantage
+  Email to Personal:
+  - to: Sell Data
+  - to: Competitor Advantage
+  Cloud Upload:
+  - to: Sell Data
+  - to: Competitor Advantage
+  Screenshot/Photo:
+  - to: Sell Data
+  - to: Competitor Advantage
+  Privilege Abuse:
+  - to: Access Unauthorized Data
+  - to: Modify Records
+  - to: Create Backdoor
+  Access Unauthorized Data:
+  - to: Sell Data
+  Modify Records:
+  - to: Business Disruption
+  Create Backdoor:
+  - to: Sell Data
+  Sabotage:
+  - to: Delete Critical Data
+  - to: Introduce Malware
+  - to: Disable Security
+  Delete Critical Data:
+  - to: Business Disruption
+  Introduce Malware:
+  - to: Business Disruption
+  Disable Security:
+  - to: Business Disruption

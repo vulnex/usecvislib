@@ -1,0 +1,50 @@
+tree:
+  name: Attack Tree Example - YAML Test
+  description: Simple attack tree test file in YAML format
+  engineversion: "0.2.5"
+  version: "1.0.0"
+  type: Attack Tree
+  date: "2025-12-25"
+  last_modified: "2025-12-25"
+  author: VULNEX
+  email: info@vulnex.com
+  url: https://www.vulnex.com
+  root: Attacker
+  params:
+    rankdir: TB
+
+# Nodes with CVSS scores
+nodes:
+  Attacker:
+    style: filled
+    fontcolor: black
+    fillcolor: white
+    shape: oval
+  Get Tools:
+    style: filled
+    shape: rectangle
+    cvss: 3.0
+  Find Entry Point:
+    style: filled
+    shape: rectangle
+    cvss_vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N"
+  Access System:
+    style: filled
+    shape: rectangle
+    cvss_vector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N"
+  Achieve Goal:
+    style: filled
+    fontcolor: black
+    fillcolor: white
+    shape: octagon
+
+edges:
+  Attacker:
+    - to: Get Tools
+    - to: Find Entry Point
+  Get Tools:
+    - to: Access System
+  Find Entry Point:
+    - to: Access System
+  Access System:
+    - to: Achieve Goal

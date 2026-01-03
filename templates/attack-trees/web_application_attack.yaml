@@ -1,0 +1,122 @@
+tree:
+  name: Web Application Attack
+  description: Models OWASP Top 10 style attack vectors including injection, authentication
+    bypass, and API abuse
+  engineversion: 0.2.5
+  version: 1.1.0
+  type: Attack Tree
+  date: '2025-12-25'
+  last_modified: '2025-12-26'
+  author: VULNEX
+  email: info@vulnex.com
+  url: https://www.vulnex.com
+  root: Compromise Web App
+  params:
+    rankdir: TB
+nodes:
+  Compromise Web App:
+    style: filled
+    fillcolor: '#e74c3c'
+    fontcolor: white
+    shape: oval
+  Injection Attacks:
+    style: filled
+    fillcolor: '#3498db'
+    shape: rectangle
+  SQL Injection:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+  Command Injection:
+    style: filled
+    shape: rectangle
+    cvss: 9.8
+  XSS Attack:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N
+  Authentication Bypass:
+    style: filled
+    fillcolor: '#9b59b6'
+    shape: rectangle
+  Credential Stuffing:
+    style: filled
+    shape: rectangle
+    cvss: 7.5
+  Session Hijacking:
+    style: filled
+    shape: rectangle
+    cvss: 8.0
+  Password Brute Force:
+    style: filled
+    shape: rectangle
+    cvss: 5.3
+  Access Control:
+    style: filled
+    fillcolor: '#27ae60'
+    shape: rectangle
+  IDOR:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:L/A:N
+  Privilege Escalation:
+    style: filled
+    shape: rectangle
+    cvss: 8.8
+  API Abuse:
+    style: filled
+    fillcolor: '#f39c12'
+    shape: rectangle
+  Rate Limit Bypass:
+    style: filled
+    shape: rectangle
+    cvss: 5.3
+  Mass Assignment:
+    style: filled
+    shape: rectangle
+    cvss: 7.5
+  Data Breach:
+    style: filled
+    fillcolor: '#e74c3c'
+    fontcolor: white
+    shape: octagon
+edges:
+  Compromise Web App:
+  - to: Injection Attacks
+  - to: Authentication Bypass
+  - to: Access Control
+  - to: API Abuse
+  Injection Attacks:
+  - to: SQL Injection
+  - to: Command Injection
+  - to: XSS Attack
+  SQL Injection:
+  - to: Data Breach
+  Command Injection:
+  - to: Data Breach
+  XSS Attack:
+  - to: Session Hijacking
+  Authentication Bypass:
+  - to: Credential Stuffing
+  - to: Session Hijacking
+  - to: Password Brute Force
+  Credential Stuffing:
+  - to: Data Breach
+  Session Hijacking:
+  - to: Data Breach
+  Password Brute Force:
+  - to: Data Breach
+  Access Control:
+  - to: IDOR
+  - to: Privilege Escalation
+  IDOR:
+  - to: Data Breach
+  Privilege Escalation:
+  - to: Data Breach
+  API Abuse:
+  - to: Rate Limit Bypass
+  - to: Mass Assignment
+  Rate Limit Bypass:
+  - to: Data Breach
+  Mass Assignment:
+  - to: Data Breach

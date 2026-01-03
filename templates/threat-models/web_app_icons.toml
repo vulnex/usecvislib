@@ -1,0 +1,204 @@
+#
+# USecVisLib - Web Application Threat Model with Bundled Icons
+#
+# This template demonstrates using bundled icons in threat model visualizations.
+# Icons can be from any bundled category: aws, azure, or bootstrap.
+#
+# Usage:
+#   usecvis -m 1 -i web_app_icons.toml -o output -f png
+#
+# Icon Reference Formats:
+#   image = "bundled:aws/Category/IconName"
+#   image = "bundled:bootstrap/icons/icons/icon-name"
+#
+
+[model]
+name = "Web Application with Icons"
+description = "Sample threat model demonstrating icon support in visualizations"
+engineversion = "0.3.1"
+version = "1.0.0"
+type = "Threat Model"
+date = "2025-12-30"
+author = "VULNEX"
+
+# =============================================================================
+# External Entities
+# =============================================================================
+[externals]
+
+[externals.user]
+label = "End User"
+description = "Web application user"
+isTrusted = false
+image = "bundled:bootstrap/icons/icons/person-fill"
+
+[externals.attacker]
+label = "Threat Actor"
+description = "Potential attacker"
+isTrusted = false
+image = "bundled:bootstrap/icons/icons/person-fill-exclamation"
+
+# =============================================================================
+# Processes
+# =============================================================================
+[processes]
+
+[processes.waf]
+label = "WAF / CDN"
+description = "Web Application Firewall and CDN"
+isServer = true
+sanitizesInput = true
+isHardened = true
+image = "bundled:aws/Security-Identity-Compliance/WAF"
+
+[processes.loadbalancer]
+label = "Load Balancer"
+description = "Application Load Balancer"
+isServer = true
+isHardened = true
+
+[processes.webserver]
+label = "Web Server"
+description = "Nginx/Apache web server"
+isServer = true
+sanitizesInput = true
+encodesOutput = true
+image = "bundled:aws/Compute/EC2"
+
+[processes.appserver]
+label = "Application Server"
+description = "Backend API server"
+isServer = true
+sanitizesInput = true
+checksInputBounds = true
+hasAccessControl = true
+image = "bundled:aws/Compute/Lambda"
+
+# =============================================================================
+# Data Stores
+# =============================================================================
+[datastores]
+
+[datastores.database]
+label = "Database"
+description = "PostgreSQL database"
+isSQL = true
+isEncrypted = true
+hasAccessControl = true
+storesPII = true
+image = "bundled:aws/Database/RDS"
+
+[datastores.cache]
+label = "Cache Layer"
+description = "Redis cache"
+isSQL = false
+isEncrypted = true
+
+[datastores.secrets]
+label = "Secrets Manager"
+description = "Credential storage"
+isEncrypted = true
+hasAccessControl = true
+storesCredentials = true
+image = "bundled:aws/Security-Identity-Compliance/Secrets-Manager"
+
+# =============================================================================
+# Data Flows
+# =============================================================================
+[dataflows]
+
+[dataflows.user_to_waf]
+from = "user"
+to = "waf"
+label = "HTTPS Requests"
+protocol = "HTTPS"
+isEncrypted = true
+
+[dataflows.attacker_to_waf]
+from = "attacker"
+to = "waf"
+label = "Attack Traffic"
+protocol = "HTTPS"
+isEncrypted = true
+
+[dataflows.waf_to_lb]
+from = "waf"
+to = "loadbalancer"
+label = "Filtered Traffic"
+protocol = "HTTPS"
+isEncrypted = true
+
+[dataflows.lb_to_web]
+from = "loadbalancer"
+to = "webserver"
+label = "Load Balanced"
+protocol = "HTTP"
+
+[dataflows.web_to_app]
+from = "webserver"
+to = "appserver"
+label = "API Calls"
+protocol = "gRPC"
+isEncrypted = true
+authenticatesSource = true
+
+[dataflows.app_to_db]
+from = "appserver"
+to = "database"
+label = "SQL Queries"
+protocol = "PostgreSQL"
+isEncrypted = true
+data = "CONFIDENTIAL"
+
+[dataflows.app_to_cache]
+from = "appserver"
+to = "cache"
+label = "Cache Operations"
+protocol = "Redis"
+isEncrypted = true
+
+[dataflows.app_to_secrets]
+from = "appserver"
+to = "secrets"
+label = "Fetch Secrets"
+protocol = "HTTPS"
+isEncrypted = true
+authenticatesSource = true
+isCredentials = true
+
+# =============================================================================
+# Threats
+# =============================================================================
+[threats]
+
+[threats.sqli]
+target = "database"
+category = "Tampering"
+description = "SQL Injection via unvalidated input"
+likelihood = "medium"
+impact = "high"
+mitigation = "Parameterized queries, input validation, WAF rules"
+
+[threats.xss]
+target = "webserver"
+category = "Tampering"
+description = "Cross-site scripting attacks"
+likelihood = "high"
+impact = "medium"
+mitigation = "Output encoding, CSP headers, input sanitization"
+
+[threats.credential_theft]
+target = "secrets"
+category = "Information Disclosure"
+description = "Unauthorized access to credentials"
+likelihood = "low"
+impact = "critical"
+mitigation = "IAM policies, encryption at rest, audit logging"
+
+[threats.ddos]
+target = "waf"
+category = "Denial of Service"
+description = "Distributed denial of service attack"
+likelihood = "medium"
+impact = "high"
+mitigation = "Rate limiting, CDN protection, auto-scaling"

@@ -1,0 +1,222 @@
+#
+# UML Component Diagram Template
+# System components and their dependencies
+#
+
+[diagram]
+title = "UML Component Diagram"
+description = "System components and their dependencies"
+layout = "hierarchical"
+direction = "LR"
+style = "cd_default"
+splines = "ortho"
+nodesep = 0.8
+ranksep = 1.2
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.component]
+shape = "component"
+required_fields = ["name"]
+optional_fields = ["stereotype", "version"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "<<component>>\\n{name}"
+
+[schema.nodes.interface]
+shape = "circle"
+required_fields = ["name"]
+style = { fillcolor = "#27AE60", fontcolor = "white", width = "0.3", height = "0.3" }
+label_template = ""
+
+[schema.nodes.port]
+shape = "square"
+required_fields = ["name"]
+style = { fillcolor = "#F39C12", fontcolor = "white", width = "0.2", height = "0.2" }
+label_template = ""
+
+[schema.nodes.package]
+shape = "package"
+required_fields = ["name"]
+style = { fillcolor = "#ECF0F1", fontcolor = "#2C3E50" }
+label_template = "<<package>>\\n{name}"
+
+[schema.nodes.subsystem]
+shape = "artifact"
+required_fields = ["name"]
+style = { fillcolor = "#9B59B6", fontcolor = "white" }
+label_template = "<<subsystem>>\\n{name}"
+
+[schema.nodes.artifact]
+shape = "note"
+required_fields = ["name"]
+optional_fields = ["type"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+label_template = "<<artifact>>\\n{name}"
+
+[schema.edges.dependency]
+style = "dashed"
+color = "#333333"
+arrowhead = "vee"
+label_field = "stereotype"
+
+[schema.edges.provides]
+style = "solid"
+color = "#27AE60"
+arrowhead = "none"
+
+[schema.edges.requires]
+style = "dashed"
+color = "#E74C3C"
+arrowhead = "empty"
+
+[schema.edges.uses]
+style = "solid"
+color = "#3498DB"
+arrowhead = "vee"
+
+# =============================================================================
+# Example Data - E-commerce System Components
+# =============================================================================
+
+[[nodes]]
+id = "web_ui"
+type = "component"
+name = "Web UI"
+stereotype = "frontend"
+
+[[nodes]]
+id = "mobile_ui"
+type = "component"
+name = "Mobile App"
+stereotype = "frontend"
+
+[[nodes]]
+id = "api_gateway"
+type = "component"
+name = "API Gateway"
+version = "v2"
+
+[[nodes]]
+id = "auth"
+type = "component"
+name = "Authentication"
+stereotype = "security"
+
+[[nodes]]
+id = "catalog"
+type = "component"
+name = "Product Catalog"
+stereotype = "domain"
+
+[[nodes]]
+id = "orders"
+type = "component"
+name = "Order Management"
+stereotype = "domain"
+
+[[nodes]]
+id = "payment"
+type = "component"
+name = "Payment Processing"
+stereotype = "integration"
+
+[[nodes]]
+id = "notification"
+type = "component"
+name = "Notifications"
+stereotype = "infrastructure"
+
+[[nodes]]
+id = "user_db"
+type = "artifact"
+name = "users.db"
+
+[[nodes]]
+id = "product_db"
+type = "artifact"
+name = "products.db"
+
+[[nodes]]
+id = "order_db"
+type = "artifact"
+name = "orders.db"
+
+[[edges]]
+from = "web_ui"
+to = "api_gateway"
+type = "uses"
+
+[[edges]]
+from = "mobile_ui"
+to = "api_gateway"
+type = "uses"
+
+[[edges]]
+from = "api_gateway"
+to = "auth"
+type = "dependency"
+stereotype = "authenticates"
+
+[[edges]]
+from = "api_gateway"
+to = "catalog"
+type = "uses"
+
+[[edges]]
+from = "api_gateway"
+to = "orders"
+type = "uses"
+
+[[edges]]
+from = "orders"
+to = "payment"
+type = "dependency"
+stereotype = "processes"
+
+[[edges]]
+from = "orders"
+to = "notification"
+type = "dependency"
+stereotype = "notifies"
+
+[[edges]]
+from = "auth"
+to = "user_db"
+type = "uses"
+
+[[edges]]
+from = "catalog"
+to = "product_db"
+type = "uses"
+
+[[edges]]
+from = "orders"
+to = "order_db"
+type = "uses"
+
+# Subsystem groupings
+[[clusters]]
+id = "frontend_subsystem"
+label = "<<subsystem>> Frontend"
+nodes = ["web_ui", "mobile_ui"]
+style = { color = "#9B59B6", style = "dashed" }
+
+[[clusters]]
+id = "backend_subsystem"
+label = "<<subsystem>> Backend Services"
+nodes = ["api_gateway", "auth", "catalog", "orders"]
+style = { color = "#3498DB", style = "dashed" }
+
+[[clusters]]
+id = "integration_subsystem"
+label = "<<subsystem>> Integration"
+nodes = ["payment", "notification"]
+style = { color = "#27AE60", style = "dashed" }
+
+[[clusters]]
+id = "persistence"
+label = "<<subsystem>> Persistence"
+nodes = ["user_db", "product_db", "order_db"]
+style = { color = "#F39C12", style = "dashed" }

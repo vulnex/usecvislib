@@ -1,0 +1,53 @@
+#
+# USecVisLib - Network Infrastructure Attack Tree with Icons
+#
+# This template demonstrates using images/icons on nodes with clean styling.
+# When using icons, nodes use shape="none" for a cleaner appearance.
+#
+# Icon Reference Formats:
+# 1. Bundled Icons: image = "bundled:bootstrap/icons/icons/shield-lock"
+# 2. Uploaded Images: image = "uploaded:abc12345-6789-..."
+# 3. Local Files: image = "path/to/icon.png"
+#
+# Usage:
+#   usecvis -m 0 -i network_infrastructure_with_icons.toml -o output -f png
+#
+
+[tree]
+name = "Network Infrastructure Attack Tree"
+root = "Compromise Infrastructure"
+description = "Attack tree demonstrating icon support for visual node icons"
+engineversion = "0.3.1"
+version = "1.0.0"
+type = "Attack Tree"
+date = "2025-12-30"
+author = "VULNEX"
+params = { rankdir = "TB", splines = "polyline", nodesep = "0.8", ranksep = "1.0" }
+
+[nodes]
+# Root node - Goal of the attack (icon-based, no shape)
+"Compromise Infrastructure" = {shape="none", image="bundled:bootstrap/icons/icons/exclamation-triangle-fill"}
+
+# Level 1 - Main attack vectors with icons
+"Attack Web Tier" = {shape="none", gate="OR", image="bundled:bootstrap/icons/icons/globe"}
+"Attack Database Tier" = {shape="none", gate="OR", image="bundled:bootstrap/icons/icons/database"}
+"Attack Internal Network" = {shape="none", gate="OR", image="bundled:bootstrap/icons/icons/hdd-network"}
+
+# Level 2 - Web attacks with security icons
+"SQL Injection" = {shape="none", cvss=9.8, cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H", image="bundled:bootstrap/icons/icons/code-slash"}
+"XSS Attack" = {shape="none", cvss=6.1, cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N", image="bundled:bootstrap/icons/icons/filetype-html"}
+"Session Hijacking" = {shape="none", cvss=7.5, image="bundled:bootstrap/icons/icons/key"}
+
+# Level 2 - Database attacks
+"Credential Theft" = {shape="none", cvss=8.1, image="bundled:bootstrap/icons/icons/person-fill-lock"}
+"Privilege Escalation" = {shape="none", cvss=8.8, image="bundled:bootstrap/icons/icons/shield-fill-x"}
+
+# Level 2 - Internal network attacks
+"Lateral Movement" = {shape="none", cvss=7.2, image="bundled:bootstrap/icons/icons/arrows-move"}
+"Pass-the-Hash" = {shape="none", cvss=8.1, image="bundled:bootstrap/icons/icons/hash"}
+
+[edges]
+"Compromise Infrastructure" = [{to="Attack Web Tier", label="OR"}, {to="Attack Database Tier", label="OR"}, {to="Attack Internal Network", label="OR"}]
+"Attack Web Tier" = [{to="SQL Injection", label="HIGH"}, {to="XSS Attack", label="MEDIUM"}, {to="Session Hijacking", label="HIGH"}]
+"Attack Database Tier" = [{to="Credential Theft", label="HIGH"}, {to="Privilege Escalation", label="CRITICAL"}]
+"Attack Internal Network" = [{to="Lateral Movement", label="HIGH"}, {to="Pass-the-Hash", label="CRITICAL"}]

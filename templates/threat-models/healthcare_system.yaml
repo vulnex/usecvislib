@@ -1,0 +1,482 @@
+model:
+  name: Healthcare EHR System
+  description: HIPAA-compliant Electronic Health Records system with patient portal
+    and clinical workflows
+  engineversion: 0.2.5
+  version: 1.0.0
+  type: Threat Model
+  date: '2025-12-25'
+  last_modified: '2025-12-25'
+  author: VULNEX
+  email: info@vulnex.com
+  url: https://www.vulnex.com
+externals:
+  patient:
+    label: Patient
+    description: Patient accessing their health records via portal
+    isAdmin: false
+    isTrusted: false
+  physician:
+    label: Physician
+    description: Doctor accessing and updating patient records
+    isAdmin: false
+    isTrusted: true
+  nurse:
+    label: Nurse
+    description: Nursing staff with limited record access
+    isAdmin: false
+    isTrusted: true
+  admin:
+    label: System Admin
+    description: IT administrator managing the system
+    isAdmin: true
+    isTrusted: true
+  lab_system:
+    label: Lab System
+    description: External laboratory information system
+    isTrusted: true
+  pharmacy_system:
+    label: Pharmacy System
+    description: External pharmacy for e-prescriptions
+    isTrusted: true
+  insurance_api:
+    label: Insurance API
+    description: Insurance eligibility and claims processing
+    isTrusted: false
+  hie_network:
+    label: HIE Network
+    description: Health Information Exchange for record sharing
+    isTrusted: true
+processes:
+  patient_portal:
+    label: Patient Portal
+    description: Web portal for patients to view records and schedule appointments
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    encodesOutput: true
+    implementsCSRFToken: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+  clinical_app:
+    label: Clinical Application
+    description: Main EHR application for clinical staff
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    encodesOutput: true
+    implementsCSRFToken: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+    handlesResourceConsumption: true
+  identity_provider:
+    label: Identity Provider
+    description: SAML/OAuth identity management with MFA
+    isServer: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    sanitizesInput: true
+    implementsNonce: true
+    hasAccessControl: true
+    isHardened: true
+  api_server:
+    label: FHIR API Server
+    description: HL7 FHIR R4 compliant API for healthcare interoperability
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    encodesOutput: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+    handlesResourceConsumption: true
+  record_service:
+    label: Medical Records Service
+    description: Core service managing patient medical records
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+  prescription_service:
+    label: E-Prescription Service
+    description: Electronic prescription management (EPCS compliant)
+    isServer: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    sanitizesInput: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+  scheduling_service:
+    label: Scheduling Service
+    description: Appointment scheduling and calendar management
+    isServer: true
+    sanitizesInput: true
+    checksInputBounds: true
+    hasAccessControl: true
+  audit_service:
+    label: Audit Service
+    description: HIPAA audit trail and access logging
+    isServer: true
+    sanitizesInput: true
+    hasAccessControl: true
+    isHardened: true
+  notification_service:
+    label: Notification Service
+    description: HIPAA-compliant patient notifications
+    isServer: true
+    sanitizesInput: true
+    encodesOutput: true
+    hasAccessControl: true
+datastores:
+  patient_db:
+    label: Patient Database
+    description: PostgreSQL - Patient demographics and identifiers
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    hasBackup: true
+    isAuditLogged: true
+  medical_records_db:
+    label: Medical Records Database
+    description: PostgreSQL - Clinical notes, diagnoses, treatments
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    hasBackup: true
+    isAuditLogged: true
+  prescription_db:
+    label: Prescription Database
+    description: PostgreSQL - Medication orders and history
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    hasBackup: true
+    isAuditLogged: true
+  imaging_storage:
+    label: Medical Imaging Storage
+    description: DICOM image archive (PACS)
+    isSQL: false
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    hasBackup: true
+    isAuditLogged: true
+  audit_log_db:
+    label: Audit Log Database
+    description: Immutable audit trail for HIPAA compliance
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    hasBackup: true
+    isAuditLogged: true
+  identity_store:
+    label: Identity Store
+    description: User credentials and access policies
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    storesCredentials: true
+    hasBackup: true
+    isAuditLogged: true
+  cache:
+    label: Session Cache
+    description: Redis - Session and temporary data
+    isSQL: false
+    isEncrypted: true
+    hasAccessControl: true
+    isShared: true
+dataflows:
+  patient_to_portal:
+    from: patient
+    to: patient_portal
+    label: HTTPS Portal Access
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesDestination: true
+    data: CONFIDENTIAL
+    isPII: true
+  physician_to_clinical:
+    from: physician
+    to: clinical_app
+    label: HTTPS Clinical Access
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    data: CONFIDENTIAL
+    isPII: true
+    isCredentials: true
+  nurse_to_clinical:
+    from: nurse
+    to: clinical_app
+    label: HTTPS Nursing Access
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    data: CONFIDENTIAL
+    isPII: true
+  admin_to_clinical:
+    from: admin
+    to: clinical_app
+    label: HTTPS Admin Access
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    data: CONFIDENTIAL
+    isCredentials: true
+  portal_to_api:
+    from: patient_portal
+    to: api_server
+    label: FHIR API Calls
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  clinical_to_api:
+    from: clinical_app
+    to: api_server
+    label: FHIR API Calls
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  portal_to_idp:
+    from: patient_portal
+    to: identity_provider
+    label: SAML/OAuth Auth
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesDestination: true
+    isCredentials: true
+  clinical_to_idp:
+    from: clinical_app
+    to: identity_provider
+    label: SAML/OAuth Auth
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesDestination: true
+    isCredentials: true
+  api_to_records:
+    from: api_server
+    to: record_service
+    label: Record Queries
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  api_to_prescriptions:
+    from: api_server
+    to: prescription_service
+    label: Prescription Queries
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  api_to_scheduling:
+    from: api_server
+    to: scheduling_service
+    label: Scheduling Queries
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  records_to_patient_db:
+    from: record_service
+    to: patient_db
+    label: Patient Queries
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+    sanitizesInput: true
+  records_to_medical_db:
+    from: record_service
+    to: medical_records_db
+    label: Medical Record Queries
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+    sanitizesInput: true
+  records_to_imaging:
+    from: record_service
+    to: imaging_storage
+    label: DICOM Image Access
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  prescription_to_db:
+    from: prescription_service
+    to: prescription_db
+    label: Prescription Queries
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+    sanitizesInput: true
+  prescription_to_pharmacy:
+    from: prescription_service
+    to: pharmacy_system
+    label: E-Prescribe (NCPDP)
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    checksDestinationRevocation: true
+    isPII: true
+    data: CONFIDENTIAL
+  api_to_lab:
+    from: api_server
+    to: lab_system
+    label: Lab Orders/Results (HL7)
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    isPII: true
+  api_to_insurance:
+    from: api_server
+    to: insurance_api
+    label: Eligibility Check
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    isPII: true
+  api_to_hie:
+    from: api_server
+    to: hie_network
+    label: Record Exchange (XDS/FHIR)
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    checksDestinationRevocation: true
+    isPII: true
+    data: CONFIDENTIAL
+  idp_to_identity:
+    from: identity_provider
+    to: identity_store
+    label: Credential Validation
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    isCredentials: true
+    sanitizesInput: true
+  all_to_audit:
+    from: api_server
+    to: audit_service
+    label: Audit Events
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  audit_to_db:
+    from: audit_service
+    to: audit_log_db
+    label: Audit Log Write
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  notification_to_patient:
+    from: notification_service
+    to: patient
+    label: Secure Messages
+    protocol: HTTPS
+    isEncrypted: true
+    isPII: true
+    note: PHI in notifications must be minimized per HIPAA minimum necessary
+boundaries:
+  internet:
+    label: Internet (Untrusted)
+    elements:
+    - patient
+    isNetworkBoundary: true
+    trustLevel: 0
+  clinical_network:
+    label: Clinical Network
+    elements:
+    - physician
+    - nurse
+    - admin
+    isNetworkBoundary: true
+    trustLevel: 50
+  external_partners:
+    label: Healthcare Partners (BAA Required)
+    elements:
+    - lab_system
+    - pharmacy_system
+    - insurance_api
+    - hie_network
+    isNetworkBoundary: true
+    trustLevel: 40
+  dmz:
+    label: DMZ
+    elements:
+    - patient_portal
+    - clinical_app
+    isNetworkBoundary: true
+    trustLevel: 60
+  application_zone:
+    label: Application Zone
+    elements:
+    - identity_provider
+    - api_server
+    - record_service
+    - prescription_service
+    - scheduling_service
+    - audit_service
+    - notification_service
+    isNetworkBoundary: true
+    trustLevel: 80
+  phi_zone:
+    label: PHI Data Zone (HIPAA)
+    elements:
+    - patient_db
+    - medical_records_db
+    - prescription_db
+    - imaging_storage
+    - audit_log_db
+    - identity_store
+    - cache
+    isNetworkBoundary: true
+    trustLevel: 100
+threats:
+  phi_breach:
+    element: patient_records
+    threat: Protected Health Information (PHI) data breach
+    mitigation: Encryption at rest/transit, access controls, audit logging
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+  medical_device_compromise:
+    element: medical_devices
+    threat: Medical device compromise affecting patient safety
+    mitigation: Network segmentation, device authentication, firmware updates
+    cvss_vector: CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:C/C:L/I:H/A:H
+  prescription_tampering:
+    element: prescription_system
+    threat: Prescription data modification
+    mitigation: Digital signatures, integrity verification, audit trails
+    cvss: 9.1
+  hipaa_violation:
+    element: ehr_system
+    threat: Unauthorized PHI access violating HIPAA
+    mitigation: Role-based access, break-glass procedures, monitoring
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+  ransomware_hospital:
+    element: hospital_network
+    threat: Ransomware attack disrupting hospital operations
+    mitigation: Backup strategy, network segmentation, EDR
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:N/I:H/A:H

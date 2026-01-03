@@ -1,0 +1,223 @@
+# Security Shapes Gallery
+# Category: security
+# Shapes for security diagrams, threat models, and security architecture
+
+[shapes.server]
+id = "server"
+name = "Server"
+category = "security"
+description = "A server or computing node"
+graphviz = { shape = "box3d", style = "filled" }
+default_style = { fillcolor = "#4A90D9", fontcolor = "white" }
+icon = "server"
+ports = ["n", "s", "e", "w"]
+tags = ["infrastructure", "compute", "host"]
+
+[shapes.database]
+id = "database"
+name = "Database"
+category = "security"
+description = "A database or data store"
+graphviz = { shape = "cylinder", style = "filled" }
+default_style = { fillcolor = "#50C878", fontcolor = "white" }
+icon = "database"
+ports = ["n", "s", "e", "w"]
+tags = ["storage", "data", "persistence"]
+
+[shapes.firewall]
+id = "firewall"
+name = "Firewall"
+category = "security"
+description = "A firewall or security gateway"
+graphviz = { shape = "box", style = "filled,bold" }
+default_style = { fillcolor = "#FF6B6B", fontcolor = "white", penwidth = "2" }
+icon = "shield"
+ports = ["n", "s", "e", "w"]
+tags = ["security", "network", "perimeter"]
+
+[shapes.user]
+id = "user"
+name = "User"
+category = "security"
+description = "A human user or actor"
+graphviz = { shape = "ellipse", style = "filled" }
+default_style = { fillcolor = "#9B59B6", fontcolor = "white" }
+icon = "user"
+ports = ["n", "s", "e", "w"]
+tags = ["actor", "human", "identity"]
+
+[shapes.attacker]
+id = "attacker"
+name = "Attacker"
+category = "security"
+description = "A malicious actor or threat"
+graphviz = { shape = "ellipse", style = "filled,bold" }
+default_style = { fillcolor = "#E74C3C", fontcolor = "white", penwidth = "2" }
+icon = "skull"
+ports = ["n", "s", "e", "w"]
+tags = ["threat", "actor", "malicious"]
+
+[shapes.cloud]
+id = "cloud"
+name = "Cloud Service"
+category = "security"
+description = "A cloud service or external system"
+graphviz = { shape = "ellipse", style = "filled,dashed" }
+default_style = { fillcolor = "#3498DB", fontcolor = "white" }
+icon = "cloud"
+ports = ["n", "s", "e", "w"]
+tags = ["external", "service", "internet"]
+
+[shapes.lock]
+id = "lock"
+name = "Lock/Secure"
+category = "security"
+description = "Represents encrypted or secured data/connection"
+graphviz = { shape = "box", style = "filled,rounded" }
+default_style = { fillcolor = "#27AE60", fontcolor = "white" }
+icon = "lock"
+ports = ["n", "s", "e", "w"]
+tags = ["encryption", "secure", "protected"]
+
+[shapes.unlock]
+id = "unlock"
+name = "Unlocked/Insecure"
+category = "security"
+description = "Represents unencrypted or unsecured data/connection"
+graphviz = { shape = "box", style = "filled,rounded,dashed" }
+default_style = { fillcolor = "#E74C3C", fontcolor = "white" }
+icon = "unlock"
+ports = ["n", "s", "e", "w"]
+tags = ["unencrypted", "insecure", "vulnerable"]
+
+[shapes.key]
+id = "key"
+name = "Key"
+category = "security"
+description = "A cryptographic key or credential"
+graphviz = { shape = "hexagon", style = "filled" }
+default_style = { fillcolor = "#F39C12", fontcolor = "white" }
+icon = "key"
+ports = ["n", "s", "e", "w"]
+tags = ["credential", "crypto", "authentication"]
+
+[shapes.certificate]
+id = "certificate"
+name = "Certificate"
+category = "security"
+description = "A digital certificate"
+graphviz = { shape = "note", style = "filled" }
+default_style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+icon = "certificate"
+ports = ["n", "s", "e", "w"]
+tags = ["crypto", "pki", "ssl", "tls"]
+
+[shapes.shield]
+id = "shield"
+name = "Shield/Defense"
+category = "security"
+description = "A defensive control or protection mechanism"
+graphviz = { shape = "hexagon", style = "filled,bold" }
+default_style = { fillcolor = "#2980B9", fontcolor = "white", penwidth = "2" }
+icon = "shield"
+ports = ["n", "s", "e", "w"]
+tags = ["defense", "control", "protection"]
+
+[shapes.warning]
+id = "warning"
+name = "Warning/Alert"
+category = "security"
+description = "A warning or alert condition"
+graphviz = { shape = "triangle", style = "filled" }
+default_style = { fillcolor = "#F1C40F", fontcolor = "#333333" }
+icon = "warning"
+ports = ["n", "s", "e", "w"]
+tags = ["alert", "risk", "caution"]
+
+[shapes.vulnerability]
+id = "vulnerability"
+name = "Vulnerability"
+category = "security"
+description = "A security vulnerability or weakness"
+graphviz = { shape = "diamond", style = "filled,bold" }
+default_style = { fillcolor = "#C0392B", fontcolor = "white", penwidth = "2" }
+icon = "bug"
+ports = ["n", "s", "e", "w"]
+tags = ["weakness", "bug", "cve", "flaw"]
+
+[shapes.asset]
+id = "asset"
+name = "Asset"
+category = "security"
+description = "A valuable asset to protect"
+graphviz = { shape = "box3d", style = "filled" }
+default_style = { fillcolor = "#8E44AD", fontcolor = "white" }
+icon = "gem"
+ports = ["n", "s", "e", "w"]
+tags = ["value", "target", "protect"]
+
+[shapes.trust_boundary]
+id = "trust_boundary"
+name = "Trust Boundary"
+category = "security"
+description = "A trust boundary or security zone edge"
+graphviz = { shape = "box", style = "dashed,bold" }
+default_style = { fillcolor = "transparent", color = "#E74C3C", penwidth = "2" }
+icon = "border"
+ports = ["n", "s", "e", "w"]
+tags = ["boundary", "zone", "perimeter", "dfd"]
+
+[shapes.process]
+id = "process"
+name = "Process"
+category = "security"
+description = "A process or application component"
+graphviz = { shape = "circle", style = "filled" }
+default_style = { fillcolor = "#3498DB", fontcolor = "white" }
+icon = "cog"
+ports = ["n", "s", "e", "w"]
+tags = ["application", "service", "dfd"]
+
+[shapes.data_store]
+id = "data_store"
+name = "Data Store"
+category = "security"
+description = "A data store (database, file, cache)"
+graphviz = { shape = "box", style = "filled" }
+default_style = { fillcolor = "#16A085", fontcolor = "white" }
+icon = "database"
+ports = ["n", "s", "e", "w"]
+tags = ["storage", "persistence", "dfd"]
+
+[shapes.external_entity]
+id = "external_entity"
+name = "External Entity"
+category = "security"
+description = "An external entity or system"
+graphviz = { shape = "box", style = "filled" }
+default_style = { fillcolor = "#7F8C8D", fontcolor = "white" }
+icon = "external"
+ports = ["n", "s", "e", "w"]
+tags = ["external", "actor", "system", "dfd"]
+
+[shapes.threat]
+id = "threat"
+name = "Threat"
+category = "security"
+description = "A threat or attack vector"
+graphviz = { shape = "octagon", style = "filled,bold" }
+default_style = { fillcolor = "#C0392B", fontcolor = "white", penwidth = "2" }
+icon = "danger"
+ports = ["n", "s", "e", "w"]
+tags = ["attack", "risk", "stride"]
+
+[shapes.mitigation]
+id = "mitigation"
+name = "Mitigation"
+category = "security"
+description = "A security control or mitigation"
+graphviz = { shape = "box", style = "filled,rounded" }
+default_style = { fillcolor = "#27AE60", fontcolor = "white" }
+icon = "check-shield"
+ports = ["n", "s", "e", "w"]
+tags = ["control", "countermeasure", "defense"]

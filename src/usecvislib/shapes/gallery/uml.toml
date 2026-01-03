@@ -1,0 +1,234 @@
+# UML Shapes Gallery
+# Category: uml
+# Shapes for UML diagrams (class, sequence, component, etc.)
+
+[shapes.class]
+id = "class"
+name = "Class"
+category = "uml"
+description = "A UML class with compartments"
+graphviz = { shape = "record", style = "filled" }
+default_style = { fillcolor = "#ECF0F1", fontcolor = "#333333" }
+icon = "class"
+ports = ["n", "s", "e", "w"]
+tags = ["oop", "structure", "type"]
+
+[shapes.interface]
+id = "interface"
+name = "Interface"
+category = "uml"
+description = "A UML interface"
+graphviz = { shape = "record", style = "filled,bold" }
+default_style = { fillcolor = "#D5F5E3", fontcolor = "#333333", penwidth = "2" }
+icon = "interface"
+ports = ["n", "s", "e", "w"]
+tags = ["oop", "contract", "abstract"]
+
+[shapes.abstract_class]
+id = "abstract_class"
+name = "Abstract Class"
+category = "uml"
+description = "An abstract UML class"
+graphviz = { shape = "record", style = "filled" }
+default_style = { fillcolor = "#FADBD8", fontcolor = "#333333", fontname = "Helvetica-Oblique" }
+icon = "abstract"
+ports = ["n", "s", "e", "w"]
+tags = ["oop", "abstract", "base"]
+
+[shapes.package]
+id = "package"
+name = "Package"
+category = "uml"
+description = "A UML package/namespace"
+graphviz = { shape = "tab", style = "filled" }
+default_style = { fillcolor = "#EBF5FB", fontcolor = "#333333" }
+icon = "folder"
+ports = ["n", "s", "e", "w"]
+tags = ["namespace", "module", "container"]
+
+[shapes.component]
+id = "component"
+name = "Component"
+category = "uml"
+description = "A UML component"
+graphviz = { shape = "component", style = "filled" }
+default_style = { fillcolor = "#FDEBD0", fontcolor = "#333333" }
+icon = "component"
+ports = ["n", "s", "e", "w"]
+tags = ["module", "library", "service"]
+
+[shapes.actor]
+id = "actor"
+name = "Actor"
+category = "uml"
+description = "A UML actor (stick figure representation)"
+graphviz = { shape = "ellipse", style = "filled" }
+default_style = { fillcolor = "#D7BDE2", fontcolor = "#333333" }
+icon = "user"
+ports = ["n", "s", "e", "w"]
+tags = ["user", "role", "usecase"]
+
+[shapes.usecase]
+id = "usecase"
+name = "Use Case"
+category = "uml"
+description = "A UML use case"
+graphviz = { shape = "ellipse", style = "filled" }
+default_style = { fillcolor = "#AED6F1", fontcolor = "#333333" }
+icon = "usecase"
+ports = ["n", "s", "e", "w"]
+tags = ["requirement", "behavior", "scenario"]
+
+[shapes.state]
+id = "state"
+name = "State"
+category = "uml"
+description = "A UML state in state machine"
+graphviz = { shape = "box", style = "filled,rounded" }
+default_style = { fillcolor = "#ABEBC6", fontcolor = "#333333" }
+icon = "state"
+ports = ["n", "s", "e", "w"]
+tags = ["statechart", "behavior", "condition"]
+
+[shapes.initial_state]
+id = "initial_state"
+name = "Initial State"
+category = "uml"
+description = "Initial state (filled circle)"
+graphviz = { shape = "circle", style = "filled", fixedsize = "true", width = "0.3" }
+default_style = { fillcolor = "#333333" }
+icon = "start"
+ports = ["n", "s", "e", "w"]
+tags = ["start", "begin", "entry"]
+
+[shapes.final_state]
+id = "final_state"
+name = "Final State"
+category = "uml"
+description = "Final state (bull's eye)"
+graphviz = { shape = "doublecircle", style = "filled", fixedsize = "true", width = "0.4" }
+default_style = { fillcolor = "#333333" }
+icon = "end"
+ports = ["n", "s", "e", "w"]
+tags = ["end", "finish", "exit"]
+
+[shapes.activity]
+id = "activity"
+name = "Activity"
+category = "uml"
+description = "An activity/action in activity diagram"
+graphviz = { shape = "box", style = "filled,rounded" }
+default_style = { fillcolor = "#F9E79F", fontcolor = "#333333" }
+icon = "activity"
+ports = ["n", "s", "e", "w"]
+tags = ["action", "step", "behavior"]
+
+[shapes.decision_uml]
+id = "decision_uml"
+name = "Decision Node"
+category = "uml"
+description = "Decision node in activity diagram"
+graphviz = { shape = "diamond", style = "filled", fixedsize = "true", width = "0.5", height = "0.5" }
+default_style = { fillcolor = "#333333" }
+icon = "diamond"
+ports = ["n", "s", "e", "w"]
+tags = ["branch", "condition", "guard"]
+
+[shapes.fork_join]
+id = "fork_join"
+name = "Fork/Join Bar"
+category = "uml"
+description = "Synchronization bar for parallel activities"
+graphviz = { shape = "box", style = "filled", fixedsize = "true", width = "2", height = "0.05" }
+default_style = { fillcolor = "#333333" }
+icon = "bar"
+ports = ["n", "s"]
+tags = ["parallel", "concurrent", "sync"]
+
+[shapes.note_uml]
+id = "note_uml"
+name = "Note"
+category = "uml"
+description = "A UML note/comment"
+graphviz = { shape = "note", style = "filled" }
+default_style = { fillcolor = "#FFFACD", fontcolor = "#333333" }
+icon = "note"
+ports = ["n", "s", "e", "w"]
+tags = ["comment", "annotation", "remark"]
+
+[shapes.object]
+id = "object"
+name = "Object"
+category = "uml"
+description = "An object instance"
+graphviz = { shape = "box", style = "filled" }
+default_style = { fillcolor = "#D5DBDB", fontcolor = "#333333" }
+icon = "object"
+ports = ["n", "s", "e", "w"]
+tags = ["instance", "entity", "oop"]
+
+[shapes.artifact]
+id = "artifact"
+name = "Artifact"
+category = "uml"
+description = "A deployment artifact (file, library)"
+graphviz = { shape = "note", style = "filled" }
+default_style = { fillcolor = "#F5EEF8", fontcolor = "#333333" }
+icon = "file"
+ports = ["n", "s", "e", "w"]
+tags = ["file", "deployment", "binary"]
+
+[shapes.node_uml]
+id = "node_uml"
+name = "Node"
+category = "uml"
+description = "A deployment node (server, device)"
+graphviz = { shape = "box3d", style = "filled" }
+default_style = { fillcolor = "#E8DAEF", fontcolor = "#333333" }
+icon = "server"
+ports = ["n", "s", "e", "w"]
+tags = ["deployment", "hardware", "infrastructure"]
+
+[shapes.signal_send]
+id = "signal_send"
+name = "Send Signal"
+category = "uml"
+description = "Send signal action"
+graphviz = { shape = "house", style = "filled" }
+default_style = { fillcolor = "#AED6F1", fontcolor = "#333333" }
+icon = "send"
+ports = ["n", "s", "e", "w"]
+tags = ["message", "event", "async"]
+
+[shapes.signal_receive]
+id = "signal_receive"
+name = "Receive Signal"
+category = "uml"
+description = "Receive signal action"
+graphviz = { shape = "invhouse", style = "filled" }
+default_style = { fillcolor = "#ABEBC6", fontcolor = "#333333" }
+icon = "receive"
+ports = ["n", "s", "e", "w"]
+tags = ["message", "event", "wait"]
+
+[shapes.lifeline]
+id = "lifeline"
+name = "Lifeline"
+category = "uml"
+description = "Object lifeline in sequence diagram"
+graphviz = { shape = "box", style = "filled" }
+default_style = { fillcolor = "#FDEBD0", fontcolor = "#333333" }
+icon = "lifeline"
+ports = ["n", "s"]
+tags = ["sequence", "timeline", "object"]
+
+[shapes.activation]
+id = "activation"
+name = "Activation"
+category = "uml"
+description = "Activation bar on lifeline"
+graphviz = { shape = "box", style = "filled", fixedsize = "true", width = "0.2" }
+default_style = { fillcolor = "#D5DBDB", fontcolor = "#333333" }
+icon = "bar"
+ports = ["n", "s"]
+tags = ["sequence", "execution", "focus"]

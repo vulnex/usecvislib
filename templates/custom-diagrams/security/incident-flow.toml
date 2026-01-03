@@ -1,0 +1,450 @@
+#
+# Incident Response Flow Template
+# Incident response workflow diagram
+#
+
+[diagram]
+title = "Incident Response Flow"
+description = "Security incident response workflow"
+layout = "hierarchical"
+direction = "LR"
+style = "cd_dark"
+splines = "ortho"
+nodesep = 0.6
+ranksep = 1.0
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.phase]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description", "duration"]
+style = { fillcolor = "#3498DB", fontcolor = "white", style = "filled,bold" }
+label_template = "{name}"
+
+[schema.nodes.action]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["owner", "time"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.decision]
+shape = "diamond"
+required_fields = ["name"]
+optional_fields = ["criteria"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.trigger]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#E74C3C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.escalation]
+shape = "octagon"
+required_fields = ["name"]
+optional_fields = ["contact"]
+style = { fillcolor = "#9B59B6", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.document]
+shape = "note"
+required_fields = ["name"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.team]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["members"]
+style = { fillcolor = "#34495E", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.edges.flow]
+style = "solid"
+color = "#FFFFFF"
+arrowhead = "vee"
+
+[schema.edges.escalate]
+style = "bold"
+color = "#E74C3C"
+arrowhead = "normal"
+label_field = "condition"
+
+[schema.edges.notify]
+style = "dashed"
+color = "#F39C12"
+arrowhead = "vee"
+label_field = "method"
+
+[schema.edges.produces]
+style = "dotted"
+color = "#1ABC9C"
+arrowhead = "normal"
+
+# =============================================================================
+# Example Data - Security Incident Response
+# =============================================================================
+
+# Triggers
+[[nodes]]
+id = "alert"
+type = "trigger"
+name = "Security Alert"
+
+# Phase 1: Detection
+[[nodes]]
+id = "phase_detect"
+type = "phase"
+name = "Detection"
+duration = "< 15 min"
+
+[[nodes]]
+id = "triage"
+type = "action"
+name = "Initial Triage"
+owner = "SOC Analyst"
+time = "5 min"
+
+[[nodes]]
+id = "is_incident"
+type = "decision"
+name = "Is this an\nincident?"
+
+[[nodes]]
+id = "false_positive"
+type = "action"
+name = "Mark False Positive"
+
+# Phase 2: Analysis
+[[nodes]]
+id = "phase_analysis"
+type = "phase"
+name = "Analysis"
+duration = "< 1 hour"
+
+[[nodes]]
+id = "gather_ioc"
+type = "action"
+name = "Gather IOCs"
+owner = "SOC Analyst"
+
+[[nodes]]
+id = "scope"
+type = "action"
+name = "Determine Scope"
+owner = "IR Team"
+
+[[nodes]]
+id = "severity"
+type = "decision"
+name = "Severity\nLevel?"
+
+# Phase 3: Containment
+[[nodes]]
+id = "phase_contain"
+type = "phase"
+name = "Containment"
+duration = "< 4 hours"
+
+[[nodes]]
+id = "isolate"
+type = "action"
+name = "Isolate Systems"
+owner = "IT Ops"
+
+[[nodes]]
+id = "block_ioc"
+type = "action"
+name = "Block IOCs"
+owner = "Security"
+
+[[nodes]]
+id = "preserve_evidence"
+type = "action"
+name = "Preserve Evidence"
+owner = "Forensics"
+
+# Phase 4: Eradication
+[[nodes]]
+id = "phase_eradicate"
+type = "phase"
+name = "Eradication"
+duration = "< 24 hours"
+
+[[nodes]]
+id = "remove_malware"
+type = "action"
+name = "Remove Malware"
+owner = "IT Ops"
+
+[[nodes]]
+id = "patch"
+type = "action"
+name = "Apply Patches"
+owner = "IT Ops"
+
+[[nodes]]
+id = "reset_creds"
+type = "action"
+name = "Reset Credentials"
+owner = "IT Admin"
+
+# Phase 5: Recovery
+[[nodes]]
+id = "phase_recover"
+type = "phase"
+name = "Recovery"
+duration = "< 48 hours"
+
+[[nodes]]
+id = "restore"
+type = "action"
+name = "Restore Systems"
+owner = "IT Ops"
+
+[[nodes]]
+id = "monitor"
+type = "action"
+name = "Enhanced Monitoring"
+owner = "SOC"
+
+[[nodes]]
+id = "validate"
+type = "action"
+name = "Validate Clean"
+owner = "Security"
+
+# Phase 6: Post-Incident
+[[nodes]]
+id = "phase_post"
+type = "phase"
+name = "Post-Incident"
+
+[[nodes]]
+id = "lessons"
+type = "action"
+name = "Lessons Learned"
+owner = "IR Team"
+
+[[nodes]]
+id = "update_playbook"
+type = "action"
+name = "Update Playbooks"
+owner = "Security"
+
+# Documents
+[[nodes]]
+id = "doc_report"
+type = "document"
+name = "Incident Report"
+
+[[nodes]]
+id = "doc_timeline"
+type = "document"
+name = "Timeline"
+
+# Escalation
+[[nodes]]
+id = "esc_management"
+type = "escalation"
+name = "Management"
+contact = "CISO"
+
+[[nodes]]
+id = "esc_legal"
+type = "escalation"
+name = "Legal/PR"
+contact = "Legal Team"
+
+# Teams
+[[nodes]]
+id = "soc"
+type = "team"
+name = "SOC Team"
+
+[[nodes]]
+id = "ir_team"
+type = "team"
+name = "IR Team"
+
+[[edges]]
+from = "alert"
+to = "phase_detect"
+type = "flow"
+
+[[edges]]
+from = "phase_detect"
+to = "triage"
+type = "flow"
+
+[[edges]]
+from = "triage"
+to = "is_incident"
+type = "flow"
+
+[[edges]]
+from = "is_incident"
+to = "false_positive"
+type = "flow"
+label = "No"
+
+[[edges]]
+from = "is_incident"
+to = "phase_analysis"
+type = "flow"
+label = "Yes"
+
+[[edges]]
+from = "phase_analysis"
+to = "gather_ioc"
+type = "flow"
+
+[[edges]]
+from = "gather_ioc"
+to = "scope"
+type = "flow"
+
+[[edges]]
+from = "scope"
+to = "severity"
+type = "flow"
+
+[[edges]]
+from = "severity"
+to = "phase_contain"
+type = "flow"
+label = "High/Critical"
+
+[[edges]]
+from = "severity"
+to = "esc_management"
+type = "escalate"
+condition = "Critical"
+
+[[edges]]
+from = "severity"
+to = "esc_legal"
+type = "escalate"
+condition = "Data Breach"
+
+[[edges]]
+from = "phase_contain"
+to = "isolate"
+type = "flow"
+
+[[edges]]
+from = "phase_contain"
+to = "block_ioc"
+type = "flow"
+
+[[edges]]
+from = "phase_contain"
+to = "preserve_evidence"
+type = "flow"
+
+[[edges]]
+from = "isolate"
+to = "phase_eradicate"
+type = "flow"
+
+[[edges]]
+from = "phase_eradicate"
+to = "remove_malware"
+type = "flow"
+
+[[edges]]
+from = "phase_eradicate"
+to = "patch"
+type = "flow"
+
+[[edges]]
+from = "phase_eradicate"
+to = "reset_creds"
+type = "flow"
+
+[[edges]]
+from = "patch"
+to = "phase_recover"
+type = "flow"
+
+[[edges]]
+from = "phase_recover"
+to = "restore"
+type = "flow"
+
+[[edges]]
+from = "phase_recover"
+to = "monitor"
+type = "flow"
+
+[[edges]]
+from = "restore"
+to = "validate"
+type = "flow"
+
+[[edges]]
+from = "validate"
+to = "phase_post"
+type = "flow"
+
+[[edges]]
+from = "phase_post"
+to = "lessons"
+type = "flow"
+
+[[edges]]
+from = "lessons"
+to = "update_playbook"
+type = "flow"
+
+[[edges]]
+from = "lessons"
+to = "doc_report"
+type = "produces"
+
+[[edges]]
+from = "preserve_evidence"
+to = "doc_timeline"
+type = "produces"
+
+[[edges]]
+from = "soc"
+to = "triage"
+type = "notify"
+method = "Assigned"
+
+[[edges]]
+from = "ir_team"
+to = "scope"
+type = "notify"
+method = "Escalated"
+
+# Phase groupings
+[[clusters]]
+id = "detection"
+label = "Detection & Triage"
+nodes = ["phase_detect", "triage", "is_incident", "false_positive"]
+style = { color = "#3498DB", style = "dashed" }
+
+[[clusters]]
+id = "analysis"
+label = "Analysis"
+nodes = ["phase_analysis", "gather_ioc", "scope", "severity"]
+style = { color = "#9B59B6", style = "dashed" }
+
+[[clusters]]
+id = "containment"
+label = "Containment"
+nodes = ["phase_contain", "isolate", "block_ioc", "preserve_evidence"]
+style = { color = "#E74C3C", style = "dashed" }
+
+[[clusters]]
+id = "remediation"
+label = "Eradication & Recovery"
+nodes = ["phase_eradicate", "remove_malware", "patch", "reset_creds", "phase_recover", "restore", "monitor", "validate"]
+style = { color = "#27AE60", style = "dashed" }

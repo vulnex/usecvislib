@@ -1,0 +1,112 @@
+# Web Application Threat Model Example
+# Demonstrates a typical 3-tier web application architecture
+
+[model]
+name = "Web Application Threat Model"
+description = "Three-tier web application with user authentication"
+engineversion = "0.2.5"
+version = "1.0.0"
+type = "Threat Model"
+date = "2025-12-25"
+last_modified = "2025-12-25"
+author = "VULNEX"
+email = "info@vulnex.com"
+url = "https://www.vulnex.com"
+
+[externals]
+[externals.user]
+label = "Web User"
+
+[externals.admin]
+label = "Administrator"
+
+[processes]
+[processes.webapp]
+label = "Web Application"
+
+[processes.api]
+label = "API Server"
+
+[processes.auth]
+label = "Auth Service"
+
+[datastores]
+[datastores.userdb]
+label = "User Database"
+
+[datastores.sessionstore]
+label = "Session Store"
+
+[datastores.appdb]
+label = "Application Database"
+
+[dataflows]
+[dataflows.user_to_web]
+from = "user"
+to = "webapp"
+label = "HTTPS Requests"
+
+[dataflows.admin_to_web]
+from = "admin"
+to = "webapp"
+label = "Admin HTTPS"
+
+[dataflows.web_to_api]
+from = "webapp"
+to = "api"
+label = "REST API Calls"
+
+[dataflows.api_to_auth]
+from = "api"
+to = "auth"
+label = "Auth Requests"
+
+[dataflows.auth_to_userdb]
+from = "auth"
+to = "userdb"
+label = "User Queries"
+
+[dataflows.auth_to_session]
+from = "auth"
+to = "sessionstore"
+label = "Session Data"
+
+[dataflows.api_to_appdb]
+from = "api"
+to = "appdb"
+label = "Data Queries"
+
+[boundaries]
+[boundaries.dmz]
+label = "DMZ (Public Network)"
+elements = ["webapp"]
+
+[boundaries.internal]
+label = "Internal Network"
+elements = ["api", "auth", "userdb", "sessionstore", "appdb"]
+
+# Custom threats with CVSS scores
+[threats]
+[threats.xss_attack]
+element = "webapp"
+threat = "Cross-site scripting (XSS) attack"
+mitigation = "Input validation, output encoding, CSP headers"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"
+
+[threats.sql_injection]
+element = "appdb"
+threat = "SQL injection in data queries"
+mitigation = "Parameterized queries, input validation"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N"
+
+[threats.session_hijacking]
+element = "sessionstore"
+threat = "Session token theft or hijacking"
+mitigation = "Secure cookies, session rotation, TLS"
+cvss = 8.0
+
+[threats.auth_bypass]
+element = "auth"
+threat = "Authentication bypass vulnerability"
+mitigation = "MFA, secure password hashing, rate limiting"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N"

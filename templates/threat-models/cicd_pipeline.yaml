@@ -1,0 +1,530 @@
+model:
+  name: CI/CD Pipeline
+  description: Secure DevSecOps pipeline with SAST, DAST, container scanning, and
+    automated deployments
+  engineversion: 0.2.5
+  version: 1.0.0
+  type: Threat Model
+  date: '2025-12-25'
+  last_modified: '2025-12-25'
+  author: VULNEX
+  email: info@vulnex.com
+  url: https://www.vulnex.com
+externals:
+  developer:
+    label: Developer
+    description: Software developer committing code
+    isAdmin: false
+    isTrusted: true
+  security_engineer:
+    label: Security Engineer
+    description: Security team member reviewing findings
+    isAdmin: false
+    isTrusted: true
+  platform_admin:
+    label: Platform Admin
+    description: DevOps/Platform administrator
+    isAdmin: true
+    isTrusted: true
+  external_deps:
+    label: External Dependencies
+    description: Public package registries (npm, PyPI, Maven)
+    isTrusted: false
+  container_registry_ext:
+    label: External Container Registry
+    description: Docker Hub and other public registries
+    isTrusted: false
+  cloud_provider:
+    label: Cloud Provider
+    description: AWS/GCP/Azure infrastructure APIs
+    isTrusted: true
+  monitoring_saas:
+    label: Monitoring SaaS
+    description: External monitoring and alerting (Datadog, PagerDuty)
+    isTrusted: true
+processes:
+  source_control:
+    label: Source Control
+    description: Git repository with branch protection
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    hasAccessControl: true
+    isHardened: true
+  ci_orchestrator:
+    label: CI Orchestrator
+    description: Jenkins/GitHub Actions/GitLab CI pipeline controller
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    hasAccessControl: true
+    isHardened: true
+    handlesResourceConsumption: true
+  build_agent:
+    label: Build Agent
+    description: Ephemeral build agents for compilation
+    isServer: true
+    sanitizesInput: true
+    checksInputBounds: true
+    isHardened: true
+    handlesResourceConsumption: true
+  sast_scanner:
+    label: SAST Scanner
+    description: Static Application Security Testing (Semgrep, SonarQube)
+    isServer: true
+    sanitizesInput: true
+    hasAccessControl: true
+    isHardened: true
+  sca_scanner:
+    label: SCA Scanner
+    description: Software Composition Analysis (Snyk, Dependabot)
+    isServer: true
+    sanitizesInput: true
+    hasAccessControl: true
+    isHardened: true
+  secret_scanner:
+    label: Secret Scanner
+    description: Pre-commit and CI secret detection (GitLeaks, TruffleHog)
+    isServer: true
+    sanitizesInput: true
+    hasAccessControl: true
+    isHardened: true
+  container_scanner:
+    label: Container Scanner
+    description: Container image vulnerability scanning (Trivy, Clair)
+    isServer: true
+    sanitizesInput: true
+    hasAccessControl: true
+    isHardened: true
+  dast_scanner:
+    label: DAST Scanner
+    description: Dynamic Application Security Testing (ZAP, Burp)
+    isServer: true
+    sanitizesInput: true
+    hasAccessControl: true
+    isHardened: true
+    handlesResourceConsumption: true
+  artifact_builder:
+    label: Artifact Builder
+    description: Container image and package builder
+    isServer: true
+    sanitizesInput: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+  signing_service:
+    label: Signing Service
+    description: Code and artifact signing (Sigstore, Notary)
+    isServer: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    hasAccessControl: true
+    isHardened: true
+  deployment_controller:
+    label: Deployment Controller
+    description: ArgoCD/Flux for GitOps deployments
+    isServer: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    sanitizesInput: true
+    hasAccessControl: true
+    isHardened: true
+  policy_engine:
+    label: Policy Engine
+    description: OPA/Kyverno for admission control
+    isServer: true
+    sanitizesInput: true
+    hasAccessControl: true
+    isHardened: true
+  secrets_manager:
+    label: Secrets Manager
+    description: HashiCorp Vault / AWS Secrets Manager
+    isServer: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    hasAccessControl: true
+    isHardened: true
+datastores:
+  git_repo:
+    label: Git Repository
+    description: Source code repository with history
+    isSQL: false
+    isEncrypted: true
+    hasAccessControl: true
+    storesCredentials: false
+    hasBackup: true
+    isAuditLogged: true
+  artifact_registry:
+    label: Artifact Registry
+    description: Private container and package registry
+    isSQL: false
+    isEncrypted: true
+    hasAccessControl: true
+    hasBackup: true
+    isAuditLogged: true
+  secrets_store:
+    label: Secrets Store
+    description: Encrypted secrets and credentials vault
+    isSQL: false
+    isEncrypted: true
+    hasAccessControl: true
+    storesCredentials: true
+    hasBackup: true
+    isAuditLogged: true
+  scan_results_db:
+    label: Scan Results Database
+    description: Security scan findings and vulnerability data
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    hasBackup: true
+    isAuditLogged: true
+  pipeline_config:
+    label: Pipeline Configuration
+    description: CI/CD pipeline definitions and policies
+    isSQL: false
+    isEncrypted: true
+    hasAccessControl: true
+    hasBackup: true
+    isAuditLogged: true
+  signing_keys:
+    label: Signing Keys
+    description: Code signing private keys (HSM-backed)
+    isSQL: false
+    isEncrypted: true
+    hasAccessControl: true
+    storesCredentials: true
+    hasBackup: true
+    isAuditLogged: true
+  audit_log:
+    label: Pipeline Audit Log
+    description: Immutable deployment and change audit trail
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    hasBackup: true
+    isAuditLogged: true
+dataflows:
+  dev_to_source:
+    from: developer
+    to: source_control
+    label: Git Push (SSH/HTTPS)
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    note: GPG commit signing required
+  security_to_scans:
+    from: security_engineer
+    to: sast_scanner
+    label: Review Findings
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+  admin_to_ci:
+    from: platform_admin
+    to: ci_orchestrator
+    label: Pipeline Config
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    isCredentials: true
+    data: SECRET
+  source_to_ci:
+    from: source_control
+    to: ci_orchestrator
+    label: Webhook Trigger
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+  ci_to_build:
+    from: ci_orchestrator
+    to: build_agent
+    label: Build Job
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+  build_to_external_deps:
+    from: build_agent
+    to: external_deps
+    label: Fetch Dependencies
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesDestination: true
+    checksDestinationRevocation: true
+    note: Use lockfiles and integrity checks
+  build_to_sast:
+    from: build_agent
+    to: sast_scanner
+    label: Source Analysis
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+  build_to_sca:
+    from: build_agent
+    to: sca_scanner
+    label: Dependency Analysis
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+  build_to_secrets:
+    from: build_agent
+    to: secret_scanner
+    label: Secret Detection
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+  build_to_artifact:
+    from: build_agent
+    to: artifact_builder
+    label: Build Artifacts
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+  artifact_to_container_scan:
+    from: artifact_builder
+    to: container_scanner
+    label: Image Scan
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+  artifact_to_signing:
+    from: artifact_builder
+    to: signing_service
+    label: Sign Artifacts
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    data: SECRET
+  signing_to_keys:
+    from: signing_service
+    to: signing_keys
+    label: Key Access
+    protocol: PKCS11
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    isCredentials: true
+  artifact_to_registry:
+    from: artifact_builder
+    to: artifact_registry
+    label: Push Artifacts
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+  deployment_to_registry:
+    from: deployment_controller
+    to: artifact_registry
+    label: Pull Artifacts
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+  deployment_to_cloud:
+    from: deployment_controller
+    to: cloud_provider
+    label: Deploy Resources
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    checksDestinationRevocation: true
+    isCredentials: true
+    data: SECRET
+  deployment_to_policy:
+    from: deployment_controller
+    to: policy_engine
+    label: Policy Check
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+  deployment_to_dast:
+    from: deployment_controller
+    to: dast_scanner
+    label: Trigger DAST
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+  ci_to_secrets_manager:
+    from: ci_orchestrator
+    to: secrets_manager
+    label: Fetch Secrets
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    isCredentials: true
+  secrets_manager_to_store:
+    from: secrets_manager
+    to: secrets_store
+    label: Secret Retrieval
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    isCredentials: true
+  scanners_to_results:
+    from: sast_scanner
+    to: scan_results_db
+    label: Store Findings
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    sanitizesInput: true
+  sca_to_results:
+    from: sca_scanner
+    to: scan_results_db
+    label: Store SCA Results
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    sanitizesInput: true
+  container_scan_to_results:
+    from: container_scanner
+    to: scan_results_db
+    label: Store Image Scan
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    sanitizesInput: true
+  ci_to_config:
+    from: ci_orchestrator
+    to: pipeline_config
+    label: Read Config
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+  source_to_repo:
+    from: source_control
+    to: git_repo
+    label: Git Storage
+    protocol: SSH
+    isEncrypted: true
+    authenticatesSource: true
+  ci_to_audit:
+    from: ci_orchestrator
+    to: audit_log
+    label: Pipeline Audit
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    sanitizesInput: true
+  deployment_to_monitoring:
+    from: deployment_controller
+    to: monitoring_saas
+    label: Deployment Events
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+  container_ext_to_builder:
+    from: container_registry_ext
+    to: artifact_builder
+    label: Base Images
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesDestination: true
+    note: Only signed base images allowed
+boundaries:
+  developer_zone:
+    label: Developer Workstation
+    elements:
+    - developer
+    - security_engineer
+    - platform_admin
+    isNetworkBoundary: true
+    trustLevel: 30
+  external_services:
+    label: External Services (Untrusted)
+    elements:
+    - external_deps
+    - container_registry_ext
+    isNetworkBoundary: true
+    trustLevel: 0
+  trusted_external:
+    label: Trusted External Services
+    elements:
+    - cloud_provider
+    - monitoring_saas
+    isNetworkBoundary: true
+    trustLevel: 40
+  ci_zone:
+    label: CI/CD Zone
+    elements:
+    - source_control
+    - ci_orchestrator
+    - build_agent
+    - artifact_builder
+    isNetworkBoundary: true
+    trustLevel: 60
+  security_zone:
+    label: Security Scanning Zone
+    elements:
+    - sast_scanner
+    - sca_scanner
+    - secret_scanner
+    - container_scanner
+    - dast_scanner
+    - policy_engine
+    isNetworkBoundary: true
+    trustLevel: 70
+  deployment_zone:
+    label: Deployment Zone
+    elements:
+    - deployment_controller
+    - signing_service
+    isNetworkBoundary: true
+    trustLevel: 80
+  secrets_zone:
+    label: Secrets Management Zone
+    elements:
+    - secrets_manager
+    isNetworkBoundary: true
+    trustLevel: 90
+  data_zone:
+    label: Data Zone
+    elements:
+    - git_repo
+    - artifact_registry
+    - secrets_store
+    - scan_results_db
+    - pipeline_config
+    - signing_keys
+    - audit_log
+    isNetworkBoundary: true
+    trustLevel: 100
+threats:
+  malicious_dependency:
+    element: external_deps
+    threat: Malicious package injection via compromised dependency
+    mitigation: Use SCA scanning, lock file validation, private registry mirroring
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
+  secrets_in_code:
+    element: source_control
+    threat: Secrets committed to source code repository
+    mitigation: Pre-commit hooks, secret scanning, credential rotation
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+  pipeline_injection:
+    element: ci_orchestrator
+    threat: Pipeline configuration injection attack
+    mitigation: Validate pipeline configs, use signed configs, least privilege
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:H
+  container_escape:
+    element: build_agent
+    threat: Container escape from build agent to host
+    mitigation: Hardened containers, rootless builds, isolated build environments
+    cvss_vector: CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:C/C:H/I:H/A:H
+  artifact_tampering:
+    element: artifact_registry
+    threat: Artifact tampering or replacement attack
+    mitigation: Artifact signing, checksum verification, immutable storage
+    cvss: 8.6
+  signing_key_theft:
+    element: signing_keys
+    threat: Code signing key compromise
+    mitigation: HSM storage, key rotation, access auditing
+    cvss_vector: CVSS:3.1/AV:N/AC:H/PR:H/UI:N/S:C/C:H/I:H/A:N

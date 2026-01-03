@@ -1,0 +1,81 @@
+services:
+  # =============================================================================
+  # USecVisLib API Service
+  # =============================================================================
+  usecvislib-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: usecvislib-api
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Authentication settings
+      - USECVISLIB_AUTH_ENABLED=${USECVISLIB_AUTH_ENABLED:-true}
+      - USECVISLIB_API_KEY=${USECVISLIB_API_KEY}
+      - USECVISLIB_API_KEYS=${USECVISLIB_API_KEYS:-}
+      # Logging
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # Image upload configuration
+      - IMAGE_UPLOAD_DIR=/app/images
+      - IMAGE_CLEANUP_AGE=${IMAGE_CLEANUP_AGE:-3600}
+    volumes:
+      # Mount for persistent output files (optional)
+      - ./output:/app/output
+      # Mount for uploaded images (persists across restarts)
+      - image_uploads:/app/images
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =============================================================================
+  # USecVisLib Frontend Service
+  # =============================================================================
+  usecvislib-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: usecvislib-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - usecvislib-api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # =============================================================================
+  # USecVisLib CLI Service (for one-off commands)
+  # =============================================================================
+  usecvislib-cli:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: usecvislib-cli
+    profiles:
+      - cli  # Only start when explicitly requested
+    volumes:
+      # Mount input/output directories
+      - ./input:/app/input:ro
+      - ./output:/app/output
+    entrypoint: ["usecvis"]
+    # Override command when running (supports .tml, .toml, .json, .yaml, .yml):
+    # docker-compose run --rm usecvislib-cli -i /app/input/file.json -o /app/output/result -m 0
+    # docker-compose run --rm usecvislib-cli -i /app/input/file.yaml -o /app/output/result -m 1
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  # Persistent storage for uploaded images
+  image_uploads:
+    driver: local

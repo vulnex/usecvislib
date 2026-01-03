@@ -1,0 +1,269 @@
+graph:
+  name: Cloud Infrastructure Attack Scenario
+  description: Attack graph for AWS/Cloud environment with microservices
+  engineversion: 0.2.5
+  version: 1.0.0
+  type: Attack Graph
+  date: '2025-12-25'
+  last_modified: '2025-12-25'
+  author: VULNEX
+  email: info@vulnex.com
+  url: https://www.vulnex.com
+hosts:
+- id: attacker
+  label: External Attacker
+  ip: 0.0.0.0
+  zone: internet
+- id: cdn
+  label: CloudFront CDN
+  description: Content delivery network edge
+  zone: edge
+- id: alb
+  label: Application LB
+  description: AWS Application Load Balancer
+  ip: 10.0.0.5
+  zone: public
+- id: api_gateway
+  label: API Gateway
+  description: Kong/AWS API Gateway
+  ip: 10.0.1.10
+  zone: public
+- id: auth_service
+  label: Auth Service
+  description: Authentication microservice
+  ip: 10.0.2.10
+  zone: private
+  os: Container
+- id: user_service
+  label: User Service
+  description: User management microservice
+  ip: 10.0.2.20
+  zone: private
+  os: Container
+- id: payment_service
+  label: Payment Service
+  description: Payment processing microservice
+  ip: 10.0.2.30
+  zone: private
+  os: Container
+- id: rds_primary
+  label: RDS Primary
+  description: PostgreSQL primary database
+  ip: 10.0.3.10
+  zone: data
+  os: RDS
+- id: redis_cluster
+  label: Redis Cluster
+  description: Session/cache storage
+  ip: 10.0.3.20
+  zone: data
+- id: s3_bucket
+  label: S3 Bucket
+  description: Object storage for sensitive data
+  zone: data
+- id: secrets_manager
+  label: Secrets Manager
+  description: AWS Secrets Manager
+  zone: management
+- id: eks_control
+  label: EKS Control Plane
+  description: Kubernetes control plane
+  zone: management
+vulnerabilities:
+- id: vuln_ssrf
+  label: SSRF Vulnerability
+  description: Server-Side Request Forgery in API
+  cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:L/A:N
+  affected_host: api_gateway
+- id: vuln_jwt_weak
+  label: Weak JWT Secret
+  description: Brute-forceable JWT signing key
+  cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+  affected_host: auth_service
+- id: vuln_log4j
+  label: Log4Shell
+  description: Log4j RCE vulnerability
+  cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H
+  cve: CVE-2021-44228
+  affected_host: user_service
+- id: vuln_idor
+  label: IDOR
+  description: Insecure Direct Object Reference
+  cvss_vector: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N
+  affected_host: user_service
+- id: vuln_s3_public
+  label: S3 Misconfiguration
+  description: S3 bucket with overly permissive ACLs
+  cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+  affected_host: s3_bucket
+- id: vuln_imds
+  label: IMDS Exposure
+  description: Instance metadata service accessible
+  cvss_vector: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N
+  affected_host: payment_service
+- id: vuln_k8s_api
+  label: K8s API Exposed
+  description: Kubernetes API without proper auth
+  cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+  affected_host: eks_control
+privileges:
+- id: priv_api_access
+  label: API Access
+  description: Authenticated API access
+  level: user
+- id: priv_jwt_forge
+  label: JWT Forgery
+  description: Ability to forge JWT tokens
+  level: elevated
+- id: priv_user_svc_rce
+  label: User Service RCE
+  description: Code execution on user service
+  host: user_service
+  level: container
+- id: priv_payment_rce
+  label: Payment Service RCE
+  description: Code execution on payment service
+  host: payment_service
+  level: container
+- id: priv_aws_role
+  label: AWS IAM Role
+  description: Assumed IAM role from IMDS
+  level: cloud
+- id: priv_secrets_read
+  label: Secrets Read
+  description: Read access to Secrets Manager
+  host: secrets_manager
+  level: cloud
+- id: priv_db_access
+  label: Database Access
+  description: Direct database access
+  host: rds_primary
+  level: data
+- id: priv_s3_read
+  label: S3 Read Access
+  description: Read access to S3 bucket
+  host: s3_bucket
+  level: data
+- id: priv_k8s_admin
+  label: K8s Admin
+  description: Kubernetes cluster admin
+  host: eks_control
+  level: admin
+- id: priv_cluster_escape
+  label: Cluster Escape
+  description: Escaped container to node
+  level: node
+services:
+- id: svc_https
+  label: HTTPS
+  host: alb
+  port: 443
+  protocol: tcp
+- id: svc_api
+  label: REST API
+  host: api_gateway
+  port: 8080
+  protocol: tcp
+- id: svc_grpc
+  label: gRPC
+  host: auth_service
+  port: 50051
+  protocol: tcp
+- id: svc_postgres
+  label: PostgreSQL
+  host: rds_primary
+  port: 5432
+  protocol: tcp
+- id: svc_redis
+  label: Redis
+  host: redis_cluster
+  port: 6379
+  protocol: tcp
+- id: svc_k8s
+  label: K8s API
+  host: eks_control
+  port: 6443
+  protocol: tcp
+exploits:
+- id: exploit_ssrf_imds
+  label: SSRF to IMDS
+  description: Use SSRF to access instance metadata
+  vulnerability: vuln_ssrf
+  precondition: attacker
+  postcondition: priv_aws_role
+- id: exploit_jwt_crack
+  label: JWT Key Crack
+  description: Brute force JWT signing key
+  vulnerability: vuln_jwt_weak
+  precondition: priv_api_access
+  postcondition: priv_jwt_forge
+- id: exploit_log4shell
+  label: Log4Shell RCE
+  description: Exploit Log4j for code execution
+  vulnerability: vuln_log4j
+  precondition: attacker
+  postcondition: priv_user_svc_rce
+- id: exploit_imds
+  label: IMDS Credential Theft
+  description: Steal IAM credentials from IMDS
+  vulnerability: vuln_imds
+  precondition: priv_payment_rce
+  postcondition: priv_aws_role
+- id: exploit_s3_public
+  label: S3 Data Exfil
+  description: Access misconfigured S3 bucket
+  vulnerability: vuln_s3_public
+  precondition: attacker
+  postcondition: priv_s3_read
+- id: exploit_k8s_api
+  label: K8s API Access
+  description: Access exposed Kubernetes API
+  vulnerability: vuln_k8s_api
+  precondition: priv_user_svc_rce
+  postcondition: priv_k8s_admin
+- id: exploit_secrets
+  label: Secrets Exfil
+  description: Use IAM role to access secrets
+  precondition: priv_aws_role
+  postcondition: priv_secrets_read
+- id: exploit_db_creds
+  label: DB Credential Use
+  description: Use stolen creds to access database
+  precondition: priv_secrets_read
+  postcondition: priv_db_access
+- id: exploit_container_escape
+  label: Container Escape
+  description: Escape container to underlying node
+  precondition: priv_k8s_admin
+  postcondition: priv_cluster_escape
+network_edges:
+- from: attacker
+  to: cdn
+  label: Internet
+- from: cdn
+  to: alb
+  label: Edge to LB
+- from: alb
+  to: api_gateway
+  label: LB to API
+- from: api_gateway
+  to: auth_service
+  label: API to Auth
+- from: api_gateway
+  to: user_service
+  label: API to Users
+- from: api_gateway
+  to: payment_service
+  label: API to Payment
+- from: auth_service
+  to: redis_cluster
+  label: Session Store
+- from: user_service
+  to: rds_primary
+  label: DB Connection
+- from: payment_service
+  to: rds_primary
+  label: DB Connection
+- from: payment_service
+  to: secrets_manager
+  label: Secrets Access

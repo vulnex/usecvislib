@@ -1,0 +1,336 @@
+#
+# Risk Matrix Template
+# Risk assessment matrix with likelihood vs impact
+#
+
+[diagram]
+title = "Risk Assessment Matrix"
+description = "Likelihood vs Impact risk visualization"
+layout = "grid"
+direction = "TB"
+style = "cd_default"
+splines = "ortho"
+nodesep = 0.6
+ranksep = 0.8
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.risk_critical]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description", "mitigation", "likelihood", "impact"]
+style = { fillcolor = "#C0392B", fontcolor = "white", style = "filled,bold" }
+label_template = "{name}"
+
+[schema.nodes.risk_high]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description", "mitigation", "likelihood", "impact"]
+style = { fillcolor = "#E74C3C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.risk_medium]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description", "mitigation", "likelihood", "impact"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.risk_low]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description", "mitigation"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.risk_info]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.category]
+shape = "package"
+required_fields = ["name"]
+style = { fillcolor = "#2C3E50", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.control]
+shape = "octagon"
+required_fields = ["name"]
+optional_fields = ["status", "effectiveness"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.edges.mitigates]
+style = "dashed"
+color = "#27AE60"
+arrowhead = "vee"
+label_field = "effectiveness"
+
+[schema.edges.escalates]
+style = "solid"
+color = "#E74C3C"
+arrowhead = "normal"
+label_field = "condition"
+
+[schema.edges.relates]
+style = "dotted"
+color = "#7F8C8D"
+arrowhead = "none"
+
+[schema.edges.categorized]
+style = "solid"
+color = "#333333"
+arrowhead = "none"
+
+# =============================================================================
+# Example Data - Web Application Risk Assessment
+# =============================================================================
+
+[[nodes]]
+id = "cat_injection"
+type = "category"
+name = "Injection"
+
+[[nodes]]
+id = "cat_auth"
+type = "category"
+name = "Authentication"
+
+[[nodes]]
+id = "cat_data"
+type = "category"
+name = "Data Exposure"
+
+[[nodes]]
+id = "cat_config"
+type = "category"
+name = "Misconfiguration"
+
+[[nodes]]
+id = "sql_injection"
+type = "risk_critical"
+name = "SQL Injection"
+description = "Database manipulation via unsanitized input"
+mitigation = "Use parameterized queries"
+likelihood = "High"
+impact = "Critical"
+
+[[nodes]]
+id = "cmd_injection"
+type = "risk_high"
+name = "Command Injection"
+description = "OS command execution"
+mitigation = "Input validation, avoid shell calls"
+likelihood = "Medium"
+impact = "Critical"
+
+[[nodes]]
+id = "xss"
+type = "risk_high"
+name = "XSS"
+description = "Cross-site scripting"
+mitigation = "Output encoding, CSP"
+likelihood = "High"
+impact = "Medium"
+
+[[nodes]]
+id = "weak_password"
+type = "risk_medium"
+name = "Weak Passwords"
+description = "Insufficient password policy"
+mitigation = "Enforce strong passwords"
+likelihood = "High"
+impact = "Medium"
+
+[[nodes]]
+id = "brute_force"
+type = "risk_medium"
+name = "Brute Force"
+description = "Password guessing attacks"
+mitigation = "Rate limiting, account lockout"
+likelihood = "High"
+impact = "Medium"
+
+[[nodes]]
+id = "session_hijack"
+type = "risk_high"
+name = "Session Hijacking"
+description = "Stealing user sessions"
+mitigation = "Secure cookies, session timeout"
+likelihood = "Medium"
+impact = "High"
+
+[[nodes]]
+id = "pii_exposure"
+type = "risk_critical"
+name = "PII Exposure"
+description = "Personal data leakage"
+mitigation = "Encryption, access controls"
+likelihood = "Medium"
+impact = "Critical"
+
+[[nodes]]
+id = "api_keys_exposed"
+type = "risk_high"
+name = "API Key Leakage"
+description = "Secrets in code/logs"
+mitigation = "Secrets management"
+likelihood = "Medium"
+impact = "High"
+
+[[nodes]]
+id = "debug_enabled"
+type = "risk_medium"
+name = "Debug Mode"
+description = "Debug enabled in production"
+mitigation = "Disable debug in prod"
+likelihood = "Medium"
+impact = "Medium"
+
+[[nodes]]
+id = "outdated_deps"
+type = "risk_low"
+name = "Outdated Dependencies"
+description = "Vulnerable library versions"
+mitigation = "Regular updates"
+likelihood = "Medium"
+impact = "Low"
+
+# Controls
+[[nodes]]
+id = "waf"
+type = "control"
+name = "WAF"
+status = "Active"
+effectiveness = "High"
+
+[[nodes]]
+id = "encryption"
+type = "control"
+name = "Encryption at Rest"
+status = "Active"
+effectiveness = "High"
+
+[[nodes]]
+id = "mfa"
+type = "control"
+name = "MFA"
+status = "Partial"
+effectiveness = "High"
+
+[[nodes]]
+id = "audit_logs"
+type = "control"
+name = "Audit Logging"
+status = "Active"
+effectiveness = "Medium"
+
+[[edges]]
+from = "cat_injection"
+to = "sql_injection"
+type = "categorized"
+
+[[edges]]
+from = "cat_injection"
+to = "cmd_injection"
+type = "categorized"
+
+[[edges]]
+from = "cat_injection"
+to = "xss"
+type = "categorized"
+
+[[edges]]
+from = "cat_auth"
+to = "weak_password"
+type = "categorized"
+
+[[edges]]
+from = "cat_auth"
+to = "brute_force"
+type = "categorized"
+
+[[edges]]
+from = "cat_auth"
+to = "session_hijack"
+type = "categorized"
+
+[[edges]]
+from = "cat_data"
+to = "pii_exposure"
+type = "categorized"
+
+[[edges]]
+from = "cat_data"
+to = "api_keys_exposed"
+type = "categorized"
+
+[[edges]]
+from = "cat_config"
+to = "debug_enabled"
+type = "categorized"
+
+[[edges]]
+from = "cat_config"
+to = "outdated_deps"
+type = "categorized"
+
+[[edges]]
+from = "waf"
+to = "sql_injection"
+type = "mitigates"
+effectiveness = "80%"
+
+[[edges]]
+from = "waf"
+to = "xss"
+type = "mitigates"
+effectiveness = "70%"
+
+[[edges]]
+from = "encryption"
+to = "pii_exposure"
+type = "mitigates"
+effectiveness = "90%"
+
+[[edges]]
+from = "mfa"
+to = "brute_force"
+type = "mitigates"
+effectiveness = "95%"
+
+[[edges]]
+from = "mfa"
+to = "session_hijack"
+type = "mitigates"
+effectiveness = "60%"
+
+[[edges]]
+from = "weak_password"
+to = "brute_force"
+type = "escalates"
+condition = "enables"
+
+# Risk groupings
+[[clusters]]
+id = "critical_risks"
+label = "Critical Risks"
+nodes = ["sql_injection", "pii_exposure"]
+style = { color = "#C0392B", style = "bold" }
+
+[[clusters]]
+id = "high_risks"
+label = "High Risks"
+nodes = ["cmd_injection", "xss", "session_hijack", "api_keys_exposed"]
+style = { color = "#E74C3C", style = "dashed" }
+
+[[clusters]]
+id = "controls"
+label = "Security Controls"
+nodes = ["waf", "encryption", "mfa", "audit_logs"]
+style = { color = "#1ABC9C", style = "dashed" }

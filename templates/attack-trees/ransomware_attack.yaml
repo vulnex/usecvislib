@@ -1,0 +1,111 @@
+tree:
+  name: Ransomware Attack
+  description: Models common ransomware attack vectors and techniques including phishing,
+    exploitation, and lateral movement
+  engineversion: 0.2.5
+  version: 1.0.0
+  type: Attack Tree
+  date: '2025-12-25'
+  last_modified: '2025-12-25'
+  author: VULNEX
+  email: info@vulnex.com
+  url: https://www.vulnex.com
+  root: Deploy Ransomware
+  params:
+    rankdir: TB
+nodes:
+  Deploy Ransomware:
+    style: filled
+    fillcolor: '#ff6b6b'
+    fontcolor: white
+    shape: oval
+  Initial Access:
+    style: filled
+    fillcolor: '#ffa94d'
+    shape: rectangle
+  Phishing Email:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N
+  Malicious Attachment:
+    style: filled
+    shape: rectangle
+    cvss: 7.8
+  Exploit Vulnerability:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
+  RDP Brute Force:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N
+  Execution:
+    style: filled
+    fillcolor: '#ffa94d'
+    shape: rectangle
+  PowerShell Script:
+    style: filled
+    shape: rectangle
+    cvss: 8.0
+  Macro Execution:
+    style: filled
+    shape: rectangle
+    cvss: 7.5
+  Lateral Movement:
+    style: filled
+    fillcolor: '#ffa94d'
+    shape: rectangle
+  Credential Dumping:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:U/C:H/I:H/A:N
+  Network Scanning:
+    style: filled
+    shape: rectangle
+    cvss: 4.3
+  Data Exfiltration:
+    style: filled
+    shape: rectangle
+    cvss: 8.5
+  Encrypt Files:
+    style: filled
+    shape: octagon
+    cvss_vector: CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:C/C:N/I:H/A:H
+  Demand Ransom:
+    style: filled
+    fillcolor: '#ff6b6b'
+    fontcolor: white
+    shape: octagon
+edges:
+  Deploy Ransomware:
+  - to: Initial Access
+  Initial Access:
+  - to: Phishing Email
+  - to: Exploit Vulnerability
+  - to: RDP Brute Force
+  Phishing Email:
+  - to: Malicious Attachment
+  Malicious Attachment:
+  - to: Execution
+  Exploit Vulnerability:
+  - to: Execution
+  RDP Brute Force:
+  - to: Execution
+  Execution:
+  - to: PowerShell Script
+  - to: Macro Execution
+  PowerShell Script:
+  - to: Lateral Movement
+  Macro Execution:
+  - to: Lateral Movement
+  Lateral Movement:
+  - to: Credential Dumping
+  - to: Network Scanning
+  Credential Dumping:
+  - to: Data Exfiltration
+  Network Scanning:
+  - to: Data Exfiltration
+  Data Exfiltration:
+  - to: Encrypt Files
+  Encrypt Files:
+  - to: Demand Ransom

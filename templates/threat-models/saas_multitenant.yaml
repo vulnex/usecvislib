@@ -1,0 +1,604 @@
+model:
+  name: SaaS Multi-Tenant Platform
+  description: Cloud-native multi-tenant SaaS with tenant isolation, SSO integration,
+    and shared infrastructure
+  engineversion: 0.2.5
+  version: 1.0.0
+  type: Threat Model
+  date: '2025-12-25'
+  last_modified: '2025-12-25'
+  author: VULNEX
+  email: info@vulnex.com
+  url: https://www.vulnex.com
+externals:
+  tenant_user:
+    label: Tenant User
+    description: End user from a tenant organization
+    isAdmin: false
+    isTrusted: false
+  tenant_admin:
+    label: Tenant Admin
+    description: Administrator of a tenant organization
+    isAdmin: false
+    isTrusted: false
+  platform_admin:
+    label: Platform Admin
+    description: SaaS platform super administrator
+    isAdmin: true
+    isTrusted: true
+  tenant_idp:
+    label: Tenant IdP
+    description: Customer's identity provider (Okta, Azure AD)
+    isTrusted: false
+  integration_api:
+    label: Customer Integration
+    description: Customer's systems integrating via API
+    isTrusted: false
+  payment_processor:
+    label: Payment Processor
+    description: Stripe/Braintree for subscription billing
+    isTrusted: true
+  email_provider:
+    label: Email Provider
+    description: SendGrid/SES for transactional emails
+    isTrusted: true
+  cdn:
+    label: CDN
+    description: CloudFront/Cloudflare for static assets
+    isTrusted: true
+processes:
+  web_app:
+    label: Web Application
+    description: React/Vue SPA with tenant-aware routing
+    isServer: true
+    sanitizesInput: true
+    encodesOutput: true
+    implementsCSRFToken: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+  api_gateway:
+    label: API Gateway
+    description: Tenant-aware API gateway with rate limiting
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+    handlesResourceConsumption: true
+  auth_service:
+    label: Auth Service
+    description: Multi-tenant authentication with SAML/OIDC federation
+    isServer: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    sanitizesInput: true
+    implementsNonce: true
+    hasAccessControl: true
+    isHardened: true
+  tenant_service:
+    label: Tenant Service
+    description: Tenant provisioning and configuration management
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+  user_service:
+    label: User Service
+    description: Tenant-scoped user management
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    encodesOutput: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+  core_app_service:
+    label: Core Application Service
+    description: Main application business logic (tenant-isolated)
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    encodesOutput: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+    handlesResourceConsumption: true
+  file_service:
+    label: File Service
+    description: Tenant-isolated file upload and storage
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+    handlesResourceConsumption: true
+  notification_service:
+    label: Notification Service
+    description: Tenant-branded notifications
+    isServer: true
+    sanitizesInput: true
+    encodesOutput: true
+    hasAccessControl: true
+  billing_service:
+    label: Billing Service
+    description: Subscription and usage-based billing
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    checksInputBounds: true
+    hasAccessControl: true
+    isHardened: true
+  analytics_service:
+    label: Analytics Service
+    description: Tenant-scoped analytics and reporting
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    hasAccessControl: true
+    handlesResourceConsumption: true
+  webhook_service:
+    label: Webhook Service
+    description: Outbound webhooks to tenant systems
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    encodesOutput: true
+    hasAccessControl: true
+    handlesResourceConsumption: true
+  background_worker:
+    label: Background Worker
+    description: Async job processing with tenant context
+    isServer: true
+    sanitizesInput: true
+    hasAccessControl: true
+    handlesResourceConsumption: true
+  audit_service:
+    label: Audit Service
+    description: Tenant-isolated audit logging
+    isServer: true
+    sanitizesInput: true
+    hasAccessControl: true
+    isHardened: true
+datastores:
+  tenant_db:
+    label: Tenant Database
+    description: PostgreSQL with row-level security for tenant isolation
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    hasBackup: true
+    isAuditLogged: true
+  user_db:
+    label: User Database
+    description: PostgreSQL - Tenant-scoped user data
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    storesCredentials: true
+    hasBackup: true
+    isAuditLogged: true
+  app_data_db:
+    label: Application Database
+    description: PostgreSQL - Core application data with tenant isolation
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    hasBackup: true
+    isAuditLogged: true
+  session_cache:
+    label: Session Cache
+    description: Redis Cluster - Sessions with tenant prefix
+    isSQL: false
+    isEncrypted: true
+    hasAccessControl: true
+    storesCredentials: true
+    isShared: true
+  feature_flags:
+    label: Feature Flags
+    description: LaunchDarkly/custom - Tenant-specific features
+    isSQL: false
+    isEncrypted: true
+    hasAccessControl: true
+    isShared: true
+  file_storage:
+    label: File Storage
+    description: S3 with tenant-prefixed paths
+    isSQL: false
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    hasBackup: true
+    isAuditLogged: true
+  analytics_db:
+    label: Analytics Database
+    description: ClickHouse/BigQuery - Tenant-partitioned analytics
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    hasBackup: true
+  job_queue:
+    label: Job Queue
+    description: Redis/SQS - Background job queue with tenant context
+    isSQL: false
+    isEncrypted: true
+    hasAccessControl: true
+    isShared: true
+  audit_log_db:
+    label: Audit Log Database
+    description: Immutable tenant audit trail
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    hasBackup: true
+    isAuditLogged: true
+  secrets_vault:
+    label: Secrets Vault
+    description: Tenant API keys and integration secrets
+    isSQL: false
+    isEncrypted: true
+    hasAccessControl: true
+    storesCredentials: true
+    hasBackup: true
+    isAuditLogged: true
+dataflows:
+  user_to_app:
+    from: tenant_user
+    to: web_app
+    label: HTTPS Web Access
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesDestination: true
+    checksDestinationRevocation: true
+    data: CONFIDENTIAL
+    isPII: true
+  tenant_admin_to_app:
+    from: tenant_admin
+    to: web_app
+    label: HTTPS Admin Access
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesDestination: true
+    checksDestinationRevocation: true
+    data: CONFIDENTIAL
+    isPII: true
+    isCredentials: true
+  platform_admin_to_gateway:
+    from: platform_admin
+    to: api_gateway
+    label: Platform Admin API
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    data: SECRET
+    isCredentials: true
+  app_to_gateway:
+    from: web_app
+    to: api_gateway
+    label: API Calls
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  integration_to_gateway:
+    from: integration_api
+    to: api_gateway
+    label: Integration API
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    data: CONFIDENTIAL
+    isCredentials: true
+  gateway_to_auth:
+    from: api_gateway
+    to: auth_service
+    label: Token Validation
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    isCredentials: true
+  auth_to_tenant_idp:
+    from: auth_service
+    to: tenant_idp
+    label: SAML/OIDC Federation
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    checksDestinationRevocation: true
+    isCredentials: true
+    note: mTLS for enterprise tenants
+  gateway_to_tenant:
+    from: api_gateway
+    to: tenant_service
+    label: Tenant Resolution
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+  gateway_to_user:
+    from: api_gateway
+    to: user_service
+    label: User Queries
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  gateway_to_core:
+    from: api_gateway
+    to: core_app_service
+    label: Business Logic
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  gateway_to_files:
+    from: api_gateway
+    to: file_service
+    label: File Operations
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  gateway_to_analytics:
+    from: api_gateway
+    to: analytics_service
+    label: Analytics Queries
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+  core_to_webhook:
+    from: core_app_service
+    to: webhook_service
+    label: Webhook Trigger
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  webhook_to_integration:
+    from: webhook_service
+    to: integration_api
+    label: Outbound Webhook
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    checksDestinationRevocation: true
+    isPII: true
+    note: HMAC signed payloads
+  billing_to_payment:
+    from: billing_service
+    to: payment_processor
+    label: Payment Processing
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    checksDestinationRevocation: true
+    data: SECRET
+    isCredentials: true
+  notification_to_email:
+    from: notification_service
+    to: email_provider
+    label: Email Delivery
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    isPII: true
+  app_to_cdn:
+    from: web_app
+    to: cdn
+    label: Static Assets
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesDestination: true
+  tenant_to_db:
+    from: tenant_service
+    to: tenant_db
+    label: Tenant Queries
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    sanitizesInput: true
+  user_to_db:
+    from: user_service
+    to: user_db
+    label: User Queries
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+    sanitizesInput: true
+  auth_to_session:
+    from: auth_service
+    to: session_cache
+    label: Session Storage
+    protocol: Redis
+    isEncrypted: true
+    authenticatesSource: true
+    isCredentials: true
+  core_to_app_db:
+    from: core_app_service
+    to: app_data_db
+    label: App Data Queries
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+    sanitizesInput: true
+    note: Row-level security enforced
+  file_to_storage:
+    from: file_service
+    to: file_storage
+    label: File Storage
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+    note: Tenant-prefixed paths
+  analytics_to_db:
+    from: analytics_service
+    to: analytics_db
+    label: Analytics Queries
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    sanitizesInput: true
+    note: Tenant partition pruning
+  core_to_queue:
+    from: core_app_service
+    to: job_queue
+    label: Queue Jobs
+    protocol: Redis
+    isEncrypted: true
+    authenticatesSource: true
+  queue_to_worker:
+    from: job_queue
+    to: background_worker
+    label: Job Processing
+    protocol: Redis
+    isEncrypted: true
+  worker_to_app_db:
+    from: background_worker
+    to: app_data_db
+    label: Batch Updates
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    sanitizesInput: true
+  all_to_audit:
+    from: api_gateway
+    to: audit_service
+    label: Audit Events
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  audit_to_db:
+    from: audit_service
+    to: audit_log_db
+    label: Audit Write
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  core_to_features:
+    from: core_app_service
+    to: feature_flags
+    label: Feature Check
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+  webhook_to_secrets:
+    from: webhook_service
+    to: secrets_vault
+    label: Signing Keys
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    isCredentials: true
+boundaries:
+  internet:
+    label: Internet (Untrusted)
+    elements:
+    - tenant_user
+    - tenant_admin
+    - integration_api
+    isNetworkBoundary: true
+    trustLevel: 0
+  external_idp:
+    label: Customer Identity Providers
+    elements:
+    - tenant_idp
+    isNetworkBoundary: true
+    trustLevel: 20
+  trusted_external:
+    label: Trusted Third-Party Services
+    elements:
+    - payment_processor
+    - email_provider
+    - cdn
+    isNetworkBoundary: true
+    trustLevel: 40
+  platform_admin_zone:
+    label: Platform Administration
+    elements:
+    - platform_admin
+    isNetworkBoundary: true
+    trustLevel: 50
+  edge_zone:
+    label: Edge / DMZ
+    elements:
+    - web_app
+    - api_gateway
+    isNetworkBoundary: true
+    trustLevel: 60
+  application_zone:
+    label: Application Services
+    elements:
+    - auth_service
+    - tenant_service
+    - user_service
+    - core_app_service
+    - file_service
+    - notification_service
+    - billing_service
+    - analytics_service
+    - webhook_service
+    - background_worker
+    - audit_service
+    isNetworkBoundary: true
+    trustLevel: 80
+  data_zone:
+    label: Data Zone (Tenant Isolated)
+    elements:
+    - tenant_db
+    - user_db
+    - app_data_db
+    - session_cache
+    - feature_flags
+    - file_storage
+    - analytics_db
+    - job_queue
+    - audit_log_db
+    - secrets_vault
+    isNetworkBoundary: true
+    trustLevel: 100
+threats:
+  tenant_isolation_bypass:
+    element: tenant_isolation
+    threat: Cross-tenant data access via isolation bypass
+    mitigation: Strict tenant context, row-level security, testing
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:N
+  noisy_neighbor:
+    element: shared_resources
+    threat: Resource exhaustion affecting other tenants
+    mitigation: Resource quotas, rate limiting, fair scheduling
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:N/I:N/A:H
+  privilege_escalation_admin:
+    element: admin_console
+    threat: Tenant admin escalating to platform admin
+    mitigation: Strict RBAC, privilege separation, audit logging
+    cvss: 9.0
+  api_key_leakage:
+    element: api_gateway
+    threat: API key exposure enabling unauthorized access
+    mitigation: Key rotation, scoped permissions, usage monitoring
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
+  subdomain_takeover:
+    element: custom_domains
+    threat: Subdomain takeover of abandoned tenant domain
+    mitigation: Domain validation, dangling DNS detection, cleanup
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N

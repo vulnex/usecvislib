@@ -1,0 +1,154 @@
+#
+# Binary Visualization Configuration Template
+# USecVisLib - Universal Security Visualization Library
+#
+# This file configures visualization parameters for binary file analysis.
+# Unlike style files (which control colors/appearance), this file controls
+# the functional behavior of each visualization type.
+#
+# Usage:
+#   CLI:  usecvis -i binary.exe -o output -m 2 -C binvis_config.toml
+#   API:  Pass as JSON in config_json parameter
+#
+# All sections and parameters are optional. Missing values use defaults.
+#
+
+# =============================================================================
+# Byte Distribution Configuration
+# =============================================================================
+# Controls the byte frequency histogram visualization
+
+[byte_distribution]
+# Width of histogram bars (default: 1.0)
+bar_width = 1.0
+
+# Bar transparency, 0.0 (transparent) to 1.0 (opaque)
+bar_alpha = 0.7
+
+# Output image DPI (dots per inch)
+dpi = 150
+
+# Show region highlights for control/printable/extended bytes
+show_regions = true
+
+# Define custom byte regions to highlight
+# Each region has: start, end (byte values 0-255), color, alpha, label
+[[byte_distribution.regions]]
+start = 0
+end = 31
+color = "red"
+alpha = 0.1
+label = "Control chars"
+
+[[byte_distribution.regions]]
+start = 32
+end = 126
+color = "green"
+alpha = 0.1
+label = "Printable ASCII"
+
+[[byte_distribution.regions]]
+start = 127
+end = 255
+color = "blue"
+alpha = 0.1
+label = "Extended"
+
+# =============================================================================
+# Entropy Analysis Configuration
+# =============================================================================
+# Controls the sliding window entropy visualization
+
+[entropy_analysis]
+# Sliding window size in bytes (larger = smoother, less detail)
+window_size = 256
+
+# Step size for sliding window (larger = faster, less resolution)
+step = 64
+
+# Output image DPI
+dpi = 150
+
+# Show threshold reference lines
+show_thresholds = true
+
+# Fill area under the entropy curve
+fill_alpha = 0.3
+
+# Show grid lines
+show_grid = true
+
+# Grid line transparency
+grid_alpha = 0.3
+
+# Define threshold lines to display
+# value: entropy threshold (0-8 bits)
+# color: matplotlib color (r, g, b, or hex like "#ff0000")
+# style: line style (--, -, :, -.)
+# alpha: line transparency
+# label: legend text
+[[entropy_analysis.thresholds]]
+value = 7.5
+color = "r"
+style = "--"
+alpha = 0.5
+label = "High entropy (compressed/encrypted)"
+
+[[entropy_analysis.thresholds]]
+value = 4.0
+color = "g"
+style = "--"
+alpha = 0.5
+label = "Medium entropy (code)"
+
+[[entropy_analysis.thresholds]]
+value = 1.0
+color = "b"
+style = "--"
+alpha = 0.5
+label = "Low entropy (sparse data)"
+
+# =============================================================================
+# Wind Rose Configuration
+# =============================================================================
+# Controls the polar byte pair pattern visualization
+
+[wind_rose]
+# Bar transparency
+bar_alpha = 0.7
+
+# Output image DPI
+dpi = 150
+
+# Radial tick positions (normalized 0-1)
+rticks = [0.25, 0.5, 0.75, 1.0]
+
+# Radial label position in degrees
+rlabel_position = 0
+
+# =============================================================================
+# Heatmap Configuration
+# =============================================================================
+# Controls the 2D file structure visualization
+
+[heatmap]
+# Block size (width of heatmap in bytes)
+# Smaller values show more detail, larger values show overall structure
+block_size = 256
+
+# Output image DPI
+dpi = 150
+
+# Interpolation method for image rendering
+# Options: nearest, bilinear, bicubic, lanczos, etc.
+interpolation = "nearest"
+
+# Aspect ratio handling
+# Options: auto, equal
+aspect = "auto"
+
+# Show colorbar legend
+show_colorbar = true
+
+# Colorbar label text
+colorbar_label = "Byte Value"

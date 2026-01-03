@@ -1,0 +1,144 @@
+#
+# Config Attack Graphs Styles
+#
+# Node types:
+#   - host: Network machines (box3d shape)
+#   - vulnerability: CVEs/weaknesses (diamond shape)
+#   - privilege: Access levels (ellipse shape)
+#   - service: Running services (component shape)
+#
+# Edge types:
+#   - edge: General edges
+#   - network_edge: Network connectivity (dashed)
+#   - exploit_edge: Exploit paths (bold)
+#
+
+# =============================================================================
+# Default Style - Clean professional look
+# =============================================================================
+[ag_default]
+graph = {rankdir = "LR", bgcolor = "white", fontname = "Arial", splines = "ortho", nodesep = "0.5", ranksep = "0.8"}
+host = {shape = "box3d", style = "filled", fillcolor = "#4a90d9", fontcolor = "white", fontname = "Arial", fontsize = "11", margin = "0.15"}
+vulnerability = {shape = "diamond", style = "filled", fillcolor = "#e74c3c", fontcolor = "white", fontname = "Arial", fontsize = "10", margin = "0.1"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#f39c12", fontcolor = "white", fontname = "Arial", fontsize = "10", margin = "0.1"}
+service = {shape = "component", style = "filled", fillcolor = "#27ae60", fontcolor = "white", fontname = "Arial", fontsize = "10", margin = "0.1"}
+edge = {color = "#34495e", fontname = "Arial", fontsize = "9"}
+network_edge = {color = "#3498db", style = "dashed", fontname = "Arial", fontsize = "9", penwidth = "1.5"}
+exploit_edge = {color = "#e74c3c", style = "bold", fontname = "Arial", fontsize = "9", penwidth = "2"}
+
+# =============================================================================
+# Dark - Dark theme with high contrast
+# =============================================================================
+[ag_dark]
+graph = {rankdir = "LR", bgcolor = "#1a1a2e", fontname = "Arial", fontcolor = "white", splines = "ortho"}
+host = {shape = "box3d", style = "filled", fillcolor = "#16213e", fontcolor = "#eee", fontname = "Arial", fontsize = "11", penwidth = "2", color = "#4a90d9"}
+vulnerability = {shape = "diamond", style = "filled", fillcolor = "#2d132c", fontcolor = "#ff6b6b", fontname = "Arial", fontsize = "10", penwidth = "2", color = "#ff6b6b"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#3d2914", fontcolor = "#feca57", fontname = "Arial", fontsize = "10", penwidth = "2", color = "#feca57"}
+service = {shape = "component", style = "filled", fillcolor = "#1e3a2c", fontcolor = "#5ed98a", fontname = "Arial", fontsize = "10", penwidth = "2", color = "#5ed98a"}
+edge = {color = "#6c757d", fontname = "Arial", fontsize = "9", fontcolor = "#aaa"}
+network_edge = {color = "#4a90d9", style = "dashed", fontname = "Arial", fontsize = "9", penwidth = "1.5", fontcolor = "#4a90d9"}
+exploit_edge = {color = "#ff6b6b", style = "bold", fontname = "Arial", fontsize = "9", penwidth = "2.5", fontcolor = "#ff6b6b"}
+
+# =============================================================================
+# Security - Red/orange threat-focused style
+# =============================================================================
+[ag_security]
+graph = {rankdir = "TB", bgcolor = "#fafafa", fontname = "Arial", splines = "ortho"}
+host = {shape = "box3d", style = "filled", fillcolor = "#2c3e50", fontcolor = "white", fontname = "Arial Bold", fontsize = "11"}
+vulnerability = {shape = "diamond", style = "filled,bold", fillcolor = "#c0392b", fontcolor = "white", fontname = "Arial Bold", fontsize = "11", penwidth = "2"}
+privilege = {shape = "ellipse", style = "filled,bold", fillcolor = "#d35400", fontcolor = "white", fontname = "Arial Bold", fontsize = "11", penwidth = "2"}
+service = {shape = "component", style = "filled", fillcolor = "#7f8c8d", fontcolor = "white", fontname = "Arial", fontsize = "10"}
+edge = {color = "#2c3e50", fontname = "Arial", fontsize = "9"}
+network_edge = {color = "#95a5a6", style = "dashed", fontname = "Arial", fontsize = "9", penwidth = "1.5"}
+exploit_edge = {color = "#c0392b", style = "bold", fontname = "Arial Bold", fontsize = "10", penwidth = "3", arrowsize = "1.2"}
+
+# =============================================================================
+# Network - Network diagram style (Cisco-like)
+# =============================================================================
+[ag_network]
+graph = {rankdir = "TB", bgcolor = "white", fontname = "Helvetica", splines = "polyline", nodesep = "0.8", ranksep = "1.0"}
+host = {shape = "box", style = "filled,rounded", fillcolor = "#e8f4f8", fontcolor = "#1a5276", fontname = "Helvetica", fontsize = "11", penwidth = "2", color = "#1a5276"}
+vulnerability = {shape = "triangle", style = "filled", fillcolor = "#fdedec", fontcolor = "#922b21", fontname = "Helvetica", fontsize = "10", penwidth = "2", color = "#922b21"}
+privilege = {shape = "doublecircle", style = "filled", fillcolor = "#fef9e7", fontcolor = "#9a7d0a", fontname = "Helvetica", fontsize = "10", penwidth = "2", color = "#9a7d0a"}
+service = {shape = "rect", style = "filled,rounded", fillcolor = "#eafaf1", fontcolor = "#196f3d", fontname = "Helvetica", fontsize = "10", penwidth = "1", color = "#196f3d"}
+edge = {color = "#566573", fontname = "Helvetica", fontsize = "9", arrowhead = "vee"}
+network_edge = {color = "#2980b9", style = "solid", fontname = "Helvetica", fontsize = "9", penwidth = "2", arrowhead = "vee"}
+exploit_edge = {color = "#e74c3c", style = "bold", fontname = "Helvetica", fontsize = "9", penwidth = "2", arrowhead = "vee"}
+
+# =============================================================================
+# Minimal - Clean minimalist style
+# =============================================================================
+[ag_minimal]
+graph = {rankdir = "LR", bgcolor = "white", fontname = "Helvetica", splines = "spline"}
+host = {shape = "box", style = "", fillcolor = "white", fontcolor = "black", fontname = "Helvetica", fontsize = "11", penwidth = "1.5", color = "black"}
+vulnerability = {shape = "diamond", style = "", fillcolor = "white", fontcolor = "black", fontname = "Helvetica", fontsize = "10", penwidth = "1.5", color = "black"}
+privilege = {shape = "ellipse", style = "", fillcolor = "white", fontcolor = "black", fontname = "Helvetica", fontsize = "10", penwidth = "1.5", color = "black"}
+service = {shape = "box", style = "rounded", fillcolor = "white", fontcolor = "black", fontname = "Helvetica", fontsize = "10", penwidth = "1", color = "#666666"}
+edge = {color = "#333333", fontname = "Helvetica", fontsize = "9", penwidth = "1"}
+network_edge = {color = "#666666", style = "dashed", fontname = "Helvetica", fontsize = "9", penwidth = "1"}
+exploit_edge = {color = "black", style = "bold", fontname = "Helvetica", fontsize = "9", penwidth = "1.5"}
+
+# =============================================================================
+# Neon - Cyberpunk neon style
+# =============================================================================
+[ag_neon]
+graph = {rankdir = "LR", bgcolor = "#0d0d0d", fontname = "Consolas", splines = "ortho"}
+host = {shape = "box3d", style = "filled", fillcolor = "#1a1a2e", fontcolor = "#00ff9f", fontname = "Consolas", fontsize = "11", penwidth = "2", color = "#00ff9f"}
+vulnerability = {shape = "diamond", style = "filled", fillcolor = "#1a1a2e", fontcolor = "#ff0080", fontname = "Consolas", fontsize = "10", penwidth = "2", color = "#ff0080"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#1a1a2e", fontcolor = "#ffff00", fontname = "Consolas", fontsize = "10", penwidth = "2", color = "#ffff00"}
+service = {shape = "component", style = "filled", fillcolor = "#1a1a2e", fontcolor = "#00d4ff", fontname = "Consolas", fontsize = "10", penwidth = "2", color = "#00d4ff"}
+edge = {color = "#444444", fontname = "Consolas", fontsize = "9", fontcolor = "#888888"}
+network_edge = {color = "#00d4ff", style = "dashed", fontname = "Consolas", fontsize = "9", penwidth = "2", fontcolor = "#00d4ff"}
+exploit_edge = {color = "#ff0080", style = "bold", fontname = "Consolas", fontsize = "9", penwidth = "3", fontcolor = "#ff0080"}
+
+# =============================================================================
+# Corporate - Professional enterprise style
+# =============================================================================
+[ag_corporate]
+graph = {rankdir = "LR", bgcolor = "#fafafa", fontname = "Arial", splines = "ortho"}
+host = {shape = "box", style = "filled,rounded", fillcolor = "#1e3a5f", fontcolor = "white", fontname = "Arial", fontsize = "11", margin = "0.15"}
+vulnerability = {shape = "diamond", style = "filled", fillcolor = "#8b0000", fontcolor = "white", fontname = "Arial", fontsize = "10"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#b8860b", fontcolor = "white", fontname = "Arial", fontsize = "10"}
+service = {shape = "component", style = "filled", fillcolor = "#3d5a80", fontcolor = "white", fontname = "Arial", fontsize = "10"}
+edge = {color = "#6b7b8c", fontname = "Arial", fontsize = "9", penwidth = "1.5"}
+network_edge = {color = "#4682b4", style = "dashed", fontname = "Arial", fontsize = "9", penwidth = "1.5"}
+exploit_edge = {color = "#8b0000", style = "bold", fontname = "Arial", fontsize = "9", penwidth = "2"}
+
+# =============================================================================
+# Hacker - Matrix-inspired green on black
+# =============================================================================
+[ag_hacker]
+graph = {rankdir = "TB", bgcolor = "#000000", fontname = "Courier", splines = "ortho"}
+host = {shape = "box3d", style = "filled", fillcolor = "#001100", fontcolor = "#00ff00", fontname = "Courier", fontsize = "11", penwidth = "1", color = "#00ff00"}
+vulnerability = {shape = "diamond", style = "filled", fillcolor = "#110000", fontcolor = "#ff0000", fontname = "Courier", fontsize = "10", penwidth = "1", color = "#ff0000"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#111100", fontcolor = "#ffff00", fontname = "Courier", fontsize = "10", penwidth = "1", color = "#ffff00"}
+service = {shape = "component", style = "filled", fillcolor = "#001100", fontcolor = "#00cc00", fontname = "Courier", fontsize = "10", penwidth = "1", color = "#00cc00"}
+edge = {color = "#00ff00", fontname = "Courier", fontsize = "8", fontcolor = "#00ff00", penwidth = "1"}
+network_edge = {color = "#00ff00", style = "dashed", fontname = "Courier", fontsize = "8", penwidth = "1.5", fontcolor = "#00ff00"}
+exploit_edge = {color = "#ff0000", style = "bold", fontname = "Courier", fontsize = "8", penwidth = "2", fontcolor = "#ff0000"}
+
+# =============================================================================
+# Blueprint - Technical blueprint style
+# =============================================================================
+[ag_blueprint]
+graph = {rankdir = "LR", bgcolor = "#001f3f", fontname = "Courier New", splines = "ortho"}
+host = {shape = "box", style = "filled", fillcolor = "#001f3f", fontcolor = "#7fdbff", fontname = "Courier New", fontsize = "11", penwidth = "2", color = "#7fdbff"}
+vulnerability = {shape = "diamond", style = "filled", fillcolor = "#001f3f", fontcolor = "#ff851b", fontname = "Courier New", fontsize = "10", penwidth = "2", color = "#ff851b"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#001f3f", fontcolor = "#ffdc00", fontname = "Courier New", fontsize = "10", penwidth = "2", color = "#ffdc00"}
+service = {shape = "component", style = "filled", fillcolor = "#001f3f", fontcolor = "#7fdbff", fontname = "Courier New", fontsize = "10", penwidth = "1", color = "#7fdbff"}
+edge = {color = "#39cccc", fontname = "Courier New", fontsize = "8", fontcolor = "#39cccc"}
+network_edge = {color = "#7fdbff", style = "dashed", fontname = "Courier New", fontsize = "8", penwidth = "1.5", fontcolor = "#7fdbff"}
+exploit_edge = {color = "#ff851b", style = "solid", fontname = "Courier New", fontsize = "8", penwidth = "2", fontcolor = "#ff851b"}
+
+# =============================================================================
+# Plain - No colors, black outlines only (for printing)
+# =============================================================================
+[ag_plain]
+graph = {rankdir = "LR", bgcolor = "white", fontname = "Helvetica", splines = "ortho"}
+host = {shape = "box", style = "", fontcolor = "black", fontname = "Helvetica", fontsize = "11", penwidth = "1.5", color = "black"}
+vulnerability = {shape = "diamond", style = "", fontcolor = "black", fontname = "Helvetica", fontsize = "10", penwidth = "1.5", color = "black"}
+privilege = {shape = "ellipse", style = "", fontcolor = "black", fontname = "Helvetica", fontsize = "10", penwidth = "1.5", color = "black"}
+service = {shape = "box", style = "rounded", fontcolor = "black", fontname = "Helvetica", fontsize = "10", penwidth = "1", color = "black"}
+edge = {color = "black", fontname = "Helvetica", fontsize = "9", penwidth = "1"}
+network_edge = {color = "black", style = "dashed", fontname = "Helvetica", fontsize = "9", penwidth = "1"}
+exploit_edge = {color = "black", style = "bold", fontname = "Helvetica", fontsize = "9", penwidth = "1.5"}

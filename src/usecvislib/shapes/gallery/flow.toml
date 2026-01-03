@@ -1,0 +1,223 @@
+# Flow Shapes Gallery
+# Category: flow
+# Shapes for flowcharts and process diagrams
+
+[shapes.process_flow]
+id = "process_flow"
+name = "Process"
+category = "flow"
+description = "A process or action step in a flowchart"
+graphviz = { shape = "box", style = "filled,rounded" }
+default_style = { fillcolor = "#3498DB", fontcolor = "white" }
+icon = "cog"
+ports = ["n", "s", "e", "w"]
+tags = ["action", "step", "operation"]
+
+[shapes.decision]
+id = "decision"
+name = "Decision"
+category = "flow"
+description = "A decision point with yes/no branches"
+graphviz = { shape = "diamond", style = "filled" }
+default_style = { fillcolor = "#F39C12", fontcolor = "white" }
+icon = "question"
+ports = ["n", "s", "e", "w"]
+tags = ["branch", "condition", "if"]
+
+[shapes.terminator]
+id = "terminator"
+name = "Start/End"
+category = "flow"
+description = "Start or end point of a process"
+graphviz = { shape = "ellipse", style = "filled" }
+default_style = { fillcolor = "#27AE60", fontcolor = "white" }
+icon = "terminal"
+ports = ["n", "s", "e", "w"]
+tags = ["start", "end", "begin", "finish"]
+
+[shapes.document]
+id = "document"
+name = "Document"
+category = "flow"
+description = "A document or report"
+graphviz = { shape = "note", style = "filled" }
+default_style = { fillcolor = "#ECF0F1", fontcolor = "#333333" }
+icon = "file"
+ports = ["n", "s", "e", "w"]
+tags = ["file", "report", "output"]
+
+[shapes.data_io]
+id = "data_io"
+name = "Data/IO"
+category = "flow"
+description = "Input or output data"
+graphviz = { shape = "parallelogram", style = "filled" }
+default_style = { fillcolor = "#9B59B6", fontcolor = "white" }
+icon = "data"
+ports = ["n", "s", "e", "w"]
+tags = ["input", "output", "data"]
+
+[shapes.manual_input]
+id = "manual_input"
+name = "Manual Input"
+category = "flow"
+description = "Manual data entry operation"
+graphviz = { shape = "trapezium", style = "filled" }
+default_style = { fillcolor = "#E67E22", fontcolor = "white" }
+icon = "keyboard"
+ports = ["n", "s", "e", "w"]
+tags = ["input", "manual", "user"]
+
+[shapes.display]
+id = "display"
+name = "Display"
+category = "flow"
+description = "Display output to user"
+graphviz = { shape = "parallelogram", style = "filled" }
+default_style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+icon = "display"
+ports = ["n", "s", "e", "w"]
+tags = ["output", "screen", "show"]
+
+[shapes.preparation]
+id = "preparation"
+name = "Preparation"
+category = "flow"
+description = "Initialization or setup step"
+graphviz = { shape = "hexagon", style = "filled" }
+default_style = { fillcolor = "#34495E", fontcolor = "white" }
+icon = "settings"
+ports = ["n", "s", "e", "w"]
+tags = ["initialize", "setup", "config"]
+
+[shapes.predefined_process]
+id = "predefined_process"
+name = "Predefined Process"
+category = "flow"
+description = "A predefined process or subroutine"
+graphviz = { shape = "box", style = "filled" }
+default_style = { fillcolor = "#2980B9", fontcolor = "white" }
+icon = "function"
+ports = ["n", "s", "e", "w"]
+tags = ["subroutine", "function", "module"]
+
+[shapes.stored_data]
+id = "stored_data"
+name = "Stored Data"
+category = "flow"
+description = "Data stored on disk or database"
+graphviz = { shape = "cylinder", style = "filled" }
+default_style = { fillcolor = "#16A085", fontcolor = "white" }
+icon = "database"
+ports = ["n", "s", "e", "w"]
+tags = ["storage", "database", "persistence"]
+
+[shapes.internal_storage]
+id = "internal_storage"
+name = "Internal Storage"
+category = "flow"
+description = "Internal memory or cache"
+graphviz = { shape = "box", style = "filled" }
+default_style = { fillcolor = "#8E44AD", fontcolor = "white" }
+icon = "memory"
+ports = ["n", "s", "e", "w"]
+tags = ["memory", "cache", "ram"]
+
+[shapes.delay]
+id = "delay"
+name = "Delay"
+category = "flow"
+description = "A delay or wait operation"
+graphviz = { shape = "parallelogram", style = "filled,bold" }
+default_style = { fillcolor = "#7F8C8D", fontcolor = "white" }
+icon = "clock"
+ports = ["n", "s", "e", "w"]
+tags = ["wait", "timer", "pause"]
+
+[shapes.connector]
+id = "connector"
+name = "Connector"
+category = "flow"
+description = "A connector for continuing flow on another page"
+graphviz = { shape = "circle", style = "filled", fixedsize = "true", width = "0.5" }
+default_style = { fillcolor = "#2C3E50", fontcolor = "white" }
+icon = "link"
+ports = ["n", "s", "e", "w"]
+tags = ["reference", "continue", "page"]
+
+[shapes.or_gate]
+id = "or_gate"
+name = "OR Gate"
+category = "flow"
+description = "OR logical operation (any path)"
+graphviz = { shape = "invhouse", style = "filled" }
+default_style = { fillcolor = "#E74C3C", fontcolor = "white" }
+icon = "or"
+ports = ["n", "s", "e", "w"]
+tags = ["logic", "merge", "any"]
+
+[shapes.and_gate]
+id = "and_gate"
+name = "AND Gate"
+category = "flow"
+description = "AND logical operation (all paths)"
+graphviz = { shape = "box", style = "filled,rounded" }
+default_style = { fillcolor = "#27AE60", fontcolor = "white" }
+icon = "and"
+ports = ["n", "s", "e", "w"]
+tags = ["logic", "join", "all"]
+
+[shapes.merge]
+id = "merge"
+name = "Merge"
+category = "flow"
+description = "Merge point for multiple paths"
+graphviz = { shape = "invtriangle", style = "filled" }
+default_style = { fillcolor = "#3498DB", fontcolor = "white" }
+icon = "merge"
+ports = ["n", "s", "e", "w"]
+tags = ["join", "combine", "converge"]
+
+[shapes.extract]
+id = "extract"
+name = "Extract/Fork"
+category = "flow"
+description = "Extraction or fork point"
+graphviz = { shape = "triangle", style = "filled" }
+default_style = { fillcolor = "#F39C12", fontcolor = "white" }
+icon = "fork"
+ports = ["n", "s", "e", "w"]
+tags = ["split", "branch", "diverge"]
+
+[shapes.manual_operation]
+id = "manual_operation"
+name = "Manual Operation"
+category = "flow"
+description = "A manual operation or human task"
+graphviz = { shape = "trapezium", style = "filled" }
+default_style = { fillcolor = "#D35400", fontcolor = "white" }
+icon = "hand"
+ports = ["n", "s", "e", "w"]
+tags = ["manual", "human", "task"]
+
+[shapes.summing_junction]
+id = "summing_junction"
+name = "Summing Junction"
+category = "flow"
+description = "Summing or aggregation point"
+graphviz = { shape = "circle", style = "filled", fixedsize = "true", width = "0.4" }
+default_style = { fillcolor = "#9B59B6", fontcolor = "white" }
+icon = "plus"
+ports = ["n", "s", "e", "w"]
+tags = ["sum", "aggregate", "combine"]
+
+[shapes.collate]
+id = "collate"
+name = "Collate"
+category = "flow"
+description = "Collation or sorting operation"
+graphviz = { shape = "diamond", style = "filled" }
+default_style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+icon = "sort"
+ports = ["n", "s", "e", "w"]
+tags = ["sort", "order", "arrange"]

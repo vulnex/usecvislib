@@ -1,0 +1,288 @@
+#
+# Directory Tree Template
+# File and folder organization visualization
+#
+
+[diagram]
+title = "Project Directory Structure"
+description = "Visualize file and folder organization"
+layout = "hierarchical"
+direction = "TB"
+style = "cd_default"
+splines = "ortho"
+ranksep = 0.3
+nodesep = 0.2
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.root]
+shape = "package"
+required_fields = ["name"]
+style = { fillcolor = "#2C3E50", fontcolor = "white", style = "filled,bold" }
+label_template = "{name}/"
+
+[schema.nodes.folder]
+shape = "package"
+required_fields = ["name"]
+optional_fields = ["description", "count"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "{name}/"
+
+[schema.nodes.file]
+shape = "note"
+required_fields = ["name"]
+optional_fields = ["size", "type", "description"]
+style = { fillcolor = "#ECF0F1", fontcolor = "#2C3E50" }
+label_template = "{name}"
+
+[schema.nodes.config_file]
+shape = "note"
+required_fields = ["name"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.code_file]
+shape = "note"
+required_fields = ["name"]
+optional_fields = ["language", "lines"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.test_file]
+shape = "note"
+required_fields = ["name"]
+style = { fillcolor = "#E74C3C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.doc_file]
+shape = "note"
+required_fields = ["name"]
+style = { fillcolor = "#9B59B6", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.data_file]
+shape = "note"
+required_fields = ["name"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.edges.contains]
+style = "solid"
+color = "#7F8C8D"
+arrowhead = "none"
+
+# =============================================================================
+# Example Data - USecVisLib Project Structure
+# =============================================================================
+
+[[nodes]]
+id = "root"
+type = "root"
+name = "usecvislib"
+
+[[nodes]]
+id = "src"
+type = "folder"
+name = "src"
+description = "Source code"
+
+[[nodes]]
+id = "usecvislib"
+type = "folder"
+name = "usecvislib"
+description = "Main package"
+
+[[nodes]]
+id = "shapes"
+type = "folder"
+name = "shapes"
+description = "Shape gallery"
+
+[[nodes]]
+id = "schema"
+type = "folder"
+name = "schema"
+description = "Schema validation"
+
+[[nodes]]
+id = "api"
+type = "folder"
+name = "api"
+description = "REST API"
+
+[[nodes]]
+id = "tests"
+type = "folder"
+name = "tests"
+description = "Unit tests"
+
+[[nodes]]
+id = "templates"
+type = "folder"
+name = "templates"
+description = "Diagram templates"
+
+[[nodes]]
+id = "docs"
+type = "folder"
+name = "docs"
+description = "Documentation"
+
+[[nodes]]
+id = "init"
+type = "code_file"
+name = "__init__.py"
+language = "Python"
+
+[[nodes]]
+id = "attacktrees_py"
+type = "code_file"
+name = "attacktrees.py"
+language = "Python"
+lines = 800
+
+[[nodes]]
+id = "customdiagrams_py"
+type = "code_file"
+name = "customdiagrams.py"
+language = "Python"
+lines = 700
+
+[[nodes]]
+id = "main_py"
+type = "code_file"
+name = "main.py"
+language = "Python"
+lines = 2600
+
+[[nodes]]
+id = "test_shapes"
+type = "test_file"
+name = "test_shapes.py"
+
+[[nodes]]
+id = "test_custom"
+type = "test_file"
+name = "test_customdiagrams.py"
+
+[[nodes]]
+id = "readme"
+type = "doc_file"
+name = "README.md"
+
+[[nodes]]
+id = "setup"
+type = "config_file"
+name = "setup.py"
+
+[[nodes]]
+id = "requirements"
+type = "config_file"
+name = "requirements.txt"
+
+[[nodes]]
+id = "basic_toml"
+type = "data_file"
+name = "basic.toml"
+
+[[nodes]]
+id = "security_toml"
+type = "data_file"
+name = "security.toml"
+
+[[edges]]
+from = "root"
+to = "src"
+type = "contains"
+
+[[edges]]
+from = "root"
+to = "api"
+type = "contains"
+
+[[edges]]
+from = "root"
+to = "tests"
+type = "contains"
+
+[[edges]]
+from = "root"
+to = "templates"
+type = "contains"
+
+[[edges]]
+from = "root"
+to = "docs"
+type = "contains"
+
+[[edges]]
+from = "root"
+to = "readme"
+type = "contains"
+
+[[edges]]
+from = "root"
+to = "setup"
+type = "contains"
+
+[[edges]]
+from = "root"
+to = "requirements"
+type = "contains"
+
+[[edges]]
+from = "src"
+to = "usecvislib"
+type = "contains"
+
+[[edges]]
+from = "usecvislib"
+to = "init"
+type = "contains"
+
+[[edges]]
+from = "usecvislib"
+to = "attacktrees_py"
+type = "contains"
+
+[[edges]]
+from = "usecvislib"
+to = "customdiagrams_py"
+type = "contains"
+
+[[edges]]
+from = "usecvislib"
+to = "shapes"
+type = "contains"
+
+[[edges]]
+from = "usecvislib"
+to = "schema"
+type = "contains"
+
+[[edges]]
+from = "shapes"
+to = "basic_toml"
+type = "contains"
+
+[[edges]]
+from = "shapes"
+to = "security_toml"
+type = "contains"
+
+[[edges]]
+from = "api"
+to = "main_py"
+type = "contains"
+
+[[edges]]
+from = "tests"
+to = "test_shapes"
+type = "contains"
+
+[[edges]]
+from = "tests"
+to = "test_custom"
+type = "contains"

@@ -1,0 +1,209 @@
+# IoT System Threat Model Template
+# Smart device ecosystem with edge computing and cloud backend
+
+[model]
+name = "IoT System"
+description = "IoT ecosystem with devices, edge gateway, and cloud platform"
+engineversion = "0.2.5"
+version = "1.0.0"
+type = "Threat Model"
+date = "2025-12-25"
+last_modified = "2025-12-25"
+author = "VULNEX"
+email = "info@vulnex.com"
+url = "https://www.vulnex.com"
+
+[externals]
+[externals.iot_device_1]
+label = "Smart Sensor"
+
+[externals.iot_device_2]
+label = "Smart Actuator"
+
+[externals.mobile_app]
+label = "Mobile App"
+
+[externals.admin_dashboard]
+label = "Admin Dashboard"
+
+[externals.third_party_integration]
+label = "Third-Party Integration"
+
+[processes]
+[processes.edge_gateway]
+label = "Edge Gateway"
+
+[processes.mqtt_broker]
+label = "MQTT Broker"
+
+[processes.device_manager]
+label = "Device Manager"
+
+[processes.data_processor]
+label = "Data Processor"
+
+[processes.api_server]
+label = "API Server"
+
+[processes.rule_engine]
+label = "Rule Engine"
+
+[processes.ota_server]
+label = "OTA Update Server"
+
+[datastores]
+[datastores.time_series_db]
+label = "Time Series DB"
+
+[datastores.device_registry]
+label = "Device Registry"
+
+[datastores.config_store]
+label = "Config Store"
+
+[datastores.firmware_storage]
+label = "Firmware Storage"
+
+[datastores.event_stream]
+label = "Event Stream (Kafka)"
+
+[dataflows]
+[dataflows.sensor_to_edge]
+from = "iot_device_1"
+to = "edge_gateway"
+label = "CoAP/MQTT"
+
+[dataflows.actuator_to_edge]
+from = "iot_device_2"
+to = "edge_gateway"
+label = "CoAP/MQTT"
+
+[dataflows.edge_to_mqtt]
+from = "edge_gateway"
+to = "mqtt_broker"
+label = "MQTT (TLS)"
+
+[dataflows.mqtt_to_processor]
+from = "mqtt_broker"
+to = "data_processor"
+label = "Subscribe"
+
+[dataflows.processor_to_tsdb]
+from = "data_processor"
+to = "time_series_db"
+label = "Write Metrics"
+
+[dataflows.processor_to_stream]
+from = "data_processor"
+to = "event_stream"
+label = "Publish Events"
+
+[dataflows.stream_to_rules]
+from = "event_stream"
+to = "rule_engine"
+label = "Consume Events"
+
+[dataflows.rules_to_mqtt]
+from = "rule_engine"
+to = "mqtt_broker"
+label = "Command Publish"
+
+[dataflows.mobile_to_api]
+from = "mobile_app"
+to = "api_server"
+label = "HTTPS/REST"
+
+[dataflows.dashboard_to_api]
+from = "admin_dashboard"
+to = "api_server"
+label = "HTTPS/REST"
+
+[dataflows.api_to_device_mgr]
+from = "api_server"
+to = "device_manager"
+label = "gRPC"
+
+[dataflows.device_mgr_to_registry]
+from = "device_manager"
+to = "device_registry"
+label = "Query"
+
+[dataflows.api_to_tsdb]
+from = "api_server"
+to = "time_series_db"
+label = "Read Metrics"
+
+[dataflows.ota_to_firmware]
+from = "ota_server"
+to = "firmware_storage"
+label = "Get Firmware"
+
+[dataflows.edge_to_ota]
+from = "edge_gateway"
+to = "ota_server"
+label = "Check Updates"
+
+[dataflows.third_party_to_api]
+from = "third_party_integration"
+to = "api_server"
+label = "Webhook/API"
+
+[boundaries]
+[boundaries.field]
+label = "Field Network (Insecure)"
+elements = ["iot_device_1", "iot_device_2"]
+
+[boundaries.edge_zone]
+label = "Edge Zone"
+elements = ["edge_gateway"]
+
+[boundaries.cloud_dmz]
+label = "Cloud DMZ"
+elements = ["mqtt_broker", "api_server", "ota_server"]
+
+[boundaries.cloud_internal]
+label = "Cloud Internal"
+elements = ["device_manager", "data_processor", "rule_engine"]
+
+[boundaries.data_layer]
+label = "Data Layer"
+elements = ["time_series_db", "device_registry", "config_store", "firmware_storage", "event_stream"]
+
+[boundaries.external]
+label = "External Networks"
+elements = ["mobile_app", "admin_dashboard", "third_party_integration"]
+
+# =============================================================================
+# Custom Threats with CVSS Scores
+# =============================================================================
+
+[threats]
+[threats.device_takeover]
+element = "iot_devices"
+threat = "IoT device takeover via default credentials"
+mitigation = "Unique credentials, secure provisioning, credential rotation"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+
+[threats.firmware_tampering]
+element = "firmware_update"
+threat = "Malicious firmware update injection"
+mitigation = "Signed firmware, secure boot, update verification"
+cvss_vector = "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:C/C:H/I:H/A:H"
+
+[threats.mqtt_injection]
+element = "mqtt_broker"
+threat = "MQTT message injection for device control"
+mitigation = "Message authentication, TLS, topic ACLs"
+cvss = 8.1
+
+[threats.sensor_spoofing]
+element = "sensors"
+threat = "Sensor data spoofing affecting system decisions"
+mitigation = "Data validation, anomaly detection, secure channels"
+cvss_vector = "CVSS:3.1/AV:A/AC:L/PR:N/UI:N/S:U/C:N/I:H/A:L"
+
+[threats.botnet_recruitment]
+element = "iot_devices"
+threat = "Device recruitment into IoT botnet"
+mitigation = "Network monitoring, device hardening, traffic analysis"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:N/I:L/A:H"

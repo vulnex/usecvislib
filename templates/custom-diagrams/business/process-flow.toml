@@ -1,0 +1,352 @@
+#
+# Business Process Flow Template
+# Business process and workflow diagram
+#
+
+[diagram]
+title = "Business Process Flow"
+description = "Business process and workflow visualization"
+layout = "hierarchical"
+direction = "LR"
+style = "cd_corporate"
+splines = "ortho"
+nodesep = 0.6
+ranksep = 1.0
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.start]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.end]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#C0392B", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.activity]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["owner", "duration", "description"]
+style = { fillcolor = "#3498DB", fontcolor = "white", style = "filled,rounded" }
+label_template = "{name}"
+
+[schema.nodes.decision]
+shape = "diamond"
+required_fields = ["name"]
+optional_fields = ["condition"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.parallel]
+shape = "rectangle"
+required_fields = ["name"]
+style = { fillcolor = "#9B59B6", fontcolor = "white", style = "filled,bold" }
+label_template = "{name}"
+
+[schema.nodes.subprocess]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["reference"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.timer]
+shape = "circle"
+required_fields = ["name"]
+optional_fields = ["duration"]
+style = { fillcolor = "#E67E22", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.message]
+shape = "note"
+required_fields = ["name"]
+optional_fields = ["channel"]
+style = { fillcolor = "#95A5A6", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.data]
+shape = "database"
+required_fields = ["name"]
+style = { fillcolor = "#34495E", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.edges.flow]
+style = "solid"
+color = "#333333"
+arrowhead = "vee"
+
+[schema.edges.conditional]
+style = "solid"
+color = "#F39C12"
+arrowhead = "vee"
+label_field = "condition"
+
+[schema.edges.message_flow]
+style = "dashed"
+color = "#3498DB"
+arrowhead = "normal"
+label_field = "message"
+
+[schema.edges.association]
+style = "dotted"
+color = "#95A5A6"
+arrowhead = "none"
+
+# =============================================================================
+# Example Data - Order Fulfillment Process
+# =============================================================================
+
+[[nodes]]
+id = "start"
+type = "start"
+name = "Order Received"
+
+[[nodes]]
+id = "validate"
+type = "activity"
+name = "Validate Order"
+owner = "Order System"
+duration = "1 min"
+
+[[nodes]]
+id = "check_payment"
+type = "decision"
+name = "Payment\nValid?"
+
+[[nodes]]
+id = "reject_order"
+type = "activity"
+name = "Reject Order"
+owner = "Order System"
+
+[[nodes]]
+id = "notify_customer_reject"
+type = "message"
+name = "Send Rejection"
+channel = "Email"
+
+[[nodes]]
+id = "check_inventory"
+type = "activity"
+name = "Check Inventory"
+owner = "Warehouse"
+
+[[nodes]]
+id = "in_stock"
+type = "decision"
+name = "In Stock?"
+
+[[nodes]]
+id = "backorder"
+type = "activity"
+name = "Create Backorder"
+owner = "Warehouse"
+
+[[nodes]]
+id = "wait_stock"
+type = "timer"
+name = "Wait"
+duration = "3 days"
+
+[[nodes]]
+id = "parallel_start"
+type = "parallel"
+name = "Start Parallel"
+
+[[nodes]]
+id = "pick_items"
+type = "activity"
+name = "Pick Items"
+owner = "Warehouse Staff"
+duration = "15 min"
+
+[[nodes]]
+id = "generate_invoice"
+type = "activity"
+name = "Generate Invoice"
+owner = "Finance"
+duration = "2 min"
+
+[[nodes]]
+id = "parallel_end"
+type = "parallel"
+name = "End Parallel"
+
+[[nodes]]
+id = "pack_order"
+type = "activity"
+name = "Pack Order"
+owner = "Warehouse Staff"
+duration = "10 min"
+
+[[nodes]]
+id = "ship_order"
+type = "subprocess"
+name = "Ship Order"
+reference = "shipping-process"
+
+[[nodes]]
+id = "update_tracking"
+type = "activity"
+name = "Update Tracking"
+owner = "Logistics"
+
+[[nodes]]
+id = "notify_shipped"
+type = "message"
+name = "Send Shipping Notification"
+channel = "Email/SMS"
+
+[[nodes]]
+id = "order_db"
+type = "data"
+name = "Orders Database"
+
+[[nodes]]
+id = "end"
+type = "end"
+name = "Order Complete"
+
+[[nodes]]
+id = "end_reject"
+type = "end"
+name = "Order Rejected"
+
+[[edges]]
+from = "start"
+to = "validate"
+type = "flow"
+
+[[edges]]
+from = "validate"
+to = "check_payment"
+type = "flow"
+
+[[edges]]
+from = "check_payment"
+to = "check_inventory"
+type = "conditional"
+condition = "Yes"
+
+[[edges]]
+from = "check_payment"
+to = "reject_order"
+type = "conditional"
+condition = "No"
+
+[[edges]]
+from = "reject_order"
+to = "notify_customer_reject"
+type = "flow"
+
+[[edges]]
+from = "notify_customer_reject"
+to = "end_reject"
+type = "flow"
+
+[[edges]]
+from = "check_inventory"
+to = "in_stock"
+type = "flow"
+
+[[edges]]
+from = "in_stock"
+to = "parallel_start"
+type = "conditional"
+condition = "Yes"
+
+[[edges]]
+from = "in_stock"
+to = "backorder"
+type = "conditional"
+condition = "No"
+
+[[edges]]
+from = "backorder"
+to = "wait_stock"
+type = "flow"
+
+[[edges]]
+from = "wait_stock"
+to = "check_inventory"
+type = "flow"
+
+[[edges]]
+from = "parallel_start"
+to = "pick_items"
+type = "flow"
+
+[[edges]]
+from = "parallel_start"
+to = "generate_invoice"
+type = "flow"
+
+[[edges]]
+from = "pick_items"
+to = "parallel_end"
+type = "flow"
+
+[[edges]]
+from = "generate_invoice"
+to = "parallel_end"
+type = "flow"
+
+[[edges]]
+from = "parallel_end"
+to = "pack_order"
+type = "flow"
+
+[[edges]]
+from = "pack_order"
+to = "ship_order"
+type = "flow"
+
+[[edges]]
+from = "ship_order"
+to = "update_tracking"
+type = "flow"
+
+[[edges]]
+from = "update_tracking"
+to = "notify_shipped"
+type = "flow"
+
+[[edges]]
+from = "notify_shipped"
+to = "end"
+type = "flow"
+
+[[edges]]
+from = "validate"
+to = "order_db"
+type = "association"
+
+[[edges]]
+from = "update_tracking"
+to = "order_db"
+type = "association"
+
+# Process phases
+[[clusters]]
+id = "order_processing"
+label = "Order Processing"
+nodes = ["start", "validate", "check_payment", "reject_order", "notify_customer_reject", "end_reject"]
+style = { color = "#3498DB", style = "dashed" }
+
+[[clusters]]
+id = "fulfillment"
+label = "Fulfillment"
+nodes = ["check_inventory", "in_stock", "backorder", "wait_stock", "parallel_start", "pick_items", "generate_invoice", "parallel_end", "pack_order"]
+style = { color = "#27AE60", style = "dashed" }
+
+[[clusters]]
+id = "shipping"
+label = "Shipping"
+nodes = ["ship_order", "update_tracking", "notify_shipped", "end"]
+style = { color = "#E67E22", style = "dashed" }

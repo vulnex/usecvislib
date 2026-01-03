@@ -1,0 +1,264 @@
+model:
+  name: Microservices Architecture
+  description: Cloud-native microservices with API gateway and service mesh
+  engineversion: 0.2.5
+  version: 1.0.0
+  type: Threat Model
+  date: '2025-12-25'
+  last_modified: '2025-12-25'
+  author: VULNEX
+  email: info@vulnex.com
+  url: https://www.vulnex.com
+externals:
+  mobile_app:
+    label: Mobile App
+    description: iOS/Android mobile application
+    isAdmin: false
+  web_client:
+    label: Web Client
+    description: Single-page web application
+    isAdmin: false
+  third_party_api:
+    label: Third-Party API
+    description: External payment processor API
+    isTrusted: false
+processes:
+  api_gateway:
+    label: API Gateway
+    description: Central entry point for all API requests
+    isServer: true
+    authenticatesSource: true
+    sanitizesInput: true
+    checksInputBounds: true
+    implementsCSRFToken: true
+    hasAccessControl: true
+  auth_service:
+    label: Auth Service
+    description: Handles authentication and authorization
+    isServer: true
+    authenticatesSource: true
+    implementsNonce: true
+    hasAccessControl: true
+    isHardened: true
+  user_service:
+    label: User Service
+    description: User profile management
+    isServer: true
+    sanitizesInput: true
+    encodesOutput: true
+    hasAccessControl: true
+  order_service:
+    label: Order Service
+    description: Order processing and management
+    isServer: true
+    sanitizesInput: true
+    checksInputBounds: true
+    hasAccessControl: true
+  payment_service:
+    label: Payment Service
+    description: Payment processing with PCI compliance
+    isServer: true
+    sanitizesInput: true
+    isHardened: true
+    hasAccessControl: true
+    handlesResourceConsumption: true
+  notification_service:
+    label: Notification Service
+    description: Email and push notification delivery
+    isServer: true
+    encodesOutput: true
+datastores:
+  user_db:
+    label: User Database
+    description: PostgreSQL database for user data
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    storesCredentials: true
+    hasBackup: true
+    isAuditLogged: true
+  order_db:
+    label: Order Database
+    description: PostgreSQL database for orders
+    isSQL: true
+    isEncrypted: true
+    hasAccessControl: true
+    storesPII: true
+    hasBackup: true
+    isAuditLogged: true
+  redis_cache:
+    label: Redis Cache
+    description: In-memory cache for sessions
+    isSQL: false
+    isEncrypted: false
+    isShared: true
+    hasAccessControl: true
+  message_queue:
+    label: Message Queue
+    description: RabbitMQ for async messaging
+    isSQL: false
+    isEncrypted: true
+    isShared: true
+dataflows:
+  mobile_to_gateway:
+    from: mobile_app
+    to: api_gateway
+    label: HTTPS/REST
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesDestination: true
+    data: CONFIDENTIAL
+  web_to_gateway:
+    from: web_client
+    to: api_gateway
+    label: HTTPS/REST
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesDestination: true
+    data: CONFIDENTIAL
+  gateway_to_auth:
+    from: api_gateway
+    to: auth_service
+    label: JWT Validation
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    isCredentials: true
+  gateway_to_user:
+    from: api_gateway
+    to: user_service
+    label: gRPC
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+  gateway_to_order:
+    from: api_gateway
+    to: order_service
+    label: gRPC
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+  order_to_payment:
+    from: order_service
+    to: payment_service
+    label: gRPC
+    protocol: gRPC
+    isEncrypted: true
+    authenticatesSource: true
+    authenticatesDestination: true
+    data: SECRET
+  payment_to_third_party:
+    from: payment_service
+    to: third_party_api
+    label: HTTPS/REST
+    protocol: HTTPS
+    isEncrypted: true
+    authenticatesDestination: true
+    checksDestinationRevocation: true
+    data: SECRET
+  order_to_queue:
+    from: order_service
+    to: message_queue
+    label: Async Messages
+    protocol: AMQP
+    isEncrypted: true
+  queue_to_notification:
+    from: message_queue
+    to: notification_service
+    label: Event Subscription
+    protocol: AMQP
+    isEncrypted: true
+  user_to_db:
+    from: user_service
+    to: user_db
+    label: SQL Queries
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+    isCredentials: true
+    sanitizesInput: true
+  order_to_db:
+    from: order_service
+    to: order_db
+    label: SQL Queries
+    protocol: PostgreSQL
+    isEncrypted: true
+    authenticatesSource: true
+    isPII: true
+    sanitizesInput: true
+  auth_to_cache:
+    from: auth_service
+    to: redis_cache
+    label: Session/Token Cache
+    protocol: Redis
+    isEncrypted: false
+    isCredentials: true
+    note: Consider encrypting Redis connections
+boundaries:
+  public_zone:
+    label: Public Zone (Internet)
+    elements:
+    - mobile_app
+    - web_client
+    - third_party_api
+    isNetworkBoundary: true
+    trustLevel: 0
+  dmz:
+    label: DMZ
+    elements:
+    - api_gateway
+    isNetworkBoundary: true
+    trustLevel: 25
+  internal_services:
+    label: Internal Service Mesh
+    elements:
+    - auth_service
+    - user_service
+    - order_service
+    - payment_service
+    - notification_service
+    isNetworkBoundary: true
+    trustLevel: 75
+  data_tier:
+    label: Data Tier
+    elements:
+    - user_db
+    - order_db
+    - redis_cache
+    - message_queue
+    isNetworkBoundary: true
+    trustLevel: 100
+threats:
+  jwt_forgery:
+    element: auth_service
+    threat: JWT token forgery due to weak signing key
+    mitigation: Use strong RS256 keys, implement key rotation
+    cvss_vector: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N
+  sqli_user_db:
+    element: user_db
+    threat: SQL injection in user search queries
+    mitigation: Use parameterized queries, input validation
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N
+  redis_unauth:
+    element: redis_cache
+    threat: Unencrypted Redis allowing session hijacking
+    mitigation: Enable Redis AUTH, use TLS for connections
+    cvss: 8.1
+  api_ddos:
+    element: api_gateway
+    threat: DDoS attack on API gateway
+    mitigation: Implement rate limiting, WAF, CDN protection
+    cvss_vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H
+  payment_data_leak:
+    element: payment_service
+    threat: Payment card data exposure in logs
+    mitigation: Implement PCI-DSS compliant logging, mask sensitive data
+    cvss: 9.1
+  third_party_mitm:
+    element: third_party_api
+    threat: Man-in-the-middle attack on payment processor
+    mitigation: Certificate pinning, verify TLS certificates
+    cvss_vector: CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:H/I:H/A:N

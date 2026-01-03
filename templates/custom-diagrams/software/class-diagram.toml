@@ -1,0 +1,216 @@
+#
+# UML Class Diagram Template
+# Object-oriented class relationships
+#
+
+[diagram]
+title = "UML Class Diagram"
+description = "Object-oriented class relationships"
+layout = "hierarchical"
+direction = "BT"
+style = "cd_default"
+splines = "ortho"
+nodesep = 0.8
+ranksep = 1.0
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.class]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["attributes", "methods", "stereotype"]
+style = { fillcolor = "#FFFACD", fontcolor = "black" }
+label_template = "{name}|{attributes}|{methods}"
+
+[schema.nodes.interface]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["methods"]
+style = { fillcolor = "#E6E6FA", fontcolor = "black" }
+label_template = "<<interface>>\\n{name}|{methods}"
+
+[schema.nodes.abstract_class]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["attributes", "methods"]
+style = { fillcolor = "#FFE4B5", fontcolor = "black" }
+label_template = "<<abstract>>\\n{name}|{attributes}|{methods}"
+
+[schema.nodes.enum]
+shape = "rectangle"
+required_fields = ["name", "values"]
+style = { fillcolor = "#98FB98", fontcolor = "black" }
+label_template = "<<enum>>\\n{name}|{values}"
+
+[schema.nodes.package]
+shape = "package"
+required_fields = ["name"]
+style = { fillcolor = "#D3D3D3", fontcolor = "black" }
+label_template = "{name}"
+
+[schema.edges.inherits]
+style = "solid"
+color = "#333333"
+arrowhead = "empty"
+
+[schema.edges.implements]
+style = "dashed"
+color = "#333333"
+arrowhead = "empty"
+
+[schema.edges.association]
+style = "solid"
+color = "#333333"
+arrowhead = "vee"
+label_field = "multiplicity"
+
+[schema.edges.aggregation]
+style = "solid"
+color = "#333333"
+arrowhead = "odiamond"
+label_field = "multiplicity"
+
+[schema.edges.composition]
+style = "solid"
+color = "#333333"
+arrowhead = "diamond"
+label_field = "multiplicity"
+
+[schema.edges.dependency]
+style = "dashed"
+color = "#666666"
+arrowhead = "vee"
+label_field = "stereotype"
+
+# =============================================================================
+# Example Data - E-commerce Domain Model
+# =============================================================================
+
+[[nodes]]
+id = "entity"
+type = "interface"
+name = "Entity"
+methods = "+getId(): UUID\\n+getCreatedAt(): DateTime"
+
+[[nodes]]
+id = "user"
+type = "class"
+name = "User"
+attributes = "-id: UUID\\n-email: String\\n-password: String\\n-role: Role"
+methods = "+login()\\n+logout()\\n+updateProfile()"
+
+[[nodes]]
+id = "customer"
+type = "class"
+name = "Customer"
+attributes = "-addresses: List<Address>\\n-orders: List<Order>"
+methods = "+placeOrder()\\n+getOrderHistory()"
+
+[[nodes]]
+id = "admin"
+type = "class"
+name = "Admin"
+attributes = "-permissions: Set<Permission>"
+methods = "+manageUsers()\\n+viewReports()"
+
+[[nodes]]
+id = "order"
+type = "class"
+name = "Order"
+attributes = "-id: UUID\\n-status: OrderStatus\\n-total: Decimal"
+methods = "+addItem()\\n+removeItem()\\n+checkout()"
+
+[[nodes]]
+id = "order_item"
+type = "class"
+name = "OrderItem"
+attributes = "-quantity: Integer\\n-price: Decimal"
+methods = "+getSubtotal()"
+
+[[nodes]]
+id = "product"
+type = "class"
+name = "Product"
+attributes = "-id: UUID\\n-name: String\\n-price: Decimal\\n-stock: Integer"
+methods = "+updateStock()\\n+getAvailability()"
+
+[[nodes]]
+id = "role"
+type = "enum"
+name = "Role"
+values = "ADMIN\\nCUSTOMER\\nGUEST"
+
+[[nodes]]
+id = "order_status"
+type = "enum"
+name = "OrderStatus"
+values = "PENDING\\nPAID\\nSHIPPED\\nDELIVERED\\nCANCELLED"
+
+[[nodes]]
+id = "payment"
+type = "interface"
+name = "PaymentProcessor"
+methods = "+processPayment(amount): Boolean\\n+refund(transactionId): Boolean"
+
+[[edges]]
+from = "user"
+to = "entity"
+type = "implements"
+
+[[edges]]
+from = "customer"
+to = "user"
+type = "inherits"
+
+[[edges]]
+from = "admin"
+to = "user"
+type = "inherits"
+
+[[edges]]
+from = "order"
+to = "entity"
+type = "implements"
+
+[[edges]]
+from = "product"
+to = "entity"
+type = "implements"
+
+[[edges]]
+from = "customer"
+to = "order"
+type = "association"
+multiplicity = "1..*"
+
+[[edges]]
+from = "order"
+to = "order_item"
+type = "composition"
+multiplicity = "1..*"
+
+[[edges]]
+from = "order_item"
+to = "product"
+type = "association"
+multiplicity = "1"
+
+[[edges]]
+from = "user"
+to = "role"
+type = "dependency"
+stereotype = "uses"
+
+[[edges]]
+from = "order"
+to = "order_status"
+type = "dependency"
+stereotype = "uses"
+
+[[edges]]
+from = "order"
+to = "payment"
+type = "dependency"
+stereotype = "uses"

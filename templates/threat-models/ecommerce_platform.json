@@ -1,0 +1,456 @@
+{
+  "model": {
+    "name": "E-Commerce Platform",
+    "description": "Full-featured e-commerce platform with payment processing and inventory management",
+    "engineversion": "0.2.5",
+    "version": "1.0.0",
+    "type": "Threat Model",
+    "date": "2025-12-25",
+    "last_modified": "2025-12-25",
+    "author": "VULNEX",
+    "email": "info@vulnex.com",
+    "url": "https://www.vulnex.com"
+  },
+  "externals": {
+    "customer": {
+      "label": "Customer",
+      "description": "End user browsing and purchasing products",
+      "isAdmin": false,
+      "isTrusted": false
+    },
+    "admin_user": {
+      "label": "Admin User",
+      "description": "Platform administrator managing products and orders",
+      "isAdmin": true,
+      "isTrusted": true
+    },
+    "payment_gateway": {
+      "label": "Payment Gateway",
+      "description": "Third-party payment processor (Stripe/PayPal)",
+      "isTrusted": true
+    },
+    "shipping_api": {
+      "label": "Shipping Provider API",
+      "description": "FedEx/UPS shipping rate and tracking API",
+      "isTrusted": false
+    },
+    "email_service": {
+      "label": "Email Service",
+      "description": "Transactional email provider (SendGrid)",
+      "isTrusted": true
+    }
+  },
+  "processes": {
+    "web_frontend": {
+      "label": "Web Frontend",
+      "description": "React SPA serving the storefront",
+      "isServer": true,
+      "sanitizesInput": true,
+      "encodesOutput": true,
+      "implementsCSRFToken": true,
+      "checksInputBounds": true
+    },
+    "api_gateway": {
+      "label": "API Gateway",
+      "description": "Kong/AWS API Gateway handling routing and rate limiting",
+      "isServer": true,
+      "authenticatesSource": true,
+      "sanitizesInput": true,
+      "checksInputBounds": true,
+      "handlesResourceConsumption": true,
+      "hasAccessControl": true,
+      "isHardened": true
+    },
+    "auth_service": {
+      "label": "Auth Service",
+      "description": "User authentication and session management",
+      "isServer": true,
+      "authenticatesSource": true,
+      "sanitizesInput": true,
+      "implementsNonce": true,
+      "hasAccessControl": true,
+      "isHardened": true
+    },
+    "product_service": {
+      "label": "Product Service",
+      "description": "Product catalog and inventory management",
+      "isServer": true,
+      "sanitizesInput": true,
+      "encodesOutput": true,
+      "checksInputBounds": true,
+      "hasAccessControl": true
+    },
+    "cart_service": {
+      "label": "Cart Service",
+      "description": "Shopping cart management",
+      "isServer": true,
+      "sanitizesInput": true,
+      "checksInputBounds": true,
+      "hasAccessControl": true
+    },
+    "order_service": {
+      "label": "Order Service",
+      "description": "Order processing and fulfillment",
+      "isServer": true,
+      "sanitizesInput": true,
+      "checksInputBounds": true,
+      "hasAccessControl": true,
+      "handlesResourceConsumption": true
+    },
+    "payment_service": {
+      "label": "Payment Service",
+      "description": "PCI-DSS compliant payment processing",
+      "isServer": true,
+      "authenticatesSource": true,
+      "authenticatesDestination": true,
+      "sanitizesInput": true,
+      "checksInputBounds": true,
+      "hasAccessControl": true,
+      "isHardened": true,
+      "handlesResourceConsumption": true
+    },
+    "notification_service": {
+      "label": "Notification Service",
+      "description": "Email and SMS notifications",
+      "isServer": true,
+      "sanitizesInput": true,
+      "encodesOutput": true
+    },
+    "admin_panel": {
+      "label": "Admin Panel",
+      "description": "Back-office administration interface",
+      "isServer": true,
+      "authenticatesSource": true,
+      "sanitizesInput": true,
+      "implementsCSRFToken": true,
+      "hasAccessControl": true,
+      "isHardened": true
+    }
+  },
+  "datastores": {
+    "user_db": {
+      "label": "User Database",
+      "description": "PostgreSQL - User accounts and profiles",
+      "isSQL": true,
+      "isEncrypted": true,
+      "hasAccessControl": true,
+      "storesPII": true,
+      "storesCredentials": true,
+      "hasBackup": true,
+      "isAuditLogged": true
+    },
+    "product_db": {
+      "label": "Product Database",
+      "description": "PostgreSQL - Product catalog and inventory",
+      "isSQL": true,
+      "isEncrypted": true,
+      "hasAccessControl": true,
+      "hasBackup": true,
+      "isAuditLogged": true
+    },
+    "order_db": {
+      "label": "Order Database",
+      "description": "PostgreSQL - Orders and transaction history",
+      "isSQL": true,
+      "isEncrypted": true,
+      "hasAccessControl": true,
+      "storesPII": true,
+      "hasBackup": true,
+      "isAuditLogged": true
+    },
+    "session_cache": {
+      "label": "Session Cache",
+      "description": "Redis - Session tokens and cart data",
+      "isSQL": false,
+      "isEncrypted": true,
+      "isShared": true,
+      "hasAccessControl": true
+    },
+    "payment_vault": {
+      "label": "Payment Vault",
+      "description": "PCI-DSS compliant tokenized card storage",
+      "isSQL": false,
+      "isEncrypted": true,
+      "hasAccessControl": true,
+      "storesCredentials": true,
+      "hasBackup": true,
+      "isAuditLogged": true,
+      "isHardened": true
+    },
+    "search_index": {
+      "label": "Search Index",
+      "description": "Elasticsearch - Product search",
+      "isSQL": false,
+      "isEncrypted": true,
+      "hasAccessControl": true
+    },
+    "file_storage": {
+      "label": "File Storage",
+      "description": "S3 - Product images and assets",
+      "isSQL": false,
+      "isEncrypted": true,
+      "hasAccessControl": true,
+      "hasBackup": true
+    }
+  },
+  "dataflows": {
+    "customer_to_frontend": {
+      "from": "customer",
+      "to": "web_frontend",
+      "label": "HTTPS Browse/Shop",
+      "protocol": "HTTPS",
+      "isEncrypted": true,
+      "authenticatesDestination": true,
+      "data": "CONFIDENTIAL"
+    },
+    "admin_to_panel": {
+      "from": "admin_user",
+      "to": "admin_panel",
+      "label": "HTTPS Admin Access",
+      "protocol": "HTTPS",
+      "isEncrypted": true,
+      "authenticatesSource": true,
+      "authenticatesDestination": true,
+      "data": "CONFIDENTIAL",
+      "isCredentials": true
+    },
+    "frontend_to_gateway": {
+      "from": "web_frontend",
+      "to": "api_gateway",
+      "label": "API Requests",
+      "protocol": "HTTPS",
+      "isEncrypted": true,
+      "authenticatesDestination": true
+    },
+    "gateway_to_auth": {
+      "from": "api_gateway",
+      "to": "auth_service",
+      "label": "Auth Validation",
+      "protocol": "gRPC",
+      "isEncrypted": true,
+      "authenticatesSource": true,
+      "isCredentials": true
+    },
+    "gateway_to_products": {
+      "from": "api_gateway",
+      "to": "product_service",
+      "label": "Product Queries",
+      "protocol": "gRPC",
+      "isEncrypted": true,
+      "authenticatesSource": true
+    },
+    "gateway_to_cart": {
+      "from": "api_gateway",
+      "to": "cart_service",
+      "label": "Cart Operations",
+      "protocol": "gRPC",
+      "isEncrypted": true,
+      "authenticatesSource": true,
+      "isPII": true
+    },
+    "gateway_to_orders": {
+      "from": "api_gateway",
+      "to": "order_service",
+      "label": "Order Operations",
+      "protocol": "gRPC",
+      "isEncrypted": true,
+      "authenticatesSource": true,
+      "isPII": true
+    },
+    "order_to_payment": {
+      "from": "order_service",
+      "to": "payment_service",
+      "label": "Payment Request",
+      "protocol": "gRPC",
+      "isEncrypted": true,
+      "authenticatesSource": true,
+      "authenticatesDestination": true,
+      "data": "SECRET",
+      "isCredentials": true
+    },
+    "payment_to_gateway_ext": {
+      "from": "payment_service",
+      "to": "payment_gateway",
+      "label": "Card Processing",
+      "protocol": "HTTPS",
+      "isEncrypted": true,
+      "authenticatesSource": true,
+      "authenticatesDestination": true,
+      "checksDestinationRevocation": true,
+      "data": "SECRET",
+      "isCredentials": true
+    },
+    "order_to_shipping": {
+      "from": "order_service",
+      "to": "shipping_api",
+      "label": "Shipping Rates",
+      "protocol": "HTTPS",
+      "isEncrypted": true,
+      "authenticatesDestination": true,
+      "isPII": true
+    },
+    "notification_to_email": {
+      "from": "notification_service",
+      "to": "email_service",
+      "label": "Send Email",
+      "protocol": "HTTPS",
+      "isEncrypted": true,
+      "authenticatesSource": true,
+      "isPII": true
+    },
+    "auth_to_user_db": {
+      "from": "auth_service",
+      "to": "user_db",
+      "label": "User Queries",
+      "protocol": "PostgreSQL",
+      "isEncrypted": true,
+      "authenticatesSource": true,
+      "isCredentials": true,
+      "sanitizesInput": true
+    },
+    "auth_to_session": {
+      "from": "auth_service",
+      "to": "session_cache",
+      "label": "Session Storage",
+      "protocol": "Redis",
+      "isEncrypted": true,
+      "isCredentials": true
+    },
+    "product_to_db": {
+      "from": "product_service",
+      "to": "product_db",
+      "label": "Product Queries",
+      "protocol": "PostgreSQL",
+      "isEncrypted": true,
+      "authenticatesSource": true,
+      "sanitizesInput": true
+    },
+    "product_to_search": {
+      "from": "product_service",
+      "to": "search_index",
+      "label": "Search Index",
+      "protocol": "HTTPS",
+      "isEncrypted": true,
+      "authenticatesSource": true
+    },
+    "product_to_files": {
+      "from": "product_service",
+      "to": "file_storage",
+      "label": "Image Storage",
+      "protocol": "HTTPS",
+      "isEncrypted": true,
+      "authenticatesSource": true
+    },
+    "order_to_db": {
+      "from": "order_service",
+      "to": "order_db",
+      "label": "Order Queries",
+      "protocol": "PostgreSQL",
+      "isEncrypted": true,
+      "authenticatesSource": true,
+      "isPII": true,
+      "sanitizesInput": true
+    },
+    "payment_to_vault": {
+      "from": "payment_service",
+      "to": "payment_vault",
+      "label": "Token Storage",
+      "protocol": "HTTPS",
+      "isEncrypted": true,
+      "authenticatesSource": true,
+      "authenticatesDestination": true,
+      "data": "SECRET",
+      "isCredentials": true
+    }
+  },
+  "boundaries": {
+    "internet": {
+      "label": "Internet (Untrusted)",
+      "elements": [
+        "customer",
+        "admin_user"
+      ],
+      "isNetworkBoundary": true,
+      "trustLevel": 0
+    },
+    "external_services": {
+      "label": "External Services",
+      "elements": [
+        "payment_gateway",
+        "shipping_api",
+        "email_service"
+      ],
+      "isNetworkBoundary": true,
+      "trustLevel": 25
+    },
+    "dmz": {
+      "label": "DMZ / Edge",
+      "elements": [
+        "web_frontend",
+        "api_gateway",
+        "admin_panel"
+      ],
+      "isNetworkBoundary": true,
+      "trustLevel": 50
+    },
+    "application_tier": {
+      "label": "Application Services",
+      "elements": [
+        "auth_service",
+        "product_service",
+        "cart_service",
+        "order_service",
+        "payment_service",
+        "notification_service"
+      ],
+      "isNetworkBoundary": true,
+      "trustLevel": 75
+    },
+    "data_tier": {
+      "label": "Data Tier (PCI Zone)",
+      "elements": [
+        "user_db",
+        "product_db",
+        "order_db",
+        "session_cache",
+        "payment_vault",
+        "search_index",
+        "file_storage"
+      ],
+      "isNetworkBoundary": true,
+      "trustLevel": 100
+    }
+  },
+  "threats": {
+    "payment_card_theft": {
+      "element": "payment_gateway",
+      "threat": "Payment card data interception or theft",
+      "mitigation": "PCI-DSS compliance, tokenization, end-to-end encryption",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+    },
+    "account_takeover": {
+      "element": "customer_accounts",
+      "threat": "Customer account takeover via credential stuffing",
+      "mitigation": "MFA, rate limiting, breach password detection",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N"
+    },
+    "cart_manipulation": {
+      "element": "shopping_cart",
+      "threat": "Price manipulation in shopping cart",
+      "mitigation": "Server-side price validation, integrity checks",
+      "cvss": 7.5
+    },
+    "inventory_fraud": {
+      "element": "inventory_system",
+      "threat": "Inventory manipulation for fraud",
+      "mitigation": "Transaction logging, anomaly detection, reconciliation",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:N/I:H/A:L"
+    },
+    "order_injection": {
+      "element": "order_management",
+      "threat": "SQL injection in order search functionality",
+      "mitigation": "Parameterized queries, input validation, WAF",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N"
+    }
+  }
+}

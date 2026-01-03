@@ -1,0 +1,657 @@
+# Banking/Financial API Threat Model
+# High-security financial transaction system
+# Demonstrates PCI-DSS, PSD2, and financial regulations compliance
+
+[model]
+name = "Banking API Platform"
+description = "Secure banking API with transaction processing, account management, and third-party integrations"
+engineversion = "0.2.5"
+version = "1.0.0"
+type = "Threat Model"
+date = "2025-12-25"
+last_modified = "2025-12-25"
+author = "VULNEX"
+email = "info@vulnex.com"
+url = "https://www.vulnex.com"
+
+# =============================================================================
+# External Entities
+# =============================================================================
+[externals]
+[externals.mobile_banking]
+label = "Mobile Banking App"
+description = "Customer mobile banking application"
+isAdmin = false
+isTrusted = false
+
+[externals.web_banking]
+label = "Web Banking Portal"
+description = "Customer web banking interface"
+isAdmin = false
+isTrusted = false
+
+[externals.atm_network]
+label = "ATM Network"
+description = "Automated teller machine network"
+isTrusted = true
+
+[externals.bank_employee]
+label = "Bank Employee"
+description = "Internal bank staff with varying access levels"
+isAdmin = false
+isTrusted = true
+
+[externals.admin]
+label = "System Administrator"
+description = "IT administrator with privileged access"
+isAdmin = true
+isTrusted = true
+
+[externals.tpp_provider]
+label = "Third-Party Provider"
+description = "PSD2 registered third-party payment provider"
+isTrusted = false
+
+[externals.swift_network]
+label = "SWIFT Network"
+description = "International wire transfer network"
+isTrusted = true
+
+[externals.card_network]
+label = "Card Network"
+description = "Visa/Mastercard payment network"
+isTrusted = true
+
+[externals.credit_bureau]
+label = "Credit Bureau"
+description = "External credit scoring agency"
+isTrusted = false
+
+[externals.regulator_api]
+label = "Regulatory Reporting"
+description = "Central bank and regulatory reporting systems"
+isTrusted = true
+
+# =============================================================================
+# Processes
+# =============================================================================
+[processes]
+[processes.api_gateway]
+label = "API Gateway"
+description = "Central API entry point with rate limiting and request validation"
+isServer = true
+authenticatesSource = true
+sanitizesInput = true
+encodesOutput = true
+implementsCSRFToken = true
+checksInputBounds = true
+hasAccessControl = true
+isHardened = true
+handlesResourceConsumption = true
+
+[processes.identity_service]
+label = "Identity Service"
+description = "Customer identity verification and authentication (MFA)"
+isServer = true
+authenticatesSource = true
+authenticatesDestination = true
+sanitizesInput = true
+implementsNonce = true
+hasAccessControl = true
+isHardened = true
+
+[processes.oauth_server]
+label = "OAuth 2.0 Server"
+description = "PSD2-compliant OAuth authorization server"
+isServer = true
+authenticatesSource = true
+authenticatesDestination = true
+sanitizesInput = true
+implementsNonce = true
+hasAccessControl = true
+isHardened = true
+
+[processes.account_service]
+label = "Account Service"
+description = "Account management and balance inquiries"
+isServer = true
+authenticatesSource = true
+sanitizesInput = true
+encodesOutput = true
+checksInputBounds = true
+hasAccessControl = true
+isHardened = true
+
+[processes.transaction_service]
+label = "Transaction Service"
+description = "Core transaction processing engine"
+isServer = true
+authenticatesSource = true
+authenticatesDestination = true
+sanitizesInput = true
+checksInputBounds = true
+hasAccessControl = true
+isHardened = true
+handlesResourceConsumption = true
+
+[processes.payment_router]
+label = "Payment Router"
+description = "Routes payments to appropriate networks (SWIFT, card, domestic)"
+isServer = true
+authenticatesSource = true
+authenticatesDestination = true
+sanitizesInput = true
+hasAccessControl = true
+isHardened = true
+
+[processes.fraud_detection]
+label = "Fraud Detection Engine"
+description = "Real-time fraud detection and transaction scoring"
+isServer = true
+sanitizesInput = true
+hasAccessControl = true
+isHardened = true
+handlesResourceConsumption = true
+
+[processes.aml_service]
+label = "AML/KYC Service"
+description = "Anti-money laundering and Know Your Customer compliance"
+isServer = true
+sanitizesInput = true
+hasAccessControl = true
+isHardened = true
+
+[processes.notification_service]
+label = "Secure Notification"
+description = "Transaction alerts and secure messaging"
+isServer = true
+sanitizesInput = true
+encodesOutput = true
+hasAccessControl = true
+
+[processes.audit_service]
+label = "Audit Service"
+description = "Comprehensive audit trail and regulatory logging"
+isServer = true
+sanitizesInput = true
+hasAccessControl = true
+isHardened = true
+
+[processes.hsm_proxy]
+label = "HSM Proxy"
+description = "Hardware Security Module interface for cryptographic operations"
+isServer = true
+authenticatesSource = true
+authenticatesDestination = true
+hasAccessControl = true
+isHardened = true
+
+# =============================================================================
+# Data Stores
+# =============================================================================
+[datastores]
+[datastores.customer_db]
+label = "Customer Database"
+description = "PostgreSQL - Customer PII and KYC documents"
+isSQL = true
+isEncrypted = true
+hasAccessControl = true
+storesPII = true
+hasBackup = true
+isAuditLogged = true
+
+[datastores.account_db]
+label = "Account Database"
+description = "PostgreSQL - Account balances and details"
+isSQL = true
+isEncrypted = true
+hasAccessControl = true
+storesPII = true
+hasBackup = true
+isAuditLogged = true
+
+[datastores.transaction_db]
+label = "Transaction Database"
+description = "PostgreSQL - Transaction history and ledger"
+isSQL = true
+isEncrypted = true
+hasAccessControl = true
+storesPII = true
+hasBackup = true
+isAuditLogged = true
+
+[datastores.credentials_vault]
+label = "Credentials Vault"
+description = "HashiCorp Vault - Secrets and API credentials"
+isSQL = false
+isEncrypted = true
+hasAccessControl = true
+storesCredentials = true
+hasBackup = true
+isAuditLogged = true
+
+[datastores.session_store]
+label = "Session Store"
+description = "Redis cluster - Session tokens and MFA state"
+isSQL = false
+isEncrypted = true
+hasAccessControl = true
+storesCredentials = true
+isShared = true
+
+[datastores.fraud_rules_db]
+label = "Fraud Rules Database"
+description = "Fraud detection rules and ML models"
+isSQL = true
+isEncrypted = true
+hasAccessControl = true
+hasBackup = true
+isAuditLogged = true
+
+[datastores.audit_log_db]
+label = "Audit Log Database"
+description = "Immutable audit trail with WORM storage"
+isSQL = true
+isEncrypted = true
+hasAccessControl = true
+storesPII = true
+hasBackup = true
+isAuditLogged = true
+
+[datastores.hsm]
+label = "Hardware Security Module"
+description = "FIPS 140-2 Level 3 HSM for key management"
+isSQL = false
+isEncrypted = true
+hasAccessControl = true
+storesCredentials = true
+hasBackup = true
+isAuditLogged = true
+
+# =============================================================================
+# Data Flows
+# =============================================================================
+[dataflows]
+[dataflows.mobile_to_gateway]
+from = "mobile_banking"
+to = "api_gateway"
+label = "mTLS Mobile API"
+protocol = "HTTPS"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+checksDestinationRevocation = true
+data = "CONFIDENTIAL"
+isPII = true
+
+[dataflows.web_to_gateway]
+from = "web_banking"
+to = "api_gateway"
+label = "HTTPS Web Access"
+protocol = "HTTPS"
+isEncrypted = true
+authenticatesDestination = true
+checksDestinationRevocation = true
+data = "CONFIDENTIAL"
+isPII = true
+
+[dataflows.atm_to_gateway]
+from = "atm_network"
+to = "api_gateway"
+label = "Secure ATM Link"
+protocol = "HTTPS"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+data = "SECRET"
+isPII = true
+isCredentials = true
+
+[dataflows.employee_to_gateway]
+from = "bank_employee"
+to = "api_gateway"
+label = "Internal Staff Portal"
+protocol = "HTTPS"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+data = "CONFIDENTIAL"
+isCredentials = true
+
+[dataflows.admin_to_gateway]
+from = "admin"
+to = "api_gateway"
+label = "Admin Console"
+protocol = "HTTPS"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+data = "SECRET"
+isCredentials = true
+
+[dataflows.tpp_to_oauth]
+from = "tpp_provider"
+to = "oauth_server"
+label = "PSD2 OAuth Flow"
+protocol = "HTTPS"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+checksDestinationRevocation = true
+data = "CONFIDENTIAL"
+isCredentials = true
+note = "eIDAS qualified certificate required"
+
+[dataflows.gateway_to_identity]
+from = "api_gateway"
+to = "identity_service"
+label = "Auth Request"
+protocol = "gRPC"
+isEncrypted = true
+authenticatesSource = true
+isCredentials = true
+
+[dataflows.gateway_to_oauth]
+from = "api_gateway"
+to = "oauth_server"
+label = "Token Validation"
+protocol = "gRPC"
+isEncrypted = true
+authenticatesSource = true
+isCredentials = true
+
+[dataflows.gateway_to_accounts]
+from = "api_gateway"
+to = "account_service"
+label = "Account Queries"
+protocol = "gRPC"
+isEncrypted = true
+authenticatesSource = true
+isPII = true
+
+[dataflows.gateway_to_transactions]
+from = "api_gateway"
+to = "transaction_service"
+label = "Transaction Requests"
+protocol = "gRPC"
+isEncrypted = true
+authenticatesSource = true
+isPII = true
+data = "SECRET"
+
+[dataflows.transaction_to_fraud]
+from = "transaction_service"
+to = "fraud_detection"
+label = "Fraud Scoring"
+protocol = "gRPC"
+isEncrypted = true
+authenticatesSource = true
+isPII = true
+
+[dataflows.transaction_to_aml]
+from = "transaction_service"
+to = "aml_service"
+label = "AML Check"
+protocol = "gRPC"
+isEncrypted = true
+authenticatesSource = true
+isPII = true
+
+[dataflows.transaction_to_router]
+from = "transaction_service"
+to = "payment_router"
+label = "Payment Routing"
+protocol = "gRPC"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+data = "SECRET"
+
+[dataflows.router_to_swift]
+from = "payment_router"
+to = "swift_network"
+label = "SWIFT Messages"
+protocol = "HTTPS"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+checksDestinationRevocation = true
+data = "SECRET"
+isPII = true
+
+[dataflows.router_to_cards]
+from = "payment_router"
+to = "card_network"
+label = "Card Authorization"
+protocol = "HTTPS"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+checksDestinationRevocation = true
+data = "SECRET"
+isCredentials = true
+
+[dataflows.aml_to_credit]
+from = "aml_service"
+to = "credit_bureau"
+label = "Credit Check"
+protocol = "HTTPS"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+isPII = true
+
+[dataflows.audit_to_regulator]
+from = "audit_service"
+to = "regulator_api"
+label = "Regulatory Reports"
+protocol = "HTTPS"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+checksDestinationRevocation = true
+isPII = true
+data = "CONFIDENTIAL"
+
+[dataflows.identity_to_customer_db]
+from = "identity_service"
+to = "customer_db"
+label = "Customer Lookup"
+protocol = "PostgreSQL"
+isEncrypted = true
+authenticatesSource = true
+isPII = true
+sanitizesInput = true
+
+[dataflows.identity_to_session]
+from = "identity_service"
+to = "session_store"
+label = "Session Management"
+protocol = "Redis"
+isEncrypted = true
+authenticatesSource = true
+isCredentials = true
+
+[dataflows.account_to_db]
+from = "account_service"
+to = "account_db"
+label = "Account Queries"
+protocol = "PostgreSQL"
+isEncrypted = true
+authenticatesSource = true
+isPII = true
+sanitizesInput = true
+
+[dataflows.transaction_to_db]
+from = "transaction_service"
+to = "transaction_db"
+label = "Transaction Ledger"
+protocol = "PostgreSQL"
+isEncrypted = true
+authenticatesSource = true
+isPII = true
+sanitizesInput = true
+
+[dataflows.transaction_to_hsm]
+from = "transaction_service"
+to = "hsm_proxy"
+label = "Signature Request"
+protocol = "gRPC"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+data = "SECRET"
+
+[dataflows.hsm_proxy_to_hsm]
+from = "hsm_proxy"
+to = "hsm"
+label = "HSM Operations"
+protocol = "PKCS11"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+data = "SECRET"
+isCredentials = true
+
+[dataflows.fraud_to_rules]
+from = "fraud_detection"
+to = "fraud_rules_db"
+label = "Rules Lookup"
+protocol = "PostgreSQL"
+isEncrypted = true
+authenticatesSource = true
+sanitizesInput = true
+
+[dataflows.oauth_to_vault]
+from = "oauth_server"
+to = "credentials_vault"
+label = "Client Secrets"
+protocol = "HTTPS"
+isEncrypted = true
+authenticatesSource = true
+authenticatesDestination = true
+isCredentials = true
+
+[dataflows.all_to_audit]
+from = "api_gateway"
+to = "audit_service"
+label = "Audit Events"
+protocol = "gRPC"
+isEncrypted = true
+authenticatesSource = true
+isPII = true
+
+[dataflows.audit_to_log]
+from = "audit_service"
+to = "audit_log_db"
+label = "Audit Write"
+protocol = "PostgreSQL"
+isEncrypted = true
+authenticatesSource = true
+isPII = true
+note = "Append-only writes, no updates or deletes"
+
+[dataflows.notification_to_customer]
+from = "notification_service"
+to = "mobile_banking"
+label = "Push Notifications"
+protocol = "HTTPS"
+isEncrypted = true
+isPII = true
+note = "No sensitive data in notification content"
+
+# =============================================================================
+# Trust Boundaries
+# =============================================================================
+[boundaries]
+[boundaries.internet]
+label = "Internet (Untrusted)"
+elements = ["mobile_banking", "web_banking", "tpp_provider"]
+isNetworkBoundary = true
+trustLevel = 0
+
+[boundaries.partner_network]
+label = "Partner Network"
+elements = ["atm_network", "swift_network", "card_network", "credit_bureau", "regulator_api"]
+isNetworkBoundary = true
+trustLevel = 40
+
+[boundaries.corporate_network]
+label = "Corporate Network"
+elements = ["bank_employee", "admin"]
+isNetworkBoundary = true
+trustLevel = 50
+
+[boundaries.dmz]
+label = "DMZ / API Zone"
+elements = ["api_gateway", "oauth_server"]
+isNetworkBoundary = true
+trustLevel = 60
+
+[boundaries.application_zone]
+label = "Core Banking Zone"
+elements = ["identity_service", "account_service", "transaction_service", "payment_router", "fraud_detection", "aml_service", "notification_service", "audit_service"]
+isNetworkBoundary = true
+trustLevel = 80
+
+[boundaries.secure_zone]
+label = "High Security Zone (PCI)"
+elements = ["hsm_proxy", "credentials_vault"]
+isNetworkBoundary = true
+trustLevel = 95
+
+[boundaries.data_zone]
+label = "Data Zone"
+elements = ["customer_db", "account_db", "transaction_db", "session_store", "fraud_rules_db", "audit_log_db", "hsm"]
+isNetworkBoundary = true
+trustLevel = 100
+
+# =============================================================================
+# Custom Threats with CVSS Scores
+# User-defined threats supplement the auto-generated STRIDE analysis
+# CVSS can be specified as:
+#   - Numeric score: cvss = 9.8
+#   - Vector string: cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+# =============================================================================
+[threats]
+[threats.credential_theft]
+category = "Spoofing"
+element = "OAuth 2.0 Server"
+threat = "OAuth token theft via session hijacking could allow unauthorized access to customer accounts"
+mitigation = "Implement token binding, short-lived access tokens, and refresh token rotation"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:H/I:H/A:N"
+
+[threats.transaction_fraud]
+category = "Tampering"
+element = "Transaction Service"
+threat = "CRITICAL: Fraudulent transaction injection bypassing fraud detection through race conditions"
+mitigation = "Implement distributed locks and transaction idempotency keys"
+cvss = 9.8
+
+[threats.pii_exfiltration]
+category = "Information Disclosure"
+element = "Customer Database"
+threat = "Mass PII exfiltration via SQL injection or insider threat"
+mitigation = "Implement database activity monitoring, DLP, and anomaly detection"
+cvss_vector = "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N"
+
+[threats.swift_fraud]
+category = "Tampering"
+element = "SWIFT Network"
+threat = "CRITICAL: Unauthorized SWIFT message injection for fraudulent transfers"
+mitigation = "Implement SWIFT CSP controls, multi-party approval, and out-of-band verification"
+cvss = 10.0
+
+[threats.key_compromise]
+category = "Elevation of Privilege"
+element = "Hardware Security Module"
+threat = "HSM master key compromise would allow decryption of all stored credentials"
+mitigation = "Implement key ceremony procedures, m-of-n key custodians, and HSM firmware verification"
+cvss_vector = "CVSS:3.1/AV:P/AC:H/PR:H/UI:R/S:C/C:H/I:H/A:H"
+
+[threats.audit_tampering]
+category = "Repudiation"
+element = "Audit Log Database"
+threat = "Audit log tampering to hide malicious activity traces"
+mitigation = "Use append-only WORM storage, cryptographic signing, and off-site log replication"
+cvss = 8.1

@@ -1,0 +1,206 @@
+#
+# Timeline Template
+# Sequential timeline/roadmap diagram for project planning
+#
+
+[diagram]
+title = "Timeline"
+description = "Sequential timeline or roadmap diagram"
+layout = "hierarchical"
+direction = "LR"
+style = "cd_default"
+splines = "ortho"
+nodesep = 0.4
+ranksep = 1.5
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.milestone]
+shape = "diamond"
+required_fields = ["name"]
+optional_fields = ["date", "description"]
+style = { fillcolor = "#E74C3C", fontcolor = "white", style = "filled,bold" }
+label_template = "{name}\n{date}"
+
+[schema.nodes.phase]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["duration", "status"]
+style = { fillcolor = "#3498DB", fontcolor = "white", width = "2" }
+label_template = "{name}\n{duration}"
+
+[schema.nodes.task]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["owner", "status"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.task_pending]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["owner"]
+style = { fillcolor = "#95A5A6", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.task_done]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["owner"]
+style = { fillcolor = "#2ECC71", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.deadline]
+shape = "octagon"
+required_fields = ["name"]
+optional_fields = ["date"]
+style = { fillcolor = "#C0392B", fontcolor = "white" }
+label_template = "{name}\n{date}"
+
+[schema.nodes.event]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["date", "description"]
+style = { fillcolor = "#9B59B6", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.edges.sequence]
+style = "solid"
+color = "#333333"
+arrowhead = "vee"
+
+[schema.edges.depends]
+style = "dashed"
+color = "#E74C3C"
+arrowhead = "normal"
+label_field = "dependency"
+
+# =============================================================================
+# Example Data - Product Launch Timeline
+# =============================================================================
+
+[[nodes]]
+id = "start"
+type = "milestone"
+name = "Project Start"
+date = "Q1 2025"
+
+[[nodes]]
+id = "phase1"
+type = "phase"
+name = "Discovery"
+duration = "4 weeks"
+
+[[nodes]]
+id = "phase2"
+type = "phase"
+name = "Development"
+duration = "8 weeks"
+
+[[nodes]]
+id = "phase3"
+type = "phase"
+name = "Testing"
+duration = "4 weeks"
+
+[[nodes]]
+id = "launch"
+type = "milestone"
+name = "Product Launch"
+date = "Q2 2025"
+
+[[nodes]]
+id = "research"
+type = "task_done"
+name = "Market Research"
+
+[[nodes]]
+id = "design"
+type = "task_done"
+name = "UI/UX Design"
+
+[[nodes]]
+id = "dev_core"
+type = "task"
+name = "Core Features"
+
+[[nodes]]
+id = "dev_api"
+type = "task"
+name = "API Development"
+
+[[nodes]]
+id = "testing"
+type = "task_pending"
+name = "QA Testing"
+
+[[nodes]]
+id = "beta"
+type = "event"
+name = "Beta Release"
+date = "Week 14"
+
+[[edges]]
+from = "start"
+to = "phase1"
+type = "sequence"
+
+[[edges]]
+from = "phase1"
+to = "phase2"
+type = "sequence"
+
+[[edges]]
+from = "phase2"
+to = "phase3"
+type = "sequence"
+
+[[edges]]
+from = "phase3"
+to = "launch"
+type = "sequence"
+
+[[edges]]
+from = "phase1"
+to = "research"
+type = "sequence"
+
+[[edges]]
+from = "research"
+to = "design"
+type = "sequence"
+
+[[edges]]
+from = "phase2"
+to = "dev_core"
+type = "sequence"
+
+[[edges]]
+from = "dev_core"
+to = "dev_api"
+type = "sequence"
+
+[[edges]]
+from = "phase3"
+to = "testing"
+type = "sequence"
+
+[[edges]]
+from = "testing"
+to = "beta"
+type = "sequence"
+
+# Cluster phases
+[[clusters]]
+id = "q1"
+label = "Q1 2025"
+nodes = ["start", "phase1", "research", "design"]
+style = { color = "#3498DB", style = "dashed" }
+
+[[clusters]]
+id = "q2"
+label = "Q2 2025"
+nodes = ["phase2", "phase3", "dev_core", "dev_api", "testing", "beta", "launch"]
+style = { color = "#27AE60", style = "dashed" }

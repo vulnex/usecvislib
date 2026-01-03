@@ -1,0 +1,252 @@
+#
+# Data Flow Diagram Template
+# Data movement between systems
+#
+
+[diagram]
+title = "Data Flow Diagram"
+description = "Data movement between systems"
+layout = "hierarchical"
+direction = "LR"
+style = "cd_default"
+splines = "ortho"
+nodesep = 0.8
+ranksep = 1.0
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.external_entity]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description"]
+style = { fillcolor = "#95A5A6", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.process]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["id", "description"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "{id}\\n{name}"
+
+[schema.nodes.data_store]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["type"]
+style = { fillcolor = "#27AE60", fontcolor = "white", style = "filled,rounded" }
+label_template = "D{id}  {name}"
+
+[schema.nodes.trust_boundary]
+shape = "rectangle"
+required_fields = ["name"]
+style = { fillcolor = "transparent", fontcolor = "#E74C3C", style = "dashed" }
+label_template = "{name}"
+
+[schema.edges.data_flow]
+style = "solid"
+color = "#333333"
+arrowhead = "vee"
+label_field = "data"
+
+[schema.edges.bidirectional]
+style = "solid"
+color = "#333333"
+arrowhead = "none"
+label_field = "data"
+
+[schema.edges.encrypted]
+style = "bold"
+color = "#27AE60"
+arrowhead = "vee"
+label_field = "data"
+
+[schema.edges.sensitive]
+style = "dashed"
+color = "#E74C3C"
+arrowhead = "vee"
+label_field = "data"
+
+# =============================================================================
+# Example Data - E-commerce Data Flow
+# =============================================================================
+
+[[nodes]]
+id = "customer"
+type = "external_entity"
+name = "Customer"
+description = "End user"
+
+[[nodes]]
+id = "payment_provider"
+type = "external_entity"
+name = "Payment Gateway"
+description = "Stripe/PayPal"
+
+[[nodes]]
+id = "shipping"
+type = "external_entity"
+name = "Shipping Provider"
+description = "FedEx/UPS"
+
+[[nodes]]
+id = "auth"
+type = "process"
+name = "Authentication"
+level = "1.0"
+
+[[nodes]]
+id = "catalog"
+type = "process"
+name = "Product Catalog"
+level = "2.0"
+
+[[nodes]]
+id = "cart"
+type = "process"
+name = "Shopping Cart"
+level = "3.0"
+
+[[nodes]]
+id = "checkout"
+type = "process"
+name = "Checkout"
+level = "4.0"
+
+[[nodes]]
+id = "order_mgmt"
+type = "process"
+name = "Order Management"
+level = "5.0"
+
+[[nodes]]
+id = "user_db"
+type = "data_store"
+name = "Users"
+store_id = "1"
+db_type = "PostgreSQL"
+
+[[nodes]]
+id = "product_db"
+type = "data_store"
+name = "Products"
+store_id = "2"
+db_type = "PostgreSQL"
+
+[[nodes]]
+id = "order_db"
+type = "data_store"
+name = "Orders"
+store_id = "3"
+db_type = "PostgreSQL"
+
+[[nodes]]
+id = "session_cache"
+type = "data_store"
+name = "Sessions"
+store_id = "4"
+db_type = "Redis"
+
+[[edges]]
+from = "customer"
+to = "auth"
+type = "data_flow"
+data = "Credentials"
+
+[[edges]]
+from = "auth"
+to = "user_db"
+type = "sensitive"
+data = "User lookup"
+
+[[edges]]
+from = "auth"
+to = "session_cache"
+type = "data_flow"
+data = "Session token"
+
+[[edges]]
+from = "customer"
+to = "catalog"
+type = "data_flow"
+data = "Search query"
+
+[[edges]]
+from = "catalog"
+to = "product_db"
+type = "data_flow"
+data = "Product query"
+
+[[edges]]
+from = "catalog"
+to = "customer"
+type = "data_flow"
+data = "Product list"
+
+[[edges]]
+from = "customer"
+to = "cart"
+type = "data_flow"
+data = "Add to cart"
+
+[[edges]]
+from = "cart"
+to = "session_cache"
+type = "data_flow"
+data = "Cart items"
+
+[[edges]]
+from = "customer"
+to = "checkout"
+type = "data_flow"
+data = "Checkout request"
+
+[[edges]]
+from = "checkout"
+to = "payment_provider"
+type = "encrypted"
+data = "Payment info"
+
+[[edges]]
+from = "payment_provider"
+to = "checkout"
+type = "encrypted"
+data = "Transaction result"
+
+[[edges]]
+from = "checkout"
+to = "order_mgmt"
+type = "data_flow"
+data = "Order details"
+
+[[edges]]
+from = "order_mgmt"
+to = "order_db"
+type = "data_flow"
+data = "Store order"
+
+[[edges]]
+from = "order_mgmt"
+to = "shipping"
+type = "data_flow"
+data = "Shipping request"
+
+[[edges]]
+from = "shipping"
+to = "customer"
+type = "data_flow"
+data = "Tracking info"
+
+# Trust boundaries
+[[clusters]]
+id = "internal"
+label = "Internal System (Trust Boundary)"
+nodes = ["auth", "catalog", "cart", "checkout", "order_mgmt", "user_db", "product_db", "order_db", "session_cache"]
+style = { color = "#E74C3C", style = "dashed" }
+
+[[clusters]]
+id = "external"
+label = "External Entities"
+nodes = ["customer", "payment_provider", "shipping"]
+style = { color = "#95A5A6", style = "dashed" }

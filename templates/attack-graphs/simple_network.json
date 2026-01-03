@@ -1,0 +1,186 @@
+{
+  "graph": {
+    "name": "Simple Network Attack",
+    "description": "Basic attack graph example for learning",
+    "engineversion": "0.2.5",
+    "version": "1.0.0",
+    "type": "Attack Graph",
+    "date": "2025-12-25",
+    "last_modified": "2025-12-25",
+    "author": "VULNEX",
+    "email": "info@vulnex.com",
+    "url": "https://www.vulnex.com"
+  },
+  "hosts": [
+    {
+      "id": "attacker",
+      "label": "Attacker",
+      "description": "External threat actor",
+      "zone": "external"
+    },
+    {
+      "id": "webserver",
+      "label": "Web Server",
+      "description": "Apache web server",
+      "ip": "192.168.1.10",
+      "zone": "dmz",
+      "os": "Linux"
+    },
+    {
+      "id": "appserver",
+      "label": "Application Server",
+      "description": "Backend application server",
+      "ip": "192.168.2.10",
+      "zone": "internal",
+      "os": "Linux"
+    },
+    {
+      "id": "database",
+      "label": "Database",
+      "description": "MySQL database with customer data",
+      "ip": "192.168.3.10",
+      "zone": "internal",
+      "os": "Linux"
+    }
+  ],
+  "vulnerabilities": [
+    {
+      "id": "vuln_web_rce",
+      "label": "Web RCE",
+      "description": "Remote code execution in web app",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "affected_host": "webserver"
+    },
+    {
+      "id": "vuln_app_sqli",
+      "label": "SQL Injection",
+      "description": "SQL injection in application",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N",
+      "affected_host": "appserver"
+    },
+    {
+      "id": "vuln_db_default",
+      "label": "Default Credentials",
+      "description": "Database using default credentials",
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "affected_host": "database"
+    }
+  ],
+  "privileges": [
+    {
+      "id": "priv_web_user",
+      "label": "Web User",
+      "description": "Low privilege shell on web server",
+      "host": "webserver",
+      "level": "user"
+    },
+    {
+      "id": "priv_web_root",
+      "label": "Web Root",
+      "description": "Root on web server",
+      "host": "webserver",
+      "level": "root"
+    },
+    {
+      "id": "priv_app_access",
+      "label": "App Access",
+      "description": "Access to application server",
+      "host": "appserver",
+      "level": "user"
+    },
+    {
+      "id": "priv_db_read",
+      "label": "DB Read",
+      "description": "Read access to database",
+      "host": "database",
+      "level": "user"
+    },
+    {
+      "id": "priv_db_admin",
+      "label": "DB Admin",
+      "description": "Full database admin access",
+      "host": "database",
+      "level": "admin"
+    }
+  ],
+  "services": [
+    {
+      "id": "svc_http",
+      "label": "HTTP",
+      "host": "webserver",
+      "port": 80,
+      "protocol": "tcp"
+    },
+    {
+      "id": "svc_api",
+      "label": "REST API",
+      "host": "appserver",
+      "port": 8080,
+      "protocol": "tcp"
+    },
+    {
+      "id": "svc_mysql",
+      "label": "MySQL",
+      "host": "database",
+      "port": 3306,
+      "protocol": "tcp"
+    }
+  ],
+  "exploits": [
+    {
+      "id": "exploit_web_rce",
+      "label": "Web RCE Exploit",
+      "description": "Exploit RCE to get shell",
+      "vulnerability": "vuln_web_rce",
+      "precondition": "attacker",
+      "postcondition": "priv_web_user"
+    },
+    {
+      "id": "exploit_privesc",
+      "label": "Privilege Escalation",
+      "description": "Local privilege escalation",
+      "precondition": "priv_web_user",
+      "postcondition": "priv_web_root"
+    },
+    {
+      "id": "exploit_pivot",
+      "label": "Pivot to App Server",
+      "description": "Use web server to pivot internally",
+      "precondition": "priv_web_root",
+      "postcondition": "priv_app_access"
+    },
+    {
+      "id": "exploit_sqli",
+      "label": "SQL Injection Exploit",
+      "description": "SQL injection to extract data",
+      "vulnerability": "vuln_app_sqli",
+      "precondition": "priv_app_access",
+      "postcondition": "priv_db_read"
+    },
+    {
+      "id": "exploit_db_default",
+      "label": "Default Creds",
+      "description": "Login with default credentials",
+      "vulnerability": "vuln_db_default",
+      "precondition": "priv_app_access",
+      "postcondition": "priv_db_admin"
+    }
+  ],
+  "network_edges": [
+    {
+      "from": "attacker",
+      "to": "webserver",
+      "label": "Internet Access"
+    },
+    {
+      "from": "webserver",
+      "to": "appserver",
+      "label": "Internal Network"
+    },
+    {
+      "from": "appserver",
+      "to": "database",
+      "label": "DB Connection"
+    }
+  ]
+}

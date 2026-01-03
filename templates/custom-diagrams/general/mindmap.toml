@@ -1,0 +1,197 @@
+#
+# Mind Map Template
+# Radial mind mapping diagram for brainstorming and idea organization
+#
+
+[diagram]
+title = "Mind Map"
+description = "Radial mind mapping diagram"
+layout = "radial"
+direction = "LR"
+style = "cd_pastel"
+splines = "curved"
+nodesep = 0.8
+ranksep = 1.2
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.central]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["description"]
+style = { fillcolor = "#E74C3C", fontcolor = "white", style = "filled,bold", width = "2", height = "1" }
+label_template = "{name}"
+
+[schema.nodes.main_topic]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["notes"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.subtopic]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["notes"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.detail]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.note]
+shape = "note"
+required_fields = ["name"]
+style = { fillcolor = "#ECF0F1", fontcolor = "#2C3E50" }
+label_template = "{name}"
+
+[schema.edges.branch]
+style = "solid"
+color = "#7F8C8D"
+arrowhead = "none"
+
+[schema.edges.link]
+style = "dashed"
+color = "#BDC3C7"
+arrowhead = "vee"
+label_field = "relation"
+
+# =============================================================================
+# Example Data - Project Planning Mind Map
+# =============================================================================
+
+[[nodes]]
+id = "center"
+type = "central"
+name = "Project\nPlanning"
+
+[[nodes]]
+id = "goals"
+type = "main_topic"
+name = "Goals"
+
+[[nodes]]
+id = "timeline"
+type = "main_topic"
+name = "Timeline"
+
+[[nodes]]
+id = "resources"
+type = "main_topic"
+name = "Resources"
+
+[[nodes]]
+id = "risks"
+type = "main_topic"
+name = "Risks"
+
+[[nodes]]
+id = "goal1"
+type = "subtopic"
+name = "Increase\nRevenue"
+
+[[nodes]]
+id = "goal2"
+type = "subtopic"
+name = "Improve\nEfficiency"
+
+[[nodes]]
+id = "phase1"
+type = "subtopic"
+name = "Phase 1"
+
+[[nodes]]
+id = "phase2"
+type = "subtopic"
+name = "Phase 2"
+
+[[nodes]]
+id = "team"
+type = "subtopic"
+name = "Team"
+
+[[nodes]]
+id = "budget"
+type = "subtopic"
+name = "Budget"
+
+[[nodes]]
+id = "risk1"
+type = "detail"
+name = "Delays"
+
+[[nodes]]
+id = "risk2"
+type = "detail"
+name = "Over budget"
+
+[[edges]]
+from = "center"
+to = "goals"
+type = "branch"
+
+[[edges]]
+from = "center"
+to = "timeline"
+type = "branch"
+
+[[edges]]
+from = "center"
+to = "resources"
+type = "branch"
+
+[[edges]]
+from = "center"
+to = "risks"
+type = "branch"
+
+[[edges]]
+from = "goals"
+to = "goal1"
+type = "branch"
+
+[[edges]]
+from = "goals"
+to = "goal2"
+type = "branch"
+
+[[edges]]
+from = "timeline"
+to = "phase1"
+type = "branch"
+
+[[edges]]
+from = "timeline"
+to = "phase2"
+type = "branch"
+
+[[edges]]
+from = "resources"
+to = "team"
+type = "branch"
+
+[[edges]]
+from = "resources"
+to = "budget"
+type = "branch"
+
+[[edges]]
+from = "risks"
+to = "risk1"
+type = "branch"
+
+[[edges]]
+from = "risks"
+to = "risk2"
+type = "branch"
+
+[[edges]]
+from = "risk2"
+to = "budget"
+type = "link"
+relation = "affects"

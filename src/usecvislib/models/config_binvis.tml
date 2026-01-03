@@ -1,0 +1,267 @@
+#
+# Config Binary Visualization Styles
+#
+
+# =============================================================================
+# Default - Clean modern visualization
+# =============================================================================
+[bv_default]
+[bv_default.entropy]
+colormap = "viridis"
+figsize = [12, 4]
+linewidth = 1.0
+
+[bv_default.distribution]
+colormap = "Blues"
+figsize = [12, 6]
+bar_color = "#3498db"
+
+[bv_default.windrose]
+colormap = "plasma"
+figsize = [8, 8]
+
+[bv_default.heatmap]
+colormap = "inferno"
+figsize = [12, 12]
+
+# =============================================================================
+# Dark - Dark theme suitable for presentations
+# =============================================================================
+[bv_dark]
+[bv_dark.entropy]
+colormap = "magma"
+figsize = [12, 4]
+linewidth = 1.5
+
+[bv_dark.distribution]
+colormap = "Greys"
+figsize = [12, 6]
+bar_color = "#2c3e50"
+
+[bv_dark.windrose]
+colormap = "twilight"
+figsize = [8, 8]
+
+[bv_dark.heatmap]
+colormap = "magma"
+figsize = [12, 12]
+
+# =============================================================================
+# Security - Red/yellow threat-focused colors
+# =============================================================================
+[bv_security]
+[bv_security.entropy]
+colormap = "RdYlGn_r"
+figsize = [14, 5]
+linewidth = 2.0
+
+[bv_security.distribution]
+colormap = "coolwarm"
+figsize = [14, 6]
+bar_color = "#e74c3c"
+
+[bv_security.windrose]
+colormap = "Spectral"
+figsize = [10, 10]
+
+[bv_security.heatmap]
+colormap = "hot"
+figsize = [14, 14]
+
+# =============================================================================
+# Ocean - Cool blue ocean tones
+# =============================================================================
+[bv_ocean]
+[bv_ocean.entropy]
+colormap = "ocean"
+figsize = [14, 5]
+linewidth = 1.5
+
+[bv_ocean.distribution]
+colormap = "YlGnBu"
+figsize = [14, 6]
+bar_color = "#0077b6"
+
+[bv_ocean.windrose]
+colormap = "PuBu"
+figsize = [10, 10]
+
+[bv_ocean.heatmap]
+colormap = "GnBu"
+figsize = [14, 14]
+
+# =============================================================================
+# Forest - Natural green earth tones
+# =============================================================================
+[bv_forest]
+[bv_forest.entropy]
+colormap = "Greens"
+figsize = [14, 5]
+linewidth = 1.5
+
+[bv_forest.distribution]
+colormap = "YlGn"
+figsize = [14, 6]
+bar_color = "#2d6a4f"
+
+[bv_forest.windrose]
+colormap = "BuGn"
+figsize = [10, 10]
+
+[bv_forest.heatmap]
+colormap = "Greens"
+figsize = [14, 14]
+
+# =============================================================================
+# Sunset - Warm sunset gradient
+# =============================================================================
+[bv_sunset]
+[bv_sunset.entropy]
+colormap = "YlOrRd"
+figsize = [14, 5]
+linewidth = 1.5
+
+[bv_sunset.distribution]
+colormap = "Oranges"
+figsize = [14, 6]
+bar_color = "#ff6b6b"
+
+[bv_sunset.windrose]
+colormap = "OrRd"
+figsize = [10, 10]
+
+[bv_sunset.heatmap]
+colormap = "YlOrBr"
+figsize = [14, 14]
+
+# =============================================================================
+# Cyber - Cyberpunk neon colors
+# =============================================================================
+[bv_cyber]
+[bv_cyber.entropy]
+colormap = "cool"
+figsize = [14, 5]
+linewidth = 2.0
+
+[bv_cyber.distribution]
+colormap = "PuRd"
+figsize = [14, 6]
+bar_color = "#ff00ff"
+
+[bv_cyber.windrose]
+colormap = "rainbow"
+figsize = [10, 10]
+
+[bv_cyber.heatmap]
+colormap = "gnuplot2"
+figsize = [14, 14]
+
+# =============================================================================
+# Minimal - Clean grayscale
+# =============================================================================
+[bv_minimal]
+[bv_minimal.entropy]
+colormap = "gray"
+figsize = [12, 4]
+linewidth = 1.0
+
+[bv_minimal.distribution]
+colormap = "Greys"
+figsize = [12, 6]
+bar_color = "#333333"
+
+[bv_minimal.windrose]
+colormap = "binary"
+figsize = [8, 8]
+
+[bv_minimal.heatmap]
+colormap = "gray"
+figsize = [12, 12]
+
+# =============================================================================
+# Corporate - Professional blue tones
+# =============================================================================
+[bv_corporate]
+[bv_corporate.entropy]
+colormap = "Blues"
+figsize = [14, 5]
+linewidth = 1.5
+
+[bv_corporate.distribution]
+colormap = "Blues"
+figsize = [14, 6]
+bar_color = "#1e3a5f"
+
+[bv_corporate.windrose]
+colormap = "PuBu"
+figsize = [10, 10]
+
+[bv_corporate.heatmap]
+colormap = "Blues"
+figsize = [14, 14]
+
+# =============================================================================
+# Fire - Aggressive red/orange warning
+# =============================================================================
+[bv_fire]
+[bv_fire.entropy]
+colormap = "Reds"
+figsize = [14, 5]
+linewidth = 2.0
+
+[bv_fire.distribution]
+colormap = "OrRd"
+figsize = [14, 6]
+bar_color = "#dc2f02"
+
+[bv_fire.windrose]
+colormap = "hot"
+figsize = [10, 10]
+
+[bv_fire.heatmap]
+colormap = "hot"
+figsize = [14, 14]
+
+# =============================================================================
+# Purple - Elegant purple tones
+# =============================================================================
+[bv_purple]
+[bv_purple.entropy]
+colormap = "Purples"
+figsize = [14, 5]
+linewidth = 1.5
+
+[bv_purple.distribution]
+colormap = "BuPu"
+figsize = [14, 6]
+bar_color = "#7b2cbf"
+
+[bv_purple.windrose]
+colormap = "PuRd"
+figsize = [10, 10]
+
+[bv_purple.heatmap]
+colormap = "Purples"
+figsize = [14, 14]
+
+# =============================================================================
+# Rainbow - Full spectrum analysis
+# =============================================================================
+[bv_rainbow]
+[bv_rainbow.entropy]
+colormap = "jet"
+figsize = [14, 5]
+linewidth = 1.5
+
+[bv_rainbow.distribution]
+colormap = "rainbow"
+figsize = [14, 6]
+bar_color = "#9b59b6"
+
+[bv_rainbow.windrose]
+colormap = "hsv"
+figsize = [10, 10]
+
+[bv_rainbow.heatmap]
+colormap = "jet"
+figsize = [14, 14]

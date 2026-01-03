@@ -1,0 +1,104 @@
+#
+# Config AttackTrees Styles
+#
+
+# =============================================================================
+# Default Style - Clean and simple
+# =============================================================================
+[at_default]
+root = {margin = 0, fontcolor = "white", shape = "rectangle", style = "filled"}
+node = {margin = 0, fontcolor = "white", shape = "rectangle", style = "filled"}
+edge = {color = "black", style = "solid"}
+
+[at_white_black]
+root = {margin = 0, fontcolor = "white", fillcolor = "black", shape = "rectangle", style = "filled"}
+node = {margin = 0, fontcolor = "white", fillcolor = "black", shape = "rectangle", style = "filled"}
+edge = {color = "black", style = "solid"}
+
+[at_black_white]
+root = {margin = 0, fontcolor = "black", fillcolor = "white", shape = "rectangle", style = "filled"}
+node = {margin = 0, fontcolor = "black", fillcolor = "white", shape = "rectangle", style = "filled"}
+edge = {color = "black", style = "solid"}
+
+# =============================================================================
+# Corporate - Professional blue/gray enterprise style
+# =============================================================================
+[at_corporate]
+root = {margin = 0.15, fontcolor = "white", fillcolor = "#1e3a5f", shape = "rectangle", style = "filled,rounded", fontname = "Arial Bold", fontsize = "14"}
+node = {margin = 0.12, fontcolor = "white", fillcolor = "#3d5a80", shape = "rectangle", style = "filled,rounded", fontname = "Arial", fontsize = "11"}
+edge = {color = "#6b7b8c", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
+
+# =============================================================================
+# Neon - Cyberpunk dark theme with neon accents
+# =============================================================================
+[at_neon]
+root = {margin = 0.15, fontcolor = "#00ff9f", fillcolor = "#0d0d0d", shape = "rectangle", style = "filled,bold", fontname = "Consolas", fontsize = "14", penwidth = "2", color = "#00ff9f"}
+node = {margin = 0.12, fontcolor = "#ff00ff", fillcolor = "#1a1a2e", shape = "rectangle", style = "filled", fontname = "Consolas", fontsize = "11", penwidth = "1.5", color = "#ff00ff"}
+edge = {color = "#00d4ff", style = "solid", penwidth = "2", arrowsize = "0.9"}
+
+# =============================================================================
+# Pastel - Soft and friendly pastel colors
+# =============================================================================
+[at_pastel]
+root = {margin = 0.15, fontcolor = "#2d3436", fillcolor = "#ffeaa7", shape = "ellipse", style = "filled", fontname = "Comic Sans MS", fontsize = "13"}
+node = {margin = 0.12, fontcolor = "#2d3436", fillcolor = "#dfe6e9", shape = "ellipse", style = "filled", fontname = "Comic Sans MS", fontsize = "11"}
+edge = {color = "#b2bec3", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
+
+# =============================================================================
+# Forest - Natural green earth tones
+# =============================================================================
+[at_forest]
+root = {margin = 0.15, fontcolor = "white", fillcolor = "#1b4332", shape = "rectangle", style = "filled,rounded", fontname = "Georgia", fontsize = "14"}
+node = {margin = 0.12, fontcolor = "white", fillcolor = "#40916c", shape = "rectangle", style = "filled,rounded", fontname = "Georgia", fontsize = "11"}
+edge = {color = "#52b788", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
+
+# =============================================================================
+# Fire - Aggressive red/orange warning style
+# =============================================================================
+[at_fire]
+root = {margin = 0.15, fontcolor = "white", fillcolor = "#9d0208", shape = "octagon", style = "filled,bold", fontname = "Impact", fontsize = "14", penwidth = "2"}
+node = {margin = 0.12, fontcolor = "white", fillcolor = "#dc2f02", shape = "rectangle", style = "filled", fontname = "Arial Black", fontsize = "11"}
+edge = {color = "#f48c06", style = "solid", penwidth = "2", arrowsize = "1.0"}
+
+# =============================================================================
+# Blueprint - Technical blueprint style
+# =============================================================================
+[at_blueprint]
+root = {margin = 0.15, fontcolor = "white", fillcolor = "#023e8a", shape = "rectangle", style = "filled", fontname = "Courier New", fontsize = "13", penwidth = "1"}
+node = {margin = 0.12, fontcolor = "#caf0f8", fillcolor = "#0077b6", shape = "rectangle", style = "filled", fontname = "Courier New", fontsize = "10"}
+edge = {color = "#90e0ef", style = "dashed", penwidth = "1.5", arrowsize = "0.8"}
+
+# =============================================================================
+# Sunset - Warm sunset gradient feel
+# =============================================================================
+[at_sunset]
+root = {margin = 0.15, fontcolor = "white", fillcolor = "#7b2cbf", shape = "rectangle", style = "filled,rounded", fontname = "Trebuchet MS", fontsize = "14"}
+node = {margin = 0.12, fontcolor = "white", fillcolor = "#c77dff", shape = "rectangle", style = "filled,rounded", fontname = "Trebuchet MS", fontsize = "11"}
+edge = {color = "#e0aaff", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
+
+# =============================================================================
+# Hacker - Matrix-inspired green on black
+# =============================================================================
+[at_hacker]
+root = {margin = 0.15, fontcolor = "#00ff00", fillcolor = "#000000", shape = "rectangle", style = "filled", fontname = "Courier", fontsize = "13", penwidth = "2", color = "#00ff00"}
+node = {margin = 0.12, fontcolor = "#00cc00", fillcolor = "#0a0a0a", shape = "rectangle", style = "filled", fontname = "Courier", fontsize = "11", penwidth = "1", color = "#00cc00"}
+edge = {color = "#00ff00", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
+
+# =============================================================================
+# Minimal - Clean minimalist black and white
+# =============================================================================
+[at_minimal]
+root = {margin = 0.15, fontcolor = "black", fillcolor = "white", shape = "rectangle", style = "filled", fontname = "Helvetica", fontsize = "13", penwidth = "2", color = "black"}
+node = {margin = 0.12, fontcolor = "black", fillcolor = "white", shape = "rectangle", style = "filled", fontname = "Helvetica", fontsize = "11", penwidth = "1", color = "#333333"}
+edge = {color = "#333333", style = "solid", penwidth = "1", arrowsize = "0.7"}
+
+# =============================================================================
+# Plain - No colors, just black outlines (for printing/documents)
+# =============================================================================
+[at_plain]
+root = {margin = 0.15, fontcolor = "black", shape = "rectangle", style = "", fontname = "Helvetica", fontsize = "13", penwidth = "1.5", color = "black"}
+node = {margin = 0.12, fontcolor = "black", shape = "rectangle", style = "", fontname = "Helvetica", fontsize = "11", penwidth = "1", color = "black"}
+edge = {color = "black", style = "solid", penwidth = "1", arrowsize = "0.7"}
+
+
+

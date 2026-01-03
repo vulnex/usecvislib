@@ -1,0 +1,151 @@
+# Network Topology Example
+# Simple three-tier architecture
+
+[diagram]
+title = "Corporate Network"
+description = "Three-tier network architecture"
+layout = "hierarchical"
+direction = "TB"
+style = "cd_default"
+splines = "ortho"
+nodesep = 0.8
+ranksep = 1.2
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.internet]
+shape = "cloud"
+required_fields = ["name"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+
+[schema.nodes.firewall]
+shape = "firewall"
+required_fields = ["name"]
+style = { fillcolor = "#E74C3C", fontcolor = "white" }
+
+[schema.nodes.server]
+shape = "server"
+required_fields = ["name", "ip"]
+label_template = "{name}\n{ip}"
+style = { fillcolor = "#4A90D9", fontcolor = "white" }
+
+[schema.nodes.database]
+shape = "database"
+required_fields = ["name", "ip"]
+label_template = "{name}\n{ip}"
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+
+[schema.nodes.client]
+shape = "laptop"
+required_fields = ["name"]
+style = { fillcolor = "#34495E", fontcolor = "white" }
+
+[schema.edges.network]
+style = "solid"
+arrowhead = "none"
+color = "#666666"
+penwidth = 1.5
+
+# =============================================================================
+# Diagram Data
+# =============================================================================
+
+[[nodes]]
+id = "internet"
+type = "internet"
+name = "Internet"
+
+[[nodes]]
+id = "fw_external"
+type = "firewall"
+name = "External FW"
+
+[[nodes]]
+id = "web1"
+type = "server"
+name = "Web Server 1"
+ip = "10.0.1.10"
+
+[[nodes]]
+id = "web2"
+type = "server"
+name = "Web Server 2"
+ip = "10.0.1.11"
+
+[[nodes]]
+id = "fw_internal"
+type = "firewall"
+name = "Internal FW"
+
+[[nodes]]
+id = "app"
+type = "server"
+name = "App Server"
+ip = "10.0.2.10"
+
+[[nodes]]
+id = "db"
+type = "database"
+name = "PostgreSQL"
+ip = "10.0.3.10"
+
+[[nodes]]
+id = "client1"
+type = "client"
+name = "Workstation 1"
+
+[[nodes]]
+id = "client2"
+type = "client"
+name = "Workstation 2"
+
+# External connections
+[[edges]]
+from = "internet"
+to = "fw_external"
+type = "network"
+
+[[edges]]
+from = "fw_external"
+to = "web1"
+type = "network"
+
+[[edges]]
+from = "fw_external"
+to = "web2"
+type = "network"
+
+# DMZ to internal
+[[edges]]
+from = "web1"
+to = "fw_internal"
+type = "network"
+
+[[edges]]
+from = "web2"
+to = "fw_internal"
+type = "network"
+
+[[edges]]
+from = "fw_internal"
+to = "app"
+type = "network"
+
+# App to DB
+[[edges]]
+from = "app"
+to = "db"
+type = "network"
+
+# Clients to app
+[[edges]]
+from = "client1"
+to = "app"
+type = "network"
+
+[[edges]]
+from = "client2"
+to = "app"
+type = "network"

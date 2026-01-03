@@ -1,0 +1,115 @@
+# Simple Flowchart Example
+# A basic login process flowchart
+
+[diagram]
+title = "Login Process"
+description = "Simple authentication flowchart"
+layout = "hierarchical"
+direction = "TB"
+style = "cd_default"
+splines = "ortho"
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.start]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+
+[schema.nodes.end]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#E74C3C", fontcolor = "white" }
+
+[schema.nodes.process]
+shape = "rectangle"
+required_fields = ["name"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+
+[schema.nodes.decision]
+shape = "diamond"
+required_fields = ["name"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+
+[schema.edges.flow]
+style = "solid"
+arrowhead = "normal"
+color = "#333333"
+
+[schema.edges.yes]
+style = "solid"
+arrowhead = "normal"
+color = "#27AE60"
+
+[schema.edges.no]
+style = "solid"
+arrowhead = "normal"
+color = "#E74C3C"
+
+# =============================================================================
+# Diagram Data
+# =============================================================================
+
+[[nodes]]
+id = "start"
+type = "start"
+name = "Start"
+
+[[nodes]]
+id = "enter_credentials"
+type = "process"
+name = "Enter Credentials"
+
+[[nodes]]
+id = "validate"
+type = "decision"
+name = "Valid?"
+
+[[nodes]]
+id = "grant_access"
+type = "process"
+name = "Grant Access"
+
+[[nodes]]
+id = "show_error"
+type = "process"
+name = "Show Error"
+
+[[nodes]]
+id = "end"
+type = "end"
+name = "End"
+
+[[edges]]
+from = "start"
+to = "enter_credentials"
+type = "flow"
+
+[[edges]]
+from = "enter_credentials"
+to = "validate"
+type = "flow"
+
+[[edges]]
+from = "validate"
+to = "grant_access"
+type = "yes"
+label = "Yes"
+
+[[edges]]
+from = "validate"
+to = "show_error"
+type = "no"
+label = "No"
+
+[[edges]]
+from = "grant_access"
+to = "end"
+type = "flow"
+
+[[edges]]
+from = "show_error"
+to = "enter_credentials"
+type = "flow"

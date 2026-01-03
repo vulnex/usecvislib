@@ -1,0 +1,383 @@
+#
+# Organization Chart Template
+# Organizational hierarchy and structure
+#
+
+[diagram]
+title = "Organization Chart"
+description = "Organizational hierarchy and structure"
+layout = "hierarchical"
+direction = "TB"
+style = "cd_corporate"
+splines = "ortho"
+nodesep = 0.6
+ranksep = 1.0
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.executive]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["title", "department", "email", "reports"]
+style = { fillcolor = "#2C3E50", fontcolor = "white", style = "filled,bold", width = "2" }
+label_template = "{name}\\n{title}"
+
+[schema.nodes.director]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["title", "department", "email"]
+style = { fillcolor = "#34495E", fontcolor = "white", width = "1.8" }
+label_template = "{name}\\n{title}"
+
+[schema.nodes.manager]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["title", "department", "email", "team_size"]
+style = { fillcolor = "#3498DB", fontcolor = "white", width = "1.6" }
+label_template = "{name}\\n{title}"
+
+[schema.nodes.team_lead]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["title", "team"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+label_template = "{name}\\n{title}"
+
+[schema.nodes.employee]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["title", "skills"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}\\n{title}"
+
+[schema.nodes.contractor]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["title", "company"]
+style = { fillcolor = "#95A5A6", fontcolor = "white", style = "filled,dashed" }
+label_template = "{name}\\n{title}"
+
+[schema.nodes.vacant]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["title"]
+style = { fillcolor = "#ECF0F1", fontcolor = "#7F8C8D", style = "dashed" }
+label_template = "{name}\\n(Vacant)"
+
+[schema.nodes.department]
+shape = "package"
+required_fields = ["name"]
+optional_fields = ["budget", "headcount"]
+style = { fillcolor = "#9B59B6", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.edges.reports_to]
+style = "solid"
+color = "#333333"
+arrowhead = "none"
+
+[schema.edges.dotted_line]
+style = "dashed"
+color = "#95A5A6"
+arrowhead = "none"
+label_field = "relationship"
+
+[schema.edges.leads]
+style = "solid"
+color = "#27AE60"
+arrowhead = "none"
+
+# =============================================================================
+# Example Data - Tech Company Org Chart
+# =============================================================================
+
+# C-Suite
+[[nodes]]
+id = "ceo"
+type = "executive"
+name = "Sarah Johnson"
+title = "CEO"
+email = "sarah@company.com"
+
+[[nodes]]
+id = "cto"
+type = "executive"
+name = "Michael Chen"
+title = "CTO"
+department = "Engineering"
+
+[[nodes]]
+id = "cfo"
+type = "executive"
+name = "Emily Davis"
+title = "CFO"
+department = "Finance"
+
+[[nodes]]
+id = "coo"
+type = "executive"
+name = "Robert Wilson"
+title = "COO"
+department = "Operations"
+
+[[nodes]]
+id = "cmo"
+type = "executive"
+name = "Jessica Brown"
+title = "CMO"
+department = "Marketing"
+
+# Directors
+[[nodes]]
+id = "dir_eng"
+type = "director"
+name = "David Lee"
+title = "VP Engineering"
+department = "Engineering"
+
+[[nodes]]
+id = "dir_product"
+type = "director"
+name = "Amanda Martinez"
+title = "VP Product"
+department = "Product"
+
+[[nodes]]
+id = "dir_sales"
+type = "director"
+name = "James Taylor"
+title = "VP Sales"
+department = "Sales"
+
+[[nodes]]
+id = "dir_hr"
+type = "director"
+name = "Lisa Anderson"
+title = "VP Human Resources"
+department = "HR"
+
+# Engineering Managers
+[[nodes]]
+id = "mgr_frontend"
+type = "manager"
+name = "Kevin Wang"
+title = "Frontend Manager"
+team_size = 8
+
+[[nodes]]
+id = "mgr_backend"
+type = "manager"
+name = "Rachel Kim"
+title = "Backend Manager"
+team_size = 10
+
+[[nodes]]
+id = "mgr_devops"
+type = "manager"
+name = "Chris Johnson"
+title = "DevOps Manager"
+team_size = 5
+
+[[nodes]]
+id = "mgr_qa"
+type = "manager"
+name = "Maria Garcia"
+title = "QA Manager"
+team_size = 6
+
+# Team Leads
+[[nodes]]
+id = "lead_react"
+type = "team_lead"
+name = "Tom Smith"
+title = "React Lead"
+team = "Frontend"
+
+[[nodes]]
+id = "lead_api"
+type = "team_lead"
+name = "Sara Jones"
+title = "API Lead"
+team = "Backend"
+
+[[nodes]]
+id = "lead_platform"
+type = "team_lead"
+name = "Alex Brown"
+title = "Platform Lead"
+team = "DevOps"
+
+# Individual Contributors
+[[nodes]]
+id = "dev1"
+type = "employee"
+name = "John Doe"
+title = "Senior Developer"
+skills = "React, TypeScript"
+
+[[nodes]]
+id = "dev2"
+type = "employee"
+name = "Jane Smith"
+title = "Developer"
+skills = "Python, Django"
+
+[[nodes]]
+id = "dev3"
+type = "employee"
+name = "Mike Johnson"
+title = "SRE"
+skills = "Kubernetes, AWS"
+
+[[nodes]]
+id = "qa1"
+type = "employee"
+name = "Anna Lee"
+title = "QA Engineer"
+
+[[nodes]]
+id = "contractor1"
+type = "contractor"
+name = "External Dev"
+title = "Contractor"
+company = "DevCorp"
+
+[[nodes]]
+id = "vacant_security"
+type = "vacant"
+name = "Security Lead"
+title = "Security Lead"
+
+# Reporting structure
+[[edges]]
+from = "ceo"
+to = "cto"
+type = "reports_to"
+
+[[edges]]
+from = "ceo"
+to = "cfo"
+type = "reports_to"
+
+[[edges]]
+from = "ceo"
+to = "coo"
+type = "reports_to"
+
+[[edges]]
+from = "ceo"
+to = "cmo"
+type = "reports_to"
+
+[[edges]]
+from = "cto"
+to = "dir_eng"
+type = "reports_to"
+
+[[edges]]
+from = "cto"
+to = "dir_product"
+type = "reports_to"
+
+[[edges]]
+from = "coo"
+to = "dir_sales"
+type = "reports_to"
+
+[[edges]]
+from = "coo"
+to = "dir_hr"
+type = "reports_to"
+
+[[edges]]
+from = "dir_eng"
+to = "mgr_frontend"
+type = "reports_to"
+
+[[edges]]
+from = "dir_eng"
+to = "mgr_backend"
+type = "reports_to"
+
+[[edges]]
+from = "dir_eng"
+to = "mgr_devops"
+type = "reports_to"
+
+[[edges]]
+from = "dir_eng"
+to = "mgr_qa"
+type = "reports_to"
+
+[[edges]]
+from = "dir_eng"
+to = "vacant_security"
+type = "reports_to"
+
+[[edges]]
+from = "mgr_frontend"
+to = "lead_react"
+type = "reports_to"
+
+[[edges]]
+from = "mgr_backend"
+to = "lead_api"
+type = "reports_to"
+
+[[edges]]
+from = "mgr_devops"
+to = "lead_platform"
+type = "reports_to"
+
+[[edges]]
+from = "lead_react"
+to = "dev1"
+type = "leads"
+
+[[edges]]
+from = "lead_api"
+to = "dev2"
+type = "leads"
+
+[[edges]]
+from = "lead_platform"
+to = "dev3"
+type = "leads"
+
+[[edges]]
+from = "mgr_qa"
+to = "qa1"
+type = "reports_to"
+
+[[edges]]
+from = "mgr_frontend"
+to = "contractor1"
+type = "dotted_line"
+relationship = "dotted line"
+
+# Department groupings
+[[clusters]]
+id = "c_suite"
+label = "Executive Team"
+nodes = ["ceo", "cto", "cfo", "coo", "cmo"]
+style = { color = "#2C3E50", style = "bold" }
+
+[[clusters]]
+id = "engineering"
+label = "Engineering Department"
+nodes = ["dir_eng", "mgr_frontend", "mgr_backend", "mgr_devops", "mgr_qa", "lead_react", "lead_api", "lead_platform", "dev1", "dev2", "dev3", "qa1", "contractor1", "vacant_security"]
+style = { color = "#3498DB", style = "dashed" }
+
+[[clusters]]
+id = "product"
+label = "Product Department"
+nodes = ["dir_product"]
+style = { color = "#9B59B6", style = "dashed" }
+
+[[clusters]]
+id = "business"
+label = "Business Operations"
+nodes = ["dir_sales", "dir_hr"]
+style = { color = "#E67E22", style = "dashed" }

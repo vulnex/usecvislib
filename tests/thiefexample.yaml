@@ -1,0 +1,92 @@
+tree:
+  name: Attack Tree Example - Thief
+  description: Castle heist attack tree demonstrating multiple attack paths to steal
+    jewels
+  engineversion: 0.2.5
+  version: 1.0.0
+  type: Attack Tree
+  date: '2025-12-25'
+  last_modified: '2025-12-25'
+  author: VULNEX
+  email: info@vulnex.com
+  url: https://www.vulnex.com
+  root: Attacker
+  params:
+    rankdir: TB
+nodes:
+  Attacker:
+    style: filled
+    fontcolor: black
+    fillcolor: white
+    shape: oval
+  Get a Shovel:
+    style: filled
+    fillcolor: '#dadbdb'
+    color: white
+    shape: rectangle
+  Get a Rope:
+    style: filled
+    fillcolor: '#dadbdb'
+    color: white
+    shape: rectangle
+  Tunnel Under the Matt:
+    style: filled
+    shape: rectangle
+    cvss: 5.0
+  Scale the Castle Wall:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:P/AC:H/PR:N/UI:N/S:U/C:H/I:N/A:N
+  Surface in the Courtyard:
+    style: filled
+    shape: rectangle
+    cvss: 4.5
+  Descend to the Treasure Room:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:P/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N
+  Tunnel to the Treasure Room:
+    style: filled
+    shape: rectangle
+    cvss: 6.0
+  Steal Guards Keys:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:P/AC:H/PR:N/UI:R/S:U/C:H/I:N/A:N
+  Pick the Lock:
+    style: filled
+    shape: rectangle
+    cvss: 5.5
+  Enter the Treasure Room:
+    style: filled
+    shape: rectangle
+    cvss_vector: CVSS:3.1/AV:P/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N
+  Steal the Jewels:
+    style: filled
+    fontcolor: black
+    fillcolor: white
+    shape: octagon
+edges:
+  Attacker:
+  - to: Get a Shovel
+  - to: Get a Rope
+  Get a Shovel:
+  - to: Tunnel Under the Matt
+  Tunnel Under the Matt:
+  - to: Tunnel to the Treasure Room
+  - to: Surface in the Courtyard
+  Get a Rope:
+  - to: Scale the Castle Wall
+  Tunnel to the Treasure Room:
+  - to: Steal the Jewels
+  Surface in the Courtyard:
+  - to: Descend to the Treasure Room
+  Scale the Castle Wall:
+  - to: Descend to the Treasure Room
+  Descend to the Treasure Room:
+  - to: Pick the Lock
+  - to: Steal Guards Keys
+  Pick the Lock:
+  - to: Enter the Treasure Room
+  Enter the Treasure Room:
+  - to: Steal the Jewels

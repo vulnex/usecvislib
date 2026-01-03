@@ -1,0 +1,286 @@
+#
+# Network Topology Template
+# Network infrastructure and connections
+#
+
+[diagram]
+title = "Network Topology"
+description = "Network infrastructure and connections"
+layout = "force"
+direction = "LR"
+style = "cd_dark"
+splines = "curved"
+nodesep = 1.0
+ranksep = 1.2
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.internet]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#E74C3C", fontcolor = "white", style = "filled,dashed" }
+label_template = "{name}"
+
+[schema.nodes.router]
+shape = "diamond"
+required_fields = ["name"]
+optional_fields = ["ip", "model"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}\\n{ip}"
+
+[schema.nodes.switch]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["ports", "vlan"]
+style = { fillcolor = "#3498DB", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.firewall]
+shape = "octagon"
+required_fields = ["name"]
+optional_fields = ["rules"]
+style = { fillcolor = "#E74C3C", fontcolor = "white", style = "filled,bold" }
+label_template = "{name}"
+
+[schema.nodes.server]
+shape = "artifact"
+required_fields = ["name"]
+optional_fields = ["ip", "os", "role"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}\\n{ip}\\n[{role}]"
+
+[schema.nodes.workstation]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["ip", "user"]
+style = { fillcolor = "#9B59B6", fontcolor = "white" }
+label_template = "{name}\\n{ip}"
+
+[schema.nodes.wireless_ap]
+shape = "ellipse"
+required_fields = ["name"]
+optional_fields = ["ssid", "security"]
+style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+label_template = "{name}\\n{ssid}"
+
+[schema.nodes.printer]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["ip"]
+style = { fillcolor = "#95A5A6", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.storage]
+shape = "database"
+required_fields = ["name"]
+optional_fields = ["capacity"]
+style = { fillcolor = "#8E44AD", fontcolor = "white" }
+label_template = "{name}\\n{capacity}"
+
+[schema.edges.ethernet]
+style = "solid"
+color = "#3498DB"
+arrowhead = "none"
+label_field = "speed"
+
+[schema.edges.fiber]
+style = "bold"
+color = "#F39C12"
+arrowhead = "none"
+label_field = "speed"
+
+[schema.edges.wireless]
+style = "dashed"
+color = "#1ABC9C"
+arrowhead = "none"
+label_field = "protocol"
+
+[schema.edges.vpn]
+style = "dotted"
+color = "#9B59B6"
+arrowhead = "none"
+label_field = "tunnel"
+
+# =============================================================================
+# Example Data
+# =============================================================================
+
+[[nodes]]
+id = "internet"
+type = "internet"
+name = "Internet"
+
+[[nodes]]
+id = "fw1"
+type = "firewall"
+name = "Edge Firewall"
+
+[[nodes]]
+id = "router1"
+type = "router"
+name = "Core Router"
+ip = "10.0.0.1"
+model = "Cisco ISR"
+
+[[nodes]]
+id = "switch1"
+type = "switch"
+name = "Distribution Switch"
+ports = 48
+vlan = "10,20,30"
+
+[[nodes]]
+id = "switch2"
+type = "switch"
+name = "Access Switch 1"
+ports = 24
+vlan = "10"
+
+[[nodes]]
+id = "switch3"
+type = "switch"
+name = "Access Switch 2"
+ports = 24
+vlan = "20"
+
+[[nodes]]
+id = "ap1"
+type = "wireless_ap"
+name = "AP-Floor1"
+ssid = "Corporate-WiFi"
+security = "WPA3"
+
+[[nodes]]
+id = "srv1"
+type = "server"
+name = "Web Server"
+ip = "10.0.10.5"
+os = "Ubuntu 22.04"
+role = "HTTP"
+
+[[nodes]]
+id = "srv2"
+type = "server"
+name = "DB Server"
+ip = "10.0.20.5"
+os = "RHEL 9"
+role = "PostgreSQL"
+
+[[nodes]]
+id = "srv3"
+type = "server"
+name = "File Server"
+ip = "10.0.20.10"
+role = "SMB"
+
+[[nodes]]
+id = "nas"
+type = "storage"
+name = "NAS"
+capacity = "100TB"
+
+[[nodes]]
+id = "ws1"
+type = "workstation"
+name = "Admin PC"
+ip = "10.0.10.100"
+user = "admin"
+
+[[nodes]]
+id = "printer1"
+type = "printer"
+name = "Printer-IT"
+ip = "10.0.10.50"
+
+[[edges]]
+from = "internet"
+to = "fw1"
+type = "fiber"
+speed = "1Gbps"
+
+[[edges]]
+from = "fw1"
+to = "router1"
+type = "ethernet"
+speed = "10Gbps"
+
+[[edges]]
+from = "router1"
+to = "switch1"
+type = "ethernet"
+speed = "10Gbps"
+
+[[edges]]
+from = "switch1"
+to = "switch2"
+type = "ethernet"
+speed = "1Gbps"
+
+[[edges]]
+from = "switch1"
+to = "switch3"
+type = "ethernet"
+speed = "1Gbps"
+
+[[edges]]
+from = "switch2"
+to = "srv1"
+type = "ethernet"
+speed = "1Gbps"
+
+[[edges]]
+from = "switch2"
+to = "ws1"
+type = "ethernet"
+speed = "1Gbps"
+
+[[edges]]
+from = "switch2"
+to = "printer1"
+type = "ethernet"
+speed = "100Mbps"
+
+[[edges]]
+from = "switch2"
+to = "ap1"
+type = "ethernet"
+speed = "1Gbps"
+
+[[edges]]
+from = "switch3"
+to = "srv2"
+type = "ethernet"
+speed = "10Gbps"
+
+[[edges]]
+from = "switch3"
+to = "srv3"
+type = "ethernet"
+speed = "1Gbps"
+
+[[edges]]
+from = "srv3"
+to = "nas"
+type = "fiber"
+speed = "25Gbps"
+
+# Network zones
+[[clusters]]
+id = "dmz"
+label = "DMZ Zone"
+nodes = ["fw1", "srv1"]
+style = { color = "#E74C3C", style = "dashed" }
+
+[[clusters]]
+id = "server_vlan"
+label = "Server VLAN (20)"
+nodes = ["srv2", "srv3", "nas"]
+style = { color = "#27AE60", style = "dashed" }
+
+[[clusters]]
+id = "client_vlan"
+label = "Client VLAN (10)"
+nodes = ["ws1", "printer1", "ap1"]
+style = { color = "#3498DB", style = "dashed" }

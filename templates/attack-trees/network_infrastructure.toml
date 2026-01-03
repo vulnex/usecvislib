@@ -1,0 +1,48 @@
+#
+# USecVisLib - Network Infrastructure Attack Tree
+#
+# This template demonstrates network infrastructure attack vectors without icons.
+# For the version with icons, see network_infrastructure_with_icons.toml
+#
+# Usage:
+#   usecvis -m 0 -i network_infrastructure.toml -o output -f png
+#
+
+[tree]
+name = "Network Infrastructure Attack Tree"
+root = "Compromise Infrastructure"
+description = "Attack tree showing network infrastructure attack vectors"
+engineversion = "0.3.1"
+version = "1.0.0"
+type = "Attack Tree"
+date = "2025-12-30"
+author = "VULNEX"
+params = { rankdir = "TB", splines = "polyline", nodesep = "0.8", ranksep = "1.0" }
+
+[nodes]
+# Root node - Goal of the attack
+"Compromise Infrastructure" = {style="filled", fillcolor="#E74C3C", fontcolor="white", shape="box"}
+
+# Level 1 - Main attack vectors
+"Attack Web Tier" = {style="filled", fillcolor="#3498DB", fontcolor="white", gate="OR", shape="box"}
+"Attack Database Tier" = {style="filled", fillcolor="#27AE60", fontcolor="white", gate="OR", shape="box"}
+"Attack Internal Network" = {style="filled", fillcolor="#9B59B6", fontcolor="white", gate="OR", shape="box"}
+
+# Level 2 - Web attacks
+"SQL Injection" = {style="filled", fillcolor="#E67E22", cvss=9.8, cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"}
+"XSS Attack" = {style="filled", fillcolor="#E67E22", cvss=6.1, cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N"}
+"Session Hijacking" = {style="filled", fillcolor="#E67E22", cvss=7.5}
+
+# Level 2 - Database attacks
+"Credential Theft" = {style="filled", fillcolor="#E67E22", cvss=8.1}
+"Privilege Escalation" = {style="filled", fillcolor="#E67E22", cvss=8.8}
+
+# Level 2 - Internal network attacks
+"Lateral Movement" = {style="filled", fillcolor="#E67E22", cvss=7.2}
+"Pass-the-Hash" = {style="filled", fillcolor="#E67E22", cvss=8.1}
+
+[edges]
+"Compromise Infrastructure" = [{to="Attack Web Tier", label="OR"}, {to="Attack Database Tier", label="OR"}, {to="Attack Internal Network", label="OR"}]
+"Attack Web Tier" = [{to="SQL Injection", label="HIGH"}, {to="XSS Attack", label="MEDIUM"}, {to="Session Hijacking", label="HIGH"}]
+"Attack Database Tier" = [{to="Credential Theft", label="HIGH"}, {to="Privilege Escalation", label="CRITICAL"}]
+"Attack Internal Network" = [{to="Lateral Movement", label="HIGH"}, {to="Pass-the-Hash", label="CRITICAL"}]

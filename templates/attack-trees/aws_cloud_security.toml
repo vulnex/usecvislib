@@ -1,0 +1,50 @@
+#
+# USecVisLib - AWS Cloud Security Attack Tree
+#
+# This template demonstrates AWS cloud attack vectors without icons.
+# For the version with icons, see aws_cloud_security_icons.toml
+#
+# Usage:
+#   usecvis -m 0 -i aws_cloud_security.toml -o output -f png
+#
+
+[tree]
+name = "AWS Cloud Security Attack Tree"
+root = "Compromise AWS Infrastructure"
+description = "Attack tree showing common AWS cloud attack vectors"
+engineversion = "0.3.1"
+version = "1.0.0"
+type = "Attack Tree"
+date = "2025-12-30"
+author = "VULNEX"
+params = { rankdir = "TB", splines = "ortho", nodesep = "1.2" }
+
+[nodes]
+# Root node - Main attack goal
+"Compromise AWS Infrastructure" = {style="filled", fillcolor="#E74C3C", fontcolor="white", shape="box", gate="OR"}
+
+# Level 1 - Main attack vectors
+"Attack IAM" = {style="filled", fillcolor="#3498DB", fontcolor="white", gate="OR"}
+"Attack Network Layer" = {style="filled", fillcolor="#3498DB", fontcolor="white", gate="OR"}
+"Attack Data Storage" = {style="filled", fillcolor="#3498DB", fontcolor="white", gate="OR"}
+
+# Level 2 - IAM attack vectors
+"Credential Theft" = {style="filled", fillcolor="#F39C12", cvss=8.5}
+"Privilege Escalation" = {style="filled", fillcolor="#F39C12", cvss=8.8, cvss_vector="CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"}
+"Access Key Exposure" = {style="filled", fillcolor="#F39C12", cvss=9.1}
+
+# Level 2 - Network attack vectors
+"VPC Misconfiguration" = {style="filled", fillcolor="#9B59B6", cvss=7.5}
+"Security Group Bypass" = {style="filled", fillcolor="#9B59B6", cvss=6.5}
+"WAF Evasion" = {style="filled", fillcolor="#9B59B6", cvss=7.2}
+
+# Level 2 - Data storage attack vectors
+"S3 Bucket Exposure" = {style="filled", fillcolor="#1ABC9C", cvss=9.0, cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N"}
+"RDS Injection" = {style="filled", fillcolor="#1ABC9C", cvss=8.6}
+"DynamoDB Access" = {style="filled", fillcolor="#1ABC9C", cvss=7.5}
+
+[edges]
+"Compromise AWS Infrastructure" = [{to="Attack IAM", label="OR"}, {to="Attack Network Layer", label="OR"}, {to="Attack Data Storage", label="OR"}]
+"Attack IAM" = [{to="Credential Theft", label="HIGH"}, {to="Privilege Escalation", label="CRITICAL"}, {to="Access Key Exposure", label="HIGH"}]
+"Attack Network Layer" = [{to="VPC Misconfiguration", label="MEDIUM"}, {to="Security Group Bypass", label="MEDIUM"}, {to="WAF Evasion", label="HIGH"}]
+"Attack Data Storage" = [{to="S3 Bucket Exposure", label="CRITICAL"}, {to="RDS Injection", label="HIGH"}, {to="DynamoDB Access", label="MEDIUM"}]

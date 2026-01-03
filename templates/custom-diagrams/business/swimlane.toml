@@ -1,0 +1,363 @@
+#
+# Swimlane Diagram Template
+# Cross-functional swimlane diagram
+#
+
+[diagram]
+title = "Swimlane Diagram"
+description = "Cross-functional process diagram with swimlanes"
+layout = "hierarchical"
+direction = "LR"
+style = "cd_default"
+splines = "ortho"
+nodesep = 0.5
+ranksep = 1.2
+
+# =============================================================================
+# Schema Definition
+# =============================================================================
+
+[schema.nodes.start]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#27AE60", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.end]
+shape = "ellipse"
+required_fields = ["name"]
+style = { fillcolor = "#C0392B", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.task_customer]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description"]
+style = { fillcolor = "#9B59B6", fontcolor = "white", style = "filled,rounded" }
+label_template = "{name}"
+
+[schema.nodes.task_sales]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description"]
+style = { fillcolor = "#3498DB", fontcolor = "white", style = "filled,rounded" }
+label_template = "{name}"
+
+[schema.nodes.task_finance]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description"]
+style = { fillcolor = "#27AE60", fontcolor = "white", style = "filled,rounded" }
+label_template = "{name}"
+
+[schema.nodes.task_fulfillment]
+shape = "rectangle"
+required_fields = ["name"]
+optional_fields = ["description"]
+style = { fillcolor = "#E67E22", fontcolor = "white", style = "filled,rounded" }
+label_template = "{name}"
+
+[schema.nodes.decision]
+shape = "diamond"
+required_fields = ["name"]
+style = { fillcolor = "#F39C12", fontcolor = "white" }
+label_template = "{name}"
+
+[schema.nodes.document]
+shape = "note"
+required_fields = ["name"]
+style = { fillcolor = "#ECF0F1", fontcolor = "#2C3E50" }
+label_template = "{name}"
+
+[schema.edges.flow]
+style = "solid"
+color = "#333333"
+arrowhead = "vee"
+
+[schema.edges.conditional]
+style = "solid"
+color = "#F39C12"
+arrowhead = "vee"
+label_field = "condition"
+
+[schema.edges.produces]
+style = "dashed"
+color = "#27AE60"
+arrowhead = "normal"
+
+# =============================================================================
+# Example Data - Purchase Order Process
+# =============================================================================
+
+# Customer Lane
+[[nodes]]
+id = "start"
+type = "start"
+name = "Start"
+
+[[nodes]]
+id = "submit_request"
+type = "task_customer"
+name = "Submit Purchase Request"
+
+[[nodes]]
+id = "receive_quote"
+type = "task_customer"
+name = "Receive Quote"
+
+[[nodes]]
+id = "approve_quote"
+type = "decision"
+name = "Approve?"
+
+[[nodes]]
+id = "sign_contract"
+type = "task_customer"
+name = "Sign Contract"
+
+[[nodes]]
+id = "receive_goods"
+type = "task_customer"
+name = "Receive Goods"
+
+[[nodes]]
+id = "end"
+type = "end"
+name = "End"
+
+# Sales Lane
+[[nodes]]
+id = "review_request"
+type = "task_sales"
+name = "Review Request"
+
+[[nodes]]
+id = "check_availability"
+type = "task_sales"
+name = "Check Availability"
+
+[[nodes]]
+id = "prepare_quote"
+type = "task_sales"
+name = "Prepare Quote"
+
+[[nodes]]
+id = "negotiate"
+type = "task_sales"
+name = "Negotiate Terms"
+
+[[nodes]]
+id = "create_order"
+type = "task_sales"
+name = "Create Sales Order"
+
+[[nodes]]
+id = "quote_doc"
+type = "document"
+name = "Quote Document"
+
+[[nodes]]
+id = "contract_doc"
+type = "document"
+name = "Contract"
+
+# Finance Lane
+[[nodes]]
+id = "credit_check"
+type = "task_finance"
+name = "Credit Check"
+
+[[nodes]]
+id = "credit_ok"
+type = "decision"
+name = "Credit OK?"
+
+[[nodes]]
+id = "process_invoice"
+type = "task_finance"
+name = "Process Invoice"
+
+[[nodes]]
+id = "receive_payment"
+type = "task_finance"
+name = "Receive Payment"
+
+[[nodes]]
+id = "invoice_doc"
+type = "document"
+name = "Invoice"
+
+# Fulfillment Lane
+[[nodes]]
+id = "allocate_stock"
+type = "task_fulfillment"
+name = "Allocate Stock"
+
+[[nodes]]
+id = "pick_pack"
+type = "task_fulfillment"
+name = "Pick & Pack"
+
+[[nodes]]
+id = "ship"
+type = "task_fulfillment"
+name = "Ship Order"
+
+[[nodes]]
+id = "shipping_doc"
+type = "document"
+name = "Shipping Label"
+
+[[edges]]
+from = "start"
+to = "submit_request"
+type = "flow"
+
+[[edges]]
+from = "submit_request"
+to = "review_request"
+type = "flow"
+
+[[edges]]
+from = "review_request"
+to = "check_availability"
+type = "flow"
+
+[[edges]]
+from = "check_availability"
+to = "credit_check"
+type = "flow"
+
+[[edges]]
+from = "credit_check"
+to = "credit_ok"
+type = "flow"
+
+[[edges]]
+from = "credit_ok"
+to = "prepare_quote"
+type = "conditional"
+condition = "Yes"
+
+[[edges]]
+from = "credit_ok"
+to = "end"
+type = "conditional"
+condition = "No"
+
+[[edges]]
+from = "prepare_quote"
+to = "quote_doc"
+type = "produces"
+
+[[edges]]
+from = "prepare_quote"
+to = "receive_quote"
+type = "flow"
+
+[[edges]]
+from = "receive_quote"
+to = "approve_quote"
+type = "flow"
+
+[[edges]]
+from = "approve_quote"
+to = "negotiate"
+type = "conditional"
+condition = "No"
+
+[[edges]]
+from = "negotiate"
+to = "prepare_quote"
+type = "flow"
+
+[[edges]]
+from = "approve_quote"
+to = "sign_contract"
+type = "conditional"
+condition = "Yes"
+
+[[edges]]
+from = "sign_contract"
+to = "contract_doc"
+type = "produces"
+
+[[edges]]
+from = "sign_contract"
+to = "create_order"
+type = "flow"
+
+[[edges]]
+from = "create_order"
+to = "allocate_stock"
+type = "flow"
+
+[[edges]]
+from = "create_order"
+to = "process_invoice"
+type = "flow"
+
+[[edges]]
+from = "process_invoice"
+to = "invoice_doc"
+type = "produces"
+
+[[edges]]
+from = "process_invoice"
+to = "receive_payment"
+type = "flow"
+
+[[edges]]
+from = "allocate_stock"
+to = "pick_pack"
+type = "flow"
+
+[[edges]]
+from = "pick_pack"
+to = "ship"
+type = "flow"
+
+[[edges]]
+from = "ship"
+to = "shipping_doc"
+type = "produces"
+
+[[edges]]
+from = "ship"
+to = "receive_goods"
+type = "flow"
+
+[[edges]]
+from = "receive_goods"
+to = "end"
+type = "flow"
+
+[[edges]]
+from = "receive_payment"
+to = "end"
+type = "flow"
+
+# Swimlanes
+[[clusters]]
+id = "customer_lane"
+label = "Customer"
+nodes = ["start", "submit_request", "receive_quote", "approve_quote", "sign_contract", "receive_goods", "end"]
+style = { color = "#9B59B6", style = "solid", bgcolor = "#F5EEF8" }
+
+[[clusters]]
+id = "sales_lane"
+label = "Sales Department"
+nodes = ["review_request", "check_availability", "prepare_quote", "negotiate", "create_order", "quote_doc", "contract_doc"]
+style = { color = "#3498DB", style = "solid", bgcolor = "#EBF5FB" }
+
+[[clusters]]
+id = "finance_lane"
+label = "Finance Department"
+nodes = ["credit_check", "credit_ok", "process_invoice", "receive_payment", "invoice_doc"]
+style = { color = "#27AE60", style = "solid", bgcolor = "#E8F8F5" }
+
+[[clusters]]
+id = "fulfillment_lane"
+label = "Fulfillment"
+nodes = ["allocate_stock", "pick_pack", "ship", "shipping_doc"]
+style = { color = "#E67E22", style = "solid", bgcolor = "#FDF2E9" }
