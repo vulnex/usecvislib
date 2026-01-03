@@ -94,9 +94,6 @@ temp/
 
 # Output files (generated visualizations)
 output/
-*.png
-*.pdf
-*.svg
 !frontend/public/*.svg
 
 # Environment variables
