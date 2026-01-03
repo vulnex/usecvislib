@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/vulnex/usecvislib/docs/images/usecvislib_logotext.png" alt="USecVisLib" width="400">
+  <img src="https://raw.githubusercontent.com/vulnex/usecvislib/usecvislib_logotext.png" alt="USecVisLib" width="400">
 </p>
 
 <h1 align="center">Universal Security Visualization Library</h1>
