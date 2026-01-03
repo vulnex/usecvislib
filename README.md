@@ -11,7 +11,7 @@
 
 A comprehensive Python library and web application for creating security visualizations including attack trees, attack graphs, threat models, and binary analysis diagrams.
 
-![USecVisLib](https://raw.githubusercontent.com/vulnex/usecvislib/docs/images/ui-main.png)
+![USecVisLib](docs/images/ui-main.png)
 
 ## Features
 
