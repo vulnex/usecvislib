@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="usecvislib_logotext.png" alt="USecVisLib" width="400">
+  <img src="https://raw.githubusercontent.com/vulnex/usecvislib/docs/images/usecvislib_logotext.png" alt="USecVisLib" width="400">
 </p>
 
 <h1 align="center">Universal Security Visualization Library</h1>
@@ -11,7 +11,7 @@
 
 A comprehensive Python library and web application for creating security visualizations including attack trees, attack graphs, threat models, and binary analysis diagrams.
 
-![USecVisLib](docs/images/ui-main.png)
+![USecVisLib](https://raw.githubusercontent.com/vulnex/usecvislib/docs/images/ui-main.png)
 
 ## Features
 
@@ -40,19 +40,19 @@ A comprehensive Python library and web application for creating security visuali
 ## Screenshots
 
 ### Attack Trees
-![Attack Tree](docs/images/attack-tree.png)
+![Attack Tree](https://raw.githubusercontent.com/vulnex/usecvislib/docs/images/attack-tree.png)
 
 ### Attack Graphs
-![Attack Graph](docs/images/attack-graph.png)
+![Attack Graph](https://raw.githubusercontent.com/vulnex/usecvislib/docs/images/attack-graph.png)
 
 ### Threat Modeling
-![Threat Model](docs/images/threat-model.png)
+![Threat Model](https://raw.githubusercontent.com/vulnex/usecvislib/docs/images/threat-model.png)
 
 ### Custom Diagrams
-![Custom Diagrams](docs/images/custom-diagrams.png)
+![Custom Diagrams](https://raw.githubusercontent.com/vulnex/usecvislib/docs/images/custom-diagrams.png)
 
 ### Binary Analysis
-![Binary Analysis](docs/images/binary-vis.png)
+![Binary Analysis](https://raw.githubusercontent.com/vulnex/usecvislib/docs/images/binary-vis.png)
 
 ## Web UI Features
 
