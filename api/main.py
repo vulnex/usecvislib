@@ -67,6 +67,12 @@ MAX_CONFIG_FILE_SIZE = 1024 * 1024  # 1 MB max for config files (TOML, JSON, YAM
 MAX_TOML_FILE_SIZE = MAX_CONFIG_FILE_SIZE  # Alias for backwards compatibility
 MAX_BINARY_FILE_SIZE = 50 * 1024 * 1024  # 50 MB max for binary files
 
+# SECURITY: Request timeout for long-running visualization operations
+# Prevents resource exhaustion from slow/complex visualizations
+REQUEST_TIMEOUT_VISUALIZE = int(os.getenv("REQUEST_TIMEOUT_VISUALIZE", "120"))  # 2 minutes
+REQUEST_TIMEOUT_ANALYZE = int(os.getenv("REQUEST_TIMEOUT_ANALYZE", "60"))  # 1 minute
+REQUEST_TIMEOUT_BATCH = int(os.getenv("REQUEST_TIMEOUT_BATCH", "300"))  # 5 minutes for batch
+
 # Supported configuration file extensions
 SUPPORTED_CONFIG_EXTENSIONS = {".toml", ".tml", ".json", ".yaml", ".yml"}
 
@@ -405,6 +411,110 @@ TEMP_DIR = tempfile.mkdtemp(prefix="usecvislib_api_")
 # =============================================================================
 # Security Helper Functions
 # =============================================================================
+
+import asyncio
+from functools import wraps
+from typing import Callable, TypeVar, Coroutine, Any
+
+T = TypeVar('T')
+
+
+async def run_with_timeout(
+    coro: Coroutine[Any, Any, T],
+    timeout_seconds: int,
+    operation_name: str = "operation"
+) -> T:
+    """Run a coroutine with a timeout.
+
+    SECURITY: Prevents resource exhaustion from slow/complex operations.
+
+    Args:
+        coro: The coroutine to run
+        timeout_seconds: Maximum time in seconds
+        operation_name: Name for error messages
+
+    Returns:
+        The result of the coroutine
+
+    Raises:
+        HTTPException: 504 Gateway Timeout if operation exceeds timeout
+    """
+    try:
+        return await asyncio.wait_for(coro, timeout=timeout_seconds)
+    except asyncio.TimeoutError:
+        logger.warning(f"Request timeout: {operation_name} exceeded {timeout_seconds}s")
+        raise HTTPException(
+            status_code=504,
+            detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
+        )
+
+
+async def run_sync_with_timeout(
+    func: Callable[..., T],
+    timeout_seconds: int,
+    operation_name: str = "operation",
+    *args,
+    **kwargs
+) -> T:
+    """Run a synchronous function in a thread pool with timeout.
+
+    SECURITY: Prevents resource exhaustion from slow/complex synchronous operations.
+
+    Args:
+        func: The synchronous function to run
+        timeout_seconds: Maximum time in seconds
+        operation_name: Name for error messages
+        *args: Positional arguments for func
+        **kwargs: Keyword arguments for func
+
+    Returns:
+        The result of the function
+
+    Raises:
+        HTTPException: 504 Gateway Timeout if operation exceeds timeout
+    """
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(func, *args, **kwargs),
+            timeout=timeout_seconds
+        )
+    except asyncio.TimeoutError:
+        logger.warning(f"Request timeout: {operation_name} exceeded {timeout_seconds}s")
+        raise HTTPException(
+            status_code=504,
+            detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
+        )
+
+
+def with_timeout(timeout_seconds: int, operation_name: str = "operation"):
+    """Decorator to add timeout to async endpoint functions.
+
+    SECURITY: Prevents resource exhaustion from slow/complex operations.
+
+    Args:
+        timeout_seconds: Maximum time in seconds
+        operation_name: Name for error messages
+
+    Returns:
+        Decorated function with timeout enforcement
+    """
+    def decorator(func: Callable[..., Coroutine[Any, Any, T]]) -> Callable[..., Coroutine[Any, Any, T]]:
+        @wraps(func)
+        async def wrapper(*args, **kwargs) -> T:
+            try:
+                return await asyncio.wait_for(
+                    func(*args, **kwargs),
+                    timeout=timeout_seconds
+                )
+            except asyncio.TimeoutError:
+                logger.warning(f"Request timeout: {operation_name} exceeded {timeout_seconds}s")
+                raise HTTPException(
+                    status_code=504,
+                    detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
+                )
+        return wrapper
+    return decorator
+
 
 # UUID validation pattern (RFC 4122)
 UUID_PATTERN = re.compile(
@@ -1146,9 +1256,14 @@ async def visualize_attack_tree(
             logger.debug(f"Image resolution skipped: {e}")
             input_for_viz = input_path
 
-        # Generate visualization
+        # Generate visualization with timeout protection
+        # SECURITY: Prevents resource exhaustion from complex/slow visualizations
         at = AttackTrees(input_for_viz, output_base, format=format.value, styleid=style.value)
-        at.BuildAttackTree()
+        await run_sync_with_timeout(
+            at.BuildAttackTree,
+            REQUEST_TIMEOUT_VISUALIZE,
+            "attack tree visualization"
+        )
 
         output_path = f"{output_base}.{format.value}"
 
@@ -1359,8 +1474,14 @@ async def visualize_attack_graph(
             logger.debug(f"Image resolution skipped: {e}")
             input_for_viz = input_path
 
+        # Generate visualization with timeout protection
+        # SECURITY: Prevents resource exhaustion from complex/slow visualizations
         ag = AttackGraphs(input_for_viz, output_base, format=format.value, styleid=style.value)
-        ag.BuildAttackGraph()
+        await run_sync_with_timeout(
+            ag.BuildAttackGraph,
+            REQUEST_TIMEOUT_VISUALIZE,
+            "attack graph visualization"
+        )
 
         output_path = f"{output_base}.{format.value}"
 
@@ -1922,7 +2043,12 @@ async def visualize_threat_model(
             styleid=style.value,
             engine=engine.value
         )
-        tm.BuildThreatModel()
+        # SECURITY: Timeout protection for complex threat models
+        await run_sync_with_timeout(
+            tm.BuildThreatModel,
+            REQUEST_TIMEOUT_VISUALIZE,
+            "threat model visualization"
+        )
 
         output_path = f"{output_base}.{format.value}"
 
@@ -2162,13 +2288,22 @@ async def visualize_binary(
                 logger.warning(f"Invalid config JSON: {str(e)}")
                 raise HTTPException(status_code=400, detail="Invalid configuration format")
 
-        # Generate visualization
+        # Generate visualization with timeout protection
+        # SECURITY: Prevents resource exhaustion from large binary files
         vis_type = visualization_type.value
         if vis_type == "all":
-            bv.BuildBinVis("all")
+            await run_sync_with_timeout(
+                lambda: bv.BuildBinVis("all"),
+                REQUEST_TIMEOUT_VISUALIZE,
+                "binary visualization (all)"
+            )
             output_path = f"{output_base}_entropy.{format.value}"
         else:
-            bv.BuildBinVis(vis_type)
+            await run_sync_with_timeout(
+                lambda: bv.BuildBinVis(vis_type),
+                REQUEST_TIMEOUT_VISUALIZE,
+                f"binary visualization ({vis_type})"
+            )
             output_path = f"{output_base}_{vis_type}.{format.value}"
 
         if not os.path.exists(output_path):
@@ -2936,22 +3071,35 @@ async def batch_visualize(
         batch_output_dir = os.path.join(TEMP_DIR, f"batch_{os.urandom(8).hex()}")
         os.makedirs(batch_output_dir, exist_ok=True)
 
-        # Process each file
+        # Process each file with per-item timeout
+        # SECURITY: Prevents single slow file from blocking entire batch
         for filename, input_path in input_paths:
             try:
                 output_base = os.path.join(batch_output_dir, os.path.splitext(filename)[0])
 
                 if mode == VisualizationMode.ATTACK_TREE:
                     viz = AttackTrees(input_path, output_base, format=format.value, styleid=style or "at_default")
-                    viz.BuildAttackTree()
+                    await run_sync_with_timeout(
+                        viz.BuildAttackTree,
+                        REQUEST_TIMEOUT_VISUALIZE,
+                        f"batch attack tree ({filename})"
+                    )
                     stats = viz.get_tree_stats() if collect_stats else None
                 elif mode == VisualizationMode.ATTACK_GRAPH:
                     viz = AttackGraphs(input_path, output_base, format=format.value, styleid=style or "ag_default")
-                    viz.BuildAttackGraph()
+                    await run_sync_with_timeout(
+                        viz.BuildAttackGraph,
+                        REQUEST_TIMEOUT_VISUALIZE,
+                        f"batch attack graph ({filename})"
+                    )
                     stats = viz.get_graph_stats() if collect_stats else None
                 elif mode == VisualizationMode.THREAT_MODEL:
                     viz = ThreatModeling(input_path, output_base, format=format.value, styleid=style or "tm_default")
-                    viz.BuildThreatModel()
+                    await run_sync_with_timeout(
+                        viz.BuildThreatModel,
+                        REQUEST_TIMEOUT_VISUALIZE,
+                        f"batch threat model ({filename})"
+                    )
                     stats = viz.get_model_stats() if collect_stats else None
                 elif mode == VisualizationMode.CUSTOM_DIAGRAM:
                     cd = CustomDiagrams()
@@ -2959,9 +3107,13 @@ async def batch_visualize(
                     # Override style if specified
                     if style and cd.settings:
                         cd.settings.style = style
-                    result = cd.BuildCustomDiagram(
-                        output=output_base,
-                        output_format=format.value
+                    await run_sync_with_timeout(
+                        lambda: cd.BuildCustomDiagram(
+                            output=output_base,
+                            output_format=format.value
+                        ),
+                        REQUEST_TIMEOUT_VISUALIZE,
+                        f"batch custom diagram ({filename})"
                     )
                     stats = cd.get_stats() if collect_stats else None
                 else:
@@ -3782,11 +3934,16 @@ async def visualize_custom_diagram(
         cd = CustomDiagrams()
         cd.load(input_for_viz)
 
-        # Build the diagram
-        result = cd.BuildCustomDiagram(
-            output=output_base,
-            output_format=format.value,
-            validate=True
+        # Build the diagram with timeout protection
+        # SECURITY: Prevents resource exhaustion from complex diagrams
+        result = await run_sync_with_timeout(
+            lambda: cd.BuildCustomDiagram(
+                output=output_base,
+                output_format=format.value,
+                validate=True
+            ),
+            REQUEST_TIMEOUT_VISUALIZE,
+            "custom diagram visualization"
         )
         output_path = result.output_path
 
@@ -3981,11 +4138,16 @@ async def custom_diagram_from_template(
         cd = CustomDiagrams()
         cd.load(template_path)
 
-        # Build the diagram
-        result = cd.BuildCustomDiagram(
-            output=output_base,
-            output_format=format.value,
-            validate=True
+        # Build the diagram with timeout protection
+        # SECURITY: Prevents resource exhaustion from complex templates
+        result = await run_sync_with_timeout(
+            lambda: cd.BuildCustomDiagram(
+                output=output_base,
+                output_format=format.value,
+                validate=True
+            ),
+            REQUEST_TIMEOUT_VISUALIZE,
+            "custom diagram template visualization"
         )
         output_path = result.output_path
 
@@ -4072,11 +4234,16 @@ async def import_to_custom_diagram(
         else:
             raise HTTPException(status_code=400, detail=f"Import from '{source_type.value}' is not supported")
 
-        # Build the diagram
-        result = cd.BuildCustomDiagram(
-            output=output_base,
-            output_format=format.value,
-            validate=True
+        # Build the diagram with timeout protection
+        # SECURITY: Prevents resource exhaustion from complex imported diagrams
+        result = await run_sync_with_timeout(
+            lambda: cd.BuildCustomDiagram(
+                output=output_base,
+                output_format=format.value,
+                validate=True
+            ),
+            REQUEST_TIMEOUT_VISUALIZE,
+            "custom diagram import visualization"
         )
         output_path = result.output_path
 
