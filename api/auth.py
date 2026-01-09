@@ -22,7 +22,8 @@ Provides API key-based authentication with support for:
 import os
 import secrets
 import logging
-from typing import Optional, List
+import hashlib
+from typing import Optional, List, Dict
 
 from fastapi import HTTPException, Security, Request
 from fastapi.security import APIKeyHeader
@@ -99,6 +100,55 @@ def generate_example_key() -> str:
         A cryptographically secure random key with 'usecvis_' prefix.
     """
     return f"usecvis_{secrets.token_urlsafe(32)}"
+
+
+def _hash_key(key: str) -> str:
+    """Hash an API key using SHA-256 for constant-time comparison.
+
+    SECURITY: This normalizes key lengths to prevent timing attacks.
+    secrets.compare_digest() returns early on length mismatch, so we hash
+    keys to ensure all comparisons operate on 64-character hex strings.
+
+    Args:
+        key: The API key to hash.
+
+    Returns:
+        SHA-256 hash of the key as a hex string (always 64 characters).
+    """
+    return hashlib.sha256(key.encode('utf-8')).hexdigest()
+
+
+# Cache of hashed keys for efficient lookup (populated on first use)
+_hashed_keys_cache: Dict[str, int] = {}  # hash -> key index
+_cache_initialized: bool = False
+
+
+def _get_hashed_keys() -> Dict[str, int]:
+    """Get dictionary mapping hashed keys to their indices.
+
+    Lazily initializes the cache on first call.
+
+    Returns:
+        Dictionary mapping SHA-256 hashes to key indices.
+    """
+    global _hashed_keys_cache, _cache_initialized
+
+    if not _cache_initialized:
+        keys = get_configured_keys()
+        _hashed_keys_cache = {_hash_key(k): idx for idx, k in enumerate(keys)}
+        _cache_initialized = True
+
+    return _hashed_keys_cache
+
+
+def refresh_key_cache() -> None:
+    """Refresh the hashed keys cache.
+
+    Call this if API keys are modified at runtime.
+    """
+    global _cache_initialized
+    _cache_initialized = False
+    _get_hashed_keys()  # Re-initialize
 
 
 # =============================================================================
@@ -196,14 +246,20 @@ async def verify_api_key(
             headers={"WWW-Authenticate": "ApiKey"}
         )
 
-    # Validate key using constant-time comparison to prevent timing attacks
-    # SECURITY: We iterate ALL keys and combine results to avoid timing leaks
-    # from any() short-circuiting, which would reveal key position in list
-    valid_keys = get_configured_keys()
+    # SECURITY: Validate key using constant-time comparison with hashed keys
+    # We hash the incoming key to normalize length (SHA-256 = 64 chars always)
+    # This prevents timing attacks that could leak key length information
+    # because secrets.compare_digest() returns early on length mismatch.
+    incoming_hash = _hash_key(api_key)
+    hashed_keys = _get_hashed_keys()
+
+    # Use constant-time comparison on fixed-length hashes
     key_valid = False
     matched_key_index = -1
-    for idx, k in enumerate(valid_keys):
-        if secrets.compare_digest(api_key, k):
+
+    # Iterate ALL hashed keys to ensure constant time (no early exit)
+    for key_hash, idx in hashed_keys.items():
+        if secrets.compare_digest(incoming_hash, key_hash):
             key_valid = True
             matched_key_index = idx
         # Continue checking all keys even after match to ensure constant time

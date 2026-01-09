@@ -515,10 +515,14 @@ class AuthErrorResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
-    """Health check response."""
+    """Health check response.
+
+    SECURITY: Version and module details are optional to prevent information disclosure.
+    Minimal response returns only status; detailed response requires explicit request.
+    """
     status: str
-    version: str
-    modules: Dict[str, bool]
+    version: Optional[str] = Field(default=None, description="API version (requires ?details=true)")
+    modules: Optional[Dict[str, bool]] = Field(default=None, description="Module availability (requires ?details=true)")
 
 
 class ConvertResponse(BaseModel):

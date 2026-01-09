@@ -622,30 +622,68 @@ def resolve_image_references(data: dict) -> dict:
 
 
 async def cleanup_old_images():
-    """Background task to clean up old uploaded images."""
+    """Background task to clean up old uploaded images.
+
+    SECURITY: This task has safeguards against infinite loops and resource exhaustion:
+    - Handles CancelledError for graceful shutdown
+    - Implements exponential backoff on repeated errors
+    - Also cleans up old progress entries periodically
+    """
     from datetime import datetime, timedelta
 
-    while True:
-        await asyncio.sleep(300)  # Check every 5 minutes
+    consecutive_errors = 0
+    max_consecutive_errors = 10
+    base_sleep = 300  # 5 minutes
 
-        try:
-            if not os.path.exists(IMAGE_UPLOAD_DIR):
-                continue
+    try:
+        while True:
+            # Calculate sleep time with exponential backoff on errors
+            sleep_time = base_sleep * (2 ** min(consecutive_errors, 5))
+            await asyncio.sleep(sleep_time)
 
-            cutoff = datetime.now() - timedelta(seconds=IMAGE_CLEANUP_AGE)
+            try:
+                # SECURITY: Periodically cleanup progress store entries
+                removed = _cleanup_old_progress_entries()
+                if removed > 0:
+                    logger.info(f"Cleaned up {removed} expired progress entries")
 
-            for filename in os.listdir(IMAGE_UPLOAD_DIR):
-                filepath = os.path.join(IMAGE_UPLOAD_DIR, filename)
-                if os.path.isfile(filepath):
-                    mtime = datetime.fromtimestamp(os.path.getmtime(filepath))
-                    if mtime < cutoff:
+                if not os.path.exists(IMAGE_UPLOAD_DIR):
+                    consecutive_errors = 0
+                    continue
+
+                cutoff = datetime.now() - timedelta(seconds=IMAGE_CLEANUP_AGE)
+                cleaned = 0
+
+                for filename in os.listdir(IMAGE_UPLOAD_DIR):
+                    filepath = os.path.join(IMAGE_UPLOAD_DIR, filename)
+                    if os.path.isfile(filepath):
                         try:
-                            os.unlink(filepath)
-                            logger.info(f"Cleaned up old image: {filename}")
+                            mtime = datetime.fromtimestamp(os.path.getmtime(filepath))
+                            if mtime < cutoff:
+                                os.unlink(filepath)
+                                cleaned += 1
+                                logger.debug(f"Cleaned up old image: {filename}")
                         except Exception as e:
                             logger.error(f"Failed to cleanup {filepath}: {e}")
-        except Exception as e:
-            logger.error(f"Image cleanup task error: {e}")
+
+                if cleaned > 0:
+                    logger.info(f"Cleaned up {cleaned} old images")
+
+                # Reset error counter on success
+                consecutive_errors = 0
+
+            except Exception as e:
+                consecutive_errors += 1
+                logger.error(f"Image cleanup task error ({consecutive_errors}/{max_consecutive_errors}): {e}")
+
+                # SECURITY: Stop task after too many consecutive errors
+                if consecutive_errors >= max_consecutive_errors:
+                    logger.error("Image cleanup task stopping due to repeated errors")
+                    break
+
+    except asyncio.CancelledError:
+        logger.info("Image cleanup task cancelled (shutdown)")
+        raise  # Re-raise for proper cancellation handling
 
 
 @asynccontextmanager
@@ -929,19 +967,30 @@ def cleanup_files(*paths: str) -> None:
     summary="Health check endpoint"
 )
 @limiter.limit(RATE_LIMIT_DEFAULT)
-async def health_check(request: Request):
-    """Check API health and module availability."""
-    return HealthResponse(
-        status="healthy",
-        version=lib_version,
-        modules={
-            "attack_trees": True,
-            "attack_graphs": True,
-            "threat_modeling": True,
-            "binary_visualization": True,
-            "custom_diagrams": True,
-        }
-    )
+async def health_check(
+    request: Request,
+    details: bool = Query(False, description="Include version and module details (may expose sensitive info)")
+):
+    """Check API health and module availability.
+
+    SECURITY: By default, only returns status to prevent information disclosure.
+    Pass ?details=true to include version and module information.
+    """
+    if details:
+        return HealthResponse(
+            status="healthy",
+            version=lib_version,
+            modules={
+                "attack_trees": True,
+                "attack_graphs": True,
+                "threat_modeling": True,
+                "binary_visualization": True,
+                "custom_diagrams": True,
+            }
+        )
+    else:
+        # SECURITY: Minimal response to prevent information disclosure
+        return HealthResponse(status="healthy")
 
 
 # =============================================================================
@@ -2165,9 +2214,44 @@ async def get_available_engines():
 # In-memory progress storage (for demo; use Redis in production)
 _progress_store: dict = {}
 
+# SECURITY: Limits to prevent memory exhaustion
+PROGRESS_MAX_ENTRIES = int(os.getenv("PROGRESS_MAX_ENTRIES", "1000"))
+PROGRESS_ENTRY_TTL = int(os.getenv("PROGRESS_ENTRY_TTL", "3600"))  # 1 hour default
+
+
+def _cleanup_old_progress_entries() -> int:
+    """Remove expired progress entries to prevent memory exhaustion.
+
+    SECURITY: This prevents DoS attacks through progress store flooding.
+
+    Returns:
+        Number of entries removed.
+    """
+    now = time.time()
+    expired_keys = [
+        job_id for job_id, data in _progress_store.items()
+        if now - data.get("timestamp", 0) > PROGRESS_ENTRY_TTL
+    ]
+    for job_id in expired_keys:
+        _progress_store.pop(job_id, None)
+    return len(expired_keys)
+
 
 def update_progress(job_id: str, step: str, progress: int, total: int = 100, status: str = "running"):
-    """Update progress for a job."""
+    """Update progress for a job.
+
+    SECURITY: Enforces maximum entries limit to prevent memory exhaustion.
+    """
+    # SECURITY: Cleanup expired entries periodically
+    if len(_progress_store) >= PROGRESS_MAX_ENTRIES:
+        removed = _cleanup_old_progress_entries()
+        logger.debug(f"Progress store cleanup: removed {removed} expired entries")
+
+        # If still at limit after cleanup, reject new entries
+        if len(_progress_store) >= PROGRESS_MAX_ENTRIES:
+            logger.warning(f"Progress store at capacity ({PROGRESS_MAX_ENTRIES}), rejecting new job: {job_id}")
+            return
+
     _progress_store[job_id] = {
         "job_id": job_id,
         "step": step,
@@ -2189,8 +2273,11 @@ def clear_progress(job_id: str):
     _progress_store.pop(job_id, None)
 
 
-async def progress_event_generator(job_id: str, timeout: int = 300):
-    """Generate SSE events for job progress."""
+async def progress_event_generator(job_id: str, timeout: int = 60):
+    """Generate SSE events for job progress.
+
+    SECURITY: Default timeout reduced from 300s to 60s to prevent connection exhaustion.
+    """
     start_time = time.time()
     last_data = None
 
@@ -2220,7 +2307,8 @@ async def progress_event_generator(job_id: str, timeout: int = 300):
     tags=["System"],
     summary="Stream job progress via SSE"
 )
-async def stream_progress(job_id: str):
+@limiter.limit("10/minute")
+async def stream_progress(request: Request, job_id: str):
     """
     Stream progress updates for a long-running job using Server-Sent Events (SSE).
 
@@ -2252,12 +2340,16 @@ async def stream_progress(job_id: str):
     tags=["System"],
     summary="Start a demo job for testing progress"
 )
-async def start_demo_job(background_tasks: BackgroundTasks):
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def start_demo_job(request: Request, background_tasks: BackgroundTasks):
     """
     Start a demo job that simulates a long-running operation.
     Returns a job_id that can be used to track progress via /progress/{job_id}.
+
+    SECURITY: Job IDs use full UUIDs to prevent enumeration attacks.
     """
-    job_id = f"demo-{uuid.uuid4().hex[:8]}"
+    # SECURITY: Use full UUID to prevent job ID enumeration
+    job_id = f"demo-{uuid.uuid4().hex}"
 
     async def demo_job():
         steps = ["Initializing", "Processing", "Analyzing", "Generating", "Finalizing"]
