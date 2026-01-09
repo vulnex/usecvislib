@@ -1176,7 +1176,8 @@ def serialize_to_yaml(data: Dict[str, Any]) -> str:
     Returns:
         YAML formatted string.
     """
-    return yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False)
+    # SECURITY: Use SafeDumper to prevent serialization of arbitrary Python objects
+    return yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False, Dumper=yaml.SafeDumper)
 
 
 def serialize_to_mermaid(data: Dict[str, Any]) -> str:

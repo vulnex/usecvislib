@@ -334,11 +334,13 @@ class Exporter:
         """
         import yaml
 
+        # SECURITY: Use SafeDumper to prevent serialization of arbitrary Python objects
         yaml_str = yaml.dump(
             data,
             default_flow_style=False,
             allow_unicode=True,
-            sort_keys=False
+            sort_keys=False,
+            Dumper=yaml.SafeDumper
         )
 
         if output:

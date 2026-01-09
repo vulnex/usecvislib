@@ -31,6 +31,7 @@ Elements supported:
 import os
 import sys
 import tempfile
+import html as html_module
 from enum import Enum
 from typing import Optional, List, Dict, Any, Tuple
 
@@ -333,16 +334,31 @@ class PyTMWrapper:
 
     @staticmethod
     def _escape_dot_string(s: str) -> str:
-        """Escape a string for safe use in DOT label attributes."""
+        """Escape a string for safe use in DOT label attributes.
+
+        SECURITY: Properly escapes all DOT special characters to prevent
+        DOT injection attacks where malicious input could modify graph structure.
+        """
         if not isinstance(s, str):
             s = str(s)
+        # SECURITY: Escape backslash first to avoid double-escaping
         s = s.replace('\\', '\\\\')
+        # Escape quotes
         s = s.replace('"', '\\"')
+        # Escape control characters
         s = s.replace('\n', '\\n')
         s = s.replace('\r', '\\r')
         s = s.replace('\t', '\\t')
+        # SECURITY: Escape HTML-like characters for HTML labels
         s = s.replace('<', '&lt;')
         s = s.replace('>', '&gt;')
+        s = s.replace('&', '&amp;')
+        # SECURITY: Escape DOT record/HTML label special characters
+        s = s.replace('{', '\\{')
+        s = s.replace('}', '\\}')
+        s = s.replace('|', '\\|')
+        # SECURITY: Escape semicolon to prevent statement injection
+        s = s.replace(';', '\\;')
         return s
 
     @staticmethod
@@ -505,6 +521,8 @@ class PyTMWrapper:
     def generate_html_report(self) -> str:
         """Generate an HTML threat report.
 
+        SECURITY: All user-provided content is HTML-escaped to prevent XSS attacks.
+
         Returns:
             HTML formatted threat report.
         """
@@ -512,8 +530,9 @@ class PyTMWrapper:
             self.build_model()
 
         model_data = self.inputdata.get("model", {})
-        model_name = model_data.get("name", "Threat Model")
-        model_desc = model_data.get("description", "")
+        # SECURITY: HTML-escape all user-provided content
+        model_name = html_module.escape(str(model_data.get("name", "Threat Model")))
+        model_desc = html_module.escape(str(model_data.get("description", "")))
 
         threats = self.get_threats()
 
@@ -574,13 +593,19 @@ class PyTMWrapper:
 
         if threats:
             for i, threat in enumerate(threats, 1):
+                # SECURITY: HTML-escape all user-provided threat data
+                threat_name = html_module.escape(str(threat.get('threat', 'Unknown Threat')))
+                threat_element = html_module.escape(str(threat.get('element', ''))) if threat.get('element') else ''
+                threat_severity = html_module.escape(str(threat.get('severity', ''))) if threat.get('severity') else ''
+                threat_mitigation = html_module.escape(str(threat.get('mitigation', ''))) if threat.get('mitigation') else ''
+
                 html += f"""
         <div class="threat">
-            <h3>{i}. {threat.get('threat', 'Unknown Threat')}</h3>
+            <h3>{i}. {threat_name}</h3>
             <div class="threat-meta">
-                {"<p><strong>Element:</strong> " + threat['element'] + "</p>" if threat.get('element') else ""}
-                {"<p><strong>Severity:</strong> " + str(threat['severity']) + "</p>" if threat.get('severity') else ""}
-                {"<p><strong>Mitigation:</strong> " + str(threat['mitigation']) + "</p>" if threat.get('mitigation') else ""}
+                {"<p><strong>Element:</strong> " + threat_element + "</p>" if threat_element else ""}
+                {"<p><strong>Severity:</strong> " + threat_severity + "</p>" if threat_severity else ""}
+                {"<p><strong>Mitigation:</strong> " + threat_mitigation + "</p>" if threat_mitigation else ""}
             </div>
         </div>
 """

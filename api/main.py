@@ -23,6 +23,9 @@ import shutil
 import logging
 import time
 import uuid
+import re
+import html
+from pathlib import Path
 from typing import Optional, List
 from contextlib import asynccontextmanager
 
@@ -302,6 +305,85 @@ TEMP_DIR = tempfile.mkdtemp(prefix="usecvislib_api_")
 
 
 # =============================================================================
+# Security Helper Functions
+# =============================================================================
+
+# UUID validation pattern (RFC 4122)
+UUID_PATTERN = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    re.IGNORECASE
+)
+
+
+def validate_uuid_format(value: str) -> bool:
+    """Validate that a string is a valid UUID format.
+
+    Args:
+        value: String to validate
+
+    Returns:
+        True if valid UUID format, False otherwise
+    """
+    return bool(UUID_PATTERN.match(value))
+
+
+def validate_path_component(component: str) -> bool:
+    """Validate a path component is safe (no traversal attempts).
+
+    Args:
+        component: Single path component to validate
+
+    Returns:
+        True if safe, False if contains traversal or dangerous chars
+    """
+    if not component:
+        return False
+    # Check for path traversal attempts
+    if '..' in component:
+        return False
+    # Check for absolute path indicators
+    if component.startswith('/') or component.startswith('\\'):
+        return False
+    # Check for URL-encoded traversal
+    if '%2e' in component.lower() or '%2f' in component.lower():
+        return False
+    # Check for null bytes
+    if '\x00' in component:
+        return False
+    return True
+
+
+def validate_path_within_directory(path: Path, base_dir: Path) -> bool:
+    """Validate that a resolved path stays within the base directory.
+
+    Args:
+        path: Resolved absolute path to check
+        base_dir: Base directory that should contain the path
+
+    Returns:
+        True if path is within base_dir, False otherwise
+    """
+    try:
+        path = path.resolve()
+        base_dir = base_dir.resolve()
+        return path.is_relative_to(base_dir)
+    except (ValueError, RuntimeError):
+        return False
+
+
+def is_safe_symlink(path: Path) -> bool:
+    """Check if a path is a symlink (which we reject for security).
+
+    Args:
+        path: Path to check
+
+    Returns:
+        True if NOT a symlink (safe), False if symlink (reject)
+    """
+    return not path.is_symlink()
+
+
+# =============================================================================
 # Image Helper Functions
 # =============================================================================
 
@@ -350,16 +432,34 @@ def resolve_image_id(image_id: str) -> str:
         Absolute file path to the image
 
     Raises:
-        ValueError: If image not found
+        ValueError: If image not found or invalid format
     """
+    # SECURITY: Validate UUID format to prevent path traversal
+    if not validate_uuid_format(image_id):
+        raise ValueError(f"Invalid image ID format: {image_id}")
+
     if not os.path.exists(IMAGE_UPLOAD_DIR):
         raise ValueError(f"Image not found: {image_id}")
 
-    matches = [f for f in os.listdir(IMAGE_UPLOAD_DIR) if f.startswith(image_id)]
+    # SECURITY: Use exact prefix match with dot separator to prevent partial UUID matching
+    matches = [f for f in os.listdir(IMAGE_UPLOAD_DIR) if f.startswith(f"{image_id}.")]
     if not matches:
         raise ValueError(f"Image not found: {image_id}")
 
-    return os.path.join(IMAGE_UPLOAD_DIR, matches[0])
+    # SECURITY: Verify exactly one match to avoid ambiguity
+    if len(matches) != 1:
+        raise ValueError(f"Ambiguous image ID: {image_id}")
+
+    filepath = os.path.join(IMAGE_UPLOAD_DIR, matches[0])
+
+    # SECURITY: Verify path is within upload directory and not a symlink
+    resolved_path = Path(filepath).resolve()
+    if not validate_path_within_directory(resolved_path, Path(IMAGE_UPLOAD_DIR)):
+        raise ValueError(f"Invalid image path: {image_id}")
+    if not is_safe_symlink(resolved_path):
+        raise ValueError(f"Invalid image: {image_id}")
+
+    return str(resolved_path)
 
 
 def resolve_image_references(data: dict) -> dict:
@@ -661,7 +761,8 @@ def write_config_file(filepath: str, data: dict, ext: str) -> None:
         if ext_lower == '.json':
             json.dump(data, f, indent=2)
         elif ext_lower in ('.yaml', '.yml'):
-            yaml.dump(data, f, default_flow_style=False)
+            # SECURITY: Use SafeDumper to prevent serialization of arbitrary Python objects
+            yaml.dump(data, f, default_flow_style=False, Dumper=yaml.SafeDumper)
         else:  # .toml, .tml or default
             toml.dump(data, f)
 
@@ -2120,11 +2221,35 @@ async def list_templates():
 
 
 def find_template_file(template_dir: str, template_id: str) -> Optional[str]:
-    """Find a template file by ID, checking all supported extensions."""
+    """Find a template file by ID, checking all supported extensions.
+
+    SECURITY: Validates template_id to prevent path traversal attacks.
+    """
+    # SECURITY: Validate template_id has no path traversal attempts
+    if not validate_path_component(template_id):
+        logger.warning(f"Invalid template_id rejected: {template_id}")
+        return None
+
+    base_dir = Path(template_dir).resolve()
+
     for ext in TEMPLATE_EXTENSIONS:
-        path = os.path.join(template_dir, f"{template_id}{ext}")
-        if os.path.exists(path):
-            return path
+        path = Path(template_dir) / f"{template_id}{ext}"
+
+        # SECURITY: Verify the resolved path stays within template directory
+        try:
+            resolved = path.resolve()
+            if not resolved.is_relative_to(base_dir):
+                logger.warning(f"Path traversal attempt blocked: {template_id}")
+                return None
+            # SECURITY: Reject symlinks
+            if resolved.is_symlink():
+                logger.warning(f"Symlink rejected: {template_id}")
+                return None
+            if resolved.exists() and resolved.is_file():
+                return str(resolved)
+        except (ValueError, RuntimeError):
+            continue
+
     return None
 
 
@@ -3226,12 +3351,32 @@ async def get_custom_diagram_template(
         raise HTTPException(status_code=400, detail="Invalid template ID format. Use 'category/template_name'")
 
     category, template_name = parts
-    template_path = os.path.join(CUSTOM_DIAGRAMS_TEMPLATES_DIR, category, f"{template_name}.toml")
 
-    if not os.path.exists(template_path):
+    # SECURITY: Validate each path component to prevent path traversal
+    if not validate_path_component(category) or not validate_path_component(template_name):
+        logger.warning(f"Path traversal attempt blocked in custom diagram template: {template_id}")
+        raise HTTPException(status_code=400, detail="Invalid template ID")
+
+    base_dir = Path(CUSTOM_DIAGRAMS_TEMPLATES_DIR).resolve()
+    template_path = Path(CUSTOM_DIAGRAMS_TEMPLATES_DIR) / category / f"{template_name}.toml"
+
+    # SECURITY: Verify path stays within templates directory
+    try:
+        resolved_path = template_path.resolve()
+        if not resolved_path.is_relative_to(base_dir):
+            logger.warning(f"Path traversal attempt blocked: {template_id}")
+            raise HTTPException(status_code=400, detail="Invalid template ID")
+        # SECURITY: Reject symlinks
+        if resolved_path.is_symlink():
+            logger.warning(f"Symlink rejected: {template_id}")
+            raise HTTPException(status_code=400, detail="Invalid template")
+    except (ValueError, RuntimeError):
+        raise HTTPException(status_code=400, detail="Invalid template ID")
+
+    if not resolved_path.exists():
         raise HTTPException(status_code=404, detail=f"Template '{template_id}' not found")
 
-    with open(template_path, 'r') as f:
+    with open(resolved_path, 'r') as f:
         content = f.read()
 
     logger.info(f"Served custom diagram template: {template_id}")
@@ -3787,13 +3932,12 @@ async def get_image_info(request: Request, image_id: str):
     """
     from datetime import datetime
 
-    # Find image by ID prefix
-    matches = [f for f in os.listdir(IMAGE_UPLOAD_DIR) if f.startswith(image_id)]
-
-    if not matches:
+    # SECURITY: Use secure image resolution with UUID validation
+    try:
+        filepath = resolve_image_id(image_id)
+    except ValueError:
         raise HTTPException(status_code=404, detail="Image not found")
 
-    filepath = os.path.join(IMAGE_UPLOAD_DIR, matches[0])
     stat = os.stat(filepath)
 
     return ImageInfoResponse(
@@ -3817,19 +3961,18 @@ async def download_image(request: Request, image_id: str):
 
     Returns the image file.
     """
-    # Find image by ID prefix
-    matches = [f for f in os.listdir(IMAGE_UPLOAD_DIR) if f.startswith(image_id)]
-
-    if not matches:
+    # SECURITY: Use secure image resolution with UUID validation
+    try:
+        filepath = resolve_image_id(image_id)
+    except ValueError:
         raise HTTPException(status_code=404, detail="Image not found")
 
-    filepath = os.path.join(IMAGE_UPLOAD_DIR, matches[0])
     content_type = get_image_content_type(filepath)
 
     return FileResponse(
         filepath,
         media_type=content_type,
-        filename=matches[0]
+        filename=os.path.basename(filepath)
     )
 
 
@@ -3846,13 +3989,12 @@ async def delete_image(request: Request, image_id: str):
 
     This permanently removes the image from the server.
     """
-    # Find image by ID prefix
-    matches = [f for f in os.listdir(IMAGE_UPLOAD_DIR) if f.startswith(image_id)]
-
-    if not matches:
+    # SECURITY: Use secure image resolution with UUID validation
+    try:
+        filepath = resolve_image_id(image_id)
+    except ValueError:
         raise HTTPException(status_code=404, detail="Image not found")
 
-    filepath = os.path.join(IMAGE_UPLOAD_DIR, matches[0])
     os.unlink(filepath)
 
     logger.info(f"Image deleted: {image_id}")
@@ -4080,9 +4222,14 @@ async def get_bundled_icon(
     - `/icons/bootstrap/icons/alarm`
     - `/icons/azure/Azure_Public_Service_Icons/Icons/compute/00195-icon-service-Maintenance-Configuration`
     """
-    # Prevent path traversal
-    if ".." in icon_path:
-        raise HTTPException(status_code=400, detail="Invalid icon path")
+    # SECURITY: Comprehensive path traversal prevention
+    # Check for various bypass attempts including URL-encoded sequences
+    dangerous_patterns = ['..', '%2e', '%2f', '%5c', '\x00', '\\']
+    icon_path_lower = icon_path.lower()
+    for pattern in dangerous_patterns:
+        if pattern in icon_path_lower:
+            logger.warning(f"Path traversal attempt blocked in icon path: {icon_path}")
+            raise HTTPException(status_code=400, detail="Invalid icon path")
 
     # Split into parts
     parts = icon_path.split("/")
@@ -4098,29 +4245,42 @@ async def get_bundled_icon(
             detail=f"Invalid category. Available categories: {', '.join(BUNDLED_ICON_CATEGORIES)}"
         )
 
+    # SECURITY: Validate each path component
+    for part in parts:
+        if not part or part.startswith('.'):
+            raise HTTPException(status_code=400, detail="Invalid icon path")
+
     # Reconstruct the relative path (everything after category)
     relative_path = "/".join(parts[1:])
 
-    cat_dir = os.path.join(BUNDLED_ICONS_DIR, category)
-    if not os.path.isdir(cat_dir):
+    base_dir = Path(BUNDLED_ICONS_DIR).resolve()
+    cat_dir = Path(BUNDLED_ICONS_DIR) / category
+
+    if not cat_dir.is_dir():
         raise HTTPException(status_code=404, detail="Category directory not found")
 
     # Find the icon file (try all supported extensions)
     icon_file_path = None
     for ext in BUNDLED_ICON_EXTENSIONS:
-        candidate = os.path.join(cat_dir, f"{relative_path}{ext}")
-        if os.path.isfile(candidate):
-            icon_file_path = candidate
-            break
+        candidate = cat_dir / f"{relative_path}{ext}"
+        try:
+            resolved = candidate.resolve()
+            # SECURITY: Verify path stays within icons directory
+            if not resolved.is_relative_to(base_dir):
+                logger.warning(f"Path traversal blocked: {icon_path}")
+                raise HTTPException(status_code=400, detail="Invalid icon path")
+            # SECURITY: Reject symlinks
+            if resolved.is_symlink():
+                logger.warning(f"Symlink rejected: {icon_path}")
+                raise HTTPException(status_code=400, detail="Invalid icon path")
+            if resolved.is_file():
+                icon_file_path = str(resolved)
+                break
+        except (ValueError, RuntimeError):
+            continue
 
     if not icon_file_path:
         raise HTTPException(status_code=404, detail=f"Icon not found: {icon_path}")
-
-    # Security check: ensure the resolved path is still within the icons directory
-    real_path = os.path.realpath(icon_file_path)
-    real_base = os.path.realpath(BUNDLED_ICONS_DIR)
-    if not real_path.startswith(real_base):
-        raise HTTPException(status_code=400, detail="Invalid icon path")
 
     # Determine content type
     ext = os.path.splitext(icon_file_path)[1].lower()
