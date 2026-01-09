@@ -64,7 +64,63 @@ MAX_BINARY_FILE_SIZE = 50 * 1024 * 1024  # 50 MB max for binary files
 
 # Supported configuration file extensions
 SUPPORTED_CONFIG_EXTENSIONS = {".toml", ".tml", ".json", ".yaml", ".yml"}
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:3001,http://localhost:3000,http://127.0.0.1:3001,http://127.0.0.1:3000").split(",")
+
+# SECURITY: Validate CORS origins to prevent misconfiguration attacks
+def _validate_cors_origin(origin: str) -> str:
+    """Validate a CORS origin string.
+
+    Args:
+        origin: Origin URL to validate
+
+    Returns:
+        Validated origin string (stripped)
+
+    Raises:
+        ValueError: If origin is invalid or insecure
+    """
+    origin = origin.strip()
+    if not origin:
+        raise ValueError("Empty origin not allowed")
+    # Reject wildcard origins (insecure with credentials)
+    if origin == "*":
+        raise ValueError("Wildcard '*' origin not allowed with credentials")
+    # Must be a valid URL scheme
+    if not origin.startswith(("http://", "https://")):
+        raise ValueError(f"Origin must start with http:// or https://: {origin}")
+    # Reject origins with wildcards in domain
+    if "*" in origin:
+        raise ValueError(f"Wildcards not allowed in origin: {origin}")
+    # Basic URL structure validation
+    from urllib.parse import urlparse
+    try:
+        parsed = urlparse(origin)
+        if not parsed.netloc:
+            raise ValueError(f"Invalid origin URL: {origin}")
+    except Exception as e:
+        raise ValueError(f"Cannot parse origin URL: {origin}: {e}")
+    return origin
+
+def _parse_allowed_origins() -> list:
+    """Parse and validate ALLOWED_ORIGINS environment variable."""
+    raw_origins = os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:3001,http://localhost:3000,http://127.0.0.1:3001,http://127.0.0.1:3000"
+    )
+    origins = []
+    for origin in raw_origins.split(","):
+        try:
+            validated = _validate_cors_origin(origin)
+            origins.append(validated)
+        except ValueError as e:
+            # Log warning but skip invalid origins rather than failing startup
+            logging.getLogger("usecvislib.api").warning(f"Skipping invalid CORS origin: {e}")
+    if not origins:
+        # Fallback to safe defaults if all origins invalid
+        origins = ["http://localhost:3000", "http://localhost:3001"]
+        logging.getLogger("usecvislib.api").warning("No valid CORS origins configured, using localhost defaults")
+    return origins
+
+ALLOWED_ORIGINS = _parse_allowed_origins()
 
 # =============================================================================
 # Image Upload Configuration
@@ -383,6 +439,33 @@ def is_safe_symlink(path: Path) -> bool:
         True if NOT a symlink (safe), False if symlink (reject)
     """
     return not path.is_symlink()
+
+
+def sanitize_filename_for_log(filename: str) -> str:
+    """Sanitize a filename for safe logging.
+
+    Prevents log injection and removes potentially dangerous characters
+    while preserving enough of the filename to be useful for debugging.
+
+    Args:
+        filename: Raw filename from user input
+
+    Returns:
+        Sanitized filename safe for logging
+    """
+    if not filename:
+        return "<empty>"
+    # Limit length to prevent log flooding
+    if len(filename) > 100:
+        filename = filename[:97] + "..."
+    # Remove control characters and newlines (log injection prevention)
+    sanitized = "".join(
+        c if c.isprintable() and c not in '\r\n\t' else '_'
+        for c in filename
+    )
+    # Escape any remaining special log format characters
+    sanitized = sanitized.replace('%', '%%')
+    return sanitized
 
 
 # =============================================================================
@@ -739,7 +822,7 @@ def validate_config_file_extension(filename: str) -> None:
     """
     ext = get_file_extension(filename)
     if ext not in SUPPORTED_CONFIG_EXTENSIONS:
-        logger.warning(f"File rejected: unsupported extension={ext}, name={filename}")
+        logger.warning(f"File rejected: unsupported extension={ext}, name={sanitize_filename_for_log(filename)}")
         raise HTTPException(
             status_code=400,
             detail=f"Unsupported file format. Supported formats: {', '.join(sorted(SUPPORTED_CONFIG_EXTENSIONS))}"
@@ -791,7 +874,7 @@ def save_upload_file(upload_file: UploadFile, suffix: str = None, max_size: int 
     file_size = len(content)
 
     if file_size > max_size:
-        logger.warning(f"File rejected: size={file_size} bytes, max={max_size} bytes, name={upload_file.filename}")
+        logger.warning(f"File rejected: size={file_size} bytes, max={max_size} bytes, name={sanitize_filename_for_log(upload_file.filename)}")
         raise HTTPException(
             status_code=413,
             detail=f"File too large. Maximum size is {max_size // 1024 // 1024}MB for this file type."
@@ -801,7 +884,7 @@ def save_upload_file(upload_file: UploadFile, suffix: str = None, max_size: int 
         f.write(content)
     upload_file.file.seek(0)  # Reset file pointer
 
-    logger.debug(f"Saved upload: {upload_file.filename} ({file_size} bytes) -> {temp_path}")
+    logger.debug(f"Saved upload: {sanitize_filename_for_log(upload_file.filename)} ({file_size} bytes) -> {temp_path}")
     return temp_path
 
 
@@ -2394,7 +2477,7 @@ async def convert_config_format(
         base_name = os.path.splitext(file.filename)[0]
         suggested_filename = f"{base_name}{FORMAT_EXTENSIONS[target_format.value]}"
 
-        logger.info(f"Converted {file.filename} from {source_format} to {target_format.value}")
+        logger.info(f"Converted {sanitize_filename_for_log(file.filename)} from {source_format} to {target_format.value}")
 
         return ConvertResponse(
             content=converted_content,
@@ -2457,7 +2540,7 @@ async def generate_threat_model_report(
         inputdata = ReadConfigFile(input_path)
 
         # Create PyTM wrapper and generate report
-        wrapper = PyTMWrapper(inputdata, "/tmp/unused", "png")
+        wrapper = PyTMWrapper(inputdata, os.path.join(TEMP_DIR, "pytm_output"), "png")
 
         if format == ReportFormat.MARKDOWN:
             content = wrapper.generate_markdown_report()
@@ -2469,7 +2552,7 @@ async def generate_threat_model_report(
         base_name = os.path.splitext(file.filename)[0]
         suggested_filename = f"{base_name}_report{ext}"
 
-        logger.info(f"Generated {format.value} report for {file.filename}")
+        logger.info(f"Generated {format.value} report for {sanitize_filename_for_log(file.filename)}")
 
         return ReportResponse(
             content=content,
@@ -2519,7 +2602,7 @@ async def get_threat_library(
     """
     try:
         # Create a minimal wrapper to access threat library
-        wrapper = PyTMWrapper({}, "/tmp/unused", "png")
+        wrapper = PyTMWrapper({}, os.path.join(TEMP_DIR, "pytm_output"), "png")
 
         if element_type:
             all_threats = wrapper.get_threats_by_element_type(element_type)
@@ -2887,7 +2970,7 @@ async def export_data(
         else:
             raise HTTPException(status_code=400, detail=f"Unknown format: {format.value}")
 
-        logger.info(f"Exported {file.filename} to {format.value}")
+        logger.info(f"Exported {sanitize_filename_for_log(file.filename)} to {format.value}")
 
         return ExportResponse(
             content=content,
@@ -3017,7 +3100,7 @@ async def compare_configs(
         if include_report:
             report = diff.summary_report(include_details=True)
 
-        logger.info(f"Compared {old_file.filename} vs {new_file.filename}: {summary.total} changes")
+        logger.info(f"Compared {sanitize_filename_for_log(old_file.filename)} vs {sanitize_filename_for_log(new_file.filename)}: {summary.total} changes")
 
         return DiffResponse(
             has_changes=result.has_changes,
@@ -3939,7 +4022,7 @@ async def upload_image(
     with open(filepath, 'wb') as f:
         f.write(contents)
 
-    logger.info(f"Image uploaded: {image_id} ({file.filename}, {len(contents)} bytes)")
+    logger.info(f"Image uploaded: {image_id} ({sanitize_filename_for_log(file.filename)}, {len(contents)} bytes)")
 
     return ImageUploadResponse(
         image_id=image_id,
@@ -4338,4 +4421,17 @@ async def get_bundled_icon(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    # SECURITY: Configure uvicorn with appropriate limits and timeouts
+    # These can be overridden via environment variables for production
+    uvicorn.run(
+        app,
+        host=os.getenv("API_HOST", "0.0.0.0"),
+        port=int(os.getenv("API_PORT", "8000")),
+        # Timeout for keep-alive connections (seconds)
+        timeout_keep_alive=int(os.getenv("TIMEOUT_KEEP_ALIVE", "5")),
+        # Limit max concurrent connections to prevent resource exhaustion
+        limit_concurrency=int(os.getenv("LIMIT_CONCURRENCY", "100")),
+        # Limit max requests per worker before recycling (prevents memory leaks)
+        limit_max_requests=int(os.getenv("LIMIT_MAX_REQUESTS", "10000")),
+    )
