@@ -1646,7 +1646,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Comprehensive Security Audit & Fixes
 - **Complete security code review** performed across entire codebase
-- **30 security vulnerabilities identified and fixed** (7 Critical, 6 High, 5 Medium, 12 Low)
+- **38 security vulnerabilities identified and fixed** (7 Critical, 6 High, 12 Medium, 13 Low)
 - All 1058 tests passing after security hardening
 
 #### Critical Fixes (7)
@@ -1669,7 +1669,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `python-multipart >= 0.0.18` (from 0.0.6) - CVE-2024-53981
   - `axios >= 1.7.9` (from 1.6.0) - CVE fixes
 
-#### Medium Fixes (5)
+#### Medium Fixes (12)
 - **CORS Origin Validation** - Added `_validate_cors_origin()` function with URL parsing, wildcard rejection, and scheme validation
 - **Hardcoded `/tmp` Paths** - Replaced `/tmp/unused` with `os.path.join(TEMP_DIR, "pytm_output")` for secure temp file handling
 - **Filename Log Injection Prevention** - Added `sanitize_filename_for_log()` function to remove control characters, limit length, and escape format specifiers
@@ -1679,8 +1679,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `limit_max_requests=10000` - Prevent memory leaks
   - All configurable via environment variables
 - **Missing Output Encoding in Logs** - 8 filename log statements now use sanitization function
+- **Per-User Image Isolation** - Added API key hash-based namespace isolation for uploaded images to prevent cross-user access
+- **Generic Error Messages** - Fixed vulnerability impact endpoint to return generic error messages preventing internal path disclosure
+- **Dict Field Size Validators** - Added `@field_validator` with size limits to Dict fields in Pydantic schemas (nodes, styles, edges) preventing DoS via oversized payloads
+- **Temp File Cleanup** - Added `__del__` destructors to AttackTrees, AttackGraphs, and ThreatModeling classes for automatic temp file cleanup
+- **Sensitive Paths Whitelist Expansion** - Expanded SENSITIVE_PATHS list with macOS-specific paths and refined to allow temp directories while blocking system directories
+- **SVG Validation Enhancements** - Added 20+ dangerous pattern checks including `<embed>`, `<object>`, `<link>`, `<meta>`, `<feImage>`, `<style>`, style injection via `url()`, XML entity attacks, and external xlink:href
+- **Output Path Validation in Exporters** - Added `validate_output_path()` checks to all export methods (to_json, to_csv, to_yaml, to_markdown_table, etc.)
 
-#### Low Fixes (12)
+#### Low Fixes (13)
+- **Per-Request Timeouts** - Added configurable request timeouts to all visualization endpoints using `asyncio.wait_for()`:
+  - `REQUEST_TIMEOUT_VISUALIZE=120` - Individual visualization requests
+  - `REQUEST_TIMEOUT_ANALYZE=60` - Analysis operations
+  - `REQUEST_TIMEOUT_BATCH=300` - Batch operations
+  - Returns HTTP 504 on timeout with generic error message
 - **String Length Constraints** - Added `max_length` to 15+ Pydantic schema string fields to prevent memory exhaustion:
   - `VulnerabilityInput`: id (256), label (512), description (4096), cwe (32)
   - `TemplateMetadata`: name (256), description (2048), author (256), email (320), url (2048)
@@ -1694,12 +1706,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Version Information Disclosure** - Version and path information only logged in DEBUG mode; generic startup message in production
 
 ### Changed
-- `api/main.py` - Added comprehensive security helper functions and input validation
-- `api/schemas.py` - Added `max_length` constraints to string fields
-- `src/usecvislib/exporters.py` - Added markdown injection prevention and YAML SafeDumper
-- `src/usecvislib/shapes/custom.py` - Added path traversal and symlink attack prevention
-- `src/usecvislib/threatmodeling.py` - Added HTML escaping and enhanced DOT string escaping
-- `src/usecvislib/utils.py` - Added YAML SafeDumper
+- `api/main.py` - Added comprehensive security helper functions, input validation, per-request timeouts, and per-user image isolation
+- `api/schemas.py` - Added `max_length` constraints to string fields and Dict field size validators
+- `src/usecvislib/exporters.py` - Added markdown injection prevention, YAML SafeDumper, and output path validation
+- `src/usecvislib/shapes/custom.py` - Added path traversal prevention, symlink attack prevention, and 20+ SVG dangerous pattern checks
+- `src/usecvislib/threatmodeling.py` - Added HTML escaping, enhanced DOT string escaping, and temp file cleanup
+- `src/usecvislib/attacktrees.py` - Added temp file cleanup in destructor
+- `src/usecvislib/attackgraphs.py` - Added temp file cleanup in destructor
+- `src/usecvislib/utils.py` - Added YAML SafeDumper and refined sensitive paths list
+- `src/usecvislib/constants.py` - Expanded SENSITIVE_PATHS with macOS-specific paths
 - `requirements.txt` - Updated vulnerable dependencies
 - `frontend/package.json` - Updated axios to fix CVEs
 
