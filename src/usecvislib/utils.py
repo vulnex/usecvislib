@@ -132,19 +132,24 @@ class AnalysisError(USecVisLibError):
 
 # Sensitive system paths that should not be written to
 # SECURITY: Comprehensive list of paths that should never be written to
+# NOTE: /var/tmp, /tmp, and /private/var/folders are excluded as they are temp dirs
 SENSITIVE_PATHS = [
     # Core system directories
-    '/etc', '/usr', '/bin', '/sbin', '/var', '/root', '/boot', '/lib',
+    '/etc', '/usr', '/bin', '/sbin', '/root', '/boot', '/lib',
     # Linux kernel/process filesystems
     '/proc', '/sys', '/dev',
     # Library directories
     '/lib64', '/lib32',
     # Optional/third-party software
     '/opt',
-    # macOS-specific system paths
-    '/private/etc', '/private/var', '/System', '/Library',
+    # macOS-specific system paths (but not /private/var/folders which is temp)
+    '/private/etc', '/System', '/Library',
     # Snap/Flatpak paths
     '/snap',
+    # Specific /var subdirectories (not /var itself to allow /var/tmp)
+    '/var/log', '/var/run', '/var/lib', '/var/spool', '/var/cache',
+    # Specific /private/var subdirectories (not /private/var/folders which is temp)
+    '/private/var/log', '/private/var/run', '/private/var/db', '/private/var/root',
 ]
 
 # Default allowed configuration file extensions
@@ -1456,11 +1461,15 @@ class ConfigModel:
         self.config_file = config_file
 
         # Try multiple locations for the config file
-        possible_paths = [
-            config_file,  # Absolute or relative to cwd
-            JoinDirFileList(GetCurrentDirectory(), "models", config_file),
-            JoinDirFileList(GetPackageDirectory(), "models", config_file),
-        ]
+        # If config_file is absolute, only check that path (don't join with other dirs)
+        if os.path.isabs(config_file):
+            possible_paths = [config_file]
+        else:
+            possible_paths = [
+                config_file,  # Relative to cwd
+                JoinDirFileList(GetCurrentDirectory(), "models", config_file),
+                JoinDirFileList(GetPackageDirectory(), "models", config_file),
+            ]
 
         config_path = None
         for path in possible_paths:
