@@ -351,6 +351,31 @@ class Exporter:
         return yaml_str
 
     @staticmethod
+    def _escape_markdown_cell(value: str) -> str:
+        """Escape a value for safe use in markdown table cells.
+
+        SECURITY: Prevents markdown injection by escaping special characters
+        that could break table structure or inject markdown syntax.
+
+        Args:
+            value: Raw string value
+
+        Returns:
+            Escaped string safe for markdown table cells
+        """
+        if not value:
+            return ""
+        # Escape pipe character (breaks table structure)
+        value = value.replace('|', '\\|')
+        # Escape backslash (escape character)
+        value = value.replace('\\', '\\\\')
+        # Remove/escape newlines (breaks table rows)
+        value = value.replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
+        # Escape backticks (could create code blocks)
+        value = value.replace('`', '\\`')
+        return value
+
+    @staticmethod
     def to_markdown_table(
         data: List[Dict[str, Any]],
         output: Optional[str] = None,
@@ -365,6 +390,8 @@ class Exporter:
 
         Returns:
             Markdown table string.
+
+        SECURITY: All cell values are escaped to prevent markdown injection.
         """
         if not data:
             return ""
@@ -376,13 +403,17 @@ class Exporter:
         # Build table
         lines = []
 
-        # Header
-        lines.append("| " + " | ".join(columns) + " |")
+        # Header - escape column names
+        escaped_columns = [Exporter._escape_markdown_cell(str(col)) for col in columns]
+        lines.append("| " + " | ".join(escaped_columns) + " |")
         lines.append("| " + " | ".join(["---"] * len(columns)) + " |")
 
-        # Rows
+        # Rows - escape all values
         for row in data:
-            values = [str(row.get(col, "")) for col in columns]
+            values = [
+                Exporter._escape_markdown_cell(str(row.get(col, "")))
+                for col in columns
+            ]
             lines.append("| " + " | ".join(values) + " |")
 
         md_str = "\n".join(lines)

@@ -277,7 +277,16 @@ class CustomShapeLoader:
 
         Raises:
             CustomShapeError: If file cannot be loaded
+
+        SECURITY: Validates that resolved path stays within base_path to prevent
+        path traversal attacks.
         """
+        # SECURITY: Check for path traversal attempts in the input
+        if '..' in svg_path or svg_path.startswith('/') or svg_path.startswith('\\'):
+            if not Path(svg_path).is_absolute():
+                # Relative path with traversal attempt
+                raise CustomShapeError(f"Invalid SVG path: path traversal not allowed")
+
         # Resolve path
         path = Path(svg_path)
         if not path.is_absolute() and base_path:
@@ -288,6 +297,23 @@ class CustomShapeLoader:
             path = path.resolve()
         except Exception as e:
             raise CustomShapeError(f"Invalid SVG path: {svg_path}: {e}")
+
+        # SECURITY: Verify resolved path stays within base_path (if provided)
+        if base_path:
+            try:
+                resolved_base = base_path.resolve()
+                if not path.is_relative_to(resolved_base):
+                    raise CustomShapeError(
+                        f"SVG path escapes base directory: access denied"
+                    )
+            except ValueError:
+                raise CustomShapeError(
+                    f"SVG path escapes base directory: access denied"
+                )
+
+        # SECURITY: Reject symlinks to prevent symlink attacks
+        if path.is_symlink():
+            raise CustomShapeError(f"SVG symlinks not allowed for security")
 
         # Check file exists and size
         if not path.exists():
