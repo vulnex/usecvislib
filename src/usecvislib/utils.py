@@ -416,20 +416,33 @@ def _convert_svg_to_png(svg_path: Path, size: int = 48) -> Optional[Path]:
         import cairosvg
         import tempfile
         import hashlib
+        import stat
 
         # Create a cache directory for converted icons
         cache_dir = Path(tempfile.gettempdir()) / "usecvislib_icon_cache"
 
-        # SECURITY: Check if cache_dir exists as a symlink (race condition protection)
-        if cache_dir.exists() and cache_dir.is_symlink():
-            logger.error(f"Security: Cache directory is a symlink, refusing to use: {cache_dir}")
-            return None
+        # SECURITY: TOCTOU-resistant directory creation
+        # Use os.lstat() which doesn't follow symlinks, then check mode
+        try:
+            # Try to create the directory first (atomic operation)
+            cache_dir.mkdir(exist_ok=False)
+        except FileExistsError:
+            # Directory already exists - verify it's safe using lstat
+            pass
 
-        cache_dir.mkdir(exist_ok=True)
-
-        # SECURITY: Verify the created directory is not a symlink (TOCTOU protection)
-        if cache_dir.is_symlink():
-            logger.error(f"Security: Cache directory became a symlink: {cache_dir}")
+        # SECURITY: Use lstat to check the path without following symlinks
+        try:
+            dir_stat = os.lstat(cache_dir)
+            # Verify it's a directory (not a symlink or file)
+            if not stat.S_ISDIR(dir_stat.st_mode):
+                logger.error(f"Security: Cache path is not a directory: {cache_dir}")
+                return None
+            # Check if it's a symlink (S_ISLNK check on lstat result)
+            if stat.S_ISLNK(dir_stat.st_mode):
+                logger.error(f"Security: Cache directory is a symlink: {cache_dir}")
+                return None
+        except OSError as e:
+            logger.error(f"Security: Cannot stat cache directory: {cache_dir}: {e}")
             return None
 
         # Generate cache filename based on SVG path hash
@@ -1270,8 +1283,41 @@ def GetPackageDirectory() -> str:
     return os.path.dirname(os.path.abspath(__file__))
 
 
+def _validate_path_component(component: str) -> None:
+    """Validate a path component for security.
+
+    SECURITY: Prevents path traversal and absolute path injection attacks.
+
+    Args:
+        component: Path component to validate.
+
+    Raises:
+        SecurityError: If the component contains dangerous patterns.
+    """
+    if not component:
+        return
+
+    # Check for path traversal
+    if '..' in component:
+        raise SecurityError(f"Path traversal detected in path component: {component}")
+
+    # Check for absolute paths (would reset os.path.join)
+    if component.startswith('/') or component.startswith('\\'):
+        raise SecurityError(f"Absolute path not allowed in path component: {component}")
+
+    # Check for Windows drive letters
+    if len(component) >= 2 and component[1] == ':':
+        raise SecurityError(f"Drive letter not allowed in path component: {component}")
+
+    # Check for null bytes
+    if '\x00' in component:
+        raise SecurityError(f"Null byte detected in path component")
+
+
 def JoinDirFile(directory: str, filename: str) -> str:
     """Join a directory and filename into a path.
+
+    SECURITY: Validates filename to prevent path traversal attacks.
 
     Args:
         directory: Directory path.
@@ -1279,12 +1325,18 @@ def JoinDirFile(directory: str, filename: str) -> str:
 
     Returns:
         Combined path.
+
+    Raises:
+        SecurityError: If filename contains path traversal patterns.
     """
+    _validate_path_component(filename)
     return os.path.join(directory, filename)
 
 
 def JoinDirFileList(directory: str, *args: str) -> str:
     """Join a directory with multiple path components.
+
+    SECURITY: Validates all components to prevent path traversal attacks.
 
     Args:
         directory: Base directory path.
@@ -1292,7 +1344,12 @@ def JoinDirFileList(directory: str, *args: str) -> str:
 
     Returns:
         Combined path.
+
+    Raises:
+        SecurityError: If any component contains path traversal patterns.
     """
+    for component in args:
+        _validate_path_component(component)
     return os.path.join(directory, *args)
 
 

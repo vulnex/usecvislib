@@ -114,7 +114,8 @@ class EntropyConfig(BaseModel):
             EntropyThreshold(value=4.0, color="g", style="--", alpha=0.5, label="Medium entropy (code)"),
             EntropyThreshold(value=1.0, color="b", style="--", alpha=0.5, label="Low entropy (sparse data)")
         ],
-        description="Threshold lines to display"
+        description="Threshold lines to display",
+        max_length=20  # SECURITY: Limit to prevent DoS
     )
     fill_alpha: float = Field(default=0.3, description="Fill area transparency (0-1)", ge=0, le=1)
     show_grid: bool = Field(default=True, description="Show grid lines")
@@ -152,7 +153,8 @@ class ByteDistributionConfig(BaseModel):
             DistributionRegion(start=32, end=126, color="green", alpha=0.1, label="Printable ASCII"),
             DistributionRegion(start=127, end=255, color="blue", alpha=0.1, label="Extended")
         ],
-        description="Regions to highlight"
+        description="Regions to highlight",
+        max_length=50  # SECURITY: Limit to prevent DoS
     )
 
     class Config:
@@ -171,7 +173,8 @@ class WindRoseConfig(BaseModel):
     dpi: int = Field(default=150, description="Output image DPI", gt=0)
     rticks: List[float] = Field(
         default=[0.25, 0.5, 0.75, 1.0],
-        description="Radial tick positions"
+        description="Radial tick positions",
+        max_length=20  # SECURITY: Limit to prevent DoS
     )
     rlabel_position: float = Field(default=0, description="Radial label position in degrees")
 
@@ -567,20 +570,20 @@ class ReportResponse(BaseModel):
 
 class ThreatLibraryItem(BaseModel):
     """Single threat from PyTM threat library."""
-    id: str = Field(description="Threat identifier")
-    description: str = Field(description="Threat description")
-    severity: str = Field(description="Threat severity level")
-    target: List[str] = Field(default=[], description="Target element types")
-    condition: str = Field(default="", description="Condition for threat applicability")
-    prerequisites: str = Field(default="", description="Prerequisites for threat")
-    mitigations: str = Field(default="", description="Recommended mitigations")
-    references: List[str] = Field(default=[], description="Reference links")
+    id: str = Field(description="Threat identifier", max_length=256)
+    description: str = Field(description="Threat description", max_length=4096)
+    severity: str = Field(description="Threat severity level", max_length=64)
+    target: List[str] = Field(default=[], description="Target element types", max_length=100)
+    condition: str = Field(default="", description="Condition for threat applicability", max_length=2048)
+    prerequisites: str = Field(default="", description="Prerequisites for threat", max_length=2048)
+    mitigations: str = Field(default="", description="Recommended mitigations", max_length=4096)
+    references: List[str] = Field(default=[], description="Reference links", max_length=50)
 
 
 class ThreatLibraryResponse(BaseModel):
     """Threat library response."""
     total: int = Field(description="Total number of threats in library")
-    threats: List[ThreatLibraryItem] = Field(description="List of threats")
+    threats: List[ThreatLibraryItem] = Field(description="List of threats", max_length=1000)
     pytm_available: bool = Field(description="Whether PyTM is installed")
 
 
@@ -604,7 +607,7 @@ class BatchResponse(BaseModel):
     success_count: int = Field(description="Number of successful files")
     failure_count: int = Field(description="Number of failed files")
     success_rate: float = Field(description="Success rate (0.0 to 1.0)")
-    results: List[BatchItemResult] = Field(description="Individual file results")
+    results: List[BatchItemResult] = Field(description="Individual file results", max_length=100)
     aggregate_stats: Optional[Dict[str, Any]] = Field(default=None, description="Aggregate statistics")
 
     class Config:
@@ -1199,12 +1202,15 @@ class CustomDiagramSchema(BaseModel):
 
 
 class CustomDiagramRequest(BaseModel):
-    """Request model for custom diagram visualization."""
+    """Request model for custom diagram visualization.
+
+    SECURITY: List fields have max_length limits to prevent DoS attacks.
+    """
     diagram: DiagramSettings = Field(default_factory=DiagramSettings, description="Diagram settings")
     schema_def: CustomDiagramSchema = Field(alias="schema", description="Schema definition")
-    nodes: List[DiagramNode] = Field(description="Node instances")
-    edges: List[DiagramEdge] = Field(default=[], description="Edge instances")
-    clusters: List[DiagramCluster] = Field(default=[], description="Cluster definitions")
+    nodes: List[DiagramNode] = Field(description="Node instances", max_length=5000)
+    edges: List[DiagramEdge] = Field(default=[], description="Edge instances", max_length=10000)
+    clusters: List[DiagramCluster] = Field(default=[], description="Cluster definitions", max_length=500)
     format: OutputFormat = Field(default=OutputFormat.PNG, description="Output format")
 
     class Config:
@@ -1238,12 +1244,15 @@ class CustomDiagramRequest(BaseModel):
 
 
 class CustomDiagramValidateRequest(BaseModel):
-    """Request for validating a custom diagram configuration."""
+    """Request for validating a custom diagram configuration.
+
+    SECURITY: List fields have max_length limits to prevent DoS attacks.
+    """
     diagram: Optional[DiagramSettings] = Field(default=None, description="Diagram settings")
     schema_def: Optional[CustomDiagramSchema] = Field(alias="schema", default=None, description="Schema definition")
-    nodes: List[DiagramNode] = Field(default=[], description="Node instances")
-    edges: List[DiagramEdge] = Field(default=[], description="Edge instances")
-    clusters: List[DiagramCluster] = Field(default=[], description="Cluster definitions")
+    nodes: List[DiagramNode] = Field(default=[], description="Node instances", max_length=5000)
+    edges: List[DiagramEdge] = Field(default=[], description="Edge instances", max_length=10000)
+    clusters: List[DiagramCluster] = Field(default=[], description="Cluster definitions", max_length=500)
 
     class Config:
         populate_by_name = True
@@ -1259,8 +1268,8 @@ class ValidationError(BaseModel):
 class CustomDiagramValidateResponse(BaseModel):
     """Response for diagram validation."""
     valid: bool = Field(description="Whether the diagram is valid")
-    errors: List[str] = Field(default=[], description="Validation errors")
-    warnings: List[str] = Field(default=[], description="Validation warnings")
+    errors: List[str] = Field(default=[], description="Validation errors", max_length=1000)
+    warnings: List[str] = Field(default=[], description="Validation warnings", max_length=1000)
     node_count: int = Field(default=0, description="Number of nodes in diagram")
     edge_count: int = Field(default=0, description="Number of edges in diagram")
     cluster_count: int = Field(default=0, description="Number of clusters in diagram")

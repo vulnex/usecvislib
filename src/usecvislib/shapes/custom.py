@@ -281,11 +281,31 @@ class CustomShapeLoader:
         SECURITY: Validates that resolved path stays within base_path to prevent
         path traversal attacks.
         """
-        # SECURITY: Check for path traversal attempts in the input
-        if '..' in svg_path or svg_path.startswith('/') or svg_path.startswith('\\'):
-            if not Path(svg_path).is_absolute():
-                # Relative path with traversal attempt
-                raise CustomShapeError(f"Invalid SVG path: path traversal not allowed")
+        # SECURITY: Comprehensive path traversal validation
+        # Check for null bytes first (can truncate paths in some systems)
+        if '\x00' in svg_path:
+            raise CustomShapeError("Invalid SVG path: null byte detected")
+
+        # Check for URL-encoded path traversal patterns
+        svg_path_lower = svg_path.lower()
+        if '%2e' in svg_path_lower or '%2f' in svg_path_lower or '%5c' in svg_path_lower:
+            raise CustomShapeError("Invalid SVG path: URL-encoded characters not allowed")
+
+        # Check for double URL-encoding
+        if '%25' in svg_path_lower:
+            raise CustomShapeError("Invalid SVG path: double-encoded characters not allowed")
+
+        # Check for direct path traversal patterns
+        if '..' in svg_path:
+            raise CustomShapeError("Invalid SVG path: path traversal not allowed")
+
+        # Check for absolute paths when base_path is provided (must be relative)
+        if base_path and (svg_path.startswith('/') or svg_path.startswith('\\')):
+            raise CustomShapeError("Invalid SVG path: absolute paths not allowed when base_path is set")
+
+        # Check for Windows drive letters when base_path is provided
+        if base_path and len(svg_path) >= 2 and svg_path[1] == ':':
+            raise CustomShapeError("Invalid SVG path: drive letters not allowed")
 
         # Resolve path
         path = Path(svg_path)

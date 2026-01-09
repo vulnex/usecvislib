@@ -47,6 +47,11 @@ import json
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 LOG_FORMAT = os.getenv("LOG_FORMAT", "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s")
 
+# SECURITY: Traceback logging must be explicitly enabled, separate from LOG_LEVEL.
+# This prevents accidental exposure of internal details if LOG_LEVEL is set to DEBUG.
+# Set ENABLE_TRACEBACK_LOGGING=true only in development/debugging environments.
+ENABLE_TRACEBACK_LOGGING = os.getenv("ENABLE_TRACEBACK_LOGGING", "false").lower() == "true"
+
 logging.basicConfig(
     level=getattr(logging, LOG_LEVEL, logging.INFO),
     format=LOG_FORMAT,
@@ -1094,7 +1099,7 @@ async def visualize_attack_tree(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         cleanup_files(input_path, output_path)
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -1142,7 +1147,7 @@ async def analyze_attack_tree(
     except AttackTreeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1183,7 +1188,7 @@ async def validate_attack_tree(
     except AttackTreeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1305,7 +1310,7 @@ async def visualize_attack_graph(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         cleanup_files(input_path, modified_input_path, output_path)
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -1353,7 +1358,7 @@ async def analyze_attack_graph(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1411,7 +1416,7 @@ async def analyze_attack_paths(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1454,7 +1459,7 @@ async def analyze_critical_nodes(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1546,7 +1551,7 @@ async def analyze_centrality(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1587,7 +1592,7 @@ async def analyze_graph_metrics(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1630,7 +1635,7 @@ async def analyze_chokepoints(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1672,7 +1677,7 @@ async def analyze_attack_surface(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1717,7 +1722,7 @@ async def analyze_vulnerability_impact(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1758,7 +1763,7 @@ async def validate_attack_graph(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1860,7 +1865,7 @@ async def visualize_threat_model(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         cleanup_files(input_path, modified_input_path, output_path)
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -1905,7 +1910,7 @@ async def analyze_threat_model(
         return ModelStats(**stats)
 
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1978,7 +1983,7 @@ async def analyze_stride(
         )
 
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -2108,7 +2113,7 @@ async def visualize_binary(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         cleanup_files(input_path, output_path)
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -2149,7 +2154,7 @@ async def analyze_binary(
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -2164,7 +2169,8 @@ async def analyze_binary(
     tags=["Configuration"],
     summary="Get available styles"
 )
-async def get_available_styles():
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def get_available_styles(request: Request):
     """Get all available style presets for each visualization type."""
     return {
         "attack_tree": [s.value for s in AttackTreeStyle],
@@ -2180,7 +2186,8 @@ async def get_available_styles():
     tags=["Configuration"],
     summary="Get supported output formats"
 )
-async def get_supported_formats():
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def get_supported_formats(request: Request):
     """Get all supported output formats."""
     return {
         "formats": [f.value for f in OutputFormat],
@@ -2193,7 +2200,8 @@ async def get_supported_formats():
     tags=["Configuration"],
     summary="Get available threat modeling engines"
 )
-async def get_available_engines():
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def get_available_engines(request: Request):
     """Get all available threat modeling engines and their status."""
     pytm_available = ThreatModeling.is_pytm_available()
     return {
@@ -2395,7 +2403,8 @@ def get_template_format(filename: str) -> str:
     tags=["Templates"],
     summary="List available templates"
 )
-async def list_templates():
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def list_templates(request: Request):
     """List all available templates for attack trees and threat models."""
     templates = {
         "attack_trees": [],
@@ -2602,7 +2611,7 @@ async def convert_config_format(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Conversion error: {e}")
-        logger.error(f"Conversion failed: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Conversion failed: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="Conversion failed")
     finally:
         cleanup_files(input_path)
@@ -2676,7 +2685,7 @@ async def generate_threat_model_report(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Report generation error: {e}")
-        logger.error(f"Report generation failed: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Report generation failed: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="Report generation failed")
     finally:
         cleanup_files(input_path)
@@ -2753,7 +2762,7 @@ async def get_threat_library(
 
     except Exception as e:
         logger.error(f"Threat library error: {e}")
-        logger.error(f"Failed to access threat library: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Failed to access threat library: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="Failed to access threat library")
 
 
@@ -2938,7 +2947,7 @@ async def batch_visualize(
         # Cleanup on error
         for _, path in input_paths:
             cleanup_files(path)
-        logger.error(f"Batch processing failed: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Batch processing failed: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="Batch processing failed")
 
 
@@ -3094,7 +3103,7 @@ async def export_data(
         raise
     except Exception as e:
         logger.error(f"Export error: {e}")
-        logger.error(f"Export failed: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Export failed: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="Export failed")
     finally:
         cleanup_files(input_path)
@@ -3226,7 +3235,7 @@ async def compare_configs(
         raise
     except Exception as e:
         logger.error(f"Comparison error: {e}")
-        logger.error(f"Comparison failed: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Comparison failed: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="Comparison failed")
     finally:
         cleanup_files(old_path, new_path)
@@ -3723,7 +3732,7 @@ async def visualize_custom_diagram(
     except Exception as e:
         cleanup_files(input_path, modified_input_path, output_path)
         logger.error(f"Custom diagram visualization error: {e}")
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -3781,7 +3790,7 @@ async def validate_custom_diagram(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Custom diagram validation error: {e}")
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -3836,7 +3845,7 @@ async def get_custom_diagram_stats(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Custom diagram stats error: {e}")
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -3920,7 +3929,7 @@ async def custom_diagram_from_template(
     except Exception as e:
         cleanup_files(output_path)
         logger.error(f"Custom diagram from template error: {e}")
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -4018,7 +4027,7 @@ async def import_to_custom_diagram(
     except Exception as e:
         cleanup_files(input_path, output_path)
         logger.error(f"Custom diagram import error: {e}")
-        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
+        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -4027,7 +4036,8 @@ async def import_to_custom_diagram(
     tags=["Custom Diagrams"],
     summary="Get available custom diagram styles"
 )
-async def get_custom_diagram_styles():
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def get_custom_diagram_styles(request: Request):
     """Get all available style presets for custom diagrams."""
     return {
         "styles": [s.value for s in CustomDiagramStyle],
@@ -4048,7 +4058,8 @@ async def get_custom_diagram_styles():
     tags=["Custom Diagrams"],
     summary="Get available layout algorithms"
 )
-async def get_custom_diagram_layouts():
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def get_custom_diagram_layouts(request: Request):
     """Get all available layout algorithms for custom diagrams."""
     return {
         "layouts": [l.value for l in CustomDiagramLayout],
@@ -4067,7 +4078,9 @@ async def get_custom_diagram_layouts():
 # Image Upload Endpoints
 # =============================================================================
 
-RATE_LIMIT_IMAGE_UPLOAD = os.getenv("RATE_LIMIT_IMAGE_UPLOAD", "30/minute")
+# SECURITY: Reduced from 30/minute to 10/minute to prevent disk exhaustion attacks
+# With 5MB max per image and 1 hour cleanup, 10/min = max 3GB/hour worst case
+RATE_LIMIT_IMAGE_UPLOAD = os.getenv("RATE_LIMIT_IMAGE_UPLOAD", "10/minute")
 
 
 @app.post(
