@@ -165,19 +165,24 @@ CONFIG_EXTENSIONS: List[str] = ['.toml', '.tml', '.json', '.yaml', '.yml']
 
 # Sensitive system paths that should not be written to
 # SECURITY: Comprehensive list of paths that should never be written to
+# NOTE: /var/tmp, /tmp, and /private/var/folders are excluded as they are temp dirs
 SENSITIVE_PATHS: List[str] = [
     # Core system directories
-    '/etc', '/usr', '/bin', '/sbin', '/var', '/root', '/boot', '/lib',
+    '/etc', '/usr', '/bin', '/sbin', '/root', '/boot', '/lib',
     # Linux kernel/process filesystems
     '/proc', '/sys', '/dev',
     # Library directories
     '/lib64', '/lib32',
     # Optional/third-party software
     '/opt',
-    # macOS-specific system paths
-    '/private/etc', '/private/var', '/System', '/Library',
+    # macOS-specific system paths (but not /private/var/folders which is temp)
+    '/private/etc', '/System', '/Library',
     # Snap/Flatpak paths
     '/snap',
+    # Specific /var subdirectories (not /var itself to allow /var/tmp)
+    '/var/log', '/var/run', '/var/lib', '/var/spool', '/var/cache',
+    # Specific /private/var subdirectories (not /private/var/folders which is temp)
+    '/private/var/log', '/private/var/run', '/private/var/db', '/private/var/root',
 ]
 
 # Visualization types for settings

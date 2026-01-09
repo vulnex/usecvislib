@@ -299,15 +299,7 @@ class CustomShapeLoader:
         if '..' in svg_path:
             raise CustomShapeError("Invalid SVG path: path traversal not allowed")
 
-        # Check for absolute paths when base_path is provided (must be relative)
-        if base_path and (svg_path.startswith('/') or svg_path.startswith('\\')):
-            raise CustomShapeError("Invalid SVG path: absolute paths not allowed when base_path is set")
-
-        # Check for Windows drive letters when base_path is provided
-        if base_path and len(svg_path) >= 2 and svg_path[1] == ':':
-            raise CustomShapeError("Invalid SVG path: drive letters not allowed")
-
-        # Resolve path
+        # Resolve path - join with base_path if relative
         path = Path(svg_path)
         if not path.is_absolute() and base_path:
             path = base_path / path
