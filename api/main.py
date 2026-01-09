@@ -100,8 +100,12 @@ def _validate_cors_origin(origin: str) -> str:
         raise ValueError(f"Cannot parse origin URL: {origin}: {e}")
     return origin
 
-def _parse_allowed_origins() -> list:
-    """Parse and validate ALLOWED_ORIGINS environment variable."""
+def _parse_allowed_origins() -> List[str]:
+    """Parse and validate ALLOWED_ORIGINS environment variable.
+
+    SECURITY: Validates each origin to prevent CORS misconfiguration attacks.
+    Rejects wildcards and malformed URLs that could bypass security controls.
+    """
     raw_origins = os.getenv(
         "ALLOWED_ORIGINS",
         "http://localhost:3001,http://localhost:3000,http://127.0.0.1:3001,http://127.0.0.1:3000"
@@ -414,6 +418,10 @@ def validate_path_component(component: str) -> bool:
 def validate_path_within_directory(path: Path, base_dir: Path) -> bool:
     """Validate that a resolved path stays within the base directory.
 
+    SECURITY: Prevents path traversal attacks (CWE-22) by ensuring resolved
+    paths cannot escape the intended base directory via '../' sequences,
+    symlinks, or other path manipulation techniques.
+
     Args:
         path: Resolved absolute path to check
         base_dir: Base directory that should contain the path
@@ -431,6 +439,10 @@ def validate_path_within_directory(path: Path, base_dir: Path) -> bool:
 
 def is_safe_symlink(path: Path) -> bool:
     """Check if a path is a symlink (which we reject for security).
+
+    SECURITY: Prevents symlink attacks (CWE-59) where an attacker could
+    create a symlink pointing to sensitive files outside allowed directories.
+    Always call this after validate_path_within_directory for defense-in-depth.
 
     Args:
         path: Path to check
@@ -474,6 +486,10 @@ def sanitize_filename_for_log(filename: str) -> str:
 
 def is_valid_image(content: bytes, claimed_type: str) -> bool:
     """Validate image content by checking magic bytes.
+
+    SECURITY: Prevents file type spoofing attacks by validating actual
+    content bytes rather than trusting client-provided MIME types or
+    file extensions. Mitigates risks from malicious files disguised as images.
 
     Args:
         content: Raw file content
@@ -638,10 +654,13 @@ async def lifespan(app: FastAPI):
     # Validate authentication configuration (will exit if invalid)
     validate_auth_config()
 
-    # Startup
-    logger.info(f"Starting USecVisLib API v{lib_version}")
-    logger.info(f"Temp directory: {TEMP_DIR}")
-    logger.info(f"Image upload directory: {IMAGE_UPLOAD_DIR}")
+    # Startup - version info only in DEBUG to reduce information disclosure
+    if LOG_LEVEL == "DEBUG":
+        logger.debug(f"Starting USecVisLib API v{lib_version}")
+        logger.debug(f"Temp directory: {TEMP_DIR}")
+        logger.debug(f"Image upload directory: {IMAGE_UPLOAD_DIR}")
+    else:
+        logger.info("Starting USecVisLib API")
     logger.info(f"Rate limits: default={RATE_LIMIT_DEFAULT}, visualize={RATE_LIMIT_VISUALIZE}, analyze={RATE_LIMIT_ANALYZE}")
     os.makedirs(TEMP_DIR, exist_ok=True)
     os.makedirs(IMAGE_UPLOAD_DIR, exist_ok=True)
@@ -1026,7 +1045,7 @@ async def visualize_attack_tree(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         cleanup_files(input_path, output_path)
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -1074,7 +1093,7 @@ async def analyze_attack_tree(
     except AttackTreeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1115,7 +1134,7 @@ async def validate_attack_tree(
     except AttackTreeError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1237,7 +1256,7 @@ async def visualize_attack_graph(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         cleanup_files(input_path, modified_input_path, output_path)
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -1285,7 +1304,7 @@ async def analyze_attack_graph(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1343,7 +1362,7 @@ async def analyze_attack_paths(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1386,7 +1405,7 @@ async def analyze_critical_nodes(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1478,7 +1497,7 @@ async def analyze_centrality(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1519,7 +1538,7 @@ async def analyze_graph_metrics(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1562,7 +1581,7 @@ async def analyze_chokepoints(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1604,7 +1623,7 @@ async def analyze_attack_surface(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1649,7 +1668,7 @@ async def analyze_vulnerability_impact(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1690,7 +1709,7 @@ async def validate_attack_graph(
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1792,7 +1811,7 @@ async def visualize_threat_model(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         cleanup_files(input_path, modified_input_path, output_path)
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -1837,7 +1856,7 @@ async def analyze_threat_model(
         return ModelStats(**stats)
 
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -1910,7 +1929,7 @@ async def analyze_stride(
         )
 
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -2040,7 +2059,7 @@ async def visualize_binary(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         cleanup_files(input_path, output_path)
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -2081,7 +2100,7 @@ async def analyze_binary(
     except FileNotFoundError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -2491,7 +2510,7 @@ async def convert_config_format(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Conversion error: {e}")
-        logger.error(f"Conversion failed: {str(e)}", exc_info=True)
+        logger.error(f"Conversion failed: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="Conversion failed")
     finally:
         cleanup_files(input_path)
@@ -2565,7 +2584,7 @@ async def generate_threat_model_report(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Report generation error: {e}")
-        logger.error(f"Report generation failed: {str(e)}", exc_info=True)
+        logger.error(f"Report generation failed: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="Report generation failed")
     finally:
         cleanup_files(input_path)
@@ -2642,7 +2661,7 @@ async def get_threat_library(
 
     except Exception as e:
         logger.error(f"Threat library error: {e}")
-        logger.error(f"Failed to access threat library: {str(e)}", exc_info=True)
+        logger.error(f"Failed to access threat library: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="Failed to access threat library")
 
 
@@ -2827,7 +2846,7 @@ async def batch_visualize(
         # Cleanup on error
         for _, path in input_paths:
             cleanup_files(path)
-        logger.error(f"Batch processing failed: {str(e)}", exc_info=True)
+        logger.error(f"Batch processing failed: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="Batch processing failed")
 
 
@@ -2983,7 +3002,7 @@ async def export_data(
         raise
     except Exception as e:
         logger.error(f"Export error: {e}")
-        logger.error(f"Export failed: {str(e)}", exc_info=True)
+        logger.error(f"Export failed: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="Export failed")
     finally:
         cleanup_files(input_path)
@@ -3115,7 +3134,7 @@ async def compare_configs(
         raise
     except Exception as e:
         logger.error(f"Comparison error: {e}")
-        logger.error(f"Comparison failed: {str(e)}", exc_info=True)
+        logger.error(f"Comparison failed: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="Comparison failed")
     finally:
         cleanup_files(old_path, new_path)
@@ -3612,7 +3631,7 @@ async def visualize_custom_diagram(
     except Exception as e:
         cleanup_files(input_path, modified_input_path, output_path)
         logger.error(f"Custom diagram visualization error: {e}")
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -3670,7 +3689,7 @@ async def validate_custom_diagram(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Custom diagram validation error: {e}")
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -3725,7 +3744,7 @@ async def get_custom_diagram_stats(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Custom diagram stats error: {e}")
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
     finally:
         cleanup_files(input_path)
@@ -3809,7 +3828,7 @@ async def custom_diagram_from_template(
     except Exception as e:
         cleanup_files(output_path)
         logger.error(f"Custom diagram from template error: {e}")
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
@@ -3907,7 +3926,7 @@ async def import_to_custom_diagram(
     except Exception as e:
         cleanup_files(input_path, output_path)
         logger.error(f"Custom diagram import error: {e}")
-        logger.error(f"Internal error: {str(e)}", exc_info=True)
+        logger.error(f"Internal error: {str(e)}", exc_info=(LOG_LEVEL == "DEBUG"))
         raise HTTPException(status_code=500, detail="An internal error occurred")
 
 

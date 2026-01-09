@@ -326,17 +326,17 @@ class CVSSSeverity(str, Enum):
 
 class VulnerabilityInput(BaseModel):
     """Vulnerability input model with CVSS validation."""
-    id: str = Field(description="Unique vulnerability identifier")
-    label: str = Field(description="Display label for the vulnerability")
-    description: Optional[str] = Field(default=None, description="Detailed description")
+    id: str = Field(description="Unique vulnerability identifier", max_length=256)
+    label: str = Field(description="Display label for the vulnerability", max_length=512)
+    description: Optional[str] = Field(default=None, description="Detailed description", max_length=4096)
     cvss: Optional[float] = Field(
         default=None,
         description="CVSS score (0.0-10.0)",
         ge=0.0,
         le=10.0
     )
-    affected_host: Optional[str] = Field(default=None, description="Host ID this vulnerability affects")
-    cwe: Optional[str] = Field(default=None, description="CWE identifier (e.g., CWE-79)")
+    affected_host: Optional[str] = Field(default=None, description="Host ID this vulnerability affects", max_length=256)
+    cwe: Optional[str] = Field(default=None, description="CWE identifier (e.g., CWE-79)", max_length=32)
 
     class Config:
         json_schema_extra = {
@@ -367,16 +367,16 @@ class AttackGraphRequest(BaseModel):
 
 class TemplateMetadata(BaseModel):
     """Template metadata information."""
-    name: str = Field(default="", description="Template name")
-    description: str = Field(default="", description="Template description")
-    engineversion: str = Field(default="", description="USecVisLib engine version compatibility")
-    version: str = Field(default="", description="Template file version")
-    type: str = Field(default="", description="Template type (Attack Tree, Attack Graph, Threat Model)")
-    date: str = Field(default="", description="Template creation date")
-    last_modified: str = Field(default="", description="Last modification date")
-    author: str = Field(default="", description="Author name")
-    email: str = Field(default="", description="Author email")
-    url: str = Field(default="", description="Author URL")
+    name: str = Field(default="", description="Template name", max_length=256)
+    description: str = Field(default="", description="Template description", max_length=2048)
+    engineversion: str = Field(default="", description="USecVisLib engine version compatibility", max_length=32)
+    version: str = Field(default="", description="Template file version", max_length=32)
+    type: str = Field(default="", description="Template type (Attack Tree, Attack Graph, Threat Model)", max_length=64)
+    date: str = Field(default="", description="Template creation date", max_length=32)
+    last_modified: str = Field(default="", description="Last modification date", max_length=32)
+    author: str = Field(default="", description="Author name", max_length=256)
+    email: str = Field(default="", description="Author email", max_length=320)
+    url: str = Field(default="", description="Author URL", max_length=2048)
 
 
 class TreeStats(BaseModel):
@@ -1091,9 +1091,9 @@ class EdgeSchema(BaseModel):
 
 class DiagramNode(BaseModel):
     """Node instance in a diagram."""
-    id: str = Field(description="Unique node identifier")
-    type: str = Field(description="Node type (must match schema)")
-    name: str = Field(description="Node name/label")
+    id: str = Field(description="Unique node identifier", max_length=256)
+    type: str = Field(description="Node type (must match schema)", max_length=64)
+    name: str = Field(description="Node name/label", max_length=512)
     # Additional fields are allowed
 
     class Config:
@@ -1110,10 +1110,10 @@ class DiagramNode(BaseModel):
 
 class DiagramEdge(BaseModel):
     """Edge instance in a diagram."""
-    from_node: str = Field(alias="from", description="Source node ID")
-    to_node: str = Field(alias="to", description="Target node ID")
-    type: str = Field(description="Edge type (must match schema)")
-    label: Optional[str] = Field(default=None, description="Optional edge label")
+    from_node: str = Field(alias="from", description="Source node ID", max_length=256)
+    to_node: str = Field(alias="to", description="Target node ID", max_length=256)
+    type: str = Field(description="Edge type (must match schema)", max_length=64)
+    label: Optional[str] = Field(default=None, description="Optional edge label", max_length=512)
 
     class Config:
         populate_by_name = True
@@ -1130,9 +1130,9 @@ class DiagramEdge(BaseModel):
 
 class DiagramCluster(BaseModel):
     """Cluster/subgraph definition."""
-    id: str = Field(description="Cluster identifier")
-    label: str = Field(description="Cluster label")
-    nodes: List[str] = Field(description="Node IDs in this cluster")
+    id: str = Field(description="Cluster identifier", max_length=256)
+    label: str = Field(description="Cluster label", max_length=512)
+    nodes: List[str] = Field(description="Node IDs in this cluster", max_length=1000)
     style: Dict[str, str] = Field(default={}, description="Cluster style")
 
     class Config:
@@ -1148,12 +1148,12 @@ class DiagramCluster(BaseModel):
 
 class DiagramSettings(BaseModel):
     """Diagram settings."""
-    title: str = Field(default="Custom Diagram", description="Diagram title")
-    description: Optional[str] = Field(default=None, description="Diagram description")
+    title: str = Field(default="Custom Diagram", description="Diagram title", max_length=256)
+    description: Optional[str] = Field(default=None, description="Diagram description", max_length=2048)
     layout: CustomDiagramLayout = Field(default=CustomDiagramLayout.HIERARCHICAL, description="Layout engine")
     direction: CustomDiagramDirection = Field(default=CustomDiagramDirection.TB, description="Graph direction")
     style: CustomDiagramStyle = Field(default=CustomDiagramStyle.DEFAULT, description="Style preset")
-    splines: str = Field(default="ortho", description="Edge routing (ortho, polyline, curved)")
+    splines: str = Field(default="ortho", description="Edge routing (ortho, polyline, curved)", max_length=32)
     nodesep: float = Field(default=0.5, description="Node separation", ge=0.1, le=5.0)
     ranksep: float = Field(default=1.0, description="Rank separation", ge=0.1, le=5.0)
 
