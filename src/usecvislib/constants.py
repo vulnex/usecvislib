@@ -164,8 +164,20 @@ EXTENSION_FORMAT_MAP: Dict[str, ConfigFormat] = {
 CONFIG_EXTENSIONS: List[str] = ['.toml', '.tml', '.json', '.yaml', '.yml']
 
 # Sensitive system paths that should not be written to
+# SECURITY: Comprehensive list of paths that should never be written to
 SENSITIVE_PATHS: List[str] = [
-    '/etc', '/usr', '/bin', '/sbin', '/var', '/root', '/boot', '/lib'
+    # Core system directories
+    '/etc', '/usr', '/bin', '/sbin', '/var', '/root', '/boot', '/lib',
+    # Linux kernel/process filesystems
+    '/proc', '/sys', '/dev',
+    # Library directories
+    '/lib64', '/lib32',
+    # Optional/third-party software
+    '/opt',
+    # macOS-specific system paths
+    '/private/etc', '/private/var', '/System', '/Library',
+    # Snap/Flatpak paths
+    '/snap',
 ]
 
 # Visualization types for settings

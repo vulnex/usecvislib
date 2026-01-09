@@ -131,7 +131,21 @@ class AnalysisError(USecVisLibError):
 # =============================================================================
 
 # Sensitive system paths that should not be written to
-SENSITIVE_PATHS = ['/etc', '/usr', '/bin', '/sbin', '/var', '/root', '/boot', '/lib']
+# SECURITY: Comprehensive list of paths that should never be written to
+SENSITIVE_PATHS = [
+    # Core system directories
+    '/etc', '/usr', '/bin', '/sbin', '/var', '/root', '/boot', '/lib',
+    # Linux kernel/process filesystems
+    '/proc', '/sys', '/dev',
+    # Library directories
+    '/lib64', '/lib32',
+    # Optional/third-party software
+    '/opt',
+    # macOS-specific system paths
+    '/private/etc', '/private/var', '/System', '/Library',
+    # Snap/Flatpak paths
+    '/snap',
+]
 
 # Default allowed configuration file extensions
 CONFIG_EXTENSIONS = ['.toml', '.tml', '.json', '.yaml', '.yml']

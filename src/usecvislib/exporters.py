@@ -32,6 +32,8 @@ from typing import Dict, Any, List, Optional, Union, TextIO
 from pathlib import Path
 from abc import ABC, abstractmethod
 
+from .utils import validate_output_path
+
 logger = logging.getLogger(__name__)
 
 
@@ -112,7 +114,8 @@ class ExportMixin:
 
         # Write to file if output specified
         if output:
-            output_path = Path(output)
+            # SECURITY: Validate output path to prevent writing to sensitive locations
+            output_path = validate_output_path(output)
             output_path.parent.mkdir(parents=True, exist_ok=True)
             with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(json_str)
@@ -157,8 +160,8 @@ class ExportMixin:
         if not data:
             raise ValueError(f"No data for section: {section}")
 
-        # Ensure output directory exists
-        output_path = Path(output)
+        # SECURITY: Validate output path to prevent writing to sensitive locations
+        output_path = validate_output_path(output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write CSV
@@ -269,8 +272,10 @@ class Exporter:
         json_str = json.dumps(data, indent=indent, default=str)
 
         if output:
-            Path(output).parent.mkdir(parents=True, exist_ok=True)
-            with open(output, 'w', encoding='utf-8') as f:
+            # SECURITY: Validate output path to prevent writing to sensitive locations
+            output_path = validate_output_path(output)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(json_str)
 
         return json_str
@@ -304,9 +309,10 @@ class Exporter:
                 all_keys.update(row.keys())
             fieldnames = sorted(all_keys)
 
-        # Write
-        Path(output).parent.mkdir(parents=True, exist_ok=True)
-        with open(output, 'w', newline='', encoding='utf-8') as f:
+        # SECURITY: Validate output path to prevent writing to sensitive locations
+        output_path = validate_output_path(output)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.DictWriter(
                 f,
                 fieldnames=fieldnames,
@@ -344,8 +350,10 @@ class Exporter:
         )
 
         if output:
-            Path(output).parent.mkdir(parents=True, exist_ok=True)
-            with open(output, 'w', encoding='utf-8') as f:
+            # SECURITY: Validate output path to prevent writing to sensitive locations
+            output_path = validate_output_path(output)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(yaml_str)
 
         return yaml_str
@@ -419,8 +427,10 @@ class Exporter:
         md_str = "\n".join(lines)
 
         if output:
-            Path(output).parent.mkdir(parents=True, exist_ok=True)
-            with open(output, 'w', encoding='utf-8') as f:
+            # SECURITY: Validate output path to prevent writing to sensitive locations
+            output_path = validate_output_path(output)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_path, 'w', encoding='utf-8') as f:
                 f.write(md_str)
 
         return md_str
@@ -466,7 +476,8 @@ class ReportGenerator:
         if formats is None:
             formats = ["json", "csv", "md"]
 
-        output_path = Path(output_dir)
+        # SECURITY: Validate output directory to prevent writing to sensitive locations
+        output_path = validate_output_path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
         outputs = {}
@@ -549,6 +560,7 @@ class ReportGenerator:
             else:
                 lines.append(f"- **{key}:** {type(value).__name__}")
 
-        # Write
-        with open(output, 'w', encoding='utf-8') as f:
+        # SECURITY: Validate output path to prevent writing to sensitive locations
+        output_path = validate_output_path(output)
+        with open(output_path, 'w', encoding='utf-8') as f:
             f.write("\n".join(lines))

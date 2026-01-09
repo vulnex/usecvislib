@@ -15,7 +15,17 @@
 
 from enum import Enum
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+
+# =============================================================================
+# Security Constants for Dict Size Limits
+# =============================================================================
+
+# Maximum entries in Dict fields to prevent DoS attacks
+MAX_SCHEMA_ENTRIES = 100  # Max node/edge types in schema
+MAX_STYLE_ENTRIES = 50    # Max style properties
+MAX_STATS_ENTRIES = 200   # Max entries in stats dicts
 
 
 class OutputFormat(str, Enum):
@@ -1059,12 +1069,23 @@ class TemplateListResponse(BaseModel):
 
 
 class NodeSchema(BaseModel):
-    """Node type schema definition."""
-    shape: str = Field(description="Shape identifier")
-    required_fields: List[str] = Field(default=["name"], description="Required fields")
-    optional_fields: List[str] = Field(default=[], description="Optional fields")
+    """Node type schema definition.
+
+    SECURITY: Dict fields have validators to limit size and prevent DoS attacks.
+    """
+    shape: str = Field(description="Shape identifier", max_length=64)
+    required_fields: List[str] = Field(default=["name"], description="Required fields", max_length=50)
+    optional_fields: List[str] = Field(default=[], description="Optional fields", max_length=50)
     style: Dict[str, str] = Field(default={}, description="Default style attributes")
-    label_template: str = Field(default="{name}", description="Label template")
+    label_template: str = Field(default="{name}", description="Label template", max_length=512)
+
+    @field_validator('style')
+    @classmethod
+    def validate_style_size(cls, v: Dict[str, str]) -> Dict[str, str]:
+        """SECURITY: Limit number of style properties."""
+        if len(v) > MAX_STYLE_ENTRIES:
+            raise ValueError(f"Too many style properties: {len(v)} (max: {MAX_STYLE_ENTRIES})")
+        return v
 
     class Config:
         json_schema_extra = {
@@ -1136,11 +1157,22 @@ class DiagramEdge(BaseModel):
 
 
 class DiagramCluster(BaseModel):
-    """Cluster/subgraph definition."""
+    """Cluster/subgraph definition.
+
+    SECURITY: Dict fields have validators to limit size and prevent DoS attacks.
+    """
     id: str = Field(description="Cluster identifier", max_length=256)
     label: str = Field(description="Cluster label", max_length=512)
     nodes: List[str] = Field(description="Node IDs in this cluster", max_length=1000)
     style: Dict[str, str] = Field(default={}, description="Cluster style")
+
+    @field_validator('style')
+    @classmethod
+    def validate_style_size(cls, v: Dict[str, str]) -> Dict[str, str]:
+        """SECURITY: Limit number of style properties."""
+        if len(v) > MAX_STYLE_ENTRIES:
+            raise ValueError(f"Too many style properties: {len(v)} (max: {MAX_STYLE_ENTRIES})")
+        return v
 
     class Config:
         json_schema_extra = {
@@ -1177,9 +1209,28 @@ class DiagramSettings(BaseModel):
 
 
 class CustomDiagramSchema(BaseModel):
-    """Schema definition for custom diagrams."""
+    """Schema definition for custom diagrams.
+
+    SECURITY: Dict fields have validators to limit size and prevent DoS attacks.
+    """
     nodes: Dict[str, NodeSchema] = Field(description="Node type definitions")
     edges: Dict[str, EdgeSchema] = Field(default={}, description="Edge type definitions")
+
+    @field_validator('nodes')
+    @classmethod
+    def validate_nodes_size(cls, v: Dict[str, NodeSchema]) -> Dict[str, NodeSchema]:
+        """SECURITY: Limit number of node type definitions."""
+        if len(v) > MAX_SCHEMA_ENTRIES:
+            raise ValueError(f"Too many node types: {len(v)} (max: {MAX_SCHEMA_ENTRIES})")
+        return v
+
+    @field_validator('edges')
+    @classmethod
+    def validate_edges_size(cls, v: Dict[str, EdgeSchema]) -> Dict[str, EdgeSchema]:
+        """SECURITY: Limit number of edge type definitions."""
+        if len(v) > MAX_SCHEMA_ENTRIES:
+            raise ValueError(f"Too many edge types: {len(v)} (max: {MAX_SCHEMA_ENTRIES})")
+        return v
 
     class Config:
         json_schema_extra = {

@@ -202,9 +202,17 @@ limiter = Limiter(key_func=get_remote_address)
 # =============================================================================
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    """Add security headers to all responses."""
+    """Add security headers to all responses.
+
+    SECURITY: Implements comprehensive security headers including:
+    - HSTS for HTTPS enforcement
+    - CSP to prevent XSS and injection attacks
+    - X-Frame-Options to prevent clickjacking
+    - Additional headers to prevent various attack vectors
+    """
 
     # CSP for Swagger UI / ReDoc documentation pages
+    # SECURITY: Added object-src, base-uri, form-action, upgrade-insecure-requests
     DOCS_CSP = (
         "default-src 'self'; "
         "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
@@ -212,32 +220,55 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         "img-src 'self' data: https://fastapi.tiangolo.com; "
         "font-src 'self' https://cdn.jsdelivr.net; "
         "connect-src 'self' https://cdn.jsdelivr.net; "
-        "frame-ancestors 'none'"
+        "frame-ancestors 'none'; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'; "
+        "upgrade-insecure-requests"
     )
 
     # Strict CSP for API endpoints
-    API_CSP = "default-src 'none'; frame-ancestors 'none'"
+    # SECURITY: Added object-src, base-uri, form-action, upgrade-insecure-requests
+    API_CSP = (
+        "default-src 'none'; "
+        "frame-ancestors 'none'; "
+        "object-src 'none'; "
+        "base-uri 'none'; "
+        "form-action 'none'; "
+        "upgrade-insecure-requests"
+    )
 
     async def dispatch(self, request: Request, call_next):
         response = await call_next(request)
+
         # SECURITY: HTTP Strict Transport Security - enforce HTTPS
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        # Prevent MIME type sniffing
+
+        # SECURITY: Prevent MIME type sniffing
         response.headers["X-Content-Type-Options"] = "nosniff"
-        # Prevent clickjacking
+
+        # SECURITY: Prevent clickjacking
         response.headers["X-Frame-Options"] = "DENY"
-        # XSS protection (legacy but still useful)
+
+        # SECURITY: XSS protection (legacy but still useful for older browsers)
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        # Referrer policy
+
+        # SECURITY: Control referrer information
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        # Content Security Policy - relaxed for docs, strict for API
+
+        # SECURITY: Prevent Adobe Flash/PDF from reading response
+        response.headers["X-Permitted-Cross-Domain-Policies"] = "none"
+
+        # SECURITY: Content Security Policy - relaxed for docs, strict for API
         path = request.url.path
         if path in ("/docs", "/redoc", "/openapi.json") or path.startswith("/docs/") or path.startswith("/redoc/"):
             response.headers["Content-Security-Policy"] = self.DOCS_CSP
         else:
             response.headers["Content-Security-Policy"] = self.API_CSP
-        # Permissions policy
+
+        # SECURITY: Permissions policy - disable unnecessary browser features
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+
         return response
 
 
@@ -792,7 +823,10 @@ app.add_middleware(
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "OPTIONS"],
-    allow_headers=["Content-Type", "Accept", "X-API-Key"],
+    # SECURITY: Use API_KEY_HEADER_NAME to support custom header names
+    allow_headers=["Content-Type", "Accept", API_KEY_HEADER_NAME],
+    # SECURITY: Cache preflight requests for 1 hour to reduce OPTIONS requests
+    max_age=3600,
 )
 
 # Security headers middleware

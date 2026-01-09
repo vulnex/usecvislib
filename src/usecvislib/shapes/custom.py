@@ -378,19 +378,47 @@ class CustomShapeLoader:
         if "<svg" not in svg_data.lower():
             raise CustomShapeError("Content does not appear to be valid SVG")
 
-        # Check for potentially dangerous elements
+        # SECURITY: Comprehensive check for dangerous SVG elements and attributes
+        # These patterns can be used for XSS, data exfiltration, or code execution
         dangerous_patterns = [
-            r"<script",
-            r"javascript:",
-            r"on\w+\s*=",  # Event handlers like onclick, onload
-            r"<foreignObject",
-            r"<iframe",
+            # Script execution
+            (r"<script", "script tag"),
+            (r"javascript:", "javascript protocol"),
+            (r"vbscript:", "vbscript protocol"),
+            (r"on\w+\s*=", "event handler attribute"),
+
+            # External content loading (can bypass CSP, exfiltrate data)
+            (r"<foreignObject", "foreignObject tag"),
+            (r"<iframe", "iframe tag"),
+            (r"<embed", "embed tag"),
+            (r"<object", "object tag"),
+            (r"<link", "link tag"),
+            (r"<meta", "meta tag"),
+
+            # SVG-specific dangerous elements
+            (r"<image[^>]+href", "image tag with href"),
+            (r"<use[^>]+href", "use tag with href"),
+            (r"<feImage", "feImage filter"),
+            (r"xlink:href\s*=\s*[\"'][^#]", "external xlink:href"),
+
+            # Dangerous data URIs
+            (r"data:text/html", "data:text/html URI"),
+            (r"data:application/", "data:application URI"),
+
+            # Style-based attacks (CSS injection, data exfiltration via url())
+            (r"<style", "style tag"),
+            (r"style\s*=\s*[\"'][^\"']*url\s*\(", "style with url() function"),
+            (r"style\s*=\s*[\"'][^\"']*expression\s*\(", "style with expression()"),
+
+            # Entity-based attacks
+            (r"<!ENTITY", "XML entity declaration"),
+            (r"<!DOCTYPE[^>]+\[", "DOCTYPE with internal subset"),
         ]
 
-        for pattern in dangerous_patterns:
+        for pattern, description in dangerous_patterns:
             if re.search(pattern, svg_data, re.IGNORECASE):
                 raise CustomShapeError(
-                    f"SVG contains potentially dangerous content: {pattern}"
+                    f"SVG contains potentially dangerous content: {description}"
                 )
 
         return svg_data

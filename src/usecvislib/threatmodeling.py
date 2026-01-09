@@ -702,6 +702,23 @@ class ThreatModeling(VisualizationBase):
         # Backward compatibility
         self.stylefile = self.STYLE_FILE
 
+        # SECURITY: Track temp input file for cleanup (used by builder)
+        self._temp_input: Optional[str] = None
+
+    def __del__(self):
+        """SECURITY: Cleanup temporary input files on object destruction.
+
+        This ensures temp files created by ThreatModelBuilder are properly
+        cleaned up even if an exception occurs during processing.
+        """
+        if hasattr(self, '_temp_input') and self._temp_input:
+            try:
+                import os
+                if os.path.exists(self._temp_input):
+                    os.remove(self._temp_input)
+            except Exception:
+                pass  # Best effort cleanup
+
     def _default_style(self) -> Dict[str, Any]:
         """Return default style configuration for threat models."""
         return {
