@@ -559,11 +559,48 @@ def get_image_content_type(filepath: str) -> str:
     return 'application/octet-stream'
 
 
-def resolve_image_id(image_id: str) -> str:
+def get_user_namespace(api_key: Optional[str]) -> str:
+    """Generate a user namespace from the API key.
+
+    SECURITY: Creates a per-user directory namespace to isolate uploaded images.
+    Uses first 12 chars of SHA-256 hash to create a short, safe directory name.
+
+    Args:
+        api_key: The authenticated API key (or None if auth disabled)
+
+    Returns:
+        A short hash string to use as directory name, or 'shared' if no key
+    """
+    if not api_key:
+        return "shared"
+    import hashlib
+    key_hash = hashlib.sha256(api_key.encode('utf-8')).hexdigest()
+    return key_hash[:12]
+
+
+def get_user_image_dir(api_key: Optional[str]) -> str:
+    """Get the image upload directory for a specific user.
+
+    SECURITY: Isolates user uploads into separate directories.
+
+    Args:
+        api_key: The authenticated API key
+
+    Returns:
+        Path to user-specific image directory
+    """
+    namespace = get_user_namespace(api_key)
+    return os.path.join(IMAGE_UPLOAD_DIR, namespace)
+
+
+def resolve_image_id(image_id: str, api_key: Optional[str] = None) -> str:
     """Resolve an image_id to its actual file path.
+
+    SECURITY: Images are isolated per-user based on API key hash.
 
     Args:
         image_id: UUID of the uploaded image
+        api_key: API key for user namespace isolation
 
     Returns:
         Absolute file path to the image
@@ -575,11 +612,14 @@ def resolve_image_id(image_id: str) -> str:
     if not validate_uuid_format(image_id):
         raise ValueError(f"Invalid image ID format: {image_id}")
 
-    if not os.path.exists(IMAGE_UPLOAD_DIR):
+    # SECURITY: Use user-specific directory for isolation
+    user_image_dir = get_user_image_dir(api_key)
+
+    if not os.path.exists(user_image_dir):
         raise ValueError(f"Image not found: {image_id}")
 
     # SECURITY: Use exact prefix match with dot separator to prevent partial UUID matching
-    matches = [f for f in os.listdir(IMAGE_UPLOAD_DIR) if f.startswith(f"{image_id}.")]
+    matches = [f for f in os.listdir(user_image_dir) if f.startswith(f"{image_id}.")]
     if not matches:
         raise ValueError(f"Image not found: {image_id}")
 
@@ -587,7 +627,7 @@ def resolve_image_id(image_id: str) -> str:
     if len(matches) != 1:
         raise ValueError(f"Ambiguous image ID: {image_id}")
 
-    filepath = os.path.join(IMAGE_UPLOAD_DIR, matches[0])
+    filepath = os.path.join(user_image_dir, matches[0])
 
     # SECURITY: Verify path is within upload directory and not a symlink
     resolved_path = Path(filepath).resolve()
@@ -1747,7 +1787,12 @@ async def analyze_vulnerability_impact(
         impact = ag.vulnerability_impact_score(vulnerability_id)
 
         if "error" in impact:
-            raise HTTPException(status_code=404, detail=impact["error"])
+            # SECURITY: Use generic error message to prevent information disclosure
+            logger.warning(f"Vulnerability impact error: {impact.get('error', 'unknown')}")
+            raise HTTPException(
+                status_code=404,
+                detail="Vulnerability not found or cannot be analyzed"
+            )
 
         return impact
 
@@ -4126,7 +4171,8 @@ RATE_LIMIT_IMAGE_UPLOAD = os.getenv("RATE_LIMIT_IMAGE_UPLOAD", "10/minute")
 @limiter.limit(RATE_LIMIT_IMAGE_UPLOAD)
 async def upload_image(
     request: Request,
-    file: UploadFile = File(..., description="Image file to upload (PNG, JPEG, GIF, SVG, BMP)")
+    file: UploadFile = File(..., description="Image file to upload (PNG, JPEG, GIF, SVG, BMP)"),
+    api_key: Optional[str] = Depends(verify_api_key)
 ):
     """
     Upload an image for use in node visualizations.
@@ -4169,18 +4215,21 @@ async def upload_image(
             detail="Invalid image file. Content does not match expected format."
         )
 
-    # Generate unique ID and save
+    # Generate unique ID and save to user-specific directory
+    # SECURITY: Per-user isolation prevents cross-user image access
     image_id = str(uuid.uuid4())
     ext = IMAGE_ALLOWED_TYPES[file.content_type]
     filename = f"{image_id}{ext}"
-    filepath = os.path.join(IMAGE_UPLOAD_DIR, filename)
+    user_image_dir = get_user_image_dir(api_key)
+    filepath = os.path.join(user_image_dir, filename)
 
-    os.makedirs(IMAGE_UPLOAD_DIR, exist_ok=True)
+    os.makedirs(user_image_dir, exist_ok=True)
 
     with open(filepath, 'wb') as f:
         f.write(contents)
 
-    logger.info(f"Image uploaded: {image_id} ({sanitize_filename_for_log(file.filename)}, {len(contents)} bytes)")
+    user_ns = get_user_namespace(api_key)
+    logger.info(f"Image uploaded: {image_id} ({sanitize_filename_for_log(file.filename)}, {len(contents)} bytes, ns={user_ns})")
 
     return ImageUploadResponse(
         image_id=image_id,
@@ -4197,17 +4246,22 @@ async def upload_image(
     summary="Get information about an uploaded image"
 )
 @limiter.limit(RATE_LIMIT_DEFAULT)
-async def get_image_info(request: Request, image_id: str):
+async def get_image_info(
+    request: Request,
+    image_id: str,
+    api_key: Optional[str] = Depends(verify_api_key)
+):
     """
     Get information about an uploaded image by its ID.
 
     Returns image metadata including size, content type, and creation time.
+    Images are isolated per-user based on API key.
     """
     from datetime import datetime
 
-    # SECURITY: Use secure image resolution with UUID validation
+    # SECURITY: Use secure image resolution with UUID validation and user isolation
     try:
-        filepath = resolve_image_id(image_id)
+        filepath = resolve_image_id(image_id, api_key)
     except ValueError:
         raise HTTPException(status_code=404, detail="Image not found")
 
@@ -4228,15 +4282,20 @@ async def get_image_info(request: Request, image_id: str):
     summary="Download an uploaded image"
 )
 @limiter.limit(RATE_LIMIT_DEFAULT)
-async def download_image(request: Request, image_id: str):
+async def download_image(
+    request: Request,
+    image_id: str,
+    api_key: Optional[str] = Depends(verify_api_key)
+):
     """
     Download an uploaded image by its ID.
 
     Returns the image file.
+    Images are isolated per-user based on API key.
     """
-    # SECURITY: Use secure image resolution with UUID validation
+    # SECURITY: Use secure image resolution with UUID validation and user isolation
     try:
-        filepath = resolve_image_id(image_id)
+        filepath = resolve_image_id(image_id, api_key)
     except ValueError:
         raise HTTPException(status_code=404, detail="Image not found")
 
@@ -4256,21 +4315,27 @@ async def download_image(request: Request, image_id: str):
     summary="Delete an uploaded image"
 )
 @limiter.limit(RATE_LIMIT_DEFAULT)
-async def delete_image(request: Request, image_id: str):
+async def delete_image(
+    request: Request,
+    image_id: str,
+    api_key: Optional[str] = Depends(verify_api_key)
+):
     """
     Delete an uploaded image by its ID.
 
     This permanently removes the image from the server.
+    Images are isolated per-user based on API key.
     """
-    # SECURITY: Use secure image resolution with UUID validation
+    # SECURITY: Use secure image resolution with UUID validation and user isolation
     try:
-        filepath = resolve_image_id(image_id)
+        filepath = resolve_image_id(image_id, api_key)
     except ValueError:
         raise HTTPException(status_code=404, detail="Image not found")
 
     os.unlink(filepath)
 
-    logger.info(f"Image deleted: {image_id}")
+    user_ns = get_user_namespace(api_key)
+    logger.info(f"Image deleted: {image_id} (ns={user_ns})")
 
     return ImageDeleteResponse(
         deleted=True,
@@ -4285,20 +4350,27 @@ async def delete_image(request: Request, image_id: str):
     summary="List all uploaded images"
 )
 @limiter.limit(RATE_LIMIT_DEFAULT)
-async def list_images(request: Request):
+async def list_images(
+    request: Request,
+    api_key: Optional[str] = Depends(verify_api_key)
+):
     """
-    List all currently uploaded images.
+    List your uploaded images.
 
     Returns a list of image information including IDs, sizes, and types.
+    Images are isolated per-user based on API key.
     Note: Images are automatically cleaned up after the retention period.
     """
     from datetime import datetime
 
     images = []
 
-    if os.path.exists(IMAGE_UPLOAD_DIR):
-        for filename in os.listdir(IMAGE_UPLOAD_DIR):
-            filepath = os.path.join(IMAGE_UPLOAD_DIR, filename)
+    # SECURITY: Only list images in user's namespace
+    user_image_dir = get_user_image_dir(api_key)
+
+    if os.path.exists(user_image_dir):
+        for filename in os.listdir(user_image_dir):
+            filepath = os.path.join(user_image_dir, filename)
             if os.path.isfile(filepath):
                 # Extract image_id from filename (remove extension)
                 image_id = os.path.splitext(filename)[0]
