@@ -58,6 +58,14 @@ class AttackTrees(VisualizationBase):
     ALLOWED_EXTENSIONS = ['.toml', '.tml', '.json', '.yaml', '.yml']
     MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10 MB
 
+    # Style-related attributes that should be overridden by selected style
+    # When a non-default style is selected, these attributes from template nodes
+    # are stripped so the style's values take precedence
+    STYLE_OVERRIDE_ATTRS = {
+        'fillcolor', 'fontcolor', 'color', 'style', 'shape',
+        'fontname', 'fontsize', 'penwidth', 'margin'
+    }
+
     def __init__(
         self,
         inputfile: str,
@@ -144,6 +152,25 @@ class AttackTrees(VisualizationBase):
                 "fontname": "Arial"
             }
         }
+
+    def _strip_style_attrs(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+        """Strip style-related attributes from node data when a style is selected.
+
+        When a non-default style is explicitly selected, template-defined colors
+        and styling should be overridden by the style's values. This method
+        removes style-related attributes so the selected style takes precedence.
+
+        Args:
+            attrs: Node attributes dictionary.
+
+        Returns:
+            New dictionary with style attributes removed.
+        """
+        if self.styleid == self.DEFAULT_STYLE_ID:
+            # Default style: preserve template colors
+            return attrs
+        # Non-default style selected: strip style attrs so style takes precedence
+        return {k: v for k, v in attrs.items() if k not in self.STYLE_OVERRIDE_ATTRS}
 
     def _get_metadata_root_key(self) -> str:
         """Get the root key for metadata extraction.
@@ -232,7 +259,10 @@ class AttackTrees(VisualizationBase):
         # Remove CVSS fields from attributes before passing to graphviz
         root_node_attributes.pop("cvss", None)
         root_node_attributes.pop("cvss_vector", None)
-        # Merge with defaults first (user values override defaults)
+        # Strip style attributes when a non-default style is selected
+        # This allows the selected style to override template colors
+        root_node_attributes = self._strip_style_attrs(root_node_attributes)
+        # Merge with defaults first (style values take precedence when style selected)
         root_node_kwargs = utils.merge_dicts(root_defaults, root_node_attributes)
         # Process image AFTER merge so icon settings take priority
         utils.process_node_image(root_node_kwargs, root_node, self.logger, preserve_shape=user_set_shape)
@@ -271,6 +301,11 @@ class AttackTrees(VisualizationBase):
             cvss_vector = node_attrs.pop("cvss_vector", None)
             resolved_score, _ = get_cvss_score(cvss_value, cvss_vector)
 
+            # Strip style attributes when a non-default style is selected
+            # This allows the selected style to override template colors
+            # Do this BEFORE CVSS processing so CVSS colors can still be applied
+            node_attrs = self._strip_style_attrs(node_attrs)
+
             # Apply CVSS-based styling if score is present and CVSS display is enabled
             # Skip fillcolor for nodes with images (they use shape=none)
             if resolved_score is not None and is_cvss_enabled("attack_tree"):
@@ -295,7 +330,7 @@ class AttackTrees(VisualizationBase):
             if has_image and "fontcolor" not in attributes:
                 node_attrs["fontcolor"] = "black"
 
-            # Merge with defaults (user values override defaults)
+            # Merge with defaults (style values take precedence when style selected)
             node_kwargs = utils.merge_dicts(node_defaults, node_attrs)
             # Process image AFTER merge so icon settings take priority
             utils.process_node_image(node_kwargs, node, self.logger, preserve_shape=user_set_shape)
