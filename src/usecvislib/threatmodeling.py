@@ -654,6 +654,14 @@ class ThreatModeling(VisualizationBase):
     ALLOWED_EXTENSIONS = ['.toml', '.tml', '.json', '.yaml', '.yml']
     MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10 MB
 
+    # Style-related attributes that should be overridden by selected style
+    # When a non-default style is selected, these attributes from template nodes
+    # are stripped so the style's values take precedence
+    STYLE_OVERRIDE_ATTRS = {
+        'fillcolor', 'fontcolor', 'color', 'style', 'shape',
+        'fontname', 'fontsize', 'penwidth', 'margin'
+    }
+
     def __init__(
         self,
         inputfile: str,
@@ -762,6 +770,25 @@ class ThreatModeling(VisualizationBase):
             }
         }
 
+    def _strip_style_attrs(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+        """Strip style-related attributes from node data when a style is selected.
+
+        When a non-default style is explicitly selected, template-defined colors
+        and styling should be overridden by the style's values. This method
+        removes style-related attributes so the selected style takes precedence.
+
+        Args:
+            attrs: Node attributes dictionary.
+
+        Returns:
+            New dictionary with style attributes removed.
+        """
+        if self.styleid == self.DEFAULT_STYLE_ID:
+            # Default style: preserve template colors
+            return attrs
+        # Non-default style selected: strip style attrs so style takes precedence
+        return {k: v for k, v in attrs.items() if k not in self.STYLE_OVERRIDE_ATTRS}
+
     def _get_metadata_root_key(self) -> str:
         """Get the root key for metadata extraction.
 
@@ -831,7 +858,10 @@ class ThreatModeling(VisualizationBase):
             proc_wants_bg = ('filled' in str(proc_user_style).lower()) or bool(proc_user_fillcolor)
             proc_has_visible_shape = bool(proc_user_shape) and not proc_wants_no_bg
             user_set_shape = (proc_has_visible_shape or proc_wants_bg) and not proc_wants_no_bg
-            # Merge with defaults first (user values override defaults)
+            # Strip style attributes when a non-default style is selected
+            # This allows the selected style to override template colors
+            node_attrs = self._strip_style_attrs(node_attrs)
+            # Merge with defaults (style values take precedence when style selected)
             node_attrs = utils.merge_dicts(process_style, node_attrs)
             # Process image AFTER merge so icon settings take priority
             utils.process_node_image(node_attrs, proc_id, self.logger, preserve_shape=user_set_shape)
@@ -858,7 +888,10 @@ class ThreatModeling(VisualizationBase):
             ds_wants_bg = ('filled' in str(ds_user_style).lower()) or bool(ds_user_fillcolor)
             ds_has_visible_shape = bool(ds_user_shape) and not ds_wants_no_bg
             user_set_shape = (ds_has_visible_shape or ds_wants_bg) and not ds_wants_no_bg
-            # Merge with defaults first (user values override defaults)
+            # Strip style attributes when a non-default style is selected
+            # This allows the selected style to override template colors
+            node_attrs = self._strip_style_attrs(node_attrs)
+            # Merge with defaults (style values take precedence when style selected)
             node_attrs = utils.merge_dicts(datastore_style, node_attrs)
             # Process image AFTER merge so icon settings take priority
             utils.process_node_image(node_attrs, ds_id, self.logger, preserve_shape=user_set_shape)
@@ -885,7 +918,10 @@ class ThreatModeling(VisualizationBase):
             ext_wants_bg = ('filled' in str(ext_user_style).lower()) or bool(ext_user_fillcolor)
             ext_has_visible_shape = bool(ext_user_shape) and not ext_wants_no_bg
             user_set_shape = (ext_has_visible_shape or ext_wants_bg) and not ext_wants_no_bg
-            # Merge with defaults first (user values override defaults)
+            # Strip style attributes when a non-default style is selected
+            # This allows the selected style to override template colors
+            node_attrs = self._strip_style_attrs(node_attrs)
+            # Merge with defaults (style values take precedence when style selected)
             node_attrs = utils.merge_dicts(external_style, node_attrs)
             # Process image AFTER merge so icon settings take priority
             utils.process_node_image(node_attrs, ext_id, self.logger, preserve_shape=user_set_shape)
