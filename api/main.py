@@ -3379,8 +3379,9 @@ async def compare_configs(
     request: Request,
     old_file: UploadFile = File(..., description="Old/baseline configuration file"),
     new_file: UploadFile = File(..., description="New/updated configuration file"),
-    mode: VisualizationMode = Query(..., description="Visualization mode"),
+    mode: Optional[VisualizationMode] = Query(default=None, description="Visualization mode (auto-detected if not provided)"),
     include_report: bool = Query(default=False, description="Include markdown report in response"),
+    generate_report: bool = Query(default=False, description="Alias for include_report (for frontend compatibility)"),
     ignore_paths: Optional[str] = Query(default=None, description="Comma-separated paths to ignore (e.g., 'metadata,timestamps')"),
 ):
     """
@@ -3391,6 +3392,8 @@ async def compare_configs(
     - Removed elements (deleted from the old file)
     - Modified elements (changed between versions)
 
+    The visualization mode is auto-detected from the file content if not provided.
+
     Useful for:
     - Tracking threat model evolution
     - Auditing security configuration changes
@@ -3399,6 +3402,9 @@ async def compare_configs(
     old_path = None
     new_path = None
 
+    # Support both parameter names for report generation
+    should_include_report = include_report or generate_report
+
     try:
         # Validate and save both files
         validate_config_file_extension(old_file.filename)
@@ -3406,6 +3412,25 @@ async def compare_configs(
 
         old_path = save_upload_file(old_file)
         new_path = save_upload_file(new_file)
+
+        # Auto-detect mode if not provided
+        if mode is None:
+            from usecvislib.mermaid import detect_visualization_type
+            old_data = ReadConfigFile(old_path)
+            detected_type = detect_visualization_type(old_data)
+            logger.info(f"Auto-detected visualization type: {detected_type}")
+
+            if detected_type == "attack_tree":
+                mode = VisualizationMode.ATTACK_TREE
+            elif detected_type == "attack_graph":
+                mode = VisualizationMode.ATTACK_GRAPH
+            elif detected_type == "threat_model":
+                mode = VisualizationMode.THREAT_MODEL
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Could not auto-detect visualization type. Please specify 'mode' parameter. Detected: {detected_type}"
+                )
 
         # Create visualization instances based on mode
         if mode == VisualizationMode.ATTACK_TREE:
@@ -3448,7 +3473,7 @@ async def compare_configs(
         )
 
         report = None
-        if include_report:
+        if should_include_report:
             report = diff.summary_report(include_details=True)
 
         logger.info(f"Compared {sanitize_filename_for_log(old_file.filename)} vs {sanitize_filename_for_log(new_file.filename)}: {summary.total} changes")

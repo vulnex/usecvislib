@@ -1720,6 +1720,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.4] - 2026-01-10
+
+### Fixed
+
+#### Style Override Bug in Visualization Modules
+- **Attack Trees**: Fixed bug where template-defined colors (fillcolor, fontcolor, etc.) were not being overridden when selecting a non-default style from the dropdown
+- **Threat Modeling**: Applied same fix to processes, datastores, and external entities
+
+### Added
+- `STYLE_OVERRIDE_ATTRS` constant in `AttackTrees` and `ThreatModeling` classes defining style-related attributes that should be overridden by selected styles
+- `_strip_style_attrs()` method in both classes to strip template style attributes when a non-default style is selected
+
+### Changed
+- **Style precedence behavior**: When a non-default style is selected, the style's colors now override template-defined colors. Default style preserves template colors for backward compatibility.
+- `attacktrees.py` - Added style stripping for root nodes and regular nodes before merging with style defaults
+- `threatmodeling.py` - Added style stripping for processes, datastores, and external entities before merging with style defaults
+
+---
+
 ## [Unreleased]
 
 ### Planned

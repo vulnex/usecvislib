@@ -80,23 +80,29 @@ For Custom Diagrams, see the [Custom Diagrams Guide](docs/CUSTOM_DIAGRAMS_GUIDE.
 ### Quick Start with Docker
 
 ```bash
-# Clone the repository
-git clone https://github.com/vulnex/usecvislib.git
+# Clone the repository (with submodules for Bootstrap icons)
+git clone --recursive https://github.com/vulnex/usecvislib.git
 cd usecvislib
+
+# If you already cloned without --recursive, initialize submodules:
+# git submodule update --init --recursive
 
 # Start with Docker Compose
 docker-compose up -d
 
-# Access the web UI at http://localhost:3000
+# Access the web UI at http://localhost:3001
 # API documentation at http://localhost:8000/docs
 ```
 
 ### Manual Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/vulnex/usecvislib.git
+# Clone the repository (with submodules for Bootstrap icons)
+git clone --recursive https://github.com/vulnex/usecvislib.git
 cd usecvislib
+
+# If you already cloned without --recursive, initialize submodules:
+# git submodule update --init --recursive
 
 # Create virtual environment
 python -m venv venv
@@ -454,6 +460,9 @@ pytest tests/test_attackgraphs.py -v
 ## Docker Deployment
 
 ```bash
+# Ensure submodules are initialized (required for Bootstrap icons)
+git submodule update --init --recursive
+
 # Copy environment template and configure
 cp .env.example .env
 # Edit .env to set your API key

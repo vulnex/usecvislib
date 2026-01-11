@@ -45,6 +45,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy setup.py, README, and source code
+# NOTE: Ensure git submodules are initialized before building:
+#   git submodule update --init --recursive
 COPY setup.py .
 COPY README.md .
 COPY src/ ./src/
