@@ -11,9 +11,10 @@ services:
       - "8000:8000"
     environment:
       - PYTHONUNBUFFERED=1
-      # Authentication settings
-      - USECVISLIB_AUTH_ENABLED=${USECVISLIB_AUTH_ENABLED:-true}
-      - USECVISLIB_API_KEY=${USECVISLIB_API_KEY}
+      # Authentication settings (disabled by default for easy setup)
+      # To enable: set USECVISLIB_AUTH_ENABLED=true and USECVISLIB_API_KEY in .env
+      - USECVISLIB_AUTH_ENABLED=${USECVISLIB_AUTH_ENABLED:-false}
+      - USECVISLIB_API_KEY=${USECVISLIB_API_KEY:-}
       - USECVISLIB_API_KEYS=${USECVISLIB_API_KEYS:-}
       # Logging
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
