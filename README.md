@@ -481,7 +481,7 @@ docker-compose down
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `USECVISLIB_AUTH_ENABLED` | true | Enable/disable API authentication |
+| `USECVISLIB_AUTH_ENABLED` | false | Enable/disable API authentication (enable for production!) |
 | `USECVISLIB_API_KEY` | (none) | API key for authentication |
 | `USECVISLIB_API_KEYS` | (none) | Multiple API keys (comma-separated) |
 | `LOG_LEVEL` | INFO | Logging level |
@@ -492,7 +492,9 @@ docker-compose down
 
 ## API Authentication
 
-The API supports optional key-based authentication. When enabled, all endpoints require an `X-API-Key` header.
+The API supports optional key-based authentication. **Authentication is disabled by default** for easy setup. For production deployments, enable authentication by setting `USECVISLIB_AUTH_ENABLED=true` and configuring an API key.
+
+When enabled, all endpoints require an `X-API-Key` header.
 
 ### Quick Setup
 
