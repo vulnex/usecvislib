@@ -166,7 +166,11 @@ class CustomDiagrams:
         clusters: List of cluster definitions
     """
 
-    # Style presets
+    # Style configuration
+    STYLE_FILE = "config_customdiagrams.tml"
+    DEFAULT_STYLE_ID = "cd_default"
+
+    # Style presets (descriptions for UI)
     STYLES = {
         "cd_default": "Default clean style",
         "cd_dark": "Dark theme with light text",
@@ -178,6 +182,13 @@ class CustomDiagrams:
         "cd_neon": "Neon cyberpunk style",
         "cd_pastel": "Soft pastel colors",
         "cd_monochrome": "Black and white",
+    }
+
+    # Style-related attributes that should be overridden by selected style
+    # When a non-default style is selected, these attributes from schema nodes
+    # are stripped so the style's values take precedence
+    STYLE_OVERRIDE_ATTRS = {
+        'fillcolor', 'fontcolor', 'color', 'style', 'fontname', 'fontsize', 'penwidth'
     }
 
     # Layout algorithms mapped to Graphviz engines
@@ -210,7 +221,55 @@ class CustomDiagrams:
         self._config_loaded = False
         self._config_path: Optional[Path] = None
 
+        # Load style configuration
+        self._style_config: Dict[str, Any] = {}
+        self._load_style_config()
+
         logger.debug("CustomDiagrams initialized")
+
+    def _load_style_config(self) -> None:
+        """Load style configuration from file."""
+        try:
+            from .utils import ConfigModel
+            config = ConfigModel(self.STYLE_FILE)
+            # Load all available styles
+            for style_id in self.STYLES.keys():
+                try:
+                    self._style_config[style_id] = config.get(style_id)
+                except KeyError:
+                    logger.debug(f"Style '{style_id}' not found in config file")
+            logger.debug(f"Loaded {len(self._style_config)} style configurations")
+        except Exception as e:
+            logger.warning(f"Could not load style config: {e}")
+
+    def _get_style_config(self) -> Dict[str, Any]:
+        """Get the current style configuration.
+
+        Returns:
+            Dictionary with graph, node, edge, cluster style attributes.
+        """
+        style_id = self.settings.style if self.settings else self.DEFAULT_STYLE_ID
+        return self._style_config.get(style_id, self._style_config.get(self.DEFAULT_STYLE_ID, {}))
+
+    def _strip_style_attrs(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+        """Strip style-related attributes from node/edge data when a style is selected.
+
+        When a non-default style is explicitly selected, schema-defined colors
+        and styling should be overridden by the style's values. This method
+        removes style-related attributes so the selected style takes precedence.
+
+        Args:
+            attrs: Node or edge attributes dictionary.
+
+        Returns:
+            New dictionary with style attributes removed.
+        """
+        style_id = self.settings.style if self.settings else self.DEFAULT_STYLE_ID
+        if style_id == self.DEFAULT_STYLE_ID:
+            # Default style: preserve schema colors
+            return attrs
+        # Non-default style selected: strip style attrs so style takes precedence
+        return {k: v for k, v in attrs.items() if k not in self.STYLE_OVERRIDE_ATTRS}
 
     def load(self, config_path: Union[str, Path]) -> "CustomDiagrams":
         """Load diagram configuration from file.
@@ -414,6 +473,10 @@ class CustomDiagrams:
             # Shape not found, use defaults
             shape_attrs = {"shape": "box", "style": "filled"}
 
+        # Strip style attributes when a non-default style is selected
+        # This allows the selected style to override schema-defined colors
+        shape_attrs = self._strip_style_attrs(shape_attrs)
+
         # Build label from template
         label = self._build_label(type_schema.label_template, node_data)
 
@@ -447,14 +510,20 @@ class CustomDiagrams:
         if type_schema:
             attrs = type_schema.get_graphviz_attrs()
 
+            # Strip style attributes when a non-default style is selected
+            # This allows the selected style to override schema-defined colors
+            attrs = self._strip_style_attrs(attrs)
+
             # Add label if label_field is specified
             if type_schema.label_field and type_schema.label_field in edge:
                 attrs["label"] = escape_dot_label(str(edge[type_schema.label_field]))
         else:
-            # Default edge style
-            attrs = {"color": "#333333"}
+            # Default edge style - only apply when using default style
+            style_id = self.settings.style if self.settings else self.DEFAULT_STYLE_ID
+            if style_id == self.DEFAULT_STYLE_ID:
+                attrs = {"color": "#333333"}
 
-        # Allow edge-level overrides
+        # Allow edge-level overrides from template data
         if "label" in edge:
             attrs["label"] = escape_dot_label(str(edge["label"]))
         if "color" in edge:
@@ -475,6 +544,10 @@ class CustomDiagrams:
         """
         clustered_nodes: Set[str] = set()
 
+        # Get cluster style from style config
+        style_config = self._get_style_config()
+        style_cluster_attrs = style_config.get("cluster", {})
+
         for cluster in self.clusters:
             cluster_id = f"cluster_{sanitize_node_id(cluster['id'])}"
             cluster_label = cluster.get("label", cluster["id"])
@@ -484,9 +557,15 @@ class CustomDiagrams:
                 # Set cluster attributes
                 subgraph.attr(label=escape_dot_label(cluster_label))
 
-                # Apply cluster style
-                for key, value in cluster_style.items():
-                    subgraph.attr(**{key: str(value)})
+                # Apply style config cluster attrs first (as defaults)
+                style_id = self.settings.style if self.settings else self.DEFAULT_STYLE_ID
+                if style_id != self.DEFAULT_STYLE_ID and style_cluster_attrs:
+                    for key, value in style_cluster_attrs.items():
+                        subgraph.attr(**{key: str(value)})
+                else:
+                    # Apply template cluster style when using default style
+                    for key, value in cluster_style.items():
+                        subgraph.attr(**{key: str(value)})
 
                 # Add nodes to cluster
                 for node_id in cluster.get("nodes", []):
@@ -529,44 +608,36 @@ class CustomDiagrams:
         return label
 
     def _apply_style(self, graph: gv.Digraph) -> None:
-        """Apply style preset to graph.
+        """Apply style preset to graph from configuration file.
+
+        Applies graph-level, default node, default edge, and cluster
+        styling from the loaded style configuration.
 
         Args:
             graph: Graphviz graph
         """
-        style = self.settings.style if self.settings else "cd_default"
+        style_config = self._get_style_config()
+        if not style_config:
+            return
 
-        if style == "cd_dark":
-            graph.attr(bgcolor="#1a1a2e", fontcolor="white")
-            graph.attr("node", fontcolor="white", color="#444444")
-            graph.attr("edge", color="#666666", fontcolor="#cccccc")
+        # Apply graph-level attributes
+        graph_style = style_config.get("graph", {})
+        if graph_style:
+            # Convert all values to strings for Graphviz
+            graph_attrs = {k: str(v) for k, v in graph_style.items()}
+            graph.attr(**graph_attrs)
 
-        elif style == "cd_blueprint":
-            graph.attr(bgcolor="#1e3a5f", fontcolor="white")
-            graph.attr("node", fontcolor="white", color="white", style="filled")
-            graph.attr("edge", color="#4a90d9", fontcolor="white")
+        # Apply default node attributes
+        node_style = style_config.get("node", {})
+        if node_style:
+            node_attrs = {k: str(v) for k, v in node_style.items()}
+            graph.attr("node", **node_attrs)
 
-        elif style == "cd_light":
-            graph.attr(bgcolor="white", fontcolor="#333333")
-            graph.attr("node", fontcolor="#333333", color="#cccccc")
-            graph.attr("edge", color="#999999")
-
-        elif style == "cd_neon":
-            graph.attr(bgcolor="#0a0a0a", fontcolor="#00ff00")
-            graph.attr("node", fontcolor="#00ff00", color="#00ff00")
-            graph.attr("edge", color="#ff00ff", fontcolor="#00ffff")
-
-        elif style == "cd_pastel":
-            graph.attr(bgcolor="#fef9f3", fontcolor="#4a4a4a")
-            graph.attr("node", fontcolor="#4a4a4a")
-            graph.attr("edge", color="#b8b8b8")
-
-        elif style == "cd_monochrome":
-            graph.attr(bgcolor="white", fontcolor="black")
-            graph.attr("node", fontcolor="black", color="black", fillcolor="white")
-            graph.attr("edge", color="black")
-
-        # cd_default and others: use Graphviz defaults
+        # Apply default edge attributes
+        edge_style = style_config.get("edge", {})
+        if edge_style:
+            edge_attrs = {k: str(v) for k, v in edge_style.items()}
+            graph.attr("edge", **edge_attrs)
 
     def BuildCustomDiagram(
         self,

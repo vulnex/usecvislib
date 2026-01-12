@@ -3959,6 +3959,10 @@ async def visualize_custom_diagram(
         cd = CustomDiagrams()
         cd.load(input_for_viz)
 
+        # Override style if specified via API parameter
+        if style and cd.settings:
+            cd.settings.style = style.value
+
         # Build the diagram with timeout protection
         # SECURITY: Prevents resource exhaustion from complex diagrams
         result = await run_sync_with_timeout(

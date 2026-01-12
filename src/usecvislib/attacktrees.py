@@ -303,15 +303,17 @@ class AttackTrees(VisualizationBase):
 
             # Strip style attributes when a non-default style is selected
             # This allows the selected style to override template colors
-            # Do this BEFORE CVSS processing so CVSS colors can still be applied
             node_attrs = self._strip_style_attrs(node_attrs)
 
             # Apply CVSS-based styling if score is present and CVSS display is enabled
             # Skip fillcolor for nodes with images (they use shape=none)
+            # Only apply CVSS colors when using default style - otherwise let style take precedence
             if resolved_score is not None and is_cvss_enabled("attack_tree"):
                 severity = cvss_to_severity_label(resolved_score)
-                # Only apply fillcolor if no image (icons don't need fill)
-                if not has_image:
+                # Only apply CVSS fillcolor when using default style
+                # Non-default styles should have their colors take full precedence
+                use_cvss_colors = self.styleid == self.DEFAULT_STYLE_ID
+                if not has_image and use_cvss_colors:
                     node_attrs["fillcolor"] = cvss_to_color(resolved_score)
                     # Set fontcolor to white for readability on CVSS-colored backgrounds
                     # (only if user hasn't explicitly set fontcolor)

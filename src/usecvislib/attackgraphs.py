@@ -500,8 +500,10 @@ class AttackGraphs(VisualizationBase):
                     label = f"{label}\\n(CVSS: {resolved_score} - {severity})*"
                 else:
                     label = f"{label}\\n(CVSS: {resolved_score} - {severity})"
-                # Apply CVSS-based color to vulnerability node (skip for image nodes)
-                if not has_image:
+                # Apply CVSS-based color only when using default style
+                # Non-default styles should have their colors take full precedence
+                use_cvss_colors = self.styleid == self.DEFAULT_STYLE_ID
+                if not has_image and use_cvss_colors:
                     node_attrs["fillcolor"] = cvss_to_color(resolved_score)
                     # Set fontcolor to white for readability on CVSS-colored backgrounds
                     # (only if user hasn't explicitly set fontcolor)
