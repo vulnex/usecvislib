@@ -40,7 +40,7 @@ import graphviz as gv
 from . import utils
 from .base import VisualizationBase
 from .constants import cvss_to_severity_label
-from .cvss import get_cvss_score
+from .cvss_unified import get_cvss_score_unified as get_cvss_score
 from .settings import is_cvss_enabled
 
 
