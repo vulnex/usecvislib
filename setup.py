@@ -8,7 +8,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="usecvislib",
-    version="0.3.2",
+    version="0.3.3",
     author="VulnEx",
     author_email="",
     description="Universal Security Visualization Library for attack trees, threat modeling, and binary analysis",

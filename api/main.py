@@ -5,7 +5,7 @@
 # Author: Simon Roses Femerling
 # Created: 2025-01-01
 # Last Modified: 2025-12-31
-# Version: 0.3.2
+# Version: 0.3.3
 # License: Apache-2.0
 # Copyright (c) 2025 VULNEX. All rights reserved.
 # https://www.vulnex.com
@@ -418,6 +418,7 @@ from .schemas import (
     CloudProvidersResponse,
     CloudTemplateInfo,
     CloudTemplateListResponse,
+    CloudTemplateContentResponse,
     CloudPythonCodeResponse,
 )
 
@@ -979,7 +980,7 @@ To disable authentication for local development:
 export USECVISLIB_AUTH_ENABLED=false
 ```
     """,
-    version="0.3.2",
+    version="0.3.3",
     lifespan=lifespan,
     root_path=API_ROOT_PATH,
     dependencies=[Depends(verify_api_key)],
@@ -4939,18 +4940,21 @@ async def visualize_mermaid(
         # Create MermaidDiagrams instance
         md = MermaidDiagrams(
             theme=theme.value,
-            background=background,
-            width=width,
-            height=height,
             validate_cli=True
         )
 
         # Load the file
         md.load(input_path)
 
-        # Render with timeout protection
+        # Render with timeout protection (pass width/height/background to render)
         await run_sync_with_timeout(
-            lambda: md.render(output_base, format=format.value),
+            lambda: md.render(
+                output_base,
+                format=format.value,
+                width=width,
+                height=height,
+                background=background
+            ),
             REQUEST_TIMEOUT_VISUALIZE,
             "mermaid rendering"
         )
@@ -5308,17 +5312,22 @@ async def visualize_cloud(
         output_base = os.path.join(TEMP_DIR, f"cloud_{os.urandom(8).hex()}")
 
         # Create CloudDiagrams instance
-        cd = CloudDiagrams(
-            direction=direction.value,
-            show=False  # Don't open in viewer
-        )
+        cd = CloudDiagrams(validate_diagrams=True)
 
         # Load the file
         cd.load(input_path)
 
-        # Render with timeout protection
+        # Override direction if specified (after load, which sets from config)
+        if direction:
+            cd.config.direction = direction.value
+
+        # Render with timeout protection (show=False to not open viewer)
         await run_sync_with_timeout(
-            lambda: cd.render(output_base, format=format.value if format != CloudOutputFormat.DOT else "png"),
+            lambda: cd.render(
+                output_base,
+                format=format.value if format != CloudOutputFormat.DOT else "png",
+                show=False
+            ),
             REQUEST_TIMEOUT_VISUALIZE,
             "cloud diagram rendering"
         )
@@ -5546,6 +5555,64 @@ async def list_cloud_templates(
     except Exception as e:
         logger.error(f"Error listing cloud templates: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="Failed to list templates")
+
+
+@app.get(
+    "/cloud/template/{category}/{name}",
+    response_model=CloudTemplateContentResponse,
+    tags=["Cloud Diagrams"],
+    summary="Get cloud template content"
+)
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def get_cloud_template(
+    request: Request,
+    category: str,
+    name: str
+):
+    """
+    Get the content of a specific cloud diagram template.
+
+    Returns the template content along with metadata.
+    """
+    try:
+        template_id = f"{category}/{name}"
+        templates_dir = CloudDiagrams.get_templates_dir()
+
+        # Try .toml first, then .yaml, then .json
+        template_path = None
+        for ext in [".toml", ".yaml", ".yml", ".json"]:
+            candidate = templates_dir / category / f"{name}{ext}"
+            if candidate.exists():
+                template_path = candidate
+                break
+
+        if not template_path:
+            raise HTTPException(status_code=404, detail=f"Template not found: {template_id}")
+
+        # Read the template content
+        content = template_path.read_text()
+
+        # Detect providers used
+        providers = []
+        content_lower = content.lower()
+        for provider in ["aws", "azure", "gcp", "k8s", "onprem", "oci", "alibabacloud"]:
+            if provider in content_lower:
+                providers.append(provider)
+
+        return CloudTemplateContentResponse(
+            id=template_id,
+            name=name.replace("-", " ").replace("_", " ").title(),
+            category=category,
+            content=content,
+            filename=template_path.name,
+            providers=providers
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting cloud template: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Failed to get template")
 
 
 @app.post(

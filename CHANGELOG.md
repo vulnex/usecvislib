@@ -7,42 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.3] - 2025-01-15
+
 ### Added
 
-- **Mermaid Diagrams Module** (Work in Progress)
+- **Mermaid Diagrams Module**
   - New `MermaidDiagrams` class for rendering Mermaid syntax to images via mermaid-cli
-  - Support for all Mermaid diagram types: flowcharts, sequence, class, state, ER, Gantt, etc.
+  - Support for all Mermaid diagram types: flowcharts, sequence, class, state, ER, Gantt, pie, mindmap, timeline, etc.
   - Template system with categories (flowcharts, sequence, class, state, etc.)
-  - API endpoint `/mermaid/template/{category}/{name}` for loading template content
-  - Frontend panel `MermaidDiagramPanel.vue` with editor and template browser
+  - API endpoints for Mermaid visualization and template management
+  - Frontend panel with editor, template browser, and zoom/pan support
+  - Theme and background customization options
   - Docker support with Chromium and puppeteer configuration for sandbox environments
 
-- **Cloud Diagrams Module** (Work in Progress)
-  - New `CloudDiagrams` class for cloud architecture visualization
-  - Support for AWS, Azure, GCP, and generic cloud icons
-  - Template system for common cloud patterns
-  - Frontend panel `CloudDiagramPanel.vue` with editor and template browser
+- **Cloud Diagrams Module**
+  - New `CloudDiagrams` class for cloud architecture visualization using the `diagrams` library
+  - Support for AWS, Azure, GCP, Kubernetes, and generic cloud provider icons
+  - Cluster support for grouping related components
+  - Edge labels and styling for connections between nodes
+  - Template system with security, microservices, and infrastructure patterns
+  - API endpoints for cloud diagram visualization and template management
+  - Frontend panel with editor, template browser, and zoom/pan support
+
+- **Zoom/Pan Support**
+  - Added `ZoomableImage` component to Mermaid and Cloud diagram panels
+  - Consistent zoom experience across all visualization modules
 
 ### Fixed
 
+- **Mermaid Diagrams**
+  - Fixed constructor parameter handling - moved rendering options to `render()` method
+  - Fixed TOML format detection for files starting with comments
+  - Fixed theme/background options not being passed to visualization API
+
+- **Cloud Diagrams**
+  - Fixed format compatibility between frontend and backend TOML structures
+  - Fixed template content not loading when selecting from template browser
+  - Fixed icon naming issues in security templates (e.g., `NetworkFirewall` → `FirewallManager`)
+
 - **Consistent Style Application Across All Modules**
-  - Fixed Custom Diagrams API endpoint not applying the style parameter - styles now correctly override schema-defined colors when a non-default style is selected
-  - Fixed Attack Trees leaf nodes ignoring selected style - CVSS-based colors no longer override the selected style (CVSS info still shown in labels)
-  - Fixed Attack Graphs vulnerability nodes ignoring selected style - same CVSS color fix as Attack Trees
+  - Fixed Custom Diagrams API endpoint not applying the style parameter
+  - Fixed Attack Trees leaf nodes ignoring selected style
+  - Fixed Attack Graphs vulnerability nodes ignoring selected style
 
 ### Changed
 
 - **Custom Diagrams Style System Overhaul**
-  - Custom Diagrams now loads style configuration from `config_customdiagrams.tml` instead of using hardcoded values
-  - Added `_strip_style_attrs()` method to strip schema-defined style attributes when non-default style is selected
-  - Node colors, edge colors, and cluster styling now respect the selected style preset
-  - Style presets (dark, neon, monochrome, etc.) now fully apply to all diagram elements
-
-### Behavior Changes
-
-- **Default Style**: Template/schema-defined colors are preserved (backward compatible)
-- **Non-Default Styles**: Style colors take full precedence over template/schema colors
-- CVSS severity information is still displayed in node labels regardless of style selection
+  - Custom Diagrams now loads style configuration from `config_customdiagrams.tml`
+  - Added `_strip_style_attrs()` method for style attribute management
+  - Style presets now fully apply to all diagram elements
 
 ## [0.3.2] - 2025-01-09
 

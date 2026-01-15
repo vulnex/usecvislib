@@ -5,7 +5,7 @@
 # Author: Simon Roses Femerling
 # Created: 2025-01-14
 # Last Modified: 2025-01-14
-# Version: 0.3.2
+# Version: 0.3.3
 # License: Apache-2.0
 # Copyright (c) 2025 VULNEX. All rights reserved.
 # https://www.vulnex.com
@@ -95,8 +95,12 @@ class CloudDiagramConfig:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "CloudDiagramConfig":
-        """Create from dictionary."""
-        diagram_section = data.get("diagram", data)
+        """Create from dictionary.
+
+        Supports both [diagram] section (templates) and [cloud] section (frontend).
+        """
+        # Check for diagram section first, then cloud section, then use root
+        diagram_section = data.get("diagram") or data.get("cloud") or data
         return cls(
             title=diagram_section.get("title", "Cloud Architecture"),
             direction=diagram_section.get("direction", "LR"),
@@ -387,21 +391,30 @@ class CloudDiagrams:
     def _load_from_dict(self, data: Dict[str, Any]) -> None:
         """Load configuration from dictionary.
 
+        Supports two formats:
+        1. Standard format: [diagram], [[nodes]], [[edges]], [[clusters]]
+        2. Cloud format: [cloud], [[cloud.nodes]], [[cloud.edges]], [[cloud.clusters]]
+
         Args:
             data: Configuration dictionary
         """
         self.config = CloudDiagramConfig.from_dict(data)
 
-        # Load clusters (with embedded nodes)
+        # Support both formats: check for 'cloud' section (frontend format) or root level (template format)
+        cloud_section = data.get("cloud", {})
+
+        # Load clusters (with embedded nodes) - check both locations
+        clusters_data = data.get("clusters", []) or cloud_section.get("clusters", [])
         self.clusters = []
-        for cluster_data in data.get("clusters", []):
+        for cluster_data in clusters_data:
             cluster = CloudCluster.from_dict(cluster_data)
             self.clusters.append(cluster)
 
-        # Load standalone nodes
+        # Load standalone nodes - check both locations
+        nodes_data = data.get("nodes", []) or cloud_section.get("nodes", [])
         standalone_nodes = [
             CloudNode.from_dict(n)
-            for n in data.get("nodes", [])
+            for n in nodes_data
         ]
 
         # Combine all nodes (cluster nodes + standalone)
@@ -409,10 +422,11 @@ class CloudDiagrams:
         for cluster in self.clusters:
             self.nodes.extend(cluster.nodes)
 
-        # Load edges
+        # Load edges - check both locations
+        edges_data = data.get("edges", []) or cloud_section.get("edges", [])
         self.edges = [
             CloudEdge.from_dict(e)
-            for e in data.get("edges", [])
+            for e in edges_data
         ]
 
     # =========================================================================

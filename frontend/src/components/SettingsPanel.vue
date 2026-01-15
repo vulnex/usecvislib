@@ -5,7 +5,7 @@
   Author: Simon Roses Femerling
   Created: 2025-01-01
   Last Modified: 2025-12-30
-  Version: 0.3.2
+  Version: 0.3.3
   License: Apache-2.0
   Copyright (c) 2025 VULNEX. All rights reserved.
   https://www.vulnex.com
@@ -290,7 +290,7 @@
           <div class="about-info">
             <h4>USecVisLib</h4>
             <p>Universal Security Visualization Library</p>
-            <p class="version">Frontend v0.3.2</p>
+            <p class="version">Frontend v0.3.3</p>
           </div>
         </div>
         <div class="about-links">

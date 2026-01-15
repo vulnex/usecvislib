@@ -16,6 +16,8 @@ Complete Python API reference for the Universal Security Visualization Library.
    - [BinVis](#binvis)
      - [Configuration System](#configuration-system)
    - [CustomDiagrams](#customdiagrams)
+   - [MermaidDiagrams](#mermaiddiagrams)
+   - [CloudDiagrams](#clouddiagrams)
    - [CVSS Module](#cvss-module)
    - [Settings Module](#settings-module)
    - [Templates](#templates)
@@ -58,7 +60,10 @@ print(usecvislib.__version__)  # 0.2.9
 ### Classic API
 
 ```python
-from usecvislib import AttackTrees, AttackGraphs, ThreatModeling, BinVis, CustomDiagrams
+from usecvislib import (
+    AttackTrees, AttackGraphs, ThreatModeling, BinVis,
+    CustomDiagrams, MermaidDiagrams, CloudDiagrams
+)
 
 # Attack Tree
 at = AttackTrees("attack.toml", "output", format="png", styleid="at_neon")
@@ -78,6 +83,16 @@ threats = tm.analyze_stride()
 bv = BinVis("binary.exe", "analysis", format="png")
 bv.BuildBinVis("all")
 stats = bv.get_file_stats()
+
+# Mermaid Diagrams
+md = MermaidDiagrams()
+md.load("flowchart.toml")
+result = md.render("output", format="png", theme="default")
+
+# Cloud Diagrams
+cloud = CloudDiagrams()
+cloud.load("architecture.toml")
+result = cloud.render("output", format="png")
 ```
 
 ### Modern Fluent API
@@ -1549,6 +1564,336 @@ else:
 ```
 
 See [Custom Diagrams Guide](CUSTOM_DIAGRAMS_GUIDE.md) for complete documentation.
+
+---
+
+### MermaidDiagrams
+
+Render Mermaid syntax to PNG/SVG images using mermaid-cli.
+
+#### Import
+
+```python
+from usecvislib import MermaidDiagrams
+```
+
+#### Constructor
+
+```python
+MermaidDiagrams()
+```
+
+Creates a new MermaidDiagrams instance.
+
+#### Methods
+
+##### `load(source: str) -> MermaidDiagrams`
+
+Load Mermaid content from a file or string.
+
+```python
+md = MermaidDiagrams()
+
+# Load from file (TOML, JSON, YAML, or raw .mmd)
+md.load("diagram.toml")
+md.load("flowchart.mmd")
+
+# Load from string
+md.load("""
+flowchart TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Process]
+    B -->|No| D[End]
+""")
+```
+
+##### `render(output: str, format: str = "png", theme: str = "default", background: str = "white", width: int = None, height: int = None) -> Dict`
+
+Render the Mermaid diagram to an image file.
+
+```python
+md = MermaidDiagrams()
+md.load("flowchart.toml")
+
+result = md.render(
+    output="diagram",
+    format="png",
+    theme="dark",
+    background="transparent"
+)
+
+print(result)
+# {
+#     "success": True,
+#     "output_path": "diagram.png",
+#     "format": "png",
+#     "theme": "dark"
+# }
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `output` | `str` | required | Output file path (without extension) |
+| `format` | `str` | `"png"` | Output format: png, svg, pdf |
+| `theme` | `str` | `"default"` | Mermaid theme: default, dark, forest, neutral |
+| `background` | `str` | `"white"` | Background color (CSS color or "transparent") |
+| `width` | `int` | `None` | Image width in pixels |
+| `height` | `int` | `None` | Image height in pixels |
+
+##### `get_diagram_type() -> str`
+
+Detect the type of Mermaid diagram.
+
+```python
+md = MermaidDiagrams()
+md.load("diagram.mmd")
+diagram_type = md.get_diagram_type()
+print(diagram_type)  # "flowchart", "sequence", "class", etc.
+```
+
+#### Configuration Format
+
+```toml
+[mermaid]
+title = "Authentication Flow"
+theme = "default"
+background = "white"
+
+[mermaid.content]
+syntax = """
+sequenceDiagram
+    participant User
+    participant App
+    participant Auth
+
+    User->>App: Login
+    App->>Auth: Validate
+    Auth-->>App: Token
+    App-->>User: Success
+"""
+```
+
+#### Supported Diagram Types
+
+- `flowchart` / `graph` - Flowcharts and process flows
+- `sequenceDiagram` - Sequence diagrams
+- `classDiagram` - UML class diagrams
+- `stateDiagram` - State machine diagrams
+- `erDiagram` - Entity-relationship diagrams
+- `gantt` - Gantt charts
+- `pie` - Pie charts
+- `mindmap` - Mind maps
+- `timeline` - Timelines
+
+#### Example
+
+```python
+from usecvislib import MermaidDiagrams
+
+# Create a sequence diagram
+md = MermaidDiagrams()
+md.load("""
+sequenceDiagram
+    participant Browser
+    participant Server
+    participant Database
+
+    Browser->>Server: HTTP Request
+    Server->>Database: Query
+    Database-->>Server: Results
+    Server-->>Browser: HTTP Response
+""")
+
+result = md.render("sequence_diagram", format="png", theme="default")
+print(f"Generated: {result['output_path']}")
+```
+
+---
+
+### CloudDiagrams
+
+Create cloud architecture diagrams with provider-specific icons.
+
+#### Import
+
+```python
+from usecvislib import CloudDiagrams
+```
+
+#### Constructor
+
+```python
+CloudDiagrams()
+```
+
+Creates a new CloudDiagrams instance.
+
+#### Methods
+
+##### `load(source: str) -> CloudDiagrams`
+
+Load cloud diagram configuration from a file.
+
+```python
+cloud = CloudDiagrams()
+cloud.load("architecture.toml")
+```
+
+##### `render(output: str, format: str = "png", direction: str = "TB", show: bool = False) -> Dict`
+
+Render the cloud architecture diagram.
+
+```python
+cloud = CloudDiagrams()
+cloud.load("architecture.toml")
+
+result = cloud.render(
+    output="diagram",
+    format="png",
+    direction="LR"
+)
+
+print(result)
+# {
+#     "success": True,
+#     "output_path": "diagram.png",
+#     "format": "png",
+#     "node_count": 5,
+#     "edge_count": 6
+# }
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `output` | `str` | required | Output file path (without extension) |
+| `format` | `str` | `"png"` | Output format: png, svg, pdf |
+| `direction` | `str` | `"TB"` | Graph direction: TB, BT, LR, RL |
+| `show` | `bool` | `False` | Open diagram after generation |
+
+##### `get_providers() -> List[str]`
+
+Get list of supported cloud providers.
+
+```python
+cloud = CloudDiagrams()
+providers = cloud.get_providers()
+print(providers)  # ["aws", "azure", "gcp", "k8s", "generic"]
+```
+
+##### `get_icons(provider: str = None) -> Dict`
+
+Get available icons, optionally filtered by provider.
+
+```python
+cloud = CloudDiagrams()
+
+# Get all icons
+icons = cloud.get_icons()
+
+# Get AWS icons only
+aws_icons = cloud.get_icons(provider="aws")
+```
+
+#### Configuration Format
+
+```toml
+[diagram]
+title = "AWS Architecture"
+direction = "TB"
+outformat = "png"
+
+[[clusters]]
+id = "vpc"
+label = "VPC"
+
+    [[clusters.nodes]]
+    id = "alb"
+    icon = "aws.network.ElasticLoadBalancing"
+    label = "Load Balancer"
+
+    [[clusters.nodes]]
+    id = "ec2"
+    icon = "aws.compute.EC2"
+    label = "Web Server"
+
+[[nodes]]
+id = "users"
+icon = "aws.general.User"
+label = "Users"
+
+[[nodes]]
+id = "rds"
+icon = "aws.database.RDS"
+label = "Database"
+
+[[edges]]
+from = "users"
+to = "alb"
+
+[[edges]]
+from = "alb"
+to = "ec2"
+
+[[edges]]
+from = "ec2"
+to = "rds"
+label = "SQL"
+```
+
+#### Supported Providers
+
+| Provider | Prefix | Categories |
+|----------|--------|------------|
+| **AWS** | `aws.` | compute, database, network, security, storage, analytics, ml |
+| **Azure** | `azure.` | compute, database, network, security, storage, ai, devops |
+| **GCP** | `gcp.` | compute, database, network, security, storage, ml |
+| **Kubernetes** | `k8s.` | compute, network, storage, others |
+| **Generic** | `generic.` | compute, database, network, storage |
+
+#### Icon Naming Convention
+
+Icons follow the pattern: `provider.category.ServiceName`
+
+```python
+# AWS examples
+"aws.compute.EC2"
+"aws.database.RDS"
+"aws.network.VPC"
+"aws.security.IAM"
+"aws.storage.S3"
+
+# Azure examples
+"azure.compute.VirtualMachine"
+"azure.database.SQLDatabase"
+
+# GCP examples
+"gcp.compute.ComputeEngine"
+"gcp.database.CloudSQL"
+```
+
+#### Example
+
+```python
+from usecvislib import CloudDiagrams
+
+cloud = CloudDiagrams()
+cloud.load("architecture.toml")
+
+# Generate with left-to-right layout
+result = cloud.render(
+    output="architecture",
+    format="png",
+    direction="LR"
+)
+
+if result["success"]:
+    print(f"Generated: {result['output_path']}")
+    print(f"Nodes: {result['node_count']}, Edges: {result['edge_count']}")
+```
 
 ---
 

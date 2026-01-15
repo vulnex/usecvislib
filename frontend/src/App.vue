@@ -5,7 +5,7 @@
   Author: Simon Roses Femerling
   Created: 2025-01-01
   Last Modified: 2025-12-29
-  Version: 0.3.1
+  Version: 0.3.3
   License: Apache-2.0
   Copyright (c) 2025 VULNEX. All rights reserved.
   https://www.vulnex.com
@@ -82,7 +82,7 @@
     </main>
 
     <footer class="footer">
-      <p>USecVisLib v0.3.2 |
+      <p>USecVisLib v0.3.3 |
         <a href="http://localhost:8000/docs" target="_blank">API Docs</a> |
         <a href="https://github.com/vulnex/usecvislib" target="_blank">GitHub</a>
       </p>

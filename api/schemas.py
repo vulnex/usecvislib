@@ -1912,6 +1912,28 @@ class CloudTemplateListResponse(BaseModel):
         }
 
 
+class CloudTemplateContentResponse(BaseModel):
+    """Response containing cloud diagram template content."""
+    id: str = Field(description="Template ID (category/name)")
+    name: str = Field(description="Template name")
+    category: str = Field(description="Template category")
+    content: str = Field(description="Template content (TOML/YAML/JSON)")
+    filename: str = Field(description="Original filename")
+    providers: List[str] = Field(default=[], description="Providers used in template")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "aws/web-application",
+                "name": "Web Application",
+                "category": "aws",
+                "content": "[diagram]\ntitle = \"AWS Web Application\"\n...",
+                "filename": "web-application.toml",
+                "providers": ["aws"]
+            }
+        }
+
+
 class CloudPythonCodeResponse(BaseModel):
     """Response containing generated Python code."""
     code: str = Field(description="Generated Python code")
