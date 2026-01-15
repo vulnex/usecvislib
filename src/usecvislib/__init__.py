@@ -183,6 +183,21 @@ from .cvss import (
     validate_cvss_vector,
     get_cvss_score,
 )
+from .cvss4 import (
+    CVSSVector4,
+    parse_cvss4_vector,
+    calculate_cvss4_from_vector,
+    validate_cvss4_vector,
+)
+from .cvss_unified import (
+    parse_vector as parse_cvss_vector_unified,
+    calculate_score_from_vector as calculate_cvss_from_vector_unified,
+    validate_vector as validate_cvss_vector_unified,
+    get_cvss_score_unified,
+    detect_cvss_version,
+    is_cvss4_vector,
+    is_cvss3_vector,
+)
 from .mermaid import (
     serialize_to_mermaid,
     detect_visualization_type,
@@ -308,13 +323,26 @@ __all__ = [
     "DiffResult",
     "VisualizationDiff",
     "compare_files",
-    # CVSS support
+    # CVSS 3.x support
     "CVSSVector",
     "CVSSVersion",
     "parse_cvss_vector",
     "calculate_cvss_from_vector",
     "validate_cvss_vector",
     "get_cvss_score",
+    # CVSS 4.0 support
+    "CVSSVector4",
+    "parse_cvss4_vector",
+    "calculate_cvss4_from_vector",
+    "validate_cvss4_vector",
+    # CVSS unified interface
+    "parse_cvss_vector_unified",
+    "calculate_cvss_from_vector_unified",
+    "validate_cvss_vector_unified",
+    "get_cvss_score_unified",
+    "detect_cvss_version",
+    "is_cvss4_vector",
+    "is_cvss3_vector",
     # Mermaid support
     "serialize_to_mermaid",
     "detect_visualization_type",

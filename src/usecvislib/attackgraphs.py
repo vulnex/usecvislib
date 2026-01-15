@@ -38,7 +38,7 @@ import networkx as nx
 from . import utils
 from .base import VisualizationBase
 from .constants import cvss_to_color, cvss_to_severity_label, validate_cvss_score
-from .cvss import get_cvss_score, validate_cvss_vector
+from .cvss_unified import get_cvss_score_unified as get_cvss_score, validate_vector as validate_cvss_vector
 from .settings import is_cvss_enabled
 
 
