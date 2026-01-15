@@ -517,3 +517,59 @@ class AttackTrees(VisualizationBase):
             AttackTreeError: If any step fails.
         """
         self.build()
+
+    # =========================================================================
+    # Export/Conversion Methods
+    # =========================================================================
+
+    def to_mermaid_diagram(self) -> "MermaidDiagrams":
+        """Convert to MermaidDiagrams format.
+
+        Returns:
+            MermaidDiagrams instance ready to render.
+
+        Example:
+            >>> at = AttackTrees("attack.toml", "output")
+            >>> md = at.to_mermaid_diagram()
+            >>> md.render("output", format="svg")
+        """
+        from .mermaiddiagrams import MermaidDiagrams
+        return MermaidDiagrams.from_attack_tree(self.inputfile)
+
+    def to_cloud_diagram(self) -> "CloudDiagrams":
+        """Convert to CloudDiagrams format.
+
+        Returns:
+            CloudDiagrams instance ready to render.
+
+        Example:
+            >>> at = AttackTrees("attack.toml", "output")
+            >>> cd = at.to_cloud_diagram()
+            >>> cd.render("output", format="png")
+        """
+        from .clouddiagrams import CloudDiagrams
+        return CloudDiagrams.from_attack_tree(self.inputfile)
+
+    def export_mermaid(self, output: str) -> str:
+        """Export as Mermaid syntax file.
+
+        Args:
+            output: Output file path (with or without .mmd extension)
+
+        Returns:
+            Path to saved file.
+        """
+        md = self.to_mermaid_diagram()
+        return md.save_mmd(output)
+
+    def export_python_diagrams(self, output: str) -> str:
+        """Export as Python Diagrams code file.
+
+        Args:
+            output: Output file path (with or without .py extension)
+
+        Returns:
+            Path to saved file.
+        """
+        cd = self.to_cloud_diagram()
+        return cd.save_python(output)

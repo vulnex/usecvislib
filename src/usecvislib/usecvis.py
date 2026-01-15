@@ -34,7 +34,7 @@ def Usage() -> None:
     print("Options:")
     print("  -h, --help              Show this help message")
     print("  -i, --ifile <file>      Input file (required)")
-    print("                          Supports: .toml, .tml, .json, .yaml, .yml")
+    print("                          Supports: .toml, .tml, .json, .yaml, .yml, .mmd")
     print("  -o, --ofile <file>      Output file (required)")
     print("  -f, --format <format>   Output format: png, pdf, svg, dot (default: png)")
     print("  -m, --mode <mode>       Visualization mode:")
@@ -42,6 +42,8 @@ def Usage() -> None:
     print("                            1 - Threat Modeling")
     print("                            2 - Binary Visualization")
     print("                            3 - Attack Graphs")
+    print("                            4 - Mermaid Diagrams")
+    print("                            5 - Cloud Diagrams")
     print("  -s, --styleid <id>      Style ID from config file")
     print("  -S, --stylefile <file>  Custom style file path")
     print("  -v, --visualization     Visualization type for binary mode:")
@@ -51,6 +53,8 @@ def Usage() -> None:
     print("  -r, --report            Generate STRIDE report (threat modeling only)")
     print("  -p, --paths <src,tgt>   Find attack paths between nodes (attack graphs)")
     print("  -c, --critical          Analyze critical nodes (attack graphs)")
+    print("  -t, --theme <theme>     Mermaid theme: default, dark, forest, neutral, base")
+    print("  -d, --direction <dir>   Cloud diagram direction: TB, BT, LR, RL")
     print("")
     print("  --convert <format>      Convert input file to format: toml, json, yaml, mermaid")
     print("                          Output will be saved to <output>.<format_ext>")
@@ -64,6 +68,8 @@ def Usage() -> None:
     print("  usecvis -i binary.exe -o analysis -m 2 -C binvis_config.toml")
     print("  usecvis -i network.toml -o graph -m 3 -s ag_security")
     print("  usecvis -i network.toml -o graph -m 3 -p attacker,database -c")
+    print("  usecvis -i diagram.mmd -o output -m 4 -t dark")
+    print("  usecvis -i cloud.toml -o architecture -m 5 -d LR")
     print("")
     print("Format Conversion Examples:")
     print("  usecvis -i attack.toml -o attack --convert json")
@@ -93,7 +99,7 @@ def validate_mode(mode: int) -> bool:
     Returns:
         True if mode is valid, False otherwise.
     """
-    return mode in [0, 1, 2, 3]
+    return mode in [0, 1, 2, 3, 4, 5]
 
 
 def error_exit(message: str, show_usage: bool = True) -> NoReturn:
@@ -133,16 +139,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     generate_report = False
     attack_paths = ""  # source,target for attack graph path analysis
     analyze_critical = False
+    theme = "default"  # Mermaid theme
+    direction = "TB"   # Cloud diagram direction
 
     convert_format = ""  # Format to convert to: toml, json, yaml, mermaid
 
     try:
         opts, args = getopt.getopt(
             argv,
-            "hi:o:f:m:s:S:v:C:rp:c",
+            "hi:o:f:m:s:S:v:C:rp:ct:d:",
             ["help", "ifile=", "ofile=", "format=", "mode=", "styleid=",
              "stylefile=", "visualization=", "config=", "report", "paths=", "critical",
-             "convert="]
+             "convert=", "theme=", "direction="]
         )
     except getopt.GetoptError as e:
         error_exit(str(e))
@@ -161,7 +169,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             try:
                 mode = int(arg)
             except ValueError:
-                error_exit(f"Invalid mode: {arg}. Must be 0, 1, 2, or 3.")
+                error_exit(f"Invalid mode: {arg}. Must be 0, 1, 2, 3, 4, or 5.")
         elif opt in ("-s", "--styleid"):
             styleid = arg
         elif opt in ("-S", "--stylefile"):
@@ -176,6 +184,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             attack_paths = arg
         elif opt in ("-c", "--critical"):
             analyze_critical = True
+        elif opt in ("-t", "--theme"):
+            theme = arg
+        elif opt in ("-d", "--direction"):
+            direction = arg.upper()
         elif opt == "--convert":
             convert_format = arg.lower()
 
@@ -273,7 +285,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # Validate mode
     if not validate_mode(mode):
-        error_exit(f"Invalid mode: {mode}. Must be 0, 1, 2, or 3.")
+        error_exit(f"Invalid mode: {mode}. Must be 0, 1, 2, 3, 4, or 5.")
 
     # Execute based on mode
     try:
@@ -379,6 +391,61 @@ def main(argv: Optional[List[str]] = None) -> int:
                         print(f"  {i}. {node['label']} ({node['type']})")
                         print(f"     In-degree: {node['in_degree']}, Out-degree: {node['out_degree']}")
                         print(f"     Criticality score: {node['criticality_score']}")
+
+        elif mode == 4:
+            # Mermaid Diagrams
+            from . import mermaiddiagrams
+
+            # Validate theme
+            valid_themes = ['default', 'dark', 'forest', 'neutral', 'base']
+            if theme not in valid_themes:
+                error_exit(f"Invalid theme: {theme}. Must be one of: {', '.join(valid_themes)}")
+
+            # Validate format for Mermaid
+            valid_mermaid_formats = ['png', 'svg', 'pdf']
+            if format not in valid_mermaid_formats:
+                error_exit(f"Invalid format for Mermaid: {format}. Must be one of: {', '.join(valid_mermaid_formats)}")
+
+            md = mermaiddiagrams.MermaidDiagrams(theme=theme, validate_cli=True)
+            md.load(inputfile)
+            result = md.render(outputfile, format=format)
+            print(f"Mermaid diagram generated: {result.output_path}")
+
+            # Print diagram statistics
+            stats = md.get_stats()
+            print(f"\nDiagram Statistics:")
+            print(f"  Type: {stats['diagram_type']}")
+            print(f"  Lines: {stats['line_count']}")
+            print(f"  Characters: {stats['char_count']}")
+
+        elif mode == 5:
+            # Cloud Diagrams
+            from . import clouddiagrams
+
+            # Validate direction
+            valid_directions = ['TB', 'BT', 'LR', 'RL']
+            if direction not in valid_directions:
+                error_exit(f"Invalid direction: {direction}. Must be one of: {', '.join(valid_directions)}")
+
+            # Validate format for Cloud diagrams
+            valid_cloud_formats = ['png', 'jpg', 'svg', 'pdf', 'dot']
+            if format not in valid_cloud_formats:
+                error_exit(f"Invalid format for Cloud: {format}. Must be one of: {', '.join(valid_cloud_formats)}")
+
+            cd = clouddiagrams.CloudDiagrams(direction=direction, show=False)
+            cd.load(inputfile)
+            result = cd.render(outputfile, format=format)
+            print(f"Cloud diagram generated: {result.output_path}")
+
+            # Print diagram statistics
+            stats = cd.get_stats()
+            print(f"\nDiagram Statistics:")
+            print(f"  Title: {stats['title']}")
+            print(f"  Nodes: {stats['node_count']}")
+            print(f"  Edges: {stats['edge_count']}")
+            print(f"  Clusters: {stats['cluster_count']}")
+            if stats['providers_used']:
+                print(f"  Providers: {', '.join(stats['providers_used'])}")
 
     except FileNotFoundError as e:
         error_exit(str(e), show_usage=False)

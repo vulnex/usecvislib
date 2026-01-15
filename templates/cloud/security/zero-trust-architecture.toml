@@ -1,0 +1,150 @@
+# Zero Trust Security Architecture
+# Modern security architecture with identity-centric access
+
+[diagram]
+title = "Zero Trust Architecture"
+direction = "TB"
+outformat = "png"
+show = false
+
+# Identity Cluster
+[[clusters]]
+id = "identity"
+label = "Identity & Access"
+
+    [[clusters.nodes]]
+    id = "idp"
+    icon = "aws.security.IdentityAndAccessManagementIam"
+    label = "Identity Provider"
+
+    [[clusters.nodes]]
+    id = "mfa"
+    icon = "aws.security.DirectoryService"
+    label = "MFA Service"
+
+    [[clusters.nodes]]
+    id = "sso"
+    icon = "aws.security.SingleSignOn"
+    label = "SSO"
+
+# Network Security Cluster
+[[clusters]]
+id = "network"
+label = "Network Security"
+
+    [[clusters.nodes]]
+    id = "waf"
+    icon = "aws.security.WAF"
+    label = "Web Application Firewall"
+
+    [[clusters.nodes]]
+    id = "shield"
+    icon = "aws.security.Shield"
+    label = "DDoS Protection"
+
+    [[clusters.nodes]]
+    id = "firewall"
+    icon = "aws.security.NetworkFirewall"
+    label = "Network Firewall"
+
+# Data Security Cluster
+[[clusters]]
+id = "data_sec"
+label = "Data Security"
+
+    [[clusters.nodes]]
+    id = "kms"
+    icon = "aws.security.KeyManagementService"
+    label = "Key Management"
+
+    [[clusters.nodes]]
+    id = "secrets"
+    icon = "aws.security.SecretsManager"
+    label = "Secrets Manager"
+
+    [[clusters.nodes]]
+    id = "macie"
+    icon = "aws.security.Macie"
+    label = "Data Discovery"
+
+# Monitoring Cluster
+[[clusters]]
+id = "monitoring"
+label = "Security Monitoring"
+
+    [[clusters.nodes]]
+    id = "guardduty"
+    icon = "aws.security.GuardDuty"
+    label = "Threat Detection"
+
+    [[clusters.nodes]]
+    id = "securityhub"
+    icon = "aws.security.SecurityHub"
+    label = "Security Hub"
+
+    [[clusters.nodes]]
+    id = "cloudtrail"
+    icon = "aws.management.Cloudtrail"
+    label = "Audit Logs"
+
+# External
+[[nodes]]
+id = "users"
+icon = "aws.general.User"
+label = "Users"
+
+[[nodes]]
+id = "apps"
+icon = "aws.compute.EC2"
+label = "Applications"
+
+# Edges
+[[edges]]
+from = "users"
+to = "idp"
+
+[[edges]]
+from = "idp"
+to = "mfa"
+
+[[edges]]
+from = "mfa"
+to = "sso"
+
+[[edges]]
+from = "sso"
+to = "waf"
+
+[[edges]]
+from = "waf"
+to = "shield"
+
+[[edges]]
+from = "shield"
+to = "firewall"
+
+[[edges]]
+from = "firewall"
+to = "apps"
+
+[[edges]]
+from = "apps"
+to = "kms"
+label = "Encrypt"
+
+[[edges]]
+from = "apps"
+to = "secrets"
+label = "Fetch secrets"
+
+[[edges]]
+from = "guardduty"
+to = "securityhub"
+
+[[edges]]
+from = "cloudtrail"
+to = "securityhub"
+
+[[edges]]
+from = "macie"
+to = "securityhub"

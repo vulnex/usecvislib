@@ -1,0 +1,59 @@
+# Attack Flow Diagram
+# Visualizes a typical attack chain
+
+[mermaid]
+title = "Attack Flow"
+theme = "dark"
+background = "transparent"
+width = 1200
+height = 800
+
+source = """
+flowchart LR
+    subgraph Reconnaissance
+        R1[Port Scan] --> R2[Service Enum]
+        R2 --> R3[Vuln Scan]
+    end
+
+    subgraph Initial_Access["Initial Access"]
+        I1[Phishing Email]
+        I2[Exploit Vuln]
+    end
+
+    subgraph Execution
+        E1[Malware Download]
+        E2[Code Execution]
+    end
+
+    subgraph Persistence
+        P1[Backdoor Install]
+        P2[Scheduled Task]
+    end
+
+    subgraph Exfiltration
+        X1[Data Collection]
+        X2[Data Exfil]
+    end
+
+    R3 --> I1
+    R3 --> I2
+    I1 --> E1
+    I2 --> E2
+    E1 --> P1
+    E2 --> P1
+    P1 --> P2
+    P2 --> X1
+    X1 --> X2
+
+    style R1 fill:#3498db
+    style R2 fill:#3498db
+    style R3 fill:#3498db
+    style I1 fill:#e74c3c
+    style I2 fill:#e74c3c
+    style E1 fill:#f39c12
+    style E2 fill:#f39c12
+    style P1 fill:#9b59b6
+    style P2 fill:#9b59b6
+    style X1 fill:#1abc9c
+    style X2 fill:#1abc9c
+"""

@@ -19,6 +19,8 @@ A Python library for creating security visualizations including:
 - Threat Modeling: Data Flow Diagrams with STRIDE analysis
 - Binary Visualization: Entropy, distribution, and pattern analysis
 - Custom Diagrams: Flexible, schema-driven diagram visualization
+- Mermaid Diagrams: Render Mermaid syntax to images via mermaid-cli
+- Cloud Diagrams: Cloud architecture diagrams with provider icons
 
 Example usage:
     >>> from usecvislib import AttackTrees
@@ -41,6 +43,16 @@ Example usage:
     >>> cd = CustomDiagrams()
     >>> cd.load("diagram.toml")
     >>> cd.BuildCustomDiagram(output="diagram.png")
+
+    >>> from usecvislib import MermaidDiagrams
+    >>> md = MermaidDiagrams()
+    >>> md.load("diagram.mmd")
+    >>> md.render("output", format="png")
+
+    >>> from usecvislib import CloudDiagrams
+    >>> cloud = CloudDiagrams()
+    >>> cloud.load("architecture.toml")
+    >>> cloud.render("output", format="png")
 """
 
 __version__ = "0.3.2"
@@ -51,6 +63,25 @@ from .attackgraphs import AttackGraphs, AttackGraphError
 from .binvis import BinVis
 from .threatmodeling import ThreatModeling
 from .customdiagrams import CustomDiagrams, CustomDiagramError
+from .mermaiddiagrams import (
+    MermaidDiagrams,
+    MermaidError,
+    MermaidCLINotFoundError,
+    MermaidSyntaxError,
+    MermaidConfig,
+    MermaidResult,
+)
+from .clouddiagrams import (
+    CloudDiagrams,
+    CloudDiagramError,
+    DiagramsNotInstalledError,
+    IconNotFoundError,
+    CloudDiagramConfig,
+    CloudNode,
+    CloudEdge,
+    CloudCluster,
+    CloudDiagramResult,
+)
 from .base import VisualizationBase
 from .constants import (
     OutputFormat,
@@ -178,6 +209,8 @@ __all__ = [
     "BinVis",
     "ThreatModeling",
     "CustomDiagrams",
+    "MermaidDiagrams",
+    "CloudDiagrams",
     # Base class
     "VisualizationBase",
     # Builder Classes
@@ -216,12 +249,27 @@ __all__ = [
     "AttackTreeError",
     "AttackGraphError",
     "CustomDiagramError",
+    "MermaidError",
+    "MermaidCLINotFoundError",
+    "MermaidSyntaxError",
+    "CloudDiagramError",
+    "DiagramsNotInstalledError",
+    "IconNotFoundError",
     "ConfigError",
     "FileError",
     "SecurityError",
     "ValidationError",
     "RenderError",
     "AnalysisError",
+    # Mermaid support classes
+    "MermaidConfig",
+    "MermaidResult",
+    # Cloud diagram support classes
+    "CloudDiagramConfig",
+    "CloudNode",
+    "CloudEdge",
+    "CloudCluster",
+    "CloudDiagramResult",
     # Configuration functions
     "ReadTomlFile",
     "merge_dicts",

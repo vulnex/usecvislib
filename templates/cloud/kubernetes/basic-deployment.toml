@@ -1,0 +1,114 @@
+# Kubernetes Basic Deployment
+# Simple K8s deployment with ingress and services
+
+[diagram]
+title = "Kubernetes Deployment"
+direction = "LR"
+outformat = "png"
+show = false
+
+# Ingress Cluster
+[[clusters]]
+id = "ingress"
+label = "Ingress Layer"
+
+    [[clusters.nodes]]
+    id = "ing"
+    icon = "k8s.network.Ing"
+    label = "Ingress"
+
+    [[clusters.nodes]]
+    id = "svc"
+    icon = "k8s.network.SVC"
+    label = "Service"
+
+# Application Cluster
+[[clusters]]
+id = "app"
+label = "Application"
+
+    [[clusters.nodes]]
+    id = "deploy"
+    icon = "k8s.compute.Deploy"
+    label = "Deployment"
+
+    [[clusters.nodes]]
+    id = "pod1"
+    icon = "k8s.compute.Pod"
+    label = "Pod 1"
+
+    [[clusters.nodes]]
+    id = "pod2"
+    icon = "k8s.compute.Pod"
+    label = "Pod 2"
+
+    [[clusters.nodes]]
+    id = "pod3"
+    icon = "k8s.compute.Pod"
+    label = "Pod 3"
+
+# Storage Cluster
+[[clusters]]
+id = "storage"
+label = "Storage"
+
+    [[clusters.nodes]]
+    id = "pvc"
+    icon = "k8s.storage.PVC"
+    label = "PersistentVolumeClaim"
+
+    [[clusters.nodes]]
+    id = "pv"
+    icon = "k8s.storage.PV"
+    label = "PersistentVolume"
+
+    [[clusters.nodes]]
+    id = "cm"
+    icon = "k8s.storage.CM"
+    label = "ConfigMap"
+
+    [[clusters.nodes]]
+    id = "secret"
+    icon = "k8s.storage.Secret"
+    label = "Secret"
+
+# External
+[[nodes]]
+id = "users"
+icon = "k8s.others.Crd"
+label = "External Traffic"
+
+# Edges
+[[edges]]
+from = "users"
+to = "ing"
+
+[[edges]]
+from = "ing"
+to = "svc"
+
+[[edges]]
+from = "svc"
+to = "deploy"
+
+[[edges]]
+from = "deploy"
+to = ["pod1", "pod2", "pod3"]
+
+[[edges]]
+from = ["pod1", "pod2", "pod3"]
+to = "pvc"
+
+[[edges]]
+from = "pvc"
+to = "pv"
+
+[[edges]]
+from = ["pod1", "pod2", "pod3"]
+to = "cm"
+style = "dashed"
+
+[[edges]]
+from = ["pod1", "pod2", "pod3"]
+to = "secret"
+style = "dashed"

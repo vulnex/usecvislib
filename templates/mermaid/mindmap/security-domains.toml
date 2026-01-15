@@ -1,0 +1,53 @@
+# Security Domains Mind Map
+# Overview of security domains and concepts
+
+[mermaid]
+title = "Security Domains"
+theme = "default"
+background = "white"
+width = 1200
+height = 900
+
+source = """
+mindmap
+    root((Cybersecurity))
+        Network Security
+            Firewalls
+            IDS/IPS
+            VPN
+            Network Segmentation
+        Application Security
+            SAST
+            DAST
+            WAF
+            Secure SDLC
+        Identity & Access
+            Authentication
+                MFA
+                SSO
+                Passwordless
+            Authorization
+                RBAC
+                ABAC
+                Zero Trust
+        Data Security
+            Encryption
+                At Rest
+                In Transit
+            DLP
+            Data Classification
+        Cloud Security
+            CSPM
+            CWPP
+            CASB
+        Security Operations
+            SIEM
+            SOAR
+            Threat Intel
+            Incident Response
+        Compliance
+            GDPR
+            HIPAA
+            PCI-DSS
+            SOC 2
+"""

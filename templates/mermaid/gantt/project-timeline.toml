@@ -1,0 +1,38 @@
+# Project Timeline Gantt Chart
+# Sample project timeline with phases and milestones
+
+[mermaid]
+title = "Project Timeline"
+theme = "default"
+background = "white"
+width = 1200
+height = 600
+
+source = """
+gantt
+    title Software Development Project
+    dateFormat  YYYY-MM-DD
+    excludes    weekends
+
+    section Planning
+    Requirements gathering   :done, req, 2024-01-01, 2w
+    Architecture design     :done, arch, after req, 1w
+    Technical specification :done, spec, after arch, 1w
+
+    section Development
+    Backend development     :active, backend, 2024-02-01, 4w
+    Frontend development    :frontend, after backend, 3w
+    API integration        :api, after backend, 2w
+    Database setup         :db, 2024-02-01, 2w
+
+    section Testing
+    Unit testing           :test1, after frontend, 1w
+    Integration testing    :test2, after test1, 1w
+    Security testing       :crit, security, after test2, 1w
+    Performance testing    :perf, after test2, 1w
+
+    section Deployment
+    Staging deployment     :staging, after security, 3d
+    Production deployment  :milestone, prod, after staging, 0d
+    Monitoring setup       :monitor, after prod, 1w
+"""

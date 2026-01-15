@@ -1,0 +1,77 @@
+# User Management ER Diagram
+# Entity-Relationship diagram for user management system
+
+[mermaid]
+title = "User Management Database"
+theme = "default"
+background = "white"
+width = 1000
+height = 800
+
+source = """
+erDiagram
+    USER ||--o{ SESSION : has
+    USER ||--o{ ROLE_ASSIGNMENT : has
+    USER {
+        int id PK
+        string email UK
+        string password_hash
+        string first_name
+        string last_name
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    ROLE ||--o{ ROLE_ASSIGNMENT : has
+    ROLE ||--o{ PERMISSION_GRANT : has
+    ROLE {
+        int id PK
+        string name UK
+        string description
+        datetime created_at
+    }
+
+    ROLE_ASSIGNMENT {
+        int id PK
+        int user_id FK
+        int role_id FK
+        datetime assigned_at
+        datetime expires_at
+    }
+
+    PERMISSION ||--o{ PERMISSION_GRANT : has
+    PERMISSION {
+        int id PK
+        string resource
+        string action
+        string description
+    }
+
+    PERMISSION_GRANT {
+        int id PK
+        int role_id FK
+        int permission_id FK
+    }
+
+    SESSION {
+        int id PK
+        int user_id FK
+        string token UK
+        string ip_address
+        string user_agent
+        datetime created_at
+        datetime expires_at
+    }
+
+    AUDIT_LOG ||--|| USER : references
+    AUDIT_LOG {
+        int id PK
+        int user_id FK
+        string action
+        string resource
+        json details
+        string ip_address
+        datetime created_at
+    }
+"""

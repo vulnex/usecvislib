@@ -9,6 +9,9 @@ pytm>=1.2.0
 networkx>=3.0
 cairosvg>=2.7.0
 
+# Cloud architecture diagrams (Python Diagrams library)
+diagrams>=0.24.0
+
 # API dependencies
 # SECURITY: Updated versions to address known CVEs
 fastapi>=0.115.0  # Updated from 0.109.0 - security fixes

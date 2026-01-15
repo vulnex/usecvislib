@@ -1,0 +1,87 @@
+# AWS Web Application Architecture
+# Three-tier web application with load balancing and database
+
+[diagram]
+title = "AWS Web Application"
+direction = "LR"
+outformat = "png"
+show = false
+
+# VPC Cluster
+[[clusters]]
+id = "vpc"
+label = "Production VPC"
+
+    [[clusters.nodes]]
+    id = "alb"
+    icon = "aws.network.ELB"
+    label = "Application LB"
+
+    [[clusters.nodes]]
+    id = "web1"
+    icon = "aws.compute.EC2"
+    label = "Web Server 1"
+
+    [[clusters.nodes]]
+    id = "web2"
+    icon = "aws.compute.EC2"
+    label = "Web Server 2"
+
+# Data Layer Cluster
+[[clusters]]
+id = "data"
+label = "Data Layer"
+
+    [[clusters.nodes]]
+    id = "rds"
+    icon = "aws.database.RDS"
+    label = "PostgreSQL"
+
+    [[clusters.nodes]]
+    id = "redis"
+    icon = "aws.database.ElasticacheForRedis"
+    label = "Cache"
+
+# External nodes
+[[nodes]]
+id = "users"
+icon = "aws.general.Users"
+label = "Users"
+
+[[nodes]]
+id = "cdn"
+icon = "aws.network.CloudFront"
+label = "CloudFront CDN"
+
+[[nodes]]
+id = "s3"
+icon = "aws.storage.S3"
+label = "Static Assets"
+
+# Edges
+[[edges]]
+from = "users"
+to = "cdn"
+
+[[edges]]
+from = "cdn"
+to = "alb"
+
+[[edges]]
+from = "cdn"
+to = "s3"
+
+[[edges]]
+from = "alb"
+to = ["web1", "web2"]
+
+[[edges]]
+from = ["web1", "web2"]
+to = "rds"
+label = "SQL"
+
+[[edges]]
+from = ["web1", "web2"]
+to = "redis"
+label = "Cache"
+style = "dashed"
