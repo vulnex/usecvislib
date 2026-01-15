@@ -1,0 +1,18 @@
+# Basic Flowchart Template
+# A simple flowchart demonstrating basic Mermaid syntax
+
+[mermaid]
+title = "Basic Flowchart"
+theme = "default"
+background = "white"
+width = 800
+height = 600
+
+source = """
+flowchart TD
+    A[Start] --> B{Is it working?}
+    B -->|Yes| C[Great!]
+    B -->|No| D[Debug]
+    D --> B
+    C --> E[End]
+"""

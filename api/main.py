@@ -317,10 +317,12 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 # Add src to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
-from usecvislib import AttackTrees, AttackGraphs, ThreatModeling, BinVis, CustomDiagrams, __version__ as lib_version
+from usecvislib import AttackTrees, AttackGraphs, ThreatModeling, BinVis, CustomDiagrams, MermaidDiagrams, CloudDiagrams, __version__ as lib_version
 from usecvislib.attacktrees import AttackTreeError
 from usecvislib.attackgraphs import AttackGraphError
 from usecvislib.customdiagrams import CustomDiagramError
+from usecvislib.mermaiddiagrams import MermaidError, MermaidCLINotFoundError, MermaidSyntaxError
+from usecvislib.clouddiagrams import CloudDiagramError, DiagramsNotInstalledError, IconNotFoundError
 from usecvislib.shapes import ShapeRegistry
 from usecvislib.threatmodeling import PyTMWrapper
 from usecvislib.utils import FileError, ConfigError, detect_format, convert_format as utils_convert_format, ReadConfigFile
@@ -395,6 +397,28 @@ from .schemas import (
     BundledIconInfo,
     BundledIconsListResponse,
     BundledIconsCategoriesResponse,
+    # Mermaid diagrams schemas
+    MermaidTheme,
+    MermaidDiagramType,
+    MermaidOutputFormat,
+    MermaidStats,
+    MermaidValidateResponse,
+    MermaidTemplateInfo,
+    MermaidTemplateListResponse,
+    MermaidTemplateContentResponse,
+    # Cloud diagrams schemas
+    CloudProvider,
+    CloudOutputFormat,
+    CloudDiagramDirection,
+    CloudNodeInfo,
+    CloudStats,
+    CloudValidateResponse,
+    CloudIconInfo,
+    CloudIconsListResponse,
+    CloudProvidersResponse,
+    CloudTemplateInfo,
+    CloudTemplateListResponse,
+    CloudPythonCodeResponse,
 )
 
 # Import settings module
@@ -4839,6 +4863,742 @@ async def get_bundled_icon(
         media_type=content_type,
         filename=os.path.basename(icon_file_path)
     )
+
+
+# =============================================================================
+# Mermaid Diagrams Endpoints
+# =============================================================================
+
+@app.post(
+    "/visualize/mermaid",
+    tags=["Mermaid Diagrams"],
+    summary="Render Mermaid diagram",
+    response_class=FileResponse,
+    responses={
+        200: {
+            "content": {
+                "image/png": {},
+                "image/svg+xml": {},
+                "application/pdf": {},
+            },
+            "description": "Generated visualization image"
+        }
+    }
+)
+@limiter.limit(RATE_LIMIT_VISUALIZE)
+async def visualize_mermaid(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(..., description="Mermaid source file (.mmd, .toml, .json, .yaml)"),
+    format: MermaidOutputFormat = Query(default=MermaidOutputFormat.PNG, description="Output format"),
+    theme: MermaidTheme = Query(default=MermaidTheme.DEFAULT, description="Mermaid theme"),
+    background: str = Query(default="white", description="Background color (white, transparent, or hex)"),
+    width: int = Query(default=800, ge=100, le=4000, description="Output width in pixels"),
+    height: int = Query(default=600, ge=100, le=4000, description="Output height in pixels"),
+):
+    """
+    Render a Mermaid diagram from an uploaded file.
+
+    Supports multiple input formats:
+    - `.mmd` - Raw Mermaid syntax
+    - `.toml`, `.json`, `.yaml` - Configuration files with `[mermaid]` section
+
+    Example TOML structure:
+    ```toml
+    [mermaid]
+    title = "My Diagram"
+    theme = "default"
+    source = \"\"\"
+    flowchart TD
+        A[Start] --> B{Decision}
+        B -->|Yes| C[End]
+    \"\"\"
+    ```
+
+    Requires mermaid-cli (mmdc) to be installed:
+    ```bash
+    npm install -g @mermaid-js/mermaid-cli
+    ```
+    """
+    input_path = None
+    output_path = None
+
+    try:
+        # Validate file extension
+        ext = os.path.splitext(file.filename)[1].lower() if file.filename else ""
+        if ext not in {".mmd", ".toml", ".tml", ".json", ".yaml", ".yml"}:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file extension: {ext}. Use .mmd, .toml, .json, .yaml"
+            )
+
+        # Save uploaded file
+        input_path = save_upload_file(file)
+        output_base = os.path.join(TEMP_DIR, f"mermaid_{os.urandom(8).hex()}")
+
+        # Create MermaidDiagrams instance
+        md = MermaidDiagrams(
+            theme=theme.value,
+            background=background,
+            width=width,
+            height=height,
+            validate_cli=True
+        )
+
+        # Load the file
+        md.load(input_path)
+
+        # Render with timeout protection
+        await run_sync_with_timeout(
+            lambda: md.render(output_base, format=format.value),
+            REQUEST_TIMEOUT_VISUALIZE,
+            "mermaid rendering"
+        )
+
+        output_path = f"{output_base}.{format.value}"
+
+        if not os.path.exists(output_path):
+            cleanup_files(input_path)
+            raise HTTPException(status_code=500, detail="Failed to generate Mermaid diagram")
+
+        # Schedule cleanup after response is sent
+        background_tasks.add_task(cleanup_files, input_path, output_path)
+
+        content_types = {
+            "png": "image/png",
+            "svg": "image/svg+xml",
+            "pdf": "application/pdf"
+        }
+
+        return FileResponse(
+            path=output_path,
+            media_type=content_types.get(format.value, "image/png"),
+            filename=f"mermaid_diagram.{format.value}",
+        )
+
+    except MermaidCLINotFoundError as e:
+        cleanup_files(input_path, output_path)
+        raise HTTPException(
+            status_code=503,
+            detail="Mermaid CLI (mmdc) not installed. Run: npm install -g @mermaid-js/mermaid-cli"
+        )
+    except MermaidSyntaxError as e:
+        cleanup_files(input_path, output_path)
+        raise HTTPException(status_code=400, detail=f"Mermaid syntax error: {str(e)}")
+    except MermaidError as e:
+        cleanup_files(input_path, output_path)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        cleanup_files(input_path, output_path)
+        logger.error(f"Mermaid rendering error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@app.post(
+    "/analyze/mermaid",
+    response_model=MermaidValidateResponse,
+    tags=["Mermaid Diagrams"],
+    summary="Validate Mermaid diagram"
+)
+@limiter.limit(RATE_LIMIT_ANALYZE)
+async def analyze_mermaid(
+    request: Request,
+    file: UploadFile = File(..., description="Mermaid source file (.mmd, .toml, .json, .yaml)"),
+):
+    """
+    Validate a Mermaid diagram and return statistics without rendering.
+
+    Returns detected diagram type, line count, and validation errors if any.
+    """
+    input_path = None
+
+    try:
+        # Validate file extension
+        ext = os.path.splitext(file.filename)[1].lower() if file.filename else ""
+        if ext not in {".mmd", ".toml", ".tml", ".json", ".yaml", ".yml"}:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file extension: {ext}. Use .mmd, .toml, .json, .yaml"
+            )
+
+        # Save uploaded file
+        input_path = save_upload_file(file)
+
+        # Create MermaidDiagrams instance (skip CLI validation for analysis only)
+        md = MermaidDiagrams(validate_cli=False)
+        md.load(input_path)
+
+        # Get statistics
+        stats = md.get_stats()
+
+        # Try to validate if CLI is available
+        errors = []
+        try:
+            md._cli_validated = True
+            errors = md.validate()
+        except MermaidCLINotFoundError:
+            pass  # CLI not available, skip validation
+
+        cleanup_files(input_path)
+
+        return MermaidValidateResponse(
+            valid=len(errors) == 0,
+            errors=errors,
+            diagram_type=stats.get("diagram_type"),
+            stats=MermaidStats(
+                title=stats.get("title", ""),
+                diagram_type=stats.get("diagram_type", "unknown"),
+                line_count=stats.get("line_count", 0),
+                char_count=stats.get("char_count", 0),
+                non_empty_lines=stats.get("non_empty_lines", 0),
+                loaded=True
+            )
+        )
+
+    except MermaidError as e:
+        cleanup_files(input_path)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        cleanup_files(input_path)
+        logger.error(f"Mermaid analysis error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@app.get(
+    "/mermaid/templates",
+    response_model=MermaidTemplateListResponse,
+    tags=["Mermaid Diagrams"],
+    summary="List Mermaid templates"
+)
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def list_mermaid_templates(
+    request: Request,
+    category: Optional[str] = Query(default=None, description="Filter by category")
+):
+    """
+    List available Mermaid diagram templates.
+
+    Templates are organized by category (flowcharts, sequence, security, etc.)
+    """
+    try:
+        categories = MermaidDiagrams.list_template_categories()
+        all_templates = MermaidDiagrams.list_templates(category=category)
+
+        templates = [
+            MermaidTemplateInfo(
+                name=t.get("name", ""),
+                category=t.get("category", ""),
+                path=t.get("path", ""),
+                diagram_type=t.get("diagram_type")
+            )
+            for t in all_templates
+        ]
+
+        return MermaidTemplateListResponse(
+            templates=templates,
+            categories=categories,
+            total=len(templates)
+        )
+    except Exception as e:
+        logger.error(f"Error listing Mermaid templates: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Failed to list templates")
+
+
+@app.get(
+    "/mermaid/template/{category}/{name}",
+    response_model=MermaidTemplateContentResponse,
+    tags=["Mermaid Diagrams"],
+    summary="Get Mermaid template content"
+)
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def get_mermaid_template(
+    request: Request,
+    category: str,
+    name: str
+):
+    """
+    Get the content of a specific Mermaid template.
+
+    Returns the template content along with metadata.
+    """
+    try:
+        template_id = f"{category}/{name}"
+        templates_dir = MermaidDiagrams.get_templates_dir()
+
+        # Try .toml first, then .mmd
+        template_path = templates_dir / category / f"{name}.toml"
+        if not template_path.exists():
+            template_path = templates_dir / category / f"{name}.mmd"
+
+        if not template_path.exists():
+            raise HTTPException(status_code=404, detail=f"Template not found: {template_id}")
+
+        # Read the template content
+        content = template_path.read_text()
+
+        # Detect diagram type
+        diagram_type = None
+        if template_path.suffix == ".mmd":
+            # Raw Mermaid file - detect type from content
+            first_line = content.strip().split('\n')[0] if content.strip() else ""
+            for dtype in ['flowchart', 'graph', 'sequenceDiagram', 'classDiagram',
+                         'stateDiagram', 'erDiagram', 'gantt', 'pie', 'mindmap',
+                         'timeline', 'gitGraph']:
+                if first_line.startswith(dtype):
+                    diagram_type = dtype
+                    break
+        else:
+            # TOML file - try to extract mermaid source and detect type
+            try:
+                import tomllib
+                data = tomllib.loads(content)
+                source = data.get('mermaid', {}).get('source', '')
+                if source:
+                    first_line = source.strip().split('\n')[0]
+                    for dtype in ['flowchart', 'graph', 'sequenceDiagram', 'classDiagram',
+                                 'stateDiagram', 'erDiagram', 'gantt', 'pie', 'mindmap',
+                                 'timeline', 'gitGraph']:
+                        if first_line.startswith(dtype):
+                            diagram_type = dtype
+                            break
+            except Exception:
+                pass
+
+        return MermaidTemplateContentResponse(
+            id=template_id,
+            name=name.replace("-", " ").title(),
+            category=category,
+            content=content,
+            diagram_type=diagram_type,
+            filename=template_path.name
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting Mermaid template: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Failed to get template")
+
+
+@app.get(
+    "/mermaid/themes",
+    tags=["Mermaid Diagrams"],
+    summary="List Mermaid themes"
+)
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def list_mermaid_themes(request: Request):
+    """
+    List available Mermaid themes.
+    """
+    return {
+        "themes": [t.value for t in MermaidTheme],
+        "default": MermaidTheme.DEFAULT.value
+    }
+
+
+@app.get(
+    "/mermaid/types",
+    tags=["Mermaid Diagrams"],
+    summary="List Mermaid diagram types"
+)
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def list_mermaid_types(request: Request):
+    """
+    List supported Mermaid diagram types.
+    """
+    return {
+        "types": [t.value for t in MermaidDiagramType],
+        "descriptions": {
+            "flowchart": "Flow charts and process diagrams",
+            "graph": "General graphs (alias for flowchart)",
+            "sequenceDiagram": "Sequence diagrams for interactions",
+            "classDiagram": "UML class diagrams",
+            "stateDiagram-v2": "State machine diagrams",
+            "erDiagram": "Entity-relationship diagrams",
+            "gantt": "Gantt charts for project timelines",
+            "pie": "Pie charts",
+            "quadrantChart": "Quadrant charts",
+            "requirementDiagram": "Requirements diagrams",
+            "gitGraph": "Git branch visualization",
+            "mindmap": "Mind maps",
+            "timeline": "Timeline diagrams",
+            "zenuml": "ZenUML sequence diagrams",
+            "sankey-beta": "Sankey diagrams",
+            "xychart-beta": "XY charts",
+            "block-beta": "Block diagrams",
+            "packet-beta": "Packet diagrams",
+            "kanban": "Kanban boards",
+            "architecture-beta": "Architecture diagrams"
+        }
+    }
+
+
+# =============================================================================
+# Cloud Diagrams Endpoints
+# =============================================================================
+
+@app.post(
+    "/visualize/cloud",
+    tags=["Cloud Diagrams"],
+    summary="Render cloud architecture diagram",
+    response_class=FileResponse,
+    responses={
+        200: {
+            "content": {
+                "image/png": {},
+                "image/svg+xml": {},
+                "application/pdf": {},
+            },
+            "description": "Generated cloud diagram image"
+        }
+    }
+)
+@limiter.limit(RATE_LIMIT_VISUALIZE)
+async def visualize_cloud(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(..., description="Cloud diagram config file (.toml, .json, .yaml)"),
+    format: CloudOutputFormat = Query(default=CloudOutputFormat.PNG, description="Output format"),
+    direction: CloudDiagramDirection = Query(default=CloudDiagramDirection.TB, description="Layout direction"),
+    show_legend: bool = Query(default=False, description="Show diagram legend"),
+):
+    """
+    Render a cloud architecture diagram from an uploaded configuration file.
+
+    Supports providers: AWS, Azure, GCP, Kubernetes, On-Premise, and more.
+
+    Example TOML structure:
+    ```toml
+    [cloud]
+    title = "AWS Web Application"
+    direction = "LR"
+
+    [[cloud.nodes]]
+    id = "lb"
+    label = "Load Balancer"
+    provider = "aws"
+    service = "network.ELB"
+
+    [[cloud.nodes]]
+    id = "web"
+    label = "Web Servers"
+    provider = "aws"
+    service = "compute.EC2"
+
+    [[cloud.edges]]
+    from = "lb"
+    to = "web"
+    label = "HTTP"
+    ```
+
+    Requires the `diagrams` Python package:
+    ```bash
+    pip install diagrams
+    ```
+    """
+    input_path = None
+    output_path = None
+
+    try:
+        # Validate file extension
+        validate_config_file_extension(file.filename)
+
+        # Save uploaded file
+        input_path = save_upload_file(file)
+        output_base = os.path.join(TEMP_DIR, f"cloud_{os.urandom(8).hex()}")
+
+        # Create CloudDiagrams instance
+        cd = CloudDiagrams(
+            direction=direction.value,
+            show=False  # Don't open in viewer
+        )
+
+        # Load the file
+        cd.load(input_path)
+
+        # Render with timeout protection
+        await run_sync_with_timeout(
+            lambda: cd.render(output_base, format=format.value if format != CloudOutputFormat.DOT else "png"),
+            REQUEST_TIMEOUT_VISUALIZE,
+            "cloud diagram rendering"
+        )
+
+        # Determine actual output path (diagrams library adds extension)
+        if format == CloudOutputFormat.DOT:
+            # For DOT format, generate the .dot file
+            dot_path = f"{output_base}.dot"
+            cd.save_python(dot_path.replace('.dot', '.py'))  # Save Python code as alternative
+            output_path = f"{output_base}.png"  # diagrams creates png
+        else:
+            output_path = f"{output_base}.{format.value}"
+
+        if not os.path.exists(output_path):
+            cleanup_files(input_path)
+            raise HTTPException(status_code=500, detail="Failed to generate cloud diagram")
+
+        # Schedule cleanup after response is sent
+        background_tasks.add_task(cleanup_files, input_path, output_path)
+
+        content_types = {
+            "png": "image/png",
+            "jpg": "image/jpeg",
+            "svg": "image/svg+xml",
+            "pdf": "application/pdf",
+            "dot": "text/plain"
+        }
+
+        return FileResponse(
+            path=output_path,
+            media_type=content_types.get(format.value, "image/png"),
+            filename=f"cloud_diagram.{format.value}",
+        )
+
+    except DiagramsNotInstalledError as e:
+        cleanup_files(input_path, output_path)
+        raise HTTPException(
+            status_code=503,
+            detail="Python diagrams library not installed. Run: pip install diagrams"
+        )
+    except IconNotFoundError as e:
+        cleanup_files(input_path, output_path)
+        raise HTTPException(status_code=400, detail=f"Icon not found: {str(e)}")
+    except CloudDiagramError as e:
+        cleanup_files(input_path, output_path)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        cleanup_files(input_path, output_path)
+        logger.error(f"Cloud diagram rendering error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@app.post(
+    "/analyze/cloud",
+    response_model=CloudValidateResponse,
+    tags=["Cloud Diagrams"],
+    summary="Validate cloud diagram"
+)
+@limiter.limit(RATE_LIMIT_ANALYZE)
+async def analyze_cloud(
+    request: Request,
+    file: UploadFile = File(..., description="Cloud diagram config file (.toml, .json, .yaml)"),
+):
+    """
+    Validate a cloud diagram configuration and return statistics without rendering.
+
+    Returns node count, edge count, cluster count, and validation errors.
+    """
+    input_path = None
+
+    try:
+        # Validate file extension
+        validate_config_file_extension(file.filename)
+
+        # Save uploaded file
+        input_path = save_upload_file(file)
+
+        # Create CloudDiagrams instance
+        cd = CloudDiagrams(validate_diagrams=False)
+        cd.load(input_path)
+
+        # Get statistics
+        stats = cd.get_stats()
+
+        # Validate configuration
+        errors = cd.validate()
+
+        cleanup_files(input_path)
+
+        return CloudValidateResponse(
+            valid=len(errors) == 0,
+            errors=errors,
+            stats=CloudStats(
+                title=stats.get("title", ""),
+                node_count=stats.get("node_count", 0),
+                edge_count=stats.get("edge_count", 0),
+                cluster_count=stats.get("cluster_count", 0),
+                providers_used=stats.get("providers_used", []),
+                loaded=True
+            )
+        )
+
+    except CloudDiagramError as e:
+        cleanup_files(input_path)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        cleanup_files(input_path)
+        logger.error(f"Cloud diagram analysis error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred")
+
+
+@app.get(
+    "/cloud/providers",
+    response_model=CloudProvidersResponse,
+    tags=["Cloud Diagrams"],
+    summary="List cloud providers"
+)
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def list_cloud_providers(request: Request):
+    """
+    List all available cloud providers for diagrams.
+    """
+    try:
+        providers = CloudDiagrams.list_providers()
+        return CloudProvidersResponse(providers=providers)
+    except DiagramsNotInstalledError:
+        # Return static list if diagrams not installed
+        return CloudProvidersResponse(providers=[
+            {"name": "aws", "description": "Amazon Web Services"},
+            {"name": "azure", "description": "Microsoft Azure"},
+            {"name": "gcp", "description": "Google Cloud Platform"},
+            {"name": "k8s", "description": "Kubernetes"},
+            {"name": "onprem", "description": "On-Premises"},
+            {"name": "alibabacloud", "description": "Alibaba Cloud"},
+            {"name": "oci", "description": "Oracle Cloud Infrastructure"},
+            {"name": "digitalocean", "description": "DigitalOcean"},
+            {"name": "openstack", "description": "OpenStack"},
+            {"name": "firebase", "description": "Firebase"},
+            {"name": "generic", "description": "Generic icons"},
+            {"name": "programming", "description": "Programming languages"},
+            {"name": "saas", "description": "SaaS services"},
+        ])
+
+
+@app.get(
+    "/cloud/icons",
+    response_model=CloudIconsListResponse,
+    tags=["Cloud Diagrams"],
+    summary="List cloud diagram icons"
+)
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def list_cloud_icons(
+    request: Request,
+    provider: CloudProvider = Query(..., description="Cloud provider"),
+    category: Optional[str] = Query(default=None, description="Filter by category (e.g., compute, database)")
+):
+    """
+    List available icons for a specific cloud provider.
+
+    Use the `category` parameter to filter by service category
+    (e.g., compute, database, network, storage).
+    """
+    try:
+        icons_list = CloudDiagrams.list_icons(provider.value, category=category)
+        icons = [
+            CloudIconInfo(
+                name=icon.get("name", ""),
+                provider=provider.value,
+                category=icon.get("category", ""),
+                full_path=icon.get("full_path", "")
+            )
+            for icon in icons_list
+        ]
+        return CloudIconsListResponse(
+            icons=icons,
+            provider=provider.value,
+            category=category,
+            total=len(icons)
+        )
+    except DiagramsNotInstalledError:
+        raise HTTPException(
+            status_code=503,
+            detail="Python diagrams library not installed. Run: pip install diagrams"
+        )
+    except Exception as e:
+        logger.error(f"Error listing cloud icons: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Failed to list icons")
+
+
+@app.get(
+    "/cloud/templates",
+    response_model=CloudTemplateListResponse,
+    tags=["Cloud Diagrams"],
+    summary="List cloud diagram templates"
+)
+@limiter.limit(RATE_LIMIT_DEFAULT)
+async def list_cloud_templates(
+    request: Request,
+    category: Optional[str] = Query(default=None, description="Filter by category (e.g., aws, kubernetes, security)")
+):
+    """
+    List available cloud diagram templates.
+
+    Templates are organized by category (aws, kubernetes, security, etc.)
+    """
+    try:
+        categories = CloudDiagrams.list_template_categories()
+        all_templates = CloudDiagrams.list_templates(category=category)
+
+        templates = [
+            CloudTemplateInfo(
+                name=t.get("name", ""),
+                category=t.get("category", ""),
+                path=t.get("path", ""),
+                providers=t.get("providers", [])
+            )
+            for t in all_templates
+        ]
+
+        return CloudTemplateListResponse(
+            templates=templates,
+            categories=categories,
+            total=len(templates)
+        )
+    except Exception as e:
+        logger.error(f"Error listing cloud templates: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Failed to list templates")
+
+
+@app.post(
+    "/cloud/generate-code",
+    response_model=CloudPythonCodeResponse,
+    tags=["Cloud Diagrams"],
+    summary="Generate Python code from config"
+)
+@limiter.limit(RATE_LIMIT_ANALYZE)
+async def generate_cloud_code(
+    request: Request,
+    file: UploadFile = File(..., description="Cloud diagram config file (.toml, .json, .yaml)"),
+):
+    """
+    Generate Python code from a cloud diagram configuration.
+
+    The generated code uses the `diagrams` library and can be executed
+    standalone to produce the diagram.
+    """
+    input_path = None
+
+    try:
+        # Validate file extension
+        validate_config_file_extension(file.filename)
+
+        # Save uploaded file
+        input_path = save_upload_file(file)
+
+        # Create CloudDiagrams instance
+        cd = CloudDiagrams(validate_diagrams=False)
+        cd.load(input_path)
+
+        # Generate Python code
+        code = cd.to_python_code()
+
+        cleanup_files(input_path)
+
+        # Generate suggested filename from config title
+        title = cd.config.title if cd.config else "cloud_diagram"
+        filename = f"{title.lower().replace(' ', '_')}.py"
+
+        return CloudPythonCodeResponse(
+            code=code,
+            filename=filename
+        )
+
+    except CloudDiagramError as e:
+        cleanup_files(input_path)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        cleanup_files(input_path)
+        logger.error(f"Cloud code generation error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred")
 
 
 # =============================================================================

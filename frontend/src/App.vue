@@ -103,6 +103,8 @@ import ExportPanel from './components/ExportPanel.vue'
 import ComparePanel from './components/ComparePanel.vue'
 import CVSSCalculatorPanel from './components/CVSSCalculatorPanel.vue'
 import CustomDiagramPanel from './components/CustomDiagramPanel.vue'
+import MermaidDiagramPanel from './components/MermaidDiagramPanel.vue'
+import CloudDiagramPanel from './components/CloudDiagramPanel.vue'
 import DocumentationPanel from './components/DocumentationPanel.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 
@@ -138,6 +140,8 @@ const primaryTabs = [
   { id: 'attack-graph', name: 'Attack Graphs', icon: '🕸️' },
   { id: 'threat-model', name: 'Threat Modeling', icon: '🔍' },
   { id: 'custom-diagram', name: 'Custom Diagrams', icon: '🎨' },
+  { id: 'mermaid', name: 'Mermaid', icon: '🧜' },
+  { id: 'cloud', name: 'Cloud', icon: '☁️' },
   { id: 'binary', name: 'Binary Analysis', icon: '📊' }
 ]
 
@@ -181,6 +185,8 @@ const componentMap = {
   'attack-graph': AttackGraphPanel,
   'threat-model': ThreatModelPanel,
   'custom-diagram': CustomDiagramPanel,
+  'mermaid': MermaidDiagramPanel,
+  'cloud': CloudDiagramPanel,
   'binary': BinaryVisPanel,
   'cvss': CVSSCalculatorPanel,
   'convert': ConvertPanel,
@@ -228,6 +234,16 @@ const currentProps = computed(() => {
       return {
         ...baseProps,
         formats: formats.value
+      }
+    case 'mermaid':
+      return {
+        ...baseProps,
+        formats: ['png', 'svg', 'pdf']
+      }
+    case 'cloud':
+      return {
+        ...baseProps,
+        formats: ['png', 'svg', 'pdf', 'jpg']
       }
     case 'binary':
       return {

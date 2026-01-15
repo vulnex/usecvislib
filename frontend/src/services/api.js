@@ -1091,6 +1091,248 @@ export async function visualizeCustomDiagramFromTemplate(templateId, format = 'p
 }
 
 // =============================================================================
+// Mermaid Diagrams Functions
+// =============================================================================
+
+/**
+ * Generate Mermaid diagram visualization
+ * @param {File} file - Mermaid source file (.mmd, .toml, .json, .yaml)
+ * @param {string} format - Output format (png, svg, pdf)
+ * @param {string} theme - Mermaid theme (default, dark, forest, neutral, base)
+ * @param {string} background - Background color
+ * @param {number} width - Output width in pixels
+ * @param {number} height - Output height in pixels
+ * @returns {Promise<Blob>}
+ */
+export async function visualizeMermaid(file, format = 'png', theme = 'default', background = 'white', width = 800, height = 600) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post(
+    `/visualize/mermaid?format=${format}&theme=${theme}&background=${encodeURIComponent(background)}&width=${width}&height=${height}`,
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      responseType: 'blob'
+    }
+  )
+  return response.data
+}
+
+/**
+ * Generate Mermaid diagram from text content
+ * @param {string} content - Mermaid or config content
+ * @param {string} outputFormat - Output format (png, svg, pdf)
+ * @param {string} theme - Mermaid theme
+ * @param {string} configFormat - Configuration format (mermaid, toml, json, yaml)
+ * @returns {Promise<Blob>}
+ */
+export async function visualizeMermaidFromContent(content, outputFormat = 'png', theme = 'default', configFormat = 'toml') {
+  // For raw mermaid syntax, use .mmd extension
+  const extension = configFormat === 'mermaid' ? '.mmd' : getExtensionFromFormat(configFormat)
+  const filename = `mermaid_diagram${extension}`
+  const blob = new Blob([content], { type: 'text/plain' })
+  const file = new File([blob], filename, { type: 'text/plain' })
+  return visualizeMermaid(file, outputFormat, theme)
+}
+
+/**
+ * Validate Mermaid diagram
+ * @param {File} file - Mermaid source file
+ * @returns {Promise<{valid: boolean, errors: string[], diagram_type: string, stats: object}>}
+ */
+export async function validateMermaid(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/analyze/mermaid', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Validate Mermaid diagram from content
+ * @param {string} content - Mermaid or config content
+ * @param {string} configFormat - Configuration format (mermaid, toml, json, yaml)
+ * @returns {Promise<{valid: boolean, errors: string[], diagram_type: string, stats: object}>}
+ */
+export async function validateMermaidFromContent(content, configFormat = 'toml') {
+  const extension = configFormat === 'mermaid' ? '.mmd' : getExtensionFromFormat(configFormat)
+  const filename = `mermaid_diagram${extension}`
+  const blob = new Blob([content], { type: 'text/plain' })
+  const file = new File([blob], filename, { type: 'text/plain' })
+  return validateMermaid(file)
+}
+
+/**
+ * Get available Mermaid templates
+ * @param {string} category - Optional category filter
+ * @returns {Promise<{templates: Array, categories: string[], total: number}>}
+ */
+export async function getMermaidTemplates(category = null) {
+  const url = category ? `/mermaid/templates?category=${encodeURIComponent(category)}` : '/mermaid/templates'
+  const response = await api.get(url)
+  return response.data
+}
+
+/**
+ * Get Mermaid template content
+ * @param {string} category - Template category
+ * @param {string} name - Template name
+ * @returns {Promise<{id: string, name: string, category: string, content: string, diagram_type: string, filename: string}>}
+ */
+export async function getMermaidTemplate(category, name) {
+  const response = await api.get(`/mermaid/template/${encodeURIComponent(category)}/${encodeURIComponent(name)}`)
+  return response.data
+}
+
+/**
+ * Get available Mermaid themes
+ * @returns {Promise<{themes: string[], default: string}>}
+ */
+export async function getMermaidThemes() {
+  const response = await api.get('/mermaid/themes')
+  return response.data
+}
+
+/**
+ * Get supported Mermaid diagram types
+ * @returns {Promise<{types: string[], descriptions: object}>}
+ */
+export async function getMermaidTypes() {
+  const response = await api.get('/mermaid/types')
+  return response.data
+}
+
+// =============================================================================
+// Cloud Diagrams Functions
+// =============================================================================
+
+/**
+ * Generate cloud architecture diagram
+ * @param {File} file - Cloud diagram config file (.toml, .json, .yaml)
+ * @param {string} format - Output format (png, svg, pdf, jpg)
+ * @param {string} direction - Layout direction (TB, BT, LR, RL)
+ * @param {boolean} showLegend - Show diagram legend
+ * @returns {Promise<Blob>}
+ */
+export async function visualizeCloud(file, format = 'png', direction = 'TB', showLegend = false) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post(
+    `/visualize/cloud?format=${format}&direction=${direction}&show_legend=${showLegend}`,
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      responseType: 'blob'
+    }
+  )
+  return response.data
+}
+
+/**
+ * Generate cloud diagram from text content
+ * @param {string} content - Configuration content
+ * @param {string} outputFormat - Output format (png, svg, pdf, jpg)
+ * @param {string} direction - Layout direction
+ * @param {string} configFormat - Configuration format (toml, json, yaml)
+ * @returns {Promise<Blob>}
+ */
+export async function visualizeCloudFromContent(content, outputFormat = 'png', direction = 'TB', configFormat = 'toml') {
+  const file = createFileFromContent(content, 'cloud_diagram', configFormat)
+  return visualizeCloud(file, outputFormat, direction)
+}
+
+/**
+ * Validate cloud diagram configuration
+ * @param {File} file - Cloud diagram config file
+ * @returns {Promise<{valid: boolean, errors: string[], stats: object}>}
+ */
+export async function validateCloud(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/analyze/cloud', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Validate cloud diagram from content
+ * @param {string} content - Configuration content
+ * @param {string} configFormat - Configuration format (toml, json, yaml)
+ * @returns {Promise<{valid: boolean, errors: string[], stats: object}>}
+ */
+export async function validateCloudFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'cloud_diagram', configFormat)
+  return validateCloud(file)
+}
+
+/**
+ * Get available cloud providers
+ * @returns {Promise<{providers: Array}>}
+ */
+export async function getCloudProviders() {
+  const response = await api.get('/cloud/providers')
+  return response.data
+}
+
+/**
+ * Get cloud diagram icons for a provider
+ * @param {string} provider - Cloud provider (aws, azure, gcp, k8s, etc.)
+ * @param {string} category - Optional category filter (compute, database, network, etc.)
+ * @returns {Promise<{icons: Array, provider: string, category: string, total: number}>}
+ */
+export async function getCloudIcons(provider, category = null) {
+  let url = `/cloud/icons?provider=${encodeURIComponent(provider)}`
+  if (category) {
+    url += `&category=${encodeURIComponent(category)}`
+  }
+  const response = await api.get(url)
+  return response.data
+}
+
+/**
+ * Get available cloud diagram templates
+ * @param {string} category - Optional category filter (aws, kubernetes, security)
+ * @returns {Promise<{templates: Array, categories: string[], total: number}>}
+ */
+export async function getCloudTemplates(category = null) {
+  const url = category ? `/cloud/templates?category=${encodeURIComponent(category)}` : '/cloud/templates'
+  const response = await api.get(url)
+  return response.data
+}
+
+/**
+ * Generate Python code from cloud diagram config
+ * @param {File} file - Cloud diagram config file
+ * @returns {Promise<{code: string, filename: string}>}
+ */
+export async function generateCloudCode(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/cloud/generate-code', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Generate Python code from cloud diagram content
+ * @param {string} content - Configuration content
+ * @param {string} configFormat - Configuration format (toml, json, yaml)
+ * @returns {Promise<{code: string, filename: string}>}
+ */
+export async function generateCloudCodeFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'cloud_diagram', configFormat)
+  return generateCloudCode(file)
+}
+
+// =============================================================================
 // Diff/Comparison Functions
 // =============================================================================
 
@@ -1355,4 +1597,23 @@ export default {
   getCustomDiagramStats,
   getCustomDiagramStatsFromContent,
   visualizeCustomDiagramFromTemplate,
+  // Mermaid Diagrams
+  visualizeMermaid,
+  visualizeMermaidFromContent,
+  validateMermaid,
+  validateMermaidFromContent,
+  getMermaidTemplates,
+  getMermaidTemplate,
+  getMermaidThemes,
+  getMermaidTypes,
+  // Cloud Diagrams
+  visualizeCloud,
+  visualizeCloudFromContent,
+  validateCloud,
+  validateCloudFromContent,
+  getCloudProviders,
+  getCloudIcons,
+  getCloudTemplates,
+  generateCloudCode,
+  generateCloudCodeFromContent,
 }

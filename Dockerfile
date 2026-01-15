@@ -20,6 +20,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # - graphviz: Required for graph rendering (dot executable)
 # - fonts: For proper text rendering in visualizations
 # - libcairo2, libpango: Required for cairosvg (SVG to PNG conversion)
+# - nodejs, npm: Required for mermaid-cli
+# - chromium: Required for mermaid-cli puppeteer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     graphviz \
     fonts-dejavu-core \
@@ -29,8 +31,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgdk-pixbuf-2.0-0 \
     libffi-dev \
     shared-mime-info \
+    nodejs \
+    npm \
+    chromium \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
+
+# Install mermaid-cli globally with extended timeouts for large package
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+RUN npm config set fetch-timeout 600000 && \
+    npm config set fetch-retries 5 && \
+    npm install -g @mermaid-js/mermaid-cli
 
 # Create non-root user for security
 RUN useradd --create-home --shell /bin/bash appuser
@@ -54,6 +66,7 @@ COPY api/ ./api/
 COPY templates/ ./templates/
 COPY tests/ ./tests/
 COPY assets/ ./assets/
+COPY puppeteer-config.json .
 
 # Install the package in editable mode
 RUN pip install --no-cache-dir -e .

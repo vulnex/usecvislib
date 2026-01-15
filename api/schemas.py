@@ -260,6 +260,8 @@ class VisualizationMode(str, Enum):
     THREAT_MODEL = "threat_model"
     CUSTOM_DIAGRAM = "custom_diagram"
     BINARY = "binary"
+    MERMAID = "mermaid"
+    CLOUD = "cloud"
 
 
 class ConfigFormat(str, Enum):
@@ -1550,5 +1552,375 @@ class BundledIconsCategoriesResponse(BaseModel):
                     "network": 7,
                     "identity": 4
                 }
+            }
+        }
+
+
+# =============================================================================
+# Mermaid Diagrams Schemas
+# =============================================================================
+
+class MermaidTheme(str, Enum):
+    """Available Mermaid themes."""
+    DEFAULT = "default"
+    DARK = "dark"
+    FOREST = "forest"
+    NEUTRAL = "neutral"
+    BASE = "base"
+
+
+class MermaidDiagramType(str, Enum):
+    """Supported Mermaid diagram types."""
+    FLOWCHART = "flowchart"
+    GRAPH = "graph"
+    SEQUENCE = "sequenceDiagram"
+    CLASS = "classDiagram"
+    STATE = "stateDiagram-v2"
+    ER = "erDiagram"
+    GANTT = "gantt"
+    PIE = "pie"
+    QUADRANT = "quadrantChart"
+    REQUIREMENT = "requirementDiagram"
+    GITGRAPH = "gitGraph"
+    MINDMAP = "mindmap"
+    TIMELINE = "timeline"
+    ZENUML = "zenuml"
+    SANKEY = "sankey-beta"
+    XY_CHART = "xychart-beta"
+    BLOCK = "block-beta"
+    PACKET = "packet-beta"
+    KANBAN = "kanban"
+    ARCHITECTURE = "architecture-beta"
+
+
+class MermaidOutputFormat(str, Enum):
+    """Mermaid output formats."""
+    PNG = "png"
+    SVG = "svg"
+    PDF = "pdf"
+
+
+class MermaidStats(BaseModel):
+    """Statistics for a Mermaid diagram."""
+    title: str = Field(description="Diagram title")
+    diagram_type: str = Field(description="Detected diagram type")
+    line_count: int = Field(description="Total lines in source")
+    char_count: int = Field(description="Total characters")
+    non_empty_lines: int = Field(description="Non-empty lines")
+    loaded: bool = Field(description="Whether diagram is loaded")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "title": "Network Flow",
+                "diagram_type": "flowchart",
+                "line_count": 15,
+                "char_count": 450,
+                "non_empty_lines": 12,
+                "loaded": True
+            }
+        }
+
+
+class MermaidValidateResponse(BaseModel):
+    """Response for Mermaid validation."""
+    valid: bool = Field(description="Whether the diagram is valid")
+    errors: List[str] = Field(default=[], description="List of validation errors")
+    diagram_type: Optional[str] = Field(default=None, description="Detected diagram type")
+    stats: Optional[MermaidStats] = Field(default=None, description="Diagram statistics")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "valid": True,
+                "errors": [],
+                "diagram_type": "flowchart",
+                "stats": {
+                    "title": "",
+                    "diagram_type": "flowchart",
+                    "line_count": 10,
+                    "char_count": 200,
+                    "non_empty_lines": 8,
+                    "loaded": True
+                }
+            }
+        }
+
+
+class MermaidTemplateInfo(BaseModel):
+    """Information about a Mermaid template."""
+    name: str = Field(description="Template name")
+    category: str = Field(description="Template category")
+    path: str = Field(description="Relative path to template")
+    diagram_type: Optional[str] = Field(default=None, description="Diagram type")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "basic-flow",
+                "category": "flowcharts",
+                "path": "flowcharts/basic-flow.toml",
+                "diagram_type": "flowchart"
+            }
+        }
+
+
+class MermaidTemplateListResponse(BaseModel):
+    """Response listing Mermaid templates."""
+    templates: List[MermaidTemplateInfo] = Field(description="List of templates")
+    categories: List[str] = Field(description="Available categories")
+    total: int = Field(description="Total number of templates")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "templates": [
+                    {
+                        "name": "basic-flow",
+                        "category": "flowcharts",
+                        "path": "flowcharts/basic-flow.toml",
+                        "diagram_type": "flowchart"
+                    }
+                ],
+                "categories": ["flowcharts", "sequence", "security"],
+                "total": 6
+            }
+        }
+
+
+class MermaidTemplateContentResponse(BaseModel):
+    """Response containing Mermaid template content."""
+    id: str = Field(description="Template ID (category/name)")
+    name: str = Field(description="Template name")
+    category: str = Field(description="Template category")
+    content: str = Field(description="Template content (Mermaid syntax or TOML)")
+    diagram_type: Optional[str] = Field(default=None, description="Detected diagram type")
+    filename: str = Field(description="Original filename")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "flowcharts/basic-flow",
+                "name": "Basic Flow",
+                "category": "flowcharts",
+                "content": "flowchart TD\n    A[Start] --> B{Decision}\n    B -->|Yes| C[End]",
+                "diagram_type": "flowchart",
+                "filename": "basic-flow.mmd"
+            }
+        }
+
+
+# =============================================================================
+# Cloud Diagrams Schemas
+# =============================================================================
+
+class CloudProvider(str, Enum):
+    """Supported cloud providers."""
+    AWS = "aws"
+    AZURE = "azure"
+    GCP = "gcp"
+    K8S = "k8s"
+    ONPREM = "onprem"
+    ALIBABA = "alibabacloud"
+    OCI = "oci"
+    DIGITAL_OCEAN = "digitalocean"
+    OPENSTACK = "openstack"
+    FIREBASE = "firebase"
+    OUTSCALE = "outscale"
+    GENERIC = "generic"
+    PROGRAMMING = "programming"
+    SAAS = "saas"
+
+
+class CloudOutputFormat(str, Enum):
+    """Cloud diagram output formats."""
+    PNG = "png"
+    JPG = "jpg"
+    SVG = "svg"
+    PDF = "pdf"
+    DOT = "dot"
+
+
+class CloudDiagramDirection(str, Enum):
+    """Cloud diagram layout directions."""
+    TB = "TB"  # Top to Bottom
+    BT = "BT"  # Bottom to Top
+    LR = "LR"  # Left to Right
+    RL = "RL"  # Right to Left
+
+
+class CloudNodeInfo(BaseModel):
+    """Information about a cloud diagram node."""
+    id: str = Field(description="Node identifier")
+    label: str = Field(description="Node label")
+    provider: str = Field(description="Cloud provider")
+    service: str = Field(description="Service type (e.g., compute.EC2)")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "id": "web_server",
+                "label": "Web Server",
+                "provider": "aws",
+                "service": "compute.EC2"
+            }
+        }
+
+
+class CloudStats(BaseModel):
+    """Statistics for a cloud diagram."""
+    title: str = Field(description="Diagram title")
+    node_count: int = Field(description="Number of nodes")
+    edge_count: int = Field(description="Number of edges")
+    cluster_count: int = Field(description="Number of clusters")
+    providers_used: List[str] = Field(description="Cloud providers used")
+    loaded: bool = Field(description="Whether diagram is loaded")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "title": "AWS Architecture",
+                "node_count": 8,
+                "edge_count": 10,
+                "cluster_count": 2,
+                "providers_used": ["aws"],
+                "loaded": True
+            }
+        }
+
+
+class CloudValidateResponse(BaseModel):
+    """Response for cloud diagram validation."""
+    valid: bool = Field(description="Whether the diagram is valid")
+    errors: List[str] = Field(default=[], description="List of validation errors")
+    stats: Optional[CloudStats] = Field(default=None, description="Diagram statistics")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "valid": True,
+                "errors": [],
+                "stats": {
+                    "title": "AWS Architecture",
+                    "node_count": 8,
+                    "edge_count": 10,
+                    "cluster_count": 2,
+                    "providers_used": ["aws"],
+                    "loaded": True
+                }
+            }
+        }
+
+
+class CloudIconInfo(BaseModel):
+    """Information about a cloud diagram icon."""
+    name: str = Field(description="Icon name")
+    provider: str = Field(description="Cloud provider")
+    category: str = Field(description="Icon category")
+    full_path: str = Field(description="Full import path")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "EC2",
+                "provider": "aws",
+                "category": "compute",
+                "full_path": "aws.compute.EC2"
+            }
+        }
+
+
+class CloudIconsListResponse(BaseModel):
+    """Response listing cloud diagram icons."""
+    icons: List[CloudIconInfo] = Field(description="List of icons")
+    provider: str = Field(description="Provider filter applied")
+    category: Optional[str] = Field(default=None, description="Category filter applied")
+    total: int = Field(description="Total number of icons")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "icons": [
+                    {
+                        "name": "EC2",
+                        "provider": "aws",
+                        "category": "compute",
+                        "full_path": "aws.compute.EC2"
+                    }
+                ],
+                "provider": "aws",
+                "category": "compute",
+                "total": 15
+            }
+        }
+
+
+class CloudProvidersResponse(BaseModel):
+    """Response listing cloud providers."""
+    providers: List[Dict[str, str]] = Field(description="List of providers with details")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "providers": [
+                    {"name": "aws", "description": "Amazon Web Services"},
+                    {"name": "azure", "description": "Microsoft Azure"},
+                    {"name": "gcp", "description": "Google Cloud Platform"}
+                ]
+            }
+        }
+
+
+class CloudTemplateInfo(BaseModel):
+    """Information about a cloud diagram template."""
+    name: str = Field(description="Template name")
+    category: str = Field(description="Template category")
+    path: str = Field(description="Relative path to template")
+    providers: List[str] = Field(default=[], description="Providers used")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "name": "web-application",
+                "category": "aws",
+                "path": "aws/web-application.toml",
+                "providers": ["aws"]
+            }
+        }
+
+
+class CloudTemplateListResponse(BaseModel):
+    """Response listing cloud diagram templates."""
+    templates: List[CloudTemplateInfo] = Field(description="List of templates")
+    categories: List[str] = Field(description="Available categories")
+    total: int = Field(description="Total number of templates")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "templates": [
+                    {
+                        "name": "web-application",
+                        "category": "aws",
+                        "path": "aws/web-application.toml",
+                        "providers": ["aws"]
+                    }
+                ],
+                "categories": ["aws", "kubernetes", "security"],
+                "total": 3
+            }
+        }
+
+
+class CloudPythonCodeResponse(BaseModel):
+    """Response containing generated Python code."""
+    code: str = Field(description="Generated Python code")
+    filename: str = Field(description="Suggested filename")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "code": "from diagrams import Diagram\\nfrom diagrams.aws.compute import EC2\\n...",
+                "filename": "cloud_diagram.py"
             }
         }

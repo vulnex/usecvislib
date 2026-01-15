@@ -1,0 +1,36 @@
+# API Authentication Sequence Diagram
+# Shows typical OAuth2/JWT authentication flow
+
+[mermaid]
+title = "API Authentication Flow"
+theme = "default"
+background = "white"
+width = 1200
+height = 800
+
+source = """
+sequenceDiagram
+    participant U as User
+    participant C as Client App
+    participant A as Auth Server
+    participant API as API Server
+
+    U->>C: Login request
+    C->>A: POST /oauth/token (credentials)
+    A->>A: Validate credentials
+
+    alt Valid credentials
+        A-->>C: Access Token + Refresh Token
+        C-->>U: Login successful
+
+        U->>C: Request protected resource
+        C->>API: GET /api/resource (Bearer token)
+        API->>A: Validate token
+        A-->>API: Token valid
+        API-->>C: Protected resource
+        C-->>U: Display resource
+    else Invalid credentials
+        A-->>C: 401 Unauthorized
+        C-->>U: Login failed
+    end
+"""
