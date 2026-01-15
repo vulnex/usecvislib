@@ -5,7 +5,7 @@
   Author: Claude Code
   Created: 2026-01-14
   Last Modified: 2026-01-14
-  Version: 0.3.2
+  Version: 0.3.3
   License: Apache-2.0
   Copyright (c) 2025 VULNEX. All rights reserved.
   https://www.vulnex.com
@@ -272,7 +272,7 @@ label = "Query"</pre>
           </div>
         </div>
         <div class="result-image">
-          <img :src="resultImage" alt="Generated Cloud Diagram" />
+          <ZoomableImage :src="resultImage" alt="Generated Cloud Diagram" />
         </div>
       </div>
 
@@ -304,12 +304,14 @@ label = "Query"</pre>
 
 <script setup>
 import { ref, computed, onMounted, watch, inject } from 'vue'
+import ZoomableImage from './ZoomableImage.vue'
 import {
   visualizeCloudFromContent,
   validateCloudFromContent,
   getCloudProviders,
   getCloudIcons,
   getCloudTemplates,
+  getCloudTemplate,
   generateCloudCodeFromContent
 } from '../services/api.js'
 
@@ -704,10 +706,32 @@ async function loadTemplates() {
   }
 }
 
-function selectTemplate(template) {
-  activeSubTab.value = 'editor'
-  fileName.value = template.name
-  detectedProvider.value = template.category?.toUpperCase() || ''
+async function selectTemplate(template) {
+  try {
+    // Extract the actual filename from the path (e.g., "/app/templates/cloud/aws/web-application.toml" -> "web-application")
+    const pathParts = template.path.split('/')
+    const filenameWithExt = pathParts[pathParts.length - 1]
+    const templateName = filenameWithExt.replace(/\.(toml|yaml|yml|json)$/, '')
+
+    // Fetch the template content from the API
+    const data = await getCloudTemplate(template.category, templateName)
+
+    // Load the content into the editor
+    editorContent.value = data.content
+    fileName.value = data.filename || filenameWithExt
+    detectedProvider.value = template.category?.toUpperCase() || ''
+
+    // Switch to editor tab
+    activeSubTab.value = 'editor'
+
+    // Clear previous results
+    resultImage.value = null
+    validationResult.value = null
+    error.value = ''
+  } catch (err) {
+    console.error('Failed to load template:', err)
+    error.value = 'Failed to load template: ' + (err.response?.data?.detail || err.message)
+  }
 }
 
 async function loadProviders() {

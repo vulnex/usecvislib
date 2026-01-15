@@ -15,6 +15,8 @@ Complete command-line interface reference for the Universal Security Visualizati
    - [Binary Visualization (Mode 2)](#binary-visualization-mode-2)
    - [Attack Graphs (Mode 3)](#attack-graphs-mode-3)
    - [Custom Diagrams (Mode 4)](#custom-diagrams-mode-4)
+   - [Mermaid Diagrams (Mode 5)](#mermaid-diagrams-mode-5)
+   - [Cloud Diagrams (Mode 6)](#cloud-diagrams-mode-6)
 5. [Image Support for Nodes](#image-support-for-nodes)
 6. [Configuration File Formats](#configuration-file-formats)
 7. [Available Styles](#available-styles)
@@ -78,6 +80,12 @@ usecvis -i network.toml -o graph -m 3 -p attacker,database -c
 
 # Generate a custom diagram
 usecvis -i diagram.toml -o output -m 4 -s cd_default
+
+# Render Mermaid syntax to image
+usecvis -i flowchart.mmd -o output -m 5
+
+# Generate cloud architecture diagram
+usecvis -i architecture.toml -o output -m 6
 ```
 
 ---
@@ -115,6 +123,8 @@ usecvis [options]
 | `2` | Binary Visualization | Binary file pattern analysis |
 | `3` | Attack Graphs | Network attack path visualization |
 | `4` | Custom Diagrams | Flexible schema-driven diagrams |
+| `5` | Mermaid Diagrams | Render Mermaid syntax to images |
+| `6` | Cloud Diagrams | Cloud architecture with provider icons |
 
 ### Output Formats
 
@@ -753,6 +763,263 @@ See [Custom Diagrams Guide](CUSTOM_DIAGRAMS_GUIDE.md) for complete documentation
 
 ---
 
+### Mermaid Diagrams (Mode 5)
+
+Render Mermaid syntax to PNG/SVG images using mermaid-cli.
+
+#### Basic Usage
+
+```bash
+usecvis -m 5 -i flowchart.mmd -o output
+```
+
+#### With Theme
+
+```bash
+usecvis -m 5 -i diagram.toml -o output --theme dark
+```
+
+#### Supported Input Formats
+
+- Raw Mermaid syntax (`.mmd`, `.mermaid`)
+- TOML configuration (`.toml`, `.tml`)
+- JSON configuration (`.json`)
+- YAML configuration (`.yaml`, `.yml`)
+
+#### Output
+
+- Visualization file (e.g., `output.png`)
+- Console output with diagram statistics
+
+#### Example Configuration (TOML)
+
+```toml
+[mermaid]
+title = "Authentication Flow"
+theme = "default"
+background = "white"
+
+[mermaid.content]
+syntax = """
+sequenceDiagram
+    participant User
+    participant App
+    participant Auth
+    participant DB
+
+    User->>App: Login Request
+    App->>Auth: Validate Credentials
+    Auth->>DB: Query User
+    DB-->>Auth: User Data
+    Auth-->>App: Token
+    App-->>User: Session Created
+"""
+```
+
+#### Raw Mermaid Syntax
+
+You can also use raw Mermaid syntax directly:
+
+```bash
+cat > flowchart.mmd << 'EOF'
+flowchart TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Process]
+    B -->|No| D[Reject]
+    C --> E[End]
+    D --> E
+EOF
+
+usecvis -m 5 -i flowchart.mmd -o flowchart
+```
+
+#### Supported Diagram Types
+
+| Type | Description | Keywords |
+|------|-------------|----------|
+| **Flowchart** | Process flows | `flowchart`, `graph` |
+| **Sequence** | Interaction diagrams | `sequenceDiagram` |
+| **Class** | UML class diagrams | `classDiagram` |
+| **State** | State machines | `stateDiagram` |
+| **ER** | Entity-relationship | `erDiagram` |
+| **Gantt** | Project timelines | `gantt` |
+| **Pie** | Pie charts | `pie` |
+| **Mindmap** | Mind mapping | `mindmap` |
+| **Timeline** | Chronological events | `timeline` |
+
+#### Available Themes
+
+| Theme | Description |
+|-------|-------------|
+| `default` | Standard Mermaid colors |
+| `dark` | Dark background theme |
+| `forest` | Green nature theme |
+| `neutral` | Neutral grayscale |
+
+#### Background Options
+
+| Background | Description |
+|------------|-------------|
+| `white` | White background |
+| `transparent` | Transparent background |
+| Custom | Any CSS color value |
+
+---
+
+### Cloud Diagrams (Mode 6)
+
+Create cloud architecture diagrams with provider-specific icons using the Python `diagrams` library.
+
+#### Basic Usage
+
+```bash
+usecvis -m 6 -i architecture.toml -o output
+```
+
+#### With Direction
+
+```bash
+usecvis -m 6 -i architecture.toml -o output --direction LR
+```
+
+#### Supported Input Formats
+
+- TOML configuration (`.toml`, `.tml`)
+- JSON configuration (`.json`)
+- YAML configuration (`.yaml`, `.yml`)
+
+#### Output
+
+- Visualization file (e.g., `output.png`)
+- Console output with diagram statistics
+
+#### Example Configuration (TOML)
+
+```toml
+[diagram]
+title = "AWS Web Application"
+direction = "TB"
+outformat = "png"
+
+# Cluster for VPC components
+[[clusters]]
+id = "vpc"
+label = "VPC"
+
+    [[clusters.nodes]]
+    id = "alb"
+    icon = "aws.network.ElasticLoadBalancing"
+    label = "Load Balancer"
+
+    [[clusters.nodes]]
+    id = "ec2_1"
+    icon = "aws.compute.EC2"
+    label = "Web Server 1"
+
+    [[clusters.nodes]]
+    id = "ec2_2"
+    icon = "aws.compute.EC2"
+    label = "Web Server 2"
+
+# External nodes
+[[nodes]]
+id = "users"
+icon = "aws.general.User"
+label = "Users"
+
+[[nodes]]
+id = "rds"
+icon = "aws.database.RDS"
+label = "PostgreSQL"
+
+[[nodes]]
+id = "s3"
+icon = "aws.storage.S3"
+label = "Static Assets"
+
+# Connections
+[[edges]]
+from = "users"
+to = "alb"
+
+[[edges]]
+from = "alb"
+to = "ec2_1"
+
+[[edges]]
+from = "alb"
+to = "ec2_2"
+
+[[edges]]
+from = "ec2_1"
+to = "rds"
+label = "SQL"
+
+[[edges]]
+from = "ec2_2"
+to = "rds"
+label = "SQL"
+
+[[edges]]
+from = "ec2_1"
+to = "s3"
+
+[[edges]]
+from = "ec2_2"
+to = "s3"
+```
+
+#### Supported Providers
+
+| Provider | Prefix | Example Icons |
+|----------|--------|---------------|
+| **AWS** | `aws.` | `aws.compute.EC2`, `aws.database.RDS`, `aws.network.VPC` |
+| **Azure** | `azure.` | `azure.compute.VirtualMachine`, `azure.database.SQLDatabase` |
+| **GCP** | `gcp.` | `gcp.compute.ComputeEngine`, `gcp.database.CloudSQL` |
+| **Kubernetes** | `k8s.` | `k8s.compute.Pod`, `k8s.network.Service` |
+| **Generic** | `generic.` | `generic.compute.Server`, `generic.database.Database` |
+
+#### Icon Categories
+
+**AWS:**
+- `compute`: EC2, Lambda, ECS, EKS, Fargate
+- `database`: RDS, DynamoDB, Aurora, Redshift
+- `network`: VPC, ELB, CloudFront, Route53, APIGateway
+- `storage`: S3, EBS, EFS, Glacier
+- `security`: IAM, Cognito, WAF, Shield, GuardDuty
+- `analytics`: Athena, EMR, Kinesis, Glue
+
+**Azure:**
+- `compute`: VirtualMachine, Functions, AKS
+- `database`: SQLDatabase, CosmosDB
+- `network`: VirtualNetwork, LoadBalancer, ApplicationGateway
+- `storage`: BlobStorage, FileStorage
+
+**GCP:**
+- `compute`: ComputeEngine, CloudFunctions, GKE
+- `database`: CloudSQL, Firestore, BigQuery
+- `network`: VPC, LoadBalancing, CDN
+- `storage`: CloudStorage
+
+#### Direction Options
+
+| Direction | Description |
+|-----------|-------------|
+| `TB` | Top to bottom (default) |
+| `BT` | Bottom to top |
+| `LR` | Left to right |
+| `RL` | Right to left |
+
+#### Available Templates
+
+| Category | Templates |
+|----------|-----------|
+| **Security** | Zero Trust Architecture, Security Monitoring |
+| **Microservices** | Container orchestration, service mesh |
+| **Infrastructure** | Web apps, data pipelines, serverless |
+
+---
+
 ## Image Support for Nodes
 
 USecVisLib supports adding images/icons to nodes in visualizations. Images can make diagrams more intuitive by using familiar icons for servers, databases, firewalls, etc.
@@ -1067,6 +1334,9 @@ USecVisLib includes ready-to-use templates for all visualization types.
 ls templates/attack-trees/
 ls templates/attack-graphs/
 ls templates/threat-models/
+ls templates/custom-diagrams/
+ls templates/mermaid/
+ls templates/cloud/
 ```
 
 ### Generate from Template
@@ -1099,6 +1369,8 @@ usecvis -m 3 -i templates/attack-graphs/corporate_network.yaml -o output
 | Attack Trees | `insider_threat`, `ransomware_attack`, `web_application_attack` |
 | Attack Graphs | `cloud_infrastructure`, `corporate_network`, `simple_network` |
 | Threat Models | `banking_api`, `cicd_pipeline`, `cloud_infrastructure`, `ecommerce_platform`, `healthcare_system`, `iot_system`, `microservices_architecture`, `saas_multitenant` |
+| Mermaid | `flowchart`, `sequence`, `class`, `state`, `er`, `gantt`, `pie`, `mindmap` |
+| Cloud | `security/zero-trust-architecture`, `microservices/container-orchestration`, `infrastructure/web-app` |
 
 ---
 
@@ -1229,6 +1501,8 @@ Ensure your configuration file has the required sections:
 | 2 (Binary) | N/A (just a binary file) |
 | 3 (Attack Graph) | `graph`, `hosts` |
 | 4 (Custom Diagrams) | `diagram`, `schema`, `nodes` |
+| 5 (Mermaid) | `mermaid` or raw Mermaid syntax |
+| 6 (Cloud Diagrams) | `diagram`, `nodes` or `clusters` |
 
 ### Getting Help
 
@@ -1351,4 +1625,4 @@ See [UI Guide](UI_GUIDE.md#api-authentication) for configuring authentication in
 
 ---
 
-**USecVisLib** v0.3.2 - Universal Security Visualization Library
+**USecVisLib** v0.3.3 - Universal Security Visualization Library

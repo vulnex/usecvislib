@@ -5,7 +5,7 @@
   Author: Claude Code
   Created: 2026-01-14
   Last Modified: 2026-01-14
-  Version: 0.3.2
+  Version: 0.3.3
   License: Apache-2.0
   Copyright (c) 2025 VULNEX. All rights reserved.
   https://www.vulnex.com
@@ -217,7 +217,7 @@
           </div>
         </div>
         <div class="result-image">
-          <img :src="resultImage" alt="Generated Mermaid Diagram" />
+          <ZoomableImage :src="resultImage" alt="Generated Mermaid Diagram" />
         </div>
       </div>
 
@@ -249,6 +249,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, inject } from 'vue'
+import ZoomableImage from './ZoomableImage.vue'
 import {
   visualizeMermaidFromContent,
   validateMermaidFromContent,
@@ -311,6 +312,7 @@ async function generateVisualization() {
       editorContent.value,
       format.value,
       selectedTheme.value,
+      background.value,
       configFormat
     )
 
@@ -344,16 +346,39 @@ async function validateDiagram() {
 
 function detectFormat(content) {
   const trimmed = content.trim()
-  // Check for Mermaid syntax keywords at start
-  const mermaidKeywords = ['flowchart', 'graph', 'sequenceDiagram', 'classDiagram', 'stateDiagram',
-    'erDiagram', 'gantt', 'pie', 'mindmap', 'timeline', 'gitGraph']
-  for (const kw of mermaidKeywords) {
-    if (trimmed.startsWith(kw)) return 'mermaid'
-  }
-  // Check for TOML
-  if (trimmed.startsWith('[')) return 'toml'
+
+  // Check for TOML: look for [mermaid] section anywhere in the content
+  // This handles TOML files that start with comments
+  if (trimmed.includes('[mermaid]')) return 'toml'
+
   // Check for JSON
   if (trimmed.startsWith('{')) return 'json'
+
+  // Check for YAML: look for 'mermaid:' section
+  if (/^mermaid:/m.test(trimmed)) return 'yaml'
+
+  // Skip comments and empty lines to find first content line
+  const lines = trimmed.split('\n')
+  let firstContentLine = ''
+  for (const line of lines) {
+    const stripped = line.trim()
+    if (stripped && !stripped.startsWith('#') && !stripped.startsWith('//') && !stripped.startsWith('%%')) {
+      firstContentLine = stripped.toLowerCase()
+      break
+    }
+  }
+
+  // Check for Mermaid syntax keywords
+  const mermaidKeywords = ['flowchart', 'graph', 'sequencediagram', 'classdiagram', 'statediagram',
+    'erdiagram', 'gantt', 'pie', 'mindmap', 'timeline', 'gitgraph', 'journey', 'quadrantchart',
+    'requirementdiagram', 'c4context', 'c4container', 'c4component', 'sankey', 'xychart', 'block']
+  for (const kw of mermaidKeywords) {
+    if (firstContentLine.startsWith(kw)) return 'mermaid'
+  }
+
+  // Check for TOML section headers (after skipping comments)
+  if (firstContentLine.startsWith('[')) return 'toml'
+
   // Default to mermaid (raw syntax)
   return 'mermaid'
 }

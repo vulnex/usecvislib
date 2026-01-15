@@ -1124,16 +1124,17 @@ export async function visualizeMermaid(file, format = 'png', theme = 'default', 
  * @param {string} content - Mermaid or config content
  * @param {string} outputFormat - Output format (png, svg, pdf)
  * @param {string} theme - Mermaid theme
+ * @param {string} background - Background color (white, transparent, or hex)
  * @param {string} configFormat - Configuration format (mermaid, toml, json, yaml)
  * @returns {Promise<Blob>}
  */
-export async function visualizeMermaidFromContent(content, outputFormat = 'png', theme = 'default', configFormat = 'toml') {
+export async function visualizeMermaidFromContent(content, outputFormat = 'png', theme = 'default', background = 'white', configFormat = 'toml') {
   // For raw mermaid syntax, use .mmd extension
   const extension = configFormat === 'mermaid' ? '.mmd' : getExtensionFromFormat(configFormat)
   const filename = `mermaid_diagram${extension}`
   const blob = new Blob([content], { type: 'text/plain' })
   const file = new File([blob], filename, { type: 'text/plain' })
-  return visualizeMermaid(file, outputFormat, theme)
+  return visualizeMermaid(file, outputFormat, theme, background)
 }
 
 /**
@@ -1303,6 +1304,17 @@ export async function getCloudIcons(provider, category = null) {
 export async function getCloudTemplates(category = null) {
   const url = category ? `/cloud/templates?category=${encodeURIComponent(category)}` : '/cloud/templates'
   const response = await api.get(url)
+  return response.data
+}
+
+/**
+ * Get a specific cloud diagram template content
+ * @param {string} category - Template category (aws, kubernetes, security)
+ * @param {string} name - Template name
+ * @returns {Promise<{id: string, name: string, category: string, content: string, filename: string, providers: string[]}>}
+ */
+export async function getCloudTemplate(category, name) {
+  const response = await api.get(`/cloud/template/${encodeURIComponent(category)}/${encodeURIComponent(name)}`)
   return response.data
 }
 
@@ -1614,6 +1626,7 @@ export default {
   getCloudProviders,
   getCloudIcons,
   getCloudTemplates,
+  getCloudTemplate,
   generateCloudCode,
   generateCloudCodeFromContent,
 }

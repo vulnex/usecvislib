@@ -1,6 +1,6 @@
 # USecVisLib Web UI Guide
 
-**Version:** 0.3.2
+**Version:** 0.3.3
 
 This guide covers the web-based user interface for USecVisLib.
 
@@ -50,11 +50,13 @@ The main navigation tabs for visualization modules:
 
 | Tab | Icon | Description |
 |-----|------|-------------|
-| **Attack Trees** | Tree | Create hierarchical attack scenario diagrams |
-| **Attack Graphs** | Web | Visualize network attack paths |
-| **Threat Modeling** | Magnifier | Build Data Flow Diagrams with STRIDE |
-| **Binary Analysis** | Chart | Analyze binary file patterns |
-| **Custom Diagrams** | Chart | Create user-defined diagrams with custom schemas |
+| **Attack Trees** | 🌳 | Create hierarchical attack scenario diagrams |
+| **Attack Graphs** | 🕸️ | Visualize network attack paths |
+| **Threat Modeling** | 🔍 | Build Data Flow Diagrams with STRIDE |
+| **Custom Diagrams** | 🎨 | Create user-defined diagrams with custom schemas |
+| **Mermaid** | 🧜 | Render Mermaid syntax to images |
+| **Cloud** | ☁️ | Cloud architecture diagrams with provider icons |
+| **Binary Analysis** | 📊 | Analyze binary file patterns |
 
 ### Tools Dropdown
 
@@ -491,6 +493,174 @@ type = "flow"
 
 ---
 
+## Mermaid Diagrams Panel
+
+The Mermaid Diagrams panel renders Mermaid syntax to PNG/SVG images using mermaid-cli.
+
+### Features
+
+- **Live Editor**: Write Mermaid syntax directly with syntax highlighting
+- **Template Browser**: Pre-built templates for common diagram types
+- **Theme Support**: Choose from default, dark, forest, and neutral themes
+- **Background Colors**: Customize diagram background (white, transparent, custom)
+- **Zoom Support**: Pan and zoom the generated visualization
+
+### Supported Diagram Types
+
+| Type | Description | Example Use Case |
+|------|-------------|------------------|
+| **Flowchart** | Process flows and workflows | Software architecture, decision trees |
+| **Sequence** | Interaction diagrams | API flows, authentication sequences |
+| **Class** | UML class diagrams | Object-oriented design |
+| **State** | State machine diagrams | Workflow states, UI states |
+| **ER** | Entity-relationship diagrams | Database schemas |
+| **Gantt** | Project timelines | Project planning |
+| **Pie** | Pie charts | Data visualization |
+| **Mindmap** | Mind mapping | Brainstorming, note-taking |
+| **Timeline** | Chronological events | History, roadmaps |
+
+### Usage
+
+1. **Select a template** or write Mermaid syntax in the editor
+2. **Choose theme** (default, dark, forest, neutral)
+3. **Set background** color if needed
+4. **Click "Generate"** to render the diagram
+5. **Use zoom controls** to explore the visualization
+6. **Download** the generated image
+
+### Example Configuration (TOML)
+
+```toml
+[mermaid]
+title = "User Authentication Flow"
+theme = "default"
+background = "white"
+
+[mermaid.content]
+syntax = """
+sequenceDiagram
+    participant User
+    participant App
+    participant Auth
+
+    User->>App: Login
+    App->>Auth: Validate
+    Auth-->>App: Token
+    App-->>User: Success
+"""
+```
+
+### Template Categories
+
+| Category | Templates |
+|----------|-----------|
+| **Flowcharts** | Basic flowchart, decision tree, process flow |
+| **Sequence** | API flow, authentication, microservices |
+| **Class** | UML patterns, inheritance, composition |
+| **State** | State machines, UI states |
+| **ER** | Database schemas, relationships |
+
+---
+
+## Cloud Diagrams Panel
+
+The Cloud Diagrams panel creates cloud architecture visualizations using provider-specific icons.
+
+### Features
+
+- **Multi-Provider Support**: AWS, Azure, GCP, Kubernetes, and generic icons
+- **Cluster Support**: Group related components visually
+- **Template Browser**: Pre-built architecture patterns
+- **Edge Labels**: Annotate connections between components
+- **Zoom Support**: Pan and zoom the generated visualization
+
+### Supported Providers
+
+| Provider | Icon Categories |
+|----------|-----------------|
+| **AWS** | Compute, Database, Network, Security, Storage, Analytics, ML |
+| **Azure** | Compute, Database, Network, Security, Storage, AI, DevOps |
+| **GCP** | Compute, Database, Network, Security, Storage, ML |
+| **Kubernetes** | Pods, Services, Deployments, ConfigMaps, Secrets |
+| **Generic** | Servers, databases, users, networks |
+
+### Usage
+
+1. **Select a template** from the template browser or write configuration
+2. **Define nodes** with provider icons
+3. **Create clusters** to group related components
+4. **Add edges** to show connections
+5. **Click "Generate"** to render the diagram
+6. **Download** the generated image
+
+### Example Configuration (TOML)
+
+```toml
+[diagram]
+title = "AWS Web Application"
+direction = "TB"
+outformat = "png"
+
+[[clusters]]
+id = "vpc"
+label = "VPC"
+
+    [[clusters.nodes]]
+    id = "alb"
+    icon = "aws.network.ElasticLoadBalancing"
+    label = "Load Balancer"
+
+    [[clusters.nodes]]
+    id = "ec2"
+    icon = "aws.compute.EC2"
+    label = "Web Servers"
+
+[[nodes]]
+id = "users"
+icon = "aws.general.User"
+label = "Users"
+
+[[nodes]]
+id = "rds"
+icon = "aws.database.RDS"
+label = "PostgreSQL"
+
+[[edges]]
+from = "users"
+to = "alb"
+
+[[edges]]
+from = "alb"
+to = "ec2"
+
+[[edges]]
+from = "ec2"
+to = "rds"
+label = "SQL"
+```
+
+### Template Categories
+
+| Category | Templates |
+|----------|-----------|
+| **Security** | Zero Trust Architecture, Security Monitoring |
+| **Microservices** | Container orchestration, service mesh |
+| **Infrastructure** | Web apps, data pipelines, serverless |
+
+### Icon Naming Convention
+
+Icons follow the pattern: `provider.category.ServiceName`
+
+Examples:
+- `aws.compute.EC2`
+- `aws.database.RDS`
+- `aws.network.VPC`
+- `azure.compute.VirtualMachine`
+- `gcp.compute.ComputeEngine`
+- `k8s.compute.Pod`
+
+---
+
 ## Settings Panel
 
 Access via the gear icon in the header.
@@ -534,8 +704,10 @@ Shows availability of:
 - Attack Trees
 - Attack Graphs
 - Threat Modeling
-- Binary Visualization
 - Custom Diagrams
+- Mermaid Diagrams
+- Cloud Diagrams
+- Binary Visualization
 
 ### Display Settings
 

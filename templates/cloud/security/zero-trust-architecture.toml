@@ -44,7 +44,7 @@ label = "Network Security"
 
     [[clusters.nodes]]
     id = "firewall"
-    icon = "aws.security.NetworkFirewall"
+    icon = "aws.security.FirewallManager"
     label = "Network Firewall"
 
 # Data Security Cluster
@@ -74,7 +74,7 @@ label = "Security Monitoring"
 
     [[clusters.nodes]]
     id = "guardduty"
-    icon = "aws.security.GuardDuty"
+    icon = "aws.security.Guardduty"
     label = "Threat Detection"
 
     [[clusters.nodes]]

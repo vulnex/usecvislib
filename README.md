@@ -9,7 +9,7 @@
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.x-brightgreen.svg)](https://vuejs.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-teal.svg)](https://fastapi.tiangolo.com)
 
-A comprehensive Python library and web application for creating security visualizations including attack trees, attack graphs, threat models, and binary analysis diagrams.
+A comprehensive Python library and web application for creating security visualizations including attack trees, attack graphs, threat models, binary analysis diagrams, Mermaid diagrams, and cloud architecture diagrams.
 
 ![USecVisLib](docs/images/ui-main.png)
 
@@ -22,8 +22,10 @@ A comprehensive Python library and web application for creating security visuali
 | **Attack Trees** | Hierarchical attack scenario diagrams | AND/OR gates, leaf nodes, 13 style presets |
 | **Attack Graphs** | Network attack path visualization | Path finding, critical node analysis, CVSS scoring |
 | **Threat Modeling** | Data Flow Diagrams with STRIDE analysis | PyTM integration, report generation, trust boundaries |
-| **Binary Analysis** | Binary file pattern visualization | Entropy, byte distribution, wind rose, heatmap |
 | **Custom Diagrams** | Flexible schema-driven diagrams | 100+ shapes, 20+ templates, custom schemas |
+| **Mermaid Diagrams** | Render Mermaid syntax to images | Flowcharts, sequence, class, state, ER, Gantt, pie charts |
+| **Cloud Diagrams** | Cloud architecture visualization | AWS, Azure, GCP, Kubernetes icons, clusters, templates |
+| **Binary Analysis** | Binary file pattern visualization | Entropy, byte distribution, wind rose, heatmap |
 
 ### Platform Features
 
@@ -59,7 +61,7 @@ A comprehensive Python library and web application for creating security visuali
 The web interface provides an intuitive way to create visualizations:
 
 ### Navigation
-- **Primary Tabs**: Attack Trees, Attack Graphs, Threat Modeling, Custom Diagrams, Binary Analysis
+- **Primary Tabs**: Attack Trees, Attack Graphs, Threat Modeling, Custom Diagrams, Mermaid, Cloud, Binary Analysis
 - **Tools Menu**: CVSS Calculator, Format Converter, Batch Processing, Export, Compare
 - **Header Actions**: Documentation, Settings, Clean/Reset
 
@@ -217,7 +219,21 @@ cd.load("diagram.toml")
 result = cd.BuildCustomDiagram(output="diagram", format="png")
 stats = cd.get_stats()
 
-# Mermaid Export
+# Mermaid Diagrams (render Mermaid syntax to images)
+from usecvislib import MermaidDiagrams
+
+md = MermaidDiagrams()
+md.load("flowchart.mmd")  # or load from TOML/JSON/YAML config
+result = md.render("output", format="png", theme="default")
+
+# Cloud Architecture Diagrams
+from usecvislib import CloudDiagrams
+
+cloud = CloudDiagrams()
+cloud.load("architecture.toml")
+result = cloud.render("output", format="png")
+
+# Mermaid Export (convert existing visualizations to Mermaid syntax)
 from usecvislib import serialize_to_mermaid, detect_visualization_type
 from usecvislib.utils import ReadConfigFile
 
@@ -354,6 +370,88 @@ type = "connection"
 label = "SQL"
 ```
 
+### Mermaid Diagram Example (TOML)
+
+```toml
+[mermaid]
+title = "Authentication Flow"
+theme = "default"
+background = "white"
+
+[mermaid.content]
+syntax = """
+sequenceDiagram
+    participant User
+    participant App
+    participant Auth
+    participant DB
+
+    User->>App: Login Request
+    App->>Auth: Validate Credentials
+    Auth->>DB: Query User
+    DB-->>Auth: User Data
+    Auth-->>App: Token
+    App-->>User: Session Created
+"""
+```
+
+Or use raw Mermaid syntax directly:
+
+```mermaid
+flowchart TD
+    A[Start] --> B{Is it valid?}
+    B -->|Yes| C[Process]
+    B -->|No| D[Reject]
+    C --> E[End]
+    D --> E
+```
+
+### Cloud Architecture Example (TOML)
+
+```toml
+[diagram]
+title = "AWS Web Architecture"
+direction = "LR"
+outformat = "png"
+
+[[clusters]]
+id = "vpc"
+label = "VPC"
+
+    [[clusters.nodes]]
+    id = "alb"
+    icon = "aws.network.ElasticLoadBalancing"
+    label = "Load Balancer"
+
+    [[clusters.nodes]]
+    id = "ec2"
+    icon = "aws.compute.EC2"
+    label = "Web Server"
+
+[[nodes]]
+id = "users"
+icon = "aws.general.User"
+label = "Users"
+
+[[nodes]]
+id = "rds"
+icon = "aws.database.RDS"
+label = "Database"
+
+[[edges]]
+from = "users"
+to = "alb"
+
+[[edges]]
+from = "alb"
+to = "ec2"
+
+[[edges]]
+from = "ec2"
+to = "rds"
+label = "SQL"
+```
+
 ## Available Styles
 
 ### Attack Trees (13 styles)
@@ -396,6 +494,14 @@ The FastAPI-based REST API provides programmatic access to all features.
 | | `/analyze/custom-diagram` | POST | Get diagram statistics |
 | | `/custom-diagrams/shapes` | GET | List available shapes |
 | | `/custom-diagrams/templates` | GET | List available templates |
+| **Mermaid** | `/visualize/mermaid` | POST | Render Mermaid to image |
+| | `/mermaid/templates` | GET | List Mermaid templates |
+| | `/mermaid/template/{category}/{name}` | GET | Get template content |
+| **Cloud** | `/visualize/cloud` | POST | Generate cloud diagram |
+| | `/cloud/templates` | GET | List cloud templates |
+| | `/cloud/template/{category}/{name}` | GET | Get template content |
+| | `/cloud/icons` | GET | List available cloud icons |
+| | `/cloud/providers` | GET | List supported providers |
 | **Utilities** | `/convert` | POST | Convert formats |
 | | `/styles` | GET | List available styles |
 | | `/templates` | GET | List templates |
@@ -418,6 +524,8 @@ usecvislib/
 │   ├── threatmodeling.py     # Threat modeling module
 │   ├── binvis.py             # Binary visualization module
 │   ├── customdiagrams.py     # Custom diagrams module
+│   ├── mermaiddiagrams.py    # Mermaid diagram rendering
+│   ├── clouddiagrams.py      # Cloud architecture diagrams
 │   ├── shapes/               # Shape gallery system
 │   ├── schema/               # Schema validation
 │   ├── utils.py              # Utility functions
@@ -436,7 +544,9 @@ usecvislib/
 │   ├── attack-trees/
 │   ├── attack-graphs/
 │   ├── threat-models/
-│   └── custom-diagrams/
+│   ├── custom-diagrams/
+│   ├── mermaid/              # Mermaid diagram templates
+│   └── cloud/                # Cloud architecture templates
 ├── tests/                    # Unit tests (490+ tests)
 ├── docker-compose.yml        # Docker Compose config
 ├── Dockerfile                # Docker image
@@ -563,6 +673,8 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 - [CodeMirror](https://codemirror.net/) - Code editor component
 - [NetworkX](https://networkx.org/) - Network analysis library
 - [Matplotlib](https://matplotlib.org/) - Plotting library for binary visualization
+- [Mermaid-CLI](https://github.com/mermaid-js/mermaid-cli) - Mermaid diagram rendering
+- [Diagrams](https://diagrams.mingrammer.com/) - Cloud architecture diagrams as code
 
 ### Icon Libraries
 
@@ -582,4 +694,4 @@ We gratefully acknowledge the following icon libraries included in this project:
 
 ---
 
-**VULNEX** - Universal Security Visualization Library v0.3.2
+**VULNEX** - Universal Security Visualization Library v0.3.3
