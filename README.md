@@ -692,6 +692,23 @@ We gratefully acknowledge the following icon libraries included in this project:
 - [js-yaml](https://github.com/nodeca/js-yaml) - YAML parser for JavaScript
 - [Mermaid](https://mermaid.js.org/) - Diagramming and charting tool (export format)
 
+## Projects and Articles
+
+Projects and articles that use or mention USecVisLib:
+
+### Projects
+
+<!-- Add projects here using the format below -->
+<!-- - [Project Name](https://link) - Brief description -->
+
+*Know a project using USecVisLib? Submit a PR to add it here!*
+
+### Articles and Tutorials
+
+- [Information Warfare Strategies (SRF-IWS): Offensive Operations at the Davos Forum 2026 (Part 3)](https://simonroses.com/2026/01/information-warfare-strategies-srf-iws-offensive-operations-at-the-davos-forum-2026-part-3/) - Simon Roses (January 2026)
+
+*Written about USecVisLib? Let us know and we'll add your article!*
+
 ---
 
 **VULNEX** - Universal Security Visualization Library v0.3.3
