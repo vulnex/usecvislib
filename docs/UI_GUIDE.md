@@ -64,7 +64,7 @@ Click the "Tools" button to access utility features:
 
 | Tool | Icon | Description |
 |------|------|-------------|
-| **CVSS Calculator** | Target | Calculate CVSS 3.x scores from vectors |
+| **CVSS Calculator** | Target | Calculate CVSS 3.1 and 4.0 scores with vector import |
 | **Format Converter** | Refresh | Convert between TOML, JSON, YAML, and Mermaid |
 | **Batch Processing** | Package | Process multiple files at once |
 | **Data Export** | Upload | Export data to JSON, CSV, YAML, Markdown, or Mermaid |
@@ -76,15 +76,38 @@ Click the "Tools" button to access utility features:
 
 ### CVSS Calculator
 
-Calculate CVSS 3.x scores interactively.
+Calculate CVSS scores interactively. Supports both CVSS 3.1 and CVSS 4.0.
+
+**Features:**
+- **Version Toggle**: Switch between CVSS 4.0 (default) and CVSS 3.1
+- **Vector Import**: Paste a vector string to auto-configure all metrics
+- **Real-time Calculation**: Score updates as you select metrics
+- **Copy Support**: Copy vector string or score to clipboard
 
 **Usage:**
-1. Select metric values using the dropdowns or buttons
-2. Score calculates automatically in real-time
-3. Vector string is generated (e.g., `CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H`)
-4. Copy the vector or score to clipboard
+1. Select CVSS version (4.0 is default)
+2. Select metric values using the dropdowns or buttons
+3. Score calculates automatically in real-time
+4. Vector string is generated automatically
+5. Copy the vector or score to clipboard
 
-**Metrics:**
+**Vector Import:**
+1. Paste a CVSS vector string in the import field (e.g., `CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N`)
+2. Click "Import" or press Enter
+3. Version is auto-detected and calculator switches to the correct tab
+4. All metrics are populated from the vector
+
+**CVSS 4.0 Metrics (11 base + optional):**
+- **Attack Vector (AV)**: Network, Adjacent, Local, Physical
+- **Attack Complexity (AC)**: Low, High
+- **Attack Requirements (AT)**: None, Present
+- **Privileges Required (PR)**: None, Low, High
+- **User Interaction (UI)**: None, Passive, Active
+- **Vulnerable System Impact**: Confidentiality (VC), Integrity (VI), Availability (VA)
+- **Subsequent System Impact**: Confidentiality (SC), Integrity (SI), Availability (SA)
+- **Exploit Maturity (E)**: Not Defined, Attacked, POC, Unreported (optional)
+
+**CVSS 3.1 Metrics (8 base):**
 - **Attack Vector (AV)**: Network, Adjacent, Local, Physical
 - **Attack Complexity (AC)**: Low, High
 - **Privileges Required (PR)**: None, Low, High

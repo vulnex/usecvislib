@@ -50,7 +50,7 @@ pip install -r requirements.txt
 
 ```python
 import usecvislib
-print(usecvislib.__version__)  # 0.2.9
+print(usecvislib.__version__)  # 0.3.3
 ```
 
 ---
@@ -1899,9 +1899,113 @@ if result["success"]:
 
 ### CVSS Module
 
-Calculate and parse CVSS 3.x scores.
+Calculate and parse CVSS scores. Supports both CVSS 3.1 and CVSS 4.0.
 
-#### Import
+#### Unified Interface (Recommended)
+
+The unified module auto-detects CVSS version and handles both 3.1 and 4.0 vectors:
+
+```python
+from usecvislib import (
+    parse_cvss_vector_unified,
+    calculate_cvss_from_vector_unified,
+    validate_cvss_vector_unified,
+    get_cvss_score_unified,
+    detect_cvss_version,
+    is_cvss4_vector,
+    is_cvss3_vector,
+)
+
+# Auto-detect and parse any CVSS vector
+success, vector, error = parse_cvss_vector_unified("CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N")
+if success:
+    print(f"Score: {vector.calculate_score()}")  # 9.3
+
+# Works with 3.1 vectors too
+success, vector, error = parse_cvss_vector_unified("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
+if success:
+    print(f"Score: {vector.base_score}")  # 9.8
+
+# Detect version from vector string
+version = detect_cvss_version("CVSS:4.0/AV:N/AC:L/...")  # "4.0"
+version = detect_cvss_version("CVSS:3.1/AV:N/AC:L/...")  # "3.1"
+
+# Check version
+is_cvss4_vector("CVSS:4.0/...")  # True
+is_cvss3_vector("CVSS:3.1/...")  # True
+
+# Calculate score from any version vector
+score = calculate_cvss_from_vector_unified("CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N")
+
+# Get score from value or vector (version-agnostic)
+score, calculated = get_cvss_score_unified(None, "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N")
+```
+
+#### CVSS 4.0 Module
+
+Full CVSS 4.0 implementation with MacroVector scoring:
+
+```python
+from usecvislib import (
+    CVSSVector4,
+    parse_cvss4_vector,
+    calculate_cvss4_from_vector,
+    validate_cvss4_vector,
+)
+
+# Parse a CVSS 4.0 vector
+success, vector, error = parse_cvss4_vector(
+    "CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N"
+)
+
+if success:
+    print(f"Attack Vector: {vector.attack_vector}")       # AttackVector.NETWORK
+    print(f"Attack Requirements: {vector.attack_requirements}")  # AttackRequirements.NONE
+    print(f"Vuln Confidentiality: {vector.vuln_conf}")    # ImpactMetric.HIGH
+    print(f"Subseq Confidentiality: {vector.subseq_conf}")  # ImpactMetric.NONE
+
+    # Calculate score using MacroVector algorithm
+    score = vector.calculate_score()
+    print(f"Score: {score}")  # 9.3
+
+    # Get severity
+    severity = vector.get_severity()  # "Critical"
+
+    # Generate vector string
+    vector_str = vector.to_vector_string()
+
+# Validate a 4.0 vector
+is_valid, error = validate_cvss4_vector("CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N")
+
+# Direct score calculation
+score = calculate_cvss4_from_vector("CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N")
+```
+
+**CVSS 4.0 Base Metrics (11 required):**
+
+| Metric | Values | Description |
+|--------|--------|-------------|
+| AV | N, A, L, P | Attack Vector |
+| AC | L, H | Attack Complexity |
+| AT | N, P | Attack Requirements (new in 4.0) |
+| PR | N, L, H | Privileges Required |
+| UI | N, P, A | User Interaction (expanded in 4.0) |
+| VC | H, L, N | Vulnerable System Confidentiality |
+| VI | H, L, N | Vulnerable System Integrity |
+| VA | H, L, N | Vulnerable System Availability |
+| SC | H, L, N | Subsequent System Confidentiality |
+| SI | H, L, N | Subsequent System Integrity |
+| SA | H, L, N | Subsequent System Availability |
+
+**Optional Threat Metric:**
+
+| Metric | Values | Description |
+|--------|--------|-------------|
+| E | X, A, P, U | Exploit Maturity |
+
+#### CVSS 3.1 Module
+
+For direct CVSS 3.1 operations:
 
 ```python
 from usecvislib.cvss import (
@@ -1912,12 +2016,6 @@ from usecvislib.cvss import (
     validate_cvss_vector,
     get_cvss_score
 )
-```
-
-#### Parse CVSS Vector
-
-```python
-from usecvislib.cvss import parse_cvss_vector
 
 # Parse a CVSS 3.1 vector string
 vector = parse_cvss_vector("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
@@ -1926,54 +2024,34 @@ print(f"Version: {vector.version}")      # CVSSVersion.V3_1
 print(f"Base Score: {vector.base_score}")  # 9.8
 print(f"Attack Vector: {vector.attack_vector}")  # AttackVector.NETWORK
 print(f"Scope: {vector.scope}")           # Scope.UNCHANGED
-```
 
-#### Calculate Score from Vector
-
-```python
-from usecvislib.cvss import calculate_cvss_from_vector
-
+# Calculate score
 score = calculate_cvss_from_vector("CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N")
-print(f"Score: {score}")  # 6.1
-```
 
-#### Validate Vector String
-
-```python
-from usecvislib.cvss import validate_cvss_vector
-
+# Validate
 is_valid, error = validate_cvss_vector("CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
-if is_valid:
-    print("Valid vector")
-else:
-    print(f"Invalid: {error}")
-```
-
-#### Get Score from Value or Vector
-
-```python
-from usecvislib.cvss import get_cvss_score
-
-# From numeric value
-score, calculated = get_cvss_score(9.8, None)
-print(f"Score: {score}, Calculated: {calculated}")  # 9.8, False
-
-# From vector string
-score, calculated = get_cvss_score(None, "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H")
-print(f"Score: {score}, Calculated: {calculated}")  # 9.8, True
 ```
 
 #### CVSS Enums
 
 ```python
+# CVSS 3.1 Enums
 from usecvislib.cvss import (
     CVSSVersion,      # V3_0, V3_1
     AttackVector,     # NETWORK, ADJACENT, LOCAL, PHYSICAL
     AttackComplexity, # LOW, HIGH
     PrivilegesRequired,  # NONE, LOW, HIGH
-    UserInteraction,  # NONE, REQUIRED
-    Scope,            # UNCHANGED, CHANGED
+    UserInteraction,  # NONE, REQUIRED (3.1) / NONE, PASSIVE, ACTIVE (4.0)
+    Scope,            # UNCHANGED, CHANGED (3.1 only)
     Impact            # NONE, LOW, HIGH
+)
+
+# CVSS 4.0 Enums
+from usecvislib.cvss4 import (
+    AttackRequirements,  # NONE, PRESENT (new in 4.0)
+    UserInteraction,     # NONE, PASSIVE, ACTIVE (expanded)
+    ExploitMaturity,     # NOT_DEFINED, ATTACKED, POC, UNREPORTED
+    ImpactMetric,        # HIGH, LOW, NONE
 )
 ```
 
@@ -1987,7 +2065,7 @@ from usecvislib.constants import (
     validate_cvss_score
 )
 
-# Get severity color
+# Get severity color (works with both 3.1 and 4.0 scores)
 color = cvss_to_color(9.8)  # "#8b0000" (dark red for Critical)
 
 # Get severity label
@@ -2120,7 +2198,7 @@ print(metadata)
 #     name="Corporate Network Attack",
 #     description="Attack paths through corporate infrastructure",
 #     version="1.0.0",
-#     engineversion="0.2.9",
+#     engineversion="0.3.3",
 #     type="Attack Graph",
 #     date="2025-12-25",
 #     last_modified="2025-12-27",
@@ -3388,4 +3466,4 @@ generate_security_report("threat_model.toml", "./reports")
 
 ---
 
-**USecVisLib** v0.3.1 - Universal Security Visualization Library
+**USecVisLib** v0.3.3 - Universal Security Visualization Library
