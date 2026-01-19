@@ -15,7 +15,7 @@
 
 from enum import Enum
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 # =============================================================================
@@ -131,17 +131,14 @@ class EntropyConfig(BaseModel):
     show_grid: bool = Field(default=True, description="Show grid lines")
     grid_alpha: float = Field(default=0.3, description="Grid transparency (0-1)", ge=0, le=1)
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "window_size": 256,
                 "step": 64,
                 "show_thresholds": True,
                 "fill_alpha": 0.3
             }
-        }
-
-
+        })
 class DistributionRegion(BaseModel):
     """Byte distribution region highlight configuration."""
     start: int = Field(default=0, description="Start byte value (0-255)", ge=0, le=255)
@@ -167,16 +164,13 @@ class ByteDistributionConfig(BaseModel):
         max_length=50  # SECURITY: Limit to prevent DoS
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "bar_width": 1.0,
                 "bar_alpha": 0.7,
                 "show_regions": True
             }
-        }
-
-
+        })
 class WindRoseConfig(BaseModel):
     """Configuration for wind rose visualization."""
     bar_alpha: float = Field(default=0.7, description="Bar transparency (0-1)", ge=0, le=1)
@@ -188,15 +182,12 @@ class WindRoseConfig(BaseModel):
     )
     rlabel_position: float = Field(default=0, description="Radial label position in degrees")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "bar_alpha": 0.7,
                 "rticks": [0.25, 0.5, 0.75, 1.0]
             }
-        }
-
-
+        })
 class HeatmapConfig(BaseModel):
     """Configuration for heatmap visualization."""
     block_size: int = Field(default=256, description="Width of heatmap in bytes", gt=0)
@@ -206,16 +197,13 @@ class HeatmapConfig(BaseModel):
     show_colorbar: bool = Field(default=True, description="Show colorbar")
     colorbar_label: str = Field(default="Byte Value", description="Colorbar label text")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "block_size": 256,
                 "interpolation": "nearest",
                 "show_colorbar": True
             }
-        }
-
-
+        })
 class BinVisConfig(BaseModel):
     """Complete binary visualization configuration."""
     entropy_analysis: Optional[EntropyConfig] = Field(default=None, description="Entropy analysis settings")
@@ -223,8 +211,7 @@ class BinVisConfig(BaseModel):
     wind_rose: Optional[WindRoseConfig] = Field(default=None, description="Wind rose settings")
     heatmap: Optional[HeatmapConfig] = Field(default=None, description="Heatmap settings")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "entropy_analysis": {
                     "window_size": 512,
@@ -236,9 +223,7 @@ class BinVisConfig(BaseModel):
                     "show_colorbar": True
                 }
             }
-        }
-
-
+        })
 class AttackGraphStyle(str, Enum):
     """Available attack graph styles."""
     DEFAULT = "ag_default"
@@ -277,15 +262,12 @@ class AttackTreeRequest(BaseModel):
     format: OutputFormat = Field(default=OutputFormat.PNG, description="Output image format")
     style: AttackTreeStyle = Field(default=AttackTreeStyle.DEFAULT, description="Style preset")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "format": "png",
                 "style": "at_default"
             }
-        }
-
-
+        })
 class ThreatModelRequest(BaseModel):
     """Request model for threat model visualization."""
     format: OutputFormat = Field(default=OutputFormat.PNG, description="Output image format")
@@ -293,17 +275,14 @@ class ThreatModelRequest(BaseModel):
     engine: ThreatModelEngine = Field(default=ThreatModelEngine.USECVISLIB, description="Threat modeling engine")
     generate_report: bool = Field(default=False, description="Generate STRIDE report")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "format": "png",
                 "style": "tm_default",
                 "engine": "usecvislib",
                 "generate_report": False
             }
-        }
-
-
+        })
 class BinaryVisRequest(BaseModel):
     """Request model for binary visualization."""
     format: OutputFormat = Field(default=OutputFormat.PNG, description="Output image format")
@@ -314,8 +293,7 @@ class BinaryVisRequest(BaseModel):
         description="Optional visualization configuration parameters"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "format": "png",
                 "style": "bv_default",
@@ -327,9 +305,7 @@ class BinaryVisRequest(BaseModel):
                     }
                 }
             }
-        }
-
-
+        })
 class CVSSSeverity(str, Enum):
     """CVSS severity levels based on score ranges."""
     CRITICAL = "Critical"  # 9.0 - 10.0
@@ -353,8 +329,7 @@ class VulnerabilityInput(BaseModel):
     affected_host: Optional[str] = Field(default=None, description="Host ID this vulnerability affects", max_length=256)
     cwe: Optional[str] = Field(default=None, description="CWE identifier (e.g., CWE-79)", max_length=32)
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "id": "vuln_sql_injection",
                 "label": "SQL Injection",
@@ -363,23 +338,18 @@ class VulnerabilityInput(BaseModel):
                 "affected_host": "webserver",
                 "cwe": "CWE-89"
             }
-        }
-
-
+        })
 class AttackGraphRequest(BaseModel):
     """Request model for attack graph visualization."""
     format: OutputFormat = Field(default=OutputFormat.PNG, description="Output image format")
     style: AttackGraphStyle = Field(default=AttackGraphStyle.DEFAULT, description="Style preset")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "format": "png",
                 "style": "ag_default"
             }
-        }
-
-
+        })
 class TemplateMetadata(BaseModel):
     """Template metadata information."""
     name: str = Field(default="", description="Template name", max_length=256)
@@ -508,27 +478,21 @@ class ErrorResponse(BaseModel):
     detail: str
     error_type: str
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "detail": "Invalid TOML file format",
                 "error_type": "ValidationError"
             }
-        }
-
-
+        })
 class AuthErrorResponse(BaseModel):
     """Authentication error response."""
     detail: str
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "detail": "Missing API key. Include header: X-API-Key: <your-key>"
             }
-        }
-
-
+        })
 class HealthResponse(BaseModel):
     """Health check response.
 
@@ -547,17 +511,14 @@ class ConvertResponse(BaseModel):
     target_format: str = Field(description="Target format converted to")
     filename: str = Field(description="Suggested filename for download")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "content": "[tree]\nname = \"Example\"\n",
                 "source_format": "json",
                 "target_format": "toml",
                 "filename": "config.toml"
             }
-        }
-
-
+        })
 class ReportFormat(str, Enum):
     """Supported report output formats."""
     MARKDOWN = "markdown"
@@ -570,16 +531,13 @@ class ReportResponse(BaseModel):
     format: str = Field(description="Report format (markdown or html)")
     filename: str = Field(description="Suggested filename for download")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "content": "# Threat Model Report\n\n...",
                 "format": "markdown",
                 "filename": "threat_model_report.md"
             }
-        }
-
-
+        })
 class ThreatLibraryItem(BaseModel):
     """Single threat from PyTM threat library."""
     id: str = Field(description="Threat identifier", max_length=256)
@@ -622,8 +580,7 @@ class BatchResponse(BaseModel):
     results: List[BatchItemResult] = Field(description="Individual file results", max_length=100)
     aggregate_stats: Optional[Dict[str, Any]] = Field(default=None, description="Aggregate statistics")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "total": 3,
                 "success_count": 2,
@@ -635,9 +592,7 @@ class BatchResponse(BaseModel):
                     {"filename": "file3.toml", "success": False, "error": "Invalid format"}
                 ]
             }
-        }
-
-
+        })
 # =============================================================================
 # Export Schemas
 # =============================================================================
@@ -658,17 +613,14 @@ class ExportResponse(BaseModel):
     filename: str = Field(description="Suggested filename")
     rows: Optional[int] = Field(default=None, description="Number of rows (for CSV)")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "content": "[{\"id\": \"host1\", \"label\": \"Web Server\"}]",
                 "format": "json",
                 "filename": "hosts.json",
                 "rows": 5
             }
-        }
-
-
+        })
 # =============================================================================
 # Diff/Comparison Schemas
 # =============================================================================
@@ -706,8 +658,7 @@ class DiffResponse(BaseModel):
     changes: List[ChangeItem] = Field(description="List of all changes")
     report: Optional[str] = Field(default=None, description="Markdown report if requested")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "has_changes": True,
                 "summary": {"added": 2, "removed": 1, "modified": 3, "total": 6},
@@ -717,9 +668,7 @@ class DiffResponse(BaseModel):
                     {"change_type": "added", "path": "hosts.newserver", "new_value": {"label": "New Server"}}
                 ]
             }
-        }
-
-
+        })
 # =============================================================================
 # Validation Result Schemas
 # =============================================================================
@@ -746,8 +695,7 @@ class ValidationResponse(BaseModel):
     warning_count: int = Field(description="Number of warnings")
     issues: List[ValidationIssue] = Field(description="List of all issues")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "valid": False,
                 "error_count": 1,
@@ -757,9 +705,7 @@ class ValidationResponse(BaseModel):
                     {"severity": "warning", "message": "Orphan node detected", "location": "nodes.unused"}
                 ]
             }
-        }
-
-
+        })
 # =============================================================================
 # Display Settings Schemas
 # =============================================================================
@@ -783,17 +729,14 @@ class CVSSDisplaySettings(BaseModel):
         description="Show CVSS scores in threat model reports"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "enabled": True,
                 "attack_tree": True,
                 "attack_graph": True,
                 "threat_model": False
             }
-        }
-
-
+        })
 class DisplaySettingsRequest(BaseModel):
     """Request model for updating display settings."""
     cvss_display: Optional[CVSSDisplaySettings] = Field(
@@ -801,8 +744,7 @@ class DisplaySettingsRequest(BaseModel):
         description="CVSS display settings"
     )
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "cvss_display": {
                     "enabled": True,
@@ -811,15 +753,12 @@ class DisplaySettingsRequest(BaseModel):
                     "threat_model": True
                 }
             }
-        }
-
-
+        })
 class DisplaySettingsResponse(BaseModel):
     """Response model for display settings."""
     cvss_display: CVSSDisplaySettings = Field(description="Current CVSS display settings")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "cvss_display": {
                     "enabled": True,
@@ -828,9 +767,7 @@ class DisplaySettingsResponse(BaseModel):
                     "threat_model": True
                 }
             }
-        }
-
-
+        })
 # =============================================================================
 # NetworkX Graph Analysis Schemas
 # =============================================================================
@@ -851,8 +788,7 @@ class CentralityResponse(BaseModel):
     algorithm: str = Field(description="Algorithm used (betweenness, closeness, pagerank, or all)")
     total_nodes: int = Field(description="Total nodes in graph")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "nodes": [
                     {"id": "webserver", "label": "Web Server", "type": "host", "betweenness_centrality": 0.45}
@@ -860,9 +796,7 @@ class CentralityResponse(BaseModel):
                 "algorithm": "betweenness",
                 "total_nodes": 15
             }
-        }
-
-
+        })
 class GraphMetricsResponse(BaseModel):
     """Response for graph metrics analysis."""
     num_nodes: int = Field(description="Total number of nodes")
@@ -875,8 +809,7 @@ class GraphMetricsResponse(BaseModel):
     is_dag: bool = Field(description="Whether graph is a DAG (no cycles)")
     node_types: Dict[str, int] = Field(description="Count of nodes by type")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "num_nodes": 15,
                 "num_edges": 22,
@@ -888,9 +821,7 @@ class GraphMetricsResponse(BaseModel):
                 "is_dag": False,
                 "node_types": {"host": 4, "vulnerability": 6, "privilege": 3, "service": 2}
             }
-        }
-
-
+        })
 class ChokepointNode(BaseModel):
     """Critical chokepoint node."""
     id: str = Field(description="Node identifier")
@@ -907,8 +838,7 @@ class ChokepointsResponse(BaseModel):
     chokepoints: List[ChokepointNode] = Field(description="Critical chokepoint nodes")
     total_analyzed: int = Field(description="Total nodes analyzed")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "chokepoints": [
                     {"id": "firewall", "label": "Firewall", "type": "host",
@@ -916,9 +846,7 @@ class ChokepointsResponse(BaseModel):
                 ],
                 "total_analyzed": 15
             }
-        }
-
-
+        })
 class AttackSurfaceNode(BaseModel):
     """Attack surface entry point node."""
     id: str = Field(description="Node identifier")
@@ -933,8 +861,7 @@ class AttackSurfaceResponse(BaseModel):
     entry_points: List[AttackSurfaceNode] = Field(description="Attack surface entry points")
     total_attack_surface: int = Field(description="Total number of entry points")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "entry_points": [
                     {"id": "internet", "label": "Internet", "type": "external",
@@ -942,9 +869,7 @@ class AttackSurfaceResponse(BaseModel):
                 ],
                 "total_attack_surface": 2
             }
-        }
-
-
+        })
 class VulnerabilityImpactResponse(BaseModel):
     """Response for vulnerability impact analysis."""
     id: str = Field(description="Vulnerability identifier")
@@ -956,8 +881,7 @@ class VulnerabilityImpactResponse(BaseModel):
     impact_score: float = Field(description="Calculated impact score (0-10)")
     error: Optional[str] = Field(default=None, description="Error message if vulnerability not found")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "id": "rce_vuln",
                 "label": "Remote Code Execution",
@@ -967,9 +891,7 @@ class VulnerabilityImpactResponse(BaseModel):
                 "attack_paths_through": 5,
                 "impact_score": 10.0
             }
-        }
-
-
+        })
 # =============================================================================
 # Custom Diagrams Schemas
 # =============================================================================
@@ -1015,8 +937,7 @@ class ShapeInfo(BaseModel):
     tags: List[str] = Field(default=[], description="Shape tags")
     custom: bool = Field(default=False, description="Whether this is a custom shape")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "id": "server",
                 "name": "Server",
@@ -1029,9 +950,7 @@ class ShapeInfo(BaseModel):
                 "tags": ["infrastructure", "compute"],
                 "custom": False
             }
-        }
-
-
+        })
 class ShapeListResponse(BaseModel):
     """Response for listing shapes."""
     shapes: List[ShapeInfo] = Field(description="Available shapes")
@@ -1049,8 +968,7 @@ class TemplateInfo(BaseModel):
     node_count: int = Field(default=0, description="Number of example nodes in template")
     edge_count: int = Field(default=0, description="Number of example edges in template")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "id": "software/architecture",
                 "name": "Architecture",
@@ -1060,9 +978,7 @@ class TemplateInfo(BaseModel):
                 "node_count": 5,
                 "edge_count": 4
             }
-        }
-
-
+        })
 class TemplateListResponse(BaseModel):
     """Response for listing templates."""
     templates: List[TemplateInfo] = Field(description="Available templates")
@@ -1089,8 +1005,7 @@ class NodeSchema(BaseModel):
             raise ValueError(f"Too many style properties: {len(v)} (max: {MAX_STYLE_ENTRIES})")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "shape": "server",
                 "required_fields": ["name"],
@@ -1098,9 +1013,7 @@ class NodeSchema(BaseModel):
                 "style": {"fillcolor": "#3498DB", "fontcolor": "white"},
                 "label_template": "{name}"
             }
-        }
-
-
+        })
 class EdgeSchema(BaseModel):
     """Edge type schema definition."""
     style: str = Field(default="solid", description="Edge style (solid, dashed, dotted)")
@@ -1108,17 +1021,14 @@ class EdgeSchema(BaseModel):
     arrowhead: str = Field(default="vee", description="Arrow head style")
     label_field: Optional[str] = Field(default=None, description="Field to use for edge label")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "style": "solid",
                 "color": "#333333",
                 "arrowhead": "vee",
                 "label_field": "protocol"
             }
-        }
-
-
+        })
 class DiagramNode(BaseModel):
     """Node instance in a diagram."""
     id: str = Field(description="Unique node identifier", max_length=256)
@@ -1126,18 +1036,14 @@ class DiagramNode(BaseModel):
     name: str = Field(description="Node name/label", max_length=512)
     # Additional fields are allowed
 
-    class Config:
-        extra = "allow"
-        json_schema_extra = {
+    model_config = ConfigDict(extra="allow", json_schema_extra={
             "example": {
                 "id": "web_server",
                 "type": "server",
                 "name": "Web Server",
                 "ip": "10.0.1.10"
             }
-        }
-
-
+        })
 class DiagramEdge(BaseModel):
     """Edge instance in a diagram."""
     from_node: str = Field(alias="from", description="Source node ID", max_length=256)
@@ -1145,19 +1051,14 @@ class DiagramEdge(BaseModel):
     type: str = Field(description="Edge type (must match schema)", max_length=64)
     label: Optional[str] = Field(default=None, description="Optional edge label", max_length=512)
 
-    class Config:
-        populate_by_name = True
-        extra = "allow"
-        json_schema_extra = {
+    model_config = ConfigDict(populate_by_name=True, extra="allow", json_schema_extra={
             "example": {
                 "from": "web_server",
                 "to": "database",
                 "type": "connection",
                 "label": "SQL"
             }
-        }
-
-
+        })
 class DiagramCluster(BaseModel):
     """Cluster/subgraph definition.
 
@@ -1176,17 +1077,14 @@ class DiagramCluster(BaseModel):
             raise ValueError(f"Too many style properties: {len(v)} (max: {MAX_STYLE_ENTRIES})")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "id": "backend",
                 "label": "Backend Services",
                 "nodes": ["api", "database", "cache"],
                 "style": {"color": "#3498DB", "style": "dashed"}
             }
-        }
-
-
+        })
 class DiagramSettings(BaseModel):
     """Diagram settings."""
     title: str = Field(default="Custom Diagram", description="Diagram title", max_length=256)
@@ -1198,8 +1096,7 @@ class DiagramSettings(BaseModel):
     nodesep: float = Field(default=0.5, description="Node separation", ge=0.1, le=5.0)
     ranksep: float = Field(default=1.0, description="Rank separation", ge=0.1, le=5.0)
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "title": "System Architecture",
                 "description": "High-level system overview",
@@ -1207,9 +1104,7 @@ class DiagramSettings(BaseModel):
                 "direction": "TB",
                 "style": "cd_default"
             }
-        }
-
-
+        })
 class CustomDiagramSchema(BaseModel):
     """Schema definition for custom diagrams.
 
@@ -1234,8 +1129,7 @@ class CustomDiagramSchema(BaseModel):
             raise ValueError(f"Too many edge types: {len(v)} (max: {MAX_SCHEMA_ENTRIES})")
         return v
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "nodes": {
                     "server": {
@@ -1251,9 +1145,7 @@ class CustomDiagramSchema(BaseModel):
                     }
                 }
             }
-        }
-
-
+        })
 class CustomDiagramRequest(BaseModel):
     """Request model for custom diagram visualization.
 
@@ -1266,9 +1158,7 @@ class CustomDiagramRequest(BaseModel):
     clusters: List[DiagramCluster] = Field(default=[], description="Cluster definitions", max_length=500)
     format: OutputFormat = Field(default=OutputFormat.PNG, description="Output format")
 
-    class Config:
-        populate_by_name = True
-        json_schema_extra = {
+    model_config = ConfigDict(populate_by_name=True, json_schema_extra={
             "example": {
                 "diagram": {
                     "title": "Simple Architecture",
@@ -1293,9 +1183,7 @@ class CustomDiagramRequest(BaseModel):
                 ],
                 "format": "png"
             }
-        }
-
-
+        })
 class CustomDiagramValidateRequest(BaseModel):
     """Request for validating a custom diagram configuration.
 
@@ -1307,10 +1195,7 @@ class CustomDiagramValidateRequest(BaseModel):
     edges: List[DiagramEdge] = Field(default=[], description="Edge instances", max_length=10000)
     clusters: List[DiagramCluster] = Field(default=[], description="Cluster definitions", max_length=500)
 
-    class Config:
-        populate_by_name = True
-
-
+    model_config = ConfigDict(populate_by_name=True)
 class ValidationError(BaseModel):
     """Validation error detail."""
     field: str = Field(description="Field that failed validation")
@@ -1327,8 +1212,7 @@ class CustomDiagramValidateResponse(BaseModel):
     edge_count: int = Field(default=0, description="Number of edges in diagram")
     cluster_count: int = Field(default=0, description="Number of clusters in diagram")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "valid": True,
                 "errors": [],
@@ -1337,9 +1221,7 @@ class CustomDiagramValidateResponse(BaseModel):
                 "edge_count": 4,
                 "cluster_count": 1
             }
-        }
-
-
+        })
 class CustomDiagramStatsResponse(BaseModel):
     """Statistics about a custom diagram."""
     title: str = Field(default="Custom Diagram", description="Diagram title")
@@ -1351,8 +1233,7 @@ class CustomDiagramStatsResponse(BaseModel):
     layout: str = Field(default="hierarchical", description="Layout algorithm")
     direction: str = Field(default="TB", description="Graph direction")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "title": "System Architecture",
                 "total_nodes": 5,
@@ -1363,37 +1244,29 @@ class CustomDiagramStatsResponse(BaseModel):
                 "layout": "hierarchical",
                 "direction": "TB"
             }
-        }
-
-
+        })
 class CustomDiagramFromTemplateRequest(BaseModel):
     """Request to create diagram from template."""
     template_id: str = Field(description="Template identifier (category/name)")
     format: OutputFormat = Field(default=OutputFormat.PNG, description="Output format")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "template_id": "software/architecture",
                 "format": "png"
             }
-        }
-
-
+        })
 class CustomDiagramImportRequest(BaseModel):
     """Request to import from other visualization types."""
     source_type: str = Field(description="Source type: attack_tree, attack_graph, threat_model")
     format: OutputFormat = Field(default=OutputFormat.PNG, description="Output format")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "source_type": "attack_tree",
                 "format": "png"
             }
-        }
-
-
+        })
 # =============================================================================
 # Image Upload Schemas
 # =============================================================================
@@ -1405,17 +1278,14 @@ class ImageUploadResponse(BaseModel):
     size: int = Field(description="File size in bytes")
     content_type: str = Field(description="MIME content type")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "image_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                 "filename": "server_icon.png",
                 "size": 4096,
                 "content_type": "image/png"
             }
-        }
-
-
+        })
 class ImageInfoResponse(BaseModel):
     """Response with image information."""
     image_id: str = Field(description="Image identifier")
@@ -1424,8 +1294,7 @@ class ImageInfoResponse(BaseModel):
     content_type: str = Field(description="MIME content type")
     created_at: str = Field(description="Creation timestamp (ISO format)")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "image_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
                 "exists": True,
@@ -1433,30 +1302,24 @@ class ImageInfoResponse(BaseModel):
                 "content_type": "image/png",
                 "created_at": "2025-12-30T10:30:00Z"
             }
-        }
-
-
+        })
 class ImageDeleteResponse(BaseModel):
     """Response from image delete endpoint."""
     deleted: bool = Field(description="Whether the image was successfully deleted")
     image_id: str = Field(description="Image identifier that was deleted")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "deleted": True,
                 "image_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
             }
-        }
-
-
+        })
 class ImageListResponse(BaseModel):
     """Response listing uploaded images."""
     images: List[ImageInfoResponse] = Field(description="List of uploaded images")
     total: int = Field(description="Total number of images")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "images": [
                     {
@@ -1469,9 +1332,7 @@ class ImageListResponse(BaseModel):
                 ],
                 "total": 1
             }
-        }
-
-
+        })
 # =============================================================================
 # Bundled Icons Schemas
 # =============================================================================
@@ -1486,8 +1347,7 @@ class BundledIconInfo(BaseModel):
     format: str = Field(description="Image format (png, svg, etc.)")
     size: int = Field(description="File size in bytes")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "id": "aws/Compute/EC2",
                 "name": "EC2",
@@ -1497,9 +1357,7 @@ class BundledIconInfo(BaseModel):
                 "format": "png",
                 "size": 4096
             }
-        }
-
-
+        })
 class BundledIconsListResponse(BaseModel):
     """Response listing bundled icons with pagination."""
     icons: List[BundledIconInfo] = Field(description="List of bundled icons")
@@ -1511,8 +1369,7 @@ class BundledIconsListResponse(BaseModel):
     total_pages: int = Field(default=1, description="Total number of pages")
     has_more: bool = Field(default=False, description="Whether more pages are available")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "icons": [
                     {
@@ -1533,16 +1390,13 @@ class BundledIconsListResponse(BaseModel):
                 "total_pages": 7,
                 "has_more": True
             }
-        }
-
-
+        })
 class BundledIconsCategoriesResponse(BaseModel):
     """Response listing bundled icon categories."""
     categories: List[str] = Field(description="Available icon categories")
     counts: Dict[str, int] = Field(description="Number of icons per category")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "categories": ["infrastructure", "security", "threats", "network", "identity"],
                 "counts": {
@@ -1553,9 +1407,7 @@ class BundledIconsCategoriesResponse(BaseModel):
                     "identity": 4
                 }
             }
-        }
-
-
+        })
 # =============================================================================
 # Mermaid Diagrams Schemas
 # =============================================================================
@@ -1609,8 +1461,7 @@ class MermaidStats(BaseModel):
     non_empty_lines: int = Field(description="Non-empty lines")
     loaded: bool = Field(description="Whether diagram is loaded")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "title": "Network Flow",
                 "diagram_type": "flowchart",
@@ -1619,9 +1470,7 @@ class MermaidStats(BaseModel):
                 "non_empty_lines": 12,
                 "loaded": True
             }
-        }
-
-
+        })
 class MermaidValidateResponse(BaseModel):
     """Response for Mermaid validation."""
     valid: bool = Field(description="Whether the diagram is valid")
@@ -1629,8 +1478,7 @@ class MermaidValidateResponse(BaseModel):
     diagram_type: Optional[str] = Field(default=None, description="Detected diagram type")
     stats: Optional[MermaidStats] = Field(default=None, description="Diagram statistics")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "valid": True,
                 "errors": [],
@@ -1644,9 +1492,7 @@ class MermaidValidateResponse(BaseModel):
                     "loaded": True
                 }
             }
-        }
-
-
+        })
 class MermaidTemplateInfo(BaseModel):
     """Information about a Mermaid template."""
     name: str = Field(description="Template name")
@@ -1654,25 +1500,21 @@ class MermaidTemplateInfo(BaseModel):
     path: str = Field(description="Relative path to template")
     diagram_type: Optional[str] = Field(default=None, description="Diagram type")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "name": "basic-flow",
                 "category": "flowcharts",
                 "path": "flowcharts/basic-flow.toml",
                 "diagram_type": "flowchart"
             }
-        }
-
-
+        })
 class MermaidTemplateListResponse(BaseModel):
     """Response listing Mermaid templates."""
     templates: List[MermaidTemplateInfo] = Field(description="List of templates")
     categories: List[str] = Field(description="Available categories")
     total: int = Field(description="Total number of templates")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "templates": [
                     {
@@ -1685,9 +1527,7 @@ class MermaidTemplateListResponse(BaseModel):
                 "categories": ["flowcharts", "sequence", "security"],
                 "total": 6
             }
-        }
-
-
+        })
 class MermaidTemplateContentResponse(BaseModel):
     """Response containing Mermaid template content."""
     id: str = Field(description="Template ID (category/name)")
@@ -1697,8 +1537,7 @@ class MermaidTemplateContentResponse(BaseModel):
     diagram_type: Optional[str] = Field(default=None, description="Detected diagram type")
     filename: str = Field(description="Original filename")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "id": "flowcharts/basic-flow",
                 "name": "Basic Flow",
@@ -1707,9 +1546,7 @@ class MermaidTemplateContentResponse(BaseModel):
                 "diagram_type": "flowchart",
                 "filename": "basic-flow.mmd"
             }
-        }
-
-
+        })
 # =============================================================================
 # Cloud Diagrams Schemas
 # =============================================================================
@@ -1756,17 +1593,14 @@ class CloudNodeInfo(BaseModel):
     provider: str = Field(description="Cloud provider")
     service: str = Field(description="Service type (e.g., compute.EC2)")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "id": "web_server",
                 "label": "Web Server",
                 "provider": "aws",
                 "service": "compute.EC2"
             }
-        }
-
-
+        })
 class CloudStats(BaseModel):
     """Statistics for a cloud diagram."""
     title: str = Field(description="Diagram title")
@@ -1776,8 +1610,7 @@ class CloudStats(BaseModel):
     providers_used: List[str] = Field(description="Cloud providers used")
     loaded: bool = Field(description="Whether diagram is loaded")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "title": "AWS Architecture",
                 "node_count": 8,
@@ -1786,17 +1619,14 @@ class CloudStats(BaseModel):
                 "providers_used": ["aws"],
                 "loaded": True
             }
-        }
-
-
+        })
 class CloudValidateResponse(BaseModel):
     """Response for cloud diagram validation."""
     valid: bool = Field(description="Whether the diagram is valid")
     errors: List[str] = Field(default=[], description="List of validation errors")
     stats: Optional[CloudStats] = Field(default=None, description="Diagram statistics")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "valid": True,
                 "errors": [],
@@ -1809,9 +1639,7 @@ class CloudValidateResponse(BaseModel):
                     "loaded": True
                 }
             }
-        }
-
-
+        })
 class CloudIconInfo(BaseModel):
     """Information about a cloud diagram icon."""
     name: str = Field(description="Icon name")
@@ -1819,17 +1647,14 @@ class CloudIconInfo(BaseModel):
     category: str = Field(description="Icon category")
     full_path: str = Field(description="Full import path")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "name": "EC2",
                 "provider": "aws",
                 "category": "compute",
                 "full_path": "aws.compute.EC2"
             }
-        }
-
-
+        })
 class CloudIconsListResponse(BaseModel):
     """Response listing cloud diagram icons."""
     icons: List[CloudIconInfo] = Field(description="List of icons")
@@ -1837,8 +1662,7 @@ class CloudIconsListResponse(BaseModel):
     category: Optional[str] = Field(default=None, description="Category filter applied")
     total: int = Field(description="Total number of icons")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "icons": [
                     {
@@ -1852,15 +1676,12 @@ class CloudIconsListResponse(BaseModel):
                 "category": "compute",
                 "total": 15
             }
-        }
-
-
+        })
 class CloudProvidersResponse(BaseModel):
     """Response listing cloud providers."""
     providers: List[Dict[str, str]] = Field(description="List of providers with details")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "providers": [
                     {"name": "aws", "description": "Amazon Web Services"},
@@ -1868,9 +1689,7 @@ class CloudProvidersResponse(BaseModel):
                     {"name": "gcp", "description": "Google Cloud Platform"}
                 ]
             }
-        }
-
-
+        })
 class CloudTemplateInfo(BaseModel):
     """Information about a cloud diagram template."""
     name: str = Field(description="Template name")
@@ -1878,25 +1697,21 @@ class CloudTemplateInfo(BaseModel):
     path: str = Field(description="Relative path to template")
     providers: List[str] = Field(default=[], description="Providers used")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "name": "web-application",
                 "category": "aws",
                 "path": "aws/web-application.toml",
                 "providers": ["aws"]
             }
-        }
-
-
+        })
 class CloudTemplateListResponse(BaseModel):
     """Response listing cloud diagram templates."""
     templates: List[CloudTemplateInfo] = Field(description="List of templates")
     categories: List[str] = Field(description="Available categories")
     total: int = Field(description="Total number of templates")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "templates": [
                     {
@@ -1909,9 +1724,7 @@ class CloudTemplateListResponse(BaseModel):
                 "categories": ["aws", "kubernetes", "security"],
                 "total": 3
             }
-        }
-
-
+        })
 class CloudTemplateContentResponse(BaseModel):
     """Response containing cloud diagram template content."""
     id: str = Field(description="Template ID (category/name)")
@@ -1921,8 +1734,7 @@ class CloudTemplateContentResponse(BaseModel):
     filename: str = Field(description="Original filename")
     providers: List[str] = Field(default=[], description="Providers used in template")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "id": "aws/web-application",
                 "name": "Web Application",
@@ -1931,18 +1743,15 @@ class CloudTemplateContentResponse(BaseModel):
                 "filename": "web-application.toml",
                 "providers": ["aws"]
             }
-        }
-
-
+        })
 class CloudPythonCodeResponse(BaseModel):
     """Response containing generated Python code."""
     code: str = Field(description="Generated Python code")
     filename: str = Field(description="Suggested filename")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(json_schema_extra={
             "example": {
                 "code": "from diagrams import Diagram\\nfrom diagrams.aws.compute import EC2\\n...",
                 "filename": "cloud_diagram.py"
             }
-        }
+        })

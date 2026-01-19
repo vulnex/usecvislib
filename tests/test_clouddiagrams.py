@@ -450,6 +450,139 @@ class TestCloudDiagramsCodeGeneration:
         assert saved_path.endswith(".py")
         assert not saved_path.endswith(".py.py")
 
+    def test_code_generation_escapes_quotes(self):
+        """Test that quotes in labels are properly escaped."""
+        config = '''
+[diagram]
+title = 'Test "Quoted" Title'
+direction = "LR"
+
+[[nodes]]
+id = "test"
+icon = "aws.compute.EC2"
+label = 'Server "Main"'
+'''
+        cd = CloudDiagrams(validate_diagrams=False)
+        cd.load_from_string(config, format="toml")
+        code = cd.to_python_code()
+
+        # Verify quotes are escaped in the generated code
+        assert '\\"' in code  # Escaped quotes should be present
+        # The generated code should be syntactically valid Python
+        compile(code, '<test>', 'exec')
+
+    def test_code_generation_escapes_newlines(self):
+        """SECURITY: Test that newlines in labels cannot inject code."""
+        # This tests the fix for potential code injection via multi-line YAML strings
+        config = {
+            "diagram": {
+                "title": "Test\nTitle",  # Literal newline
+                "direction": "LR"
+            },
+            "nodes": [
+                {
+                    "id": "test",
+                    "icon": "aws.compute.EC2",
+                    "label": "Server\nwith newline"
+                }
+            ]
+        }
+
+        cd = CloudDiagrams(validate_diagrams=False)
+        cd._load_from_dict(config)
+        cd._loaded = True
+        code = cd.to_python_code()
+
+        # Verify the generated code is valid Python (no literal newlines breaking strings)
+        compile(code, '<test>', 'exec')
+
+        # The literal newlines should be replaced with spaces
+        assert "Server with newline" in code or "Server  with newline" in code
+
+    def test_code_generation_escapes_backslashes(self):
+        """SECURITY: Test that backslashes are properly escaped."""
+        config = {
+            "diagram": {
+                "title": "Test\\Path",  # Literal backslash
+                "direction": "LR"
+            },
+            "nodes": [
+                {
+                    "id": "test",
+                    "icon": "aws.compute.EC2",
+                    "label": "C:\\Windows\\System32"
+                }
+            ]
+        }
+
+        cd = CloudDiagrams(validate_diagrams=False)
+        cd._load_from_dict(config)
+        cd._loaded = True
+        code = cd.to_python_code()
+
+        # The generated code should be syntactically valid Python
+        compile(code, '<test>', 'exec')
+
+        # Backslashes should be escaped as \\\\ in the generated code
+        assert "\\\\" in code
+
+    def test_code_generation_handles_malicious_input(self):
+        """SECURITY: Test that code injection attempts are neutralized."""
+        # Attempt code injection via label with quotes and dangerous code
+        malicious_config = {
+            "diagram": {
+                "title": 'Normal"); import os; os.system("rm -rf /"); x = ("',
+                "direction": "LR"
+            },
+            "nodes": [
+                {
+                    "id": "evil",
+                    "icon": "aws.compute.EC2",
+                    "label": '"); __import__("os").system("whoami"); x = ("'
+                }
+            ]
+        }
+
+        cd = CloudDiagrams(validate_diagrams=False)
+        cd._load_from_dict(malicious_config)
+        cd._loaded = True
+        code = cd.to_python_code()
+
+        # The generated code should be syntactically valid Python
+        # and NOT execute the malicious code when compiled/executed
+        compile(code, '<test>', 'exec')
+
+        # The malicious patterns should be inside string literals (escaped)
+        # not as actual Python code
+        assert '\\")' in code  # Escaped quote should be present
+
+    def test_code_generation_removes_null_bytes(self):
+        """SECURITY: Test that null bytes are removed from labels."""
+        config = {
+            "diagram": {
+                "title": "Test\x00Title",  # Null byte
+                "direction": "LR"
+            },
+            "nodes": [
+                {
+                    "id": "test",
+                    "icon": "aws.compute.EC2",
+                    "label": "Server\x00Name"
+                }
+            ]
+        }
+
+        cd = CloudDiagrams(validate_diagrams=False)
+        cd._load_from_dict(config)
+        cd._loaded = True
+        code = cd.to_python_code()
+
+        # Null bytes should be removed
+        assert '\x00' not in code
+
+        # The generated code should still be valid Python
+        compile(code, '<test>', 'exec')
+
 
 # =============================================================================
 # CloudDiagrams Tests - Icon Discovery
