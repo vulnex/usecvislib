@@ -70,6 +70,68 @@ class IconNotFoundError(CloudDiagramError):
     pass
 
 
+# =============================================================================
+# Security: String Escaping for Code Generation
+# =============================================================================
+
+def _escape_python_string(value: str, max_length: int = 500) -> str:
+    """Escape a string for safe use in generated Python code.
+
+    SECURITY: Prevents code injection attacks by properly escaping all
+    characters that could break out of a Python string literal. This is
+    critical when generating Python code from user-provided input.
+
+    The function:
+    1. Removes/replaces control characters (newlines, tabs, etc.)
+    2. Escapes backslashes first (to prevent interaction with other escapes)
+    3. Escapes quotes
+    4. Truncates overly long strings
+    5. Removes null bytes
+
+    Args:
+        value: The string to escape
+        max_length: Maximum allowed length (truncated if exceeded)
+
+    Returns:
+        Escaped string safe for use in Python string literals
+
+    Example:
+        >>> _escape_python_string('Hello "World"')
+        'Hello \\"World\\"'
+        >>> _escape_python_string('Line1\\nLine2')
+        'Line1 Line2'
+    """
+    if not value:
+        return ""
+
+    # Remove null bytes (potential security issue)
+    value = value.replace('\x00', '')
+
+    # Truncate if too long
+    if len(value) > max_length:
+        value = value[:max_length - 3] + "..."
+        logger.warning(f"Truncated string to {max_length} characters for code generation")
+
+    # Remove/replace control characters that could break the string
+    # Replace newlines and carriage returns with spaces
+    value = value.replace('\r\n', ' ')
+    value = value.replace('\n', ' ')
+    value = value.replace('\r', ' ')
+    # Replace tabs with spaces
+    value = value.replace('\t', ' ')
+    # Remove other control characters (ASCII 0-31 except those already handled)
+    value = ''.join(c if ord(c) >= 32 or c in ' ' else '' for c in value)
+
+    # Escape backslashes FIRST (before escaping quotes)
+    # This prevents backslashes from interacting with quote escaping
+    value = value.replace('\\', '\\\\')
+
+    # Escape double quotes
+    value = value.replace('"', '\\"')
+
+    return value
+
+
 @dataclass
 class CloudDiagramConfig:
     """Cloud diagram configuration.
@@ -556,13 +618,15 @@ class CloudDiagrams:
         lines.append("")
 
         # Create diagram
-        title_escaped = self.config.title.replace('"', '\\"')
+        # SECURITY: Use _escape_python_string to prevent code injection
+        title_escaped = _escape_python_string(self.config.title)
+        direction_escaped = _escape_python_string(self.config.direction)
         lines.append(f'with Diagram(')
         lines.append(f'    "{title_escaped}",')
         lines.append(f'    filename="{output}",')
         lines.append(f'    outformat="{format}",')
         lines.append(f'    show={show},')
-        lines.append(f'    direction="{self.config.direction}",')
+        lines.append(f'    direction="{direction_escaped}",')
         lines.append(f'):')
 
         # Track node variable names for edge references
@@ -575,21 +639,21 @@ class CloudDiagrams:
         for node in standalone_nodes:
             var_name = self._safe_var_name(node.id)
             icon_class = self._get_icon_class_name(node.icon)
-            label_escaped = node.label.replace('"', '\\"')
+            label_escaped = _escape_python_string(node.label)
             lines.append(f'    {var_name} = {icon_class}("{label_escaped}")')
             node_vars[node.id] = var_name
 
         # Add clusters with their nodes
         for cluster in self.clusters:
-            label_escaped = cluster.label.replace('"', '\\"')
+            cluster_label_escaped = _escape_python_string(cluster.label)
             lines.append(f'')
-            lines.append(f'    with Cluster("{label_escaped}"):')
+            lines.append(f'    with Cluster("{cluster_label_escaped}"):')
 
             for node in cluster.nodes:
                 var_name = self._safe_var_name(node.id)
                 icon_class = self._get_icon_class_name(node.icon)
-                label_escaped = node.label.replace('"', '\\"')
-                lines.append(f'        {var_name} = {icon_class}("{label_escaped}")')
+                node_label_escaped = _escape_python_string(node.label)
+                lines.append(f'        {var_name} = {icon_class}("{node_label_escaped}")')
                 node_vars[node.id] = var_name
 
         lines.append("")
@@ -766,15 +830,18 @@ class CloudDiagrams:
             target = f"[{', '.join(to_vars)}]"
 
         # Build edge with optional label/style
+        # SECURITY: Use _escape_python_string to prevent code injection
         if edge.label or edge.color or edge.style:
             edge_params = []
             if edge.label:
-                label_escaped = edge.label.replace('"', '\\"')
+                label_escaped = _escape_python_string(edge.label)
                 edge_params.append(f'label="{label_escaped}"')
             if edge.color:
-                edge_params.append(f'color="{edge.color}"')
+                color_escaped = _escape_python_string(edge.color)
+                edge_params.append(f'color="{color_escaped}"')
             if edge.style:
-                edge_params.append(f'style="{edge.style}"')
+                style_escaped = _escape_python_string(edge.style)
+                edge_params.append(f'style="{style_escaped}"')
 
             edge_str = f"Edge({', '.join(edge_params)})"
             return f"{source} >> {edge_str} >> {target}"
