@@ -53,6 +53,12 @@ A comprehensive Python library and web application for creating security visuali
 ### Custom Diagrams
 ![Custom Diagrams](docs/images/custom-diagrams.png)
 
+### Mermaid Diagrams
+![Mermaid Diagrams](docs/images/mermaid.png)
+
+### Cloud Diagrams
+![Cloud Diagrams](docs/images/cloud.png)
+
 ### Binary Analysis
 ![Binary Analysis](docs/images/binary-vis.png)
 
