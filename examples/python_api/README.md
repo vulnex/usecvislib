@@ -44,6 +44,18 @@ This directory contains examples demonstrating how to use the USecVisLib Python 
 | `custom_diagram_basic.py` | Create custom diagrams (flowcharts, network topologies) |
 | `custom_diagram_icons.py` | Create custom diagrams with icons (AWS architectures) |
 
+### Mermaid Diagrams
+
+| File | Description |
+|------|-------------|
+| `mermaid_diagram_basic.py` | Create Mermaid diagrams (flowcharts, sequence, ER, state, mindmap, Gantt) |
+
+### Cloud Diagrams
+
+| File | Description |
+|------|-------------|
+| `cloud_diagram_basic.py` | Create cloud architecture diagrams (AWS, GCP, Kubernetes, multi-cloud) |
+
 ### Utilities
 
 | File | Description |
@@ -186,6 +198,47 @@ if result.get('valid'):
     cd.BuildCustomDiagram(output="output/topology", format="png")
 ```
 
+### Mermaid Diagram
+
+```python
+from usecvislib import MermaidDiagrams
+
+md = MermaidDiagrams()
+
+# From string
+md.load_from_string("""
+flowchart TD
+    A[Start] --> B{Valid?}
+    B -->|Yes| C[Process]
+    B -->|No| D[Error]
+""")
+result = md.render("output/flowchart", format="png", theme="default")
+
+# Or from template
+md = MermaidDiagrams()
+md.load("templates/mermaid/sequence/api-auth.toml")
+result = md.render("output/sequence", format="png")
+```
+
+### Cloud Diagram
+
+```python
+from usecvislib import CloudDiagrams
+
+cd = CloudDiagrams()
+cd.load("templates/cloud/aws/web-application.toml")
+
+# Get info
+print(f"Nodes: {len(cd.nodes)}")
+print(f"Clusters: {len(cd.clusters)}")
+
+# Render
+result = cd.render("output/aws_arch", format="png")
+
+# Generate Python code for advanced customization
+python_code = cd.to_python_code()
+```
+
 ## API Reference
 
 ### Core Classes
@@ -194,6 +247,8 @@ if result.get('valid'):
 - `AttackGraphs` - Attack graph visualization with path analysis
 - `ThreatModeling` - STRIDE threat modeling
 - `CustomDiagrams` - Schema-driven custom diagrams
+- `MermaidDiagrams` - Mermaid syntax rendering (flowcharts, sequence, ER, etc.)
+- `CloudDiagrams` - Cloud architecture diagrams (AWS, Azure, GCP, K8s)
 - `BinVis` - Binary file visualization
 
 ### Builder Classes
