@@ -5,7 +5,7 @@
   Author: Simon Roses Femerling
   Created: 2025-01-01
   Last Modified: 2025-12-27
-  Version: 0.3.1
+  Version: 0.3.4
   License: Apache-2.0
   Copyright (c) 2025 VULNEX. All rights reserved.
   https://www.vulnex.com
@@ -20,19 +20,22 @@
     <div class="panel-body">
       <div class="doc-section">
         <h3>Getting Started</h3>
-        <p>USecVisLib is a Universal Security Visualization Library that provides five main visualization modules:</p>
+        <p>USecVisLib is a Universal Security Visualization Library that provides eight main visualization modules:</p>
         <ul>
           <li><strong>Attack Trees</strong> - Visualize attack paths and threat scenarios</li>
           <li><strong>Attack Graphs</strong> - Model network attack paths with vulnerability and privilege analysis</li>
           <li><strong>Threat Modeling</strong> - Generate Data Flow Diagrams with STRIDE analysis</li>
-          <li><strong>Binary Analysis</strong> - Analyze binary files with entropy and pattern visualizations</li>
           <li><strong>Custom Diagrams</strong> - Create user-defined diagrams with custom node and edge schemas</li>
+          <li><strong>Mermaid Diagrams</strong> - Render Mermaid syntax diagrams (flowcharts, sequence, class, state, ER, etc.)</li>
+          <li><strong>Cloud Diagrams</strong> - Cloud architecture visualization for AWS, Azure, GCP, and Kubernetes</li>
+          <li><strong>Privilege Gradient</strong> - Trust zone visualization with automatic privilege inversion detection</li>
+          <li><strong>Binary Analysis</strong> - Analyze binary files with entropy and pattern visualizations</li>
         </ul>
 
         <h4>Tools Menu</h4>
         <p>Access these tools from the "Tools" dropdown in the navigation bar:</p>
         <ul>
-          <li><strong>CVSS Calculator</strong> - Calculate CVSS 3.x scores from vector strings</li>
+          <li><strong>CVSS Calculator</strong> - Calculate CVSS 3.1 and 4.0 scores with vector import support</li>
           <li><strong>Format Converter</strong> - Convert configuration files between TOML, JSON, and YAML formats</li>
           <li><strong>Batch Processing</strong> - Process multiple files at once with bulk download</li>
           <li><strong>Data Export</strong> - Export data to JSON, CSV, YAML, or Markdown for reporting</li>
@@ -451,6 +454,273 @@ type = "flow"</code></pre>
       </div>
 
       <div class="doc-section">
+        <h3>Mermaid Diagrams</h3>
+        <p>Render Mermaid syntax diagrams to images. Supports all Mermaid diagram types including flowcharts, sequence diagrams, class diagrams, state diagrams, ER diagrams, Gantt charts, pie charts, mindmaps, and timelines.</p>
+
+        <h4>Usage</h4>
+        <ol>
+          <li>Write or paste Mermaid syntax in the editor</li>
+          <li>Or select a template from the template browser</li>
+          <li>Choose theme and background options</li>
+          <li>Click "Generate" to render the diagram</li>
+        </ol>
+
+        <h4>Example (Flowchart)</h4>
+        <pre class="code-block"><code>graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[Action 1]
+    B -->|No| D[Action 2]
+    C --> E[End]
+    D --> E</code></pre>
+
+        <h4>Supported Diagram Types</h4>
+        <ul>
+          <li><strong>Flowcharts</strong> - Process flows with decisions and actions</li>
+          <li><strong>Sequence Diagrams</strong> - Interaction between actors over time</li>
+          <li><strong>Class Diagrams</strong> - UML class structure and relationships</li>
+          <li><strong>State Diagrams</strong> - State machines and transitions</li>
+          <li><strong>ER Diagrams</strong> - Entity-relationship models</li>
+          <li><strong>Gantt Charts</strong> - Project timelines and schedules</li>
+          <li><strong>Pie Charts</strong> - Data distribution</li>
+          <li><strong>Mindmaps</strong> - Hierarchical brainstorming</li>
+          <li><strong>Timelines</strong> - Chronological events</li>
+        </ul>
+      </div>
+
+      <div class="doc-section">
+        <h3>Cloud Diagrams</h3>
+        <p>Create cloud architecture diagrams using the <code>diagrams</code> library. Supports AWS, Azure, GCP, Kubernetes, and generic cloud provider icons.</p>
+
+        <h4>TOML Format</h4>
+        <pre class="code-block"><code>[diagram]
+title = "AWS Web Architecture"
+provider = "aws"
+direction = "TB"
+
+[[nodes]]
+id = "lb"
+label = "Load Balancer"
+service = "ELB"
+
+[[nodes]]
+id = "web1"
+label = "Web Server 1"
+service = "EC2"
+
+[[nodes]]
+id = "db"
+label = "Database"
+service = "RDS"
+
+[[clusters]]
+label = "VPC"
+nodes = ["lb", "web1", "db"]
+
+[[edges]]
+from = "lb"
+to = "web1"
+label = "HTTP"
+
+[[edges]]
+from = "web1"
+to = "db"
+label = "SQL"</code></pre>
+
+        <h4>Supported Providers</h4>
+        <table class="info-table">
+          <tr>
+            <th>Provider</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><strong>AWS</strong></td>
+            <td>Amazon Web Services (EC2, S3, RDS, Lambda, ELB, etc.)</td>
+          </tr>
+          <tr>
+            <td><strong>Azure</strong></td>
+            <td>Microsoft Azure (VMs, App Service, SQL Database, etc.)</td>
+          </tr>
+          <tr>
+            <td><strong>GCP</strong></td>
+            <td>Google Cloud Platform (Compute Engine, GKE, Cloud SQL, etc.)</td>
+          </tr>
+          <tr>
+            <td><strong>Kubernetes</strong></td>
+            <td>K8s resources (Pods, Services, Deployments, Ingress, etc.)</td>
+          </tr>
+          <tr>
+            <td><strong>Generic</strong></td>
+            <td>Provider-agnostic icons (compute, storage, network, etc.)</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="doc-section">
+        <h3>Privilege Gradient</h3>
+        <p>Visualize trust zone architectures and automatically detect privilege gradient inversions -- where lower-trust components have influence over higher-trust components. Based on concepts from CISA TIC 3.0, IEC 62443, and NIST Zero Trust frameworks.</p>
+
+        <h4>TOML Format</h4>
+        <pre class="code-block"><code>[gradient]
+name = "Microservices Auth Architecture"
+description = "Trust zone analysis"
+
+[[zones]]
+id = "Z0"
+label = "External / Untrusted"
+trust_level = 0
+color = "#FFE0E0"
+border_color = "#FF6B6B"
+
+[[zones]]
+id = "Z1"
+label = "Edge / DMZ"
+trust_level = 1
+color = "#FFF3E0"
+border_color = "#FFA726"
+
+[[zones]]
+id = "Z2"
+label = "Application Core"
+trust_level = 2
+color = "#E8F5E9"
+border_color = "#66BB6A"
+
+[[components]]
+id = "browser"
+label = "Browser Client"
+zone = "Z0"
+
+[[components]]
+id = "gateway"
+label = "API Gateway"
+zone = "Z1"
+
+[[components]]
+id = "auth"
+label = "Auth Service"
+zone = "Z2"
+
+[[influences]]
+id = "inf1"
+from = "browser"
+to = "gateway"
+type = "data"
+label = "API Requests"
+
+[[influences]]
+id = "inf2"
+from = "gateway"
+to = "auth"
+type = "control"
+label = "Auth Decisions"</code></pre>
+
+        <h4>Key Concepts</h4>
+        <table class="info-table">
+          <tr>
+            <th>Concept</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><strong>Trust Zones</strong></td>
+            <td>Vertical columns from low trust (left) to high trust (right), each with a trust level (0-4+)</td>
+          </tr>
+          <tr>
+            <td><strong>Components</strong></td>
+            <td>System elements placed within trust zones (services, databases, clients, etc.)</td>
+          </tr>
+          <tr>
+            <td><strong>Influences</strong></td>
+            <td>Directed edges showing how components affect each other</td>
+          </tr>
+          <tr>
+            <td><strong>Inversions</strong></td>
+            <td>Detected when a lower-trust component influences a higher-trust component</td>
+          </tr>
+        </table>
+
+        <h4>Influence Types</h4>
+        <ul>
+          <li><strong>Data</strong> - Information flow between components (blue, solid)</li>
+          <li><strong>Feedback</strong> - Feedback and monitoring signals (green, dashed)</li>
+          <li><strong>Resource</strong> - Resource provisioning and allocation (orange, dotted)</li>
+          <li><strong>Control</strong> - Control and command authority (purple, bold)</li>
+        </ul>
+
+        <h4>Inversion Severity</h4>
+        <table class="info-table">
+          <tr>
+            <th>Severity</th>
+            <th>Trust Gap</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td style="color: #e74c3c;"><strong>Critical</strong></td>
+            <td>>= 3</td>
+            <td>Untrusted component influences root of trust</td>
+          </tr>
+          <tr>
+            <td style="color: #f39c12;"><strong>High</strong></td>
+            <td>>= 2</td>
+            <td>Significant trust boundary violation</td>
+          </tr>
+          <tr>
+            <td style="color: #3498db;"><strong>Medium</strong></td>
+            <td>1</td>
+            <td>Adjacent zone influence crossing</td>
+          </tr>
+        </table>
+
+        <h4>Panel Actions</h4>
+        <ul>
+          <li><strong>Generate Visualization</strong> - Render the privilege gradient graph with trust zone columns</li>
+          <li><strong>Analyze Structure</strong> - Get stats: zones, components, influences, inversions, max trust gap</li>
+          <li><strong>Detect Inversions</strong> - List all inversions with severity badges and color-coded borders</li>
+          <li><strong>Validate Config</strong> - Check for structural errors (invalid refs, duplicate IDs, missing sections)</li>
+        </ul>
+
+        <h4>Style Presets</h4>
+        <ul>
+          <li><strong>pg_default</strong> - Clean professional look</li>
+          <li><strong>pg_dark</strong> - Dark theme with high contrast</li>
+          <li><strong>pg_security</strong> - Threat-focused red/orange emphasis</li>
+          <li><strong>pg_neon</strong> - Cyberpunk fluorescent colors</li>
+          <li><strong>pg_corporate</strong> - Enterprise navy/gold style</li>
+        </ul>
+
+        <h4>Built-in Templates</h4>
+        <table class="info-table">
+          <tr>
+            <th>Template</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><strong>microservices_auth</strong></td>
+            <td>Microservices authentication architecture (5 zones, 10 components)</td>
+          </tr>
+          <tr>
+            <td><strong>corporate_network</strong></td>
+            <td>Enterprise network segmentation with DMZ misconfiguration</td>
+          </tr>
+          <tr>
+            <td><strong>iot_scada</strong></td>
+            <td>ICS/SCADA based on IEC 62443 Purdue Model (5 levels)</td>
+          </tr>
+          <tr>
+            <td><strong>cloud_zero_trust</strong></td>
+            <td>NIST 800-207 zero trust cloud-native architecture</td>
+          </tr>
+          <tr>
+            <td><strong>ci_cd_pipeline</strong></td>
+            <td>Software supply chain security with CI/CD stages</td>
+          </tr>
+          <tr>
+            <td><strong>healthcare_ehr</strong></td>
+            <td>HIPAA-compliant EHR system with PHI protection boundaries</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="doc-section">
         <h3>CVSS Calculator</h3>
         <p>Calculate CVSS (Common Vulnerability Scoring System) 3.x scores from vector strings. Access from the Tools dropdown menu.</p>
 
@@ -768,6 +1038,26 @@ type = "flow"</code></pre>
             <td>Generate DFD visualization</td>
           </tr>
           <tr>
+            <td><code>/visualize/custom-diagram</code></td>
+            <td>POST</td>
+            <td>Generate custom diagram visualization</td>
+          </tr>
+          <tr>
+            <td><code>/visualize/mermaid</code></td>
+            <td>POST</td>
+            <td>Render Mermaid syntax diagram</td>
+          </tr>
+          <tr>
+            <td><code>/visualize/cloud-diagram</code></td>
+            <td>POST</td>
+            <td>Generate cloud architecture diagram</td>
+          </tr>
+          <tr>
+            <td><code>/visualize/privilege-gradient</code></td>
+            <td>POST</td>
+            <td>Generate privilege gradient visualization</td>
+          </tr>
+          <tr>
             <td><code>/visualize/binary</code></td>
             <td>POST</td>
             <td>Generate binary visualization</td>
@@ -805,6 +1095,16 @@ type = "flow"</code></pre>
             <td><code>/analyze/stride</code></td>
             <td>POST</td>
             <td>Run STRIDE threat analysis</td>
+          </tr>
+          <tr>
+            <td><code>/analyze/privilege-gradient</code></td>
+            <td>POST</td>
+            <td>Get privilege gradient structure statistics</td>
+          </tr>
+          <tr>
+            <td><code>/analyze/inversions</code></td>
+            <td>POST</td>
+            <td>Detect privilege gradient inversions with severity</td>
           </tr>
         </table>
 
@@ -997,6 +1297,11 @@ type = "flow"</code></pre>
             <td>POST</td>
             <td>Validate attack graph structure</td>
           </tr>
+          <tr>
+            <td><code>/validate/privilege-gradient</code></td>
+            <td>POST</td>
+            <td>Validate privilege gradient config structure</td>
+          </tr>
         </table>
 
         <h4>Utility Endpoints</h4>
@@ -1058,8 +1363,11 @@ type = "flow"</code></pre>
           <li>Attack Trees</li>
           <li>Attack Graphs</li>
           <li>Threat Modeling</li>
-          <li>Binary Visualization</li>
           <li>Custom Diagrams</li>
+          <li>Mermaid Diagrams</li>
+          <li>Cloud Diagrams</li>
+          <li>Privilege Gradient</li>
+          <li>Binary Visualization</li>
         </ul>
 
         <h4>Display Settings</h4>
