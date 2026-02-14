@@ -17,6 +17,8 @@ Complete command-line interface reference for the Universal Security Visualizati
    - [Custom Diagrams (Mode 4)](#custom-diagrams-mode-4)
    - [Mermaid Diagrams (Mode 5)](#mermaid-diagrams-mode-5)
    - [Cloud Diagrams (Mode 6)](#cloud-diagrams-mode-6)
+   - [Component Diagrams (Mode 7)](#component-diagrams-mode-7)
+   - [Dependency Graphs (Mode 8)](#dependency-graphs-mode-8)
 5. [Image Support for Nodes](#image-support-for-nodes)
 6. [Configuration File Formats](#configuration-file-formats)
 7. [Available Styles](#available-styles)
@@ -125,6 +127,8 @@ usecvis [options]
 | `4` | Custom Diagrams | Flexible schema-driven diagrams |
 | `5` | Mermaid Diagrams | Render Mermaid syntax to images |
 | `6` | Cloud Diagrams | Cloud architecture with provider icons |
+| `7` | Component Diagrams | Layered software architecture visualization |
+| `8` | Dependency Graphs | Module dependency analysis with SLOC sizing |
 
 ### Output Formats
 
@@ -1017,6 +1021,197 @@ to = "s3"
 | **Security** | Zero Trust Architecture, Security Monitoring |
 | **Microservices** | Container orchestration, service mesh |
 | **Infrastructure** | Web apps, data pipelines, serverless |
+
+---
+
+### Component Diagrams (Mode 7)
+
+Create layered software architecture diagrams with typed components and connections.
+
+#### Basic Usage
+
+```bash
+usecvis -m 7 -i architecture.toml -o output
+```
+
+#### With Style
+
+```bash
+usecvis -m 7 -i architecture.toml -o output -f svg -s cd_blueprint
+```
+
+#### Supported Input Formats
+
+- TOML configuration (`.toml`, `.tml`)
+- JSON configuration (`.json`)
+- YAML configuration (`.yaml`, `.yml`)
+
+#### Output
+
+- Visualization file (e.g., `output.png`)
+- Console output with diagram statistics (layers, components, connections)
+
+#### Example Configuration (TOML)
+
+```toml
+title = "Web Application Architecture"
+
+[[layers]]
+name = "Client Tier"
+order = 1
+
+  [[layers.components]]
+  id = "browser"
+  name = "Web Browser"
+  type = "frontend"
+  tech = "React SPA"
+
+[[layers]]
+name = "API Tier"
+order = 2
+
+  [[layers.components]]
+  id = "gateway"
+  name = "API Gateway"
+  type = "service"
+  tech = "Nginx + Lua"
+
+[[connections]]
+from = "browser"
+to = "gateway"
+label = "HTTPS"
+style = "sync"
+```
+
+#### Component Types
+
+| Type | Shape | Description |
+|------|-------|-------------|
+| `frontend` | Rounded box | Client-side applications |
+| `service` | Rounded box | Backend services and APIs |
+| `database` | Cylinder | Databases |
+| `cache` | Rounded box | Caching layers |
+| `storage` | Folder | File/object storage |
+| `queue` | Rounded box | Message queues |
+| `external_service` | Dashed ellipse | Third-party services |
+| `cli` | Rounded box | Command-line tools |
+
+#### Connection Styles
+
+| Style | Appearance | Description |
+|-------|------------|-------------|
+| `sync` | Solid arrow | Synchronous request/response |
+| `async` | Dashed, open head | Asynchronous messaging |
+| `bidirectional` | Both arrows | Two-way communication |
+| `event` | Dotted arrow | Event-driven messaging |
+
+#### Style Presets
+
+| Style ID | Description |
+|----------|-------------|
+| `cd_default` | Clean professional look |
+| `cd_blueprint` | Technical blueprint style |
+| `cd_minimal` | Minimalist grayscale |
+| `cd_dark` | Dark theme |
+
+---
+
+### Dependency Graphs (Mode 8)
+
+Visualize module dependencies with SLOC-based sizing, group coloring, and circular dependency detection.
+
+#### Basic Usage
+
+```bash
+usecvis -m 8 -i dependencies.toml -o output
+```
+
+#### With Style
+
+```bash
+usecvis -m 8 -i dependencies.toml -o output -f svg -s dg_coupling
+```
+
+#### Output
+
+- Visualization file using force-directed layout (fdp engine)
+- Console output with module/dependency/circular counts
+
+#### Example Configuration (TOML)
+
+```toml
+title = "Module Dependencies"
+
+[[modules]]
+id = "app_main"
+name = "app.main"
+group = "core"
+sloc = 350
+
+[[modules]]
+id = "routes_users"
+name = "routes.users"
+group = "api"
+sloc = 280
+
+[[modules]]
+id = "fastapi"
+name = "fastapi"
+type = "external"
+sloc = 0
+
+[[dependencies]]
+from = "app_main"
+to = "routes_users"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "routes_users"
+to = "fastapi"
+type = "framework"
+weight = "medium"
+
+# Circular dependency declarations
+[[circular]]
+cycle = ["config", "logging"]
+severity = "low"
+```
+
+#### Module Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `id` | Yes | Unique identifier |
+| `name` | Yes | Display name |
+| `group` | No | Group for clustering (core, features, api, infrastructure, tests, utils) |
+| `type` | No | `"internal"` (default) or `"external"` |
+| `sloc` | No | Source lines of code (determines node size) |
+
+#### Dependency Types
+
+| Type | Edge Style | Description |
+|------|------------|-------------|
+| `import` | Solid | Direct module import |
+| `framework` | Dotted | Framework/library dependency |
+| `runtime` | Dashed | Runtime-only dependency |
+
+#### Edge Weights
+
+| Weight | Penwidth | Description |
+|--------|----------|-------------|
+| `light` | 1px | Weak coupling |
+| `medium` | 2px | Moderate coupling |
+| `heavy` | 3px | Strong coupling |
+
+#### Style Presets
+
+| Style ID | Description |
+|----------|-------------|
+| `dg_default` | Clean professional look |
+| `dg_dark` | Dark theme |
+| `dg_minimal` | Minimalist grayscale |
+| `dg_coupling` | Coupling-focused visualization |
 
 ---
 

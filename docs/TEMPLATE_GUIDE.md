@@ -1,6 +1,6 @@
 # USecVisLib Template Guide
 
-A comprehensive guide for creating configuration templates for USecVisLib visualizations. This document covers all supported formats (TOML, YAML, JSON) and all visualization modules (Attack Trees, Attack Graphs, Threat Models, and Custom Diagrams).
+A comprehensive guide for creating configuration templates for USecVisLib visualizations. This document covers all supported formats (TOML, YAML, JSON) and all visualization modules (Attack Trees, Attack Graphs, Threat Models, Custom Diagrams, Component Diagrams, and Dependency Graphs).
 
 ## Table of Contents
 
@@ -10,11 +10,13 @@ A comprehensive guide for creating configuration templates for USecVisLib visual
 4. [Attack Graphs](#attack-graphs)
 5. [Threat Models](#threat-models)
 6. [Custom Diagrams](#custom-diagrams)
-7. [Common Elements](#common-elements)
-8. [CVSS Integration](#cvss-integration)
-9. [Icons and Images](#icons-and-images)
-10. [Available Styles](#available-styles)
-11. [Best Practices](#best-practices)
+7. [Component Diagrams](#component-diagrams)
+8. [Dependency Graphs](#dependency-graphs)
+9. [Common Elements](#common-elements)
+10. [CVSS Integration](#cvss-integration)
+11. [Icons and Images](#icons-and-images)
+12. [Available Styles](#available-styles)
+13. [Best Practices](#best-practices)
 
 ---
 
@@ -31,6 +33,8 @@ USecVisLib supports multiple configuration formats for defining security visuali
 | Binary Visualization | `-m 2` | N/A | Binary file analysis |
 | Attack Graphs | `-m 3` | `graph` | Network attack paths |
 | Custom Diagrams | N/A | `diagram` | Schema-driven custom diagrams |
+| Component Diagrams | `-m 7` | `title` + `layers` | Layered architecture visualization |
+| Dependency Graphs | `-m 8` | `title` + `modules` | Module dependency analysis |
 
 ---
 
@@ -1961,6 +1965,349 @@ clusters:
 
 ---
 
+## Component Diagrams
+
+Component diagrams visualize layered software architecture. Components are organized into layers (Client, API, Application, Data, etc.) and connected by typed connections.
+
+### Basic Structure (TOML)
+
+```toml
+title = "Web Application Architecture"
+
+[[layers]]
+name = "Client Tier"
+order = 1
+
+  [[layers.components]]
+  id = "browser"
+  name = "Web Browser"
+  type = "frontend"
+  tech = "React SPA"
+
+  [[layers.components]]
+  id = "mobile"
+  name = "Mobile App"
+  type = "frontend"
+  tech = "React Native"
+
+[[layers]]
+name = "API Tier"
+order = 2
+
+  [[layers.components]]
+  id = "gateway"
+  name = "API Gateway"
+  type = "service"
+  tech = "Nginx + Lua"
+
+  [[layers.components]]
+  id = "auth_svc"
+  name = "Auth Service"
+  type = "service"
+  tech = "Go + JWT"
+
+[[layers]]
+name = "Data Tier"
+order = 3
+
+  [[layers.components]]
+  id = "user_db"
+  name = "User Database"
+  type = "database"
+  tech = "PostgreSQL"
+
+  [[layers.components]]
+  id = "cache"
+  name = "Session Cache"
+  type = "cache"
+  tech = "Redis"
+
+[[connections]]
+from = "browser"
+to = "gateway"
+label = "HTTPS"
+style = "sync"
+
+[[connections]]
+from = "gateway"
+to = "auth_svc"
+label = "verify token"
+style = "sync"
+
+[[connections]]
+from = "auth_svc"
+to = "user_db"
+label = "queries"
+style = "sync"
+
+[[connections]]
+from = "auth_svc"
+to = "cache"
+label = "sessions"
+style = "sync"
+```
+
+### JSON Format
+
+```json
+{
+  "title": "Web Application Architecture",
+  "layers": [
+    {
+      "name": "Client Tier",
+      "order": 1,
+      "components": [
+        { "id": "browser", "name": "Web Browser", "type": "frontend", "tech": "React SPA" }
+      ]
+    },
+    {
+      "name": "API Tier",
+      "order": 2,
+      "components": [
+        { "id": "gateway", "name": "API Gateway", "type": "service", "tech": "Nginx + Lua" }
+      ]
+    }
+  ],
+  "connections": [
+    { "from": "browser", "to": "gateway", "label": "HTTPS", "style": "sync" }
+  ]
+}
+```
+
+### Layer Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | string | Yes | Display name for the layer |
+| `order` | integer | No | Layer ordering (top to bottom) |
+| `components` | array | Yes | List of components in this layer |
+
+### Component Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Unique identifier (used in connections) |
+| `name` | string | Yes | Display name |
+| `type` | string | No | Component type (default: `service`) |
+| `tech` | string | No | Technology label (shown below name) |
+
+### Component Types
+
+| Type | Graphviz Shape | Use For |
+|------|---------------|---------|
+| `frontend` | Rounded box | Web/mobile clients |
+| `service` | Rounded box | Backend services, APIs |
+| `database` | Cylinder | Databases (PostgreSQL, MongoDB, etc.) |
+| `cache` | Rounded box | Caching layers (Redis, Memcached) |
+| `storage` | Folder | File/object storage (S3, MinIO) |
+| `queue` | Rounded box | Message queues (Kafka, RabbitMQ) |
+| `external_service` | Dashed ellipse | Third-party services |
+| `cli` | Rounded box | Command-line tools |
+
+### Connection Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `from` | string | Yes | Source component ID |
+| `to` | string | Yes | Target component ID |
+| `label` | string | No | Edge label text |
+| `style` | string | No | Connection style (default: `sync`) |
+
+### Connection Styles
+
+| Style | Appearance | Use For |
+|-------|------------|---------|
+| `sync` | Solid arrow, filled head | REST, gRPC, HTTP |
+| `async` | Dashed arrow, open head | Message queues, webhooks |
+| `bidirectional` | Solid, arrows both ends | WebSockets, two-way sync |
+| `event` | Dotted arrow | Event bus, pub/sub |
+
+### Available Styles
+
+`cd_default`, `cd_blueprint`, `cd_minimal`, `cd_dark`
+
+---
+
+## Dependency Graphs
+
+Dependency graphs visualize module relationships with SLOC-based node sizing, group clustering, and circular dependency highlighting.
+
+### Basic Structure (TOML)
+
+```toml
+title = "Web Application Module Dependencies"
+
+# Internal modules
+[[modules]]
+id = "app_main"
+name = "app.main"
+group = "core"
+sloc = 350
+
+[[modules]]
+id = "app_config"
+name = "app.config"
+group = "core"
+sloc = 120
+
+[[modules]]
+id = "routes_users"
+name = "routes.users"
+group = "api"
+sloc = 280
+
+[[modules]]
+id = "services_auth"
+name = "services.auth"
+group = "services"
+sloc = 400
+
+[[modules]]
+id = "db_engine"
+name = "db.engine"
+group = "infrastructure"
+sloc = 200
+
+# External dependencies
+[[modules]]
+id = "fastapi"
+name = "fastapi"
+type = "external"
+sloc = 0
+
+[[modules]]
+id = "sqlalchemy"
+name = "sqlalchemy"
+type = "external"
+sloc = 0
+
+# Dependencies
+[[dependencies]]
+from = "app_main"
+to = "routes_users"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "app_main"
+to = "fastapi"
+type = "framework"
+weight = "heavy"
+
+[[dependencies]]
+from = "routes_users"
+to = "services_auth"
+type = "import"
+weight = "medium"
+
+[[dependencies]]
+from = "db_engine"
+to = "sqlalchemy"
+type = "framework"
+weight = "heavy"
+
+# Circular dependency (bidirectional import)
+[[dependencies]]
+from = "app_config"
+to = "utils_logging"
+type = "import"
+weight = "light"
+
+[[dependencies]]
+from = "utils_logging"
+to = "app_config"
+type = "runtime"
+weight = "light"
+
+# Declare circular dependencies
+[[circular]]
+cycle = ["app_config", "utils_logging"]
+severity = "low"
+```
+
+### JSON Format
+
+```json
+{
+  "title": "Module Dependencies",
+  "modules": [
+    { "id": "app_main", "name": "app.main", "group": "core", "sloc": 350 },
+    { "id": "fastapi", "name": "fastapi", "type": "external", "sloc": 0 }
+  ],
+  "dependencies": [
+    { "from": "app_main", "to": "fastapi", "type": "framework", "weight": "heavy" }
+  ],
+  "circular": [
+    { "cycle": ["config", "logging"], "severity": "low" }
+  ]
+}
+```
+
+### Module Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `id` | string | Yes | Unique identifier |
+| `name` | string | Yes | Display name |
+| `group` | string | No | Clustering group (see below) |
+| `type` | string | No | `"internal"` (default) or `"external"` |
+| `sloc` | integer | No | Source lines of code (determines node size) |
+| `version` | string | No | Version string (shown on external modules) |
+
+### Built-in Groups (with colors)
+
+| Group | Color | Use For |
+|-------|-------|---------|
+| `core` | Blue | Central application modules |
+| `features` | Green | Feature modules |
+| `api` | Orange | API routes and endpoints |
+| `infrastructure` | Purple | Database, cache, messaging |
+| `tests` | Teal | Test modules |
+| `utils` | Yellow | Utility and helper modules |
+
+Custom group names are supported and receive a default blue color.
+
+### Dependency Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `from` | string | Yes | Source module ID |
+| `to` | string | Yes | Target module ID |
+| `type` | string | No | Dependency type (default: `import`) |
+| `weight` | string | No | Edge weight (default: `medium`) |
+
+### Dependency Types
+
+| Type | Edge Style | Use For |
+|------|------------|---------|
+| `import` | Solid line | Direct module imports |
+| `framework` | Dotted line | Framework/library dependencies |
+| `runtime` | Dashed line | Runtime-only dependencies |
+
+### Edge Weights
+
+| Weight | Penwidth | Use For |
+|--------|----------|---------|
+| `light` | 1px | Weak coupling, optional dependencies |
+| `medium` | 2px | Standard dependencies |
+| `heavy` | 3px | Core dependencies, tight coupling |
+
+### Circular Dependency Declaration
+
+```toml
+[[circular]]
+cycle = ["module_a", "module_b"]
+severity = "low"
+```
+
+Circular dependencies are highlighted with red bold edges and a warning label. The `cycle` array lists module IDs forming the cycle, and `severity` is informational (`low`, `medium`, `high`).
+
+### Available Styles
+
+`dg_default`, `dg_dark`, `dg_minimal`, `dg_coupling`
+
+---
+
 ## Common Elements
 
 ### Metadata Fields
@@ -2154,6 +2501,24 @@ Use absolute or relative paths for custom icons:
 | `cd_default` | Default style |
 | `cd_dark` | Dark theme |
 | `cd_minimal` | Minimalist |
+
+### Component Diagram Styles
+
+| Style | Description |
+|-------|-------------|
+| `cd_default` | Clean professional with colored layer backgrounds |
+| `cd_blueprint` | Technical blueprint style |
+| `cd_minimal` | Minimalist grayscale |
+| `cd_dark` | Dark theme with light text |
+
+### Dependency Graph Styles
+
+| Style | Description |
+|-------|-------------|
+| `dg_default` | Clean professional with group coloring |
+| `dg_dark` | Dark theme |
+| `dg_minimal` | Minimalist grayscale |
+| `dg_coupling` | Coupling-focused visualization |
 
 ---
 

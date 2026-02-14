@@ -56,6 +56,7 @@ The main navigation tabs for visualization modules:
 | **Custom Diagrams** | 🎨 | Create user-defined diagrams with custom schemas |
 | **Mermaid** | 🧜 | Render Mermaid syntax to images |
 | **Cloud** | ☁️ | Cloud architecture diagrams with provider icons |
+| **Architecture** | 🏗️ | Component diagrams and dependency graphs |
 | **Privilege Gradient** | 🛡️ | Trust zone visualization with inversion detection |
 | **Binary Analysis** | 📊 | Analyze binary file patterns |
 
@@ -682,6 +683,123 @@ Examples:
 - `azure.compute.VirtualMachine`
 - `gcp.compute.ComputeEngine`
 - `k8s.compute.Pod`
+
+---
+
+## Architecture Panel
+
+The Architecture panel provides two diagram types for software architecture documentation: **Component Diagrams** and **Dependency Graphs**. Switch between them using the diagram type toggle at the top of the panel.
+
+### Diagram Type Toggle
+
+| Type | Description |
+|------|-------------|
+| **Component Diagram** | Layered architecture views with typed components organized into tiers |
+| **Dependency Graph** | Module relationship analysis with SLOC sizing, group coloring, and circular dependency detection |
+
+### Features
+
+- **Diagram Type Selector**: Toggle between Component Diagram and Dependency Graph
+- **Dynamic Style Selector**: Shows `cd_*` styles for component diagrams, `dg_*` styles for dependency graphs
+- **Template Detection**: Auto-detects config type and suggests correct diagram type if mismatched
+- **Config Editor**: Inline TOML/JSON/YAML editor with syntax awareness
+
+### Actions
+
+| Button | Description |
+|--------|-------------|
+| **Generate Visualization** | Render the selected diagram type as an image |
+| **Analyze Structure** | Get statistics without rendering |
+| **Validate** | Check configuration for structural errors |
+
+### Results
+
+**Component Diagram stats:**
+- Title, total layers, total components, total connections
+- Components per layer breakdown
+
+**Dependency Graph stats:**
+- Title, total modules, total dependencies, total circular dependencies
+- Internal vs external module counts
+- Groups list
+
+### Component Diagram Style Presets
+
+| Style ID | Description |
+|----------|-------------|
+| `cd_default` | Clean professional look with colored layer backgrounds |
+| `cd_blueprint` | Technical blueprint style |
+| `cd_minimal` | Minimalist grayscale |
+| `cd_dark` | Dark theme with light text |
+
+### Dependency Graph Style Presets
+
+| Style ID | Description |
+|----------|-------------|
+| `dg_default` | Clean professional look with group coloring |
+| `dg_dark` | Dark theme |
+| `dg_minimal` | Minimalist grayscale |
+| `dg_coupling` | Coupling-focused visualization |
+
+### Example Configuration (Component Diagram - TOML)
+
+```toml
+title = "Web Application Architecture"
+
+[[layers]]
+name = "Client Tier"
+order = 1
+
+  [[layers.components]]
+  id = "browser"
+  name = "Web Browser"
+  type = "frontend"
+  tech = "React SPA"
+
+[[layers]]
+name = "API Tier"
+order = 2
+
+  [[layers.components]]
+  id = "gateway"
+  name = "API Gateway"
+  type = "service"
+  tech = "Nginx + Lua"
+
+[[connections]]
+from = "browser"
+to = "gateway"
+label = "HTTPS"
+style = "sync"
+```
+
+### Example Configuration (Dependency Graph - TOML)
+
+```toml
+title = "Module Dependencies"
+
+[[modules]]
+id = "app_main"
+name = "app.main"
+group = "core"
+sloc = 350
+
+[[modules]]
+id = "fastapi"
+name = "fastapi"
+type = "external"
+sloc = 0
+
+[[dependencies]]
+from = "app_main"
+to = "fastapi"
+type = "framework"
+weight = "heavy"
+
+[[circular]]
+cycle = ["config", "logging"]
+severity = "low"
+```
 
 ---
 

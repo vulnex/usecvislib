@@ -18,6 +18,8 @@ Complete Python API reference for the Universal Security Visualization Library.
    - [CustomDiagrams](#customdiagrams)
    - [MermaidDiagrams](#mermaiddiagrams)
    - [CloudDiagrams](#clouddiagrams)
+   - [ComponentDiagram](#componentdiagram)
+   - [DependencyGraph](#dependencygraph)
    - [CVSS Module](#cvss-module)
    - [Settings Module](#settings-module)
    - [Templates](#templates)
@@ -1897,6 +1899,186 @@ if result["success"]:
 
 ---
 
+### ComponentDiagram
+
+Create layered software architecture visualizations with typed components and connections.
+
+```python
+from usecvislib import ComponentDiagram
+
+cd = ComponentDiagram("architecture.toml", "output", format="png", styleid="cd_default")
+cd.build()
+```
+
+#### Constructor Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `inputfile` | str | required | Path to configuration file (TOML, JSON, or YAML) |
+| `outputfile` | str | required | Output file path (without extension) |
+| `format` | str | `"png"` | Output format: `"png"`, `"svg"`, `"pdf"` |
+| `styleid` | str | `None` | Style preset ID (uses `cd_default` if None) |
+
+#### Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `load()` | Parse and normalize input data | `self` |
+| `render()` | Build the Graphviz graph | `self` |
+| `draw()` | Save to output file | `self` |
+| `build()` | Shorthand for load().render().draw() | `self` |
+| `validate()` | Check for structural errors | `List[str]` |
+| `get_stats()` | Get layer/component/connection counts | `Dict` |
+| `get_metadata()` | Get template metadata | `TemplateMetadata` |
+
+#### Input Format
+
+```toml
+title = "My Architecture"
+
+[[layers]]
+name = "Client Tier"
+order = 1
+
+  [[layers.components]]
+  id = "browser"
+  name = "Web Browser"
+  type = "frontend"
+  tech = "React SPA"
+
+[[connections]]
+from = "browser"
+to = "gateway"
+label = "HTTPS"
+style = "sync"
+```
+
+#### Component Types
+
+`frontend`, `service`, `database`, `cache`, `storage`, `queue`, `external_service`, `cli`
+
+#### Connection Styles
+
+`sync` (solid), `async` (dashed), `bidirectional` (both arrows), `event` (dotted)
+
+#### Style Presets
+
+`cd_default`, `cd_blueprint`, `cd_minimal`, `cd_dark`
+
+#### Stats Output
+
+```python
+stats = cd.get_stats()
+# {
+#   "title": "My Architecture",
+#   "total_layers": 4,
+#   "total_components": 12,
+#   "total_connections": 15,
+#   "components_per_layer": {"Client Tier": 2, "API Tier": 3, ...}
+# }
+```
+
+---
+
+### DependencyGraph
+
+Visualize module dependencies with SLOC-based node sizing, group clustering, and circular dependency detection.
+
+```python
+from usecvislib import DependencyGraph
+
+dg = DependencyGraph("dependencies.toml", "output", format="png", styleid="dg_default")
+dg.build()
+```
+
+#### Constructor Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `inputfile` | str | required | Path to configuration file (TOML, JSON, or YAML) |
+| `outputfile` | str | required | Output file path (without extension) |
+| `format` | str | `"png"` | Output format: `"png"`, `"svg"`, `"pdf"` |
+| `styleid` | str | `None` | Style preset ID (uses `dg_default` if None) |
+
+#### Methods
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `load()` | Parse and normalize input data | `self` |
+| `render()` | Build the Graphviz graph (fdp layout) | `self` |
+| `draw()` | Save to output file | `self` |
+| `build()` | Shorthand for load().render().draw() | `self` |
+| `validate()` | Check for structural errors | `List[str]` |
+| `get_stats()` | Get module/dependency/circular counts | `Dict` |
+| `get_metadata()` | Get template metadata | `TemplateMetadata` |
+
+#### Input Format
+
+```toml
+title = "Module Dependencies"
+
+[[modules]]
+id = "app_main"
+name = "app.main"
+group = "core"
+sloc = 350
+
+[[modules]]
+id = "fastapi"
+name = "fastapi"
+type = "external"
+sloc = 0
+
+[[dependencies]]
+from = "app_main"
+to = "fastapi"
+type = "framework"
+weight = "heavy"
+
+[[circular]]
+cycle = ["config", "logging"]
+severity = "low"
+```
+
+#### Module Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `id` | Yes | Unique identifier |
+| `name` | Yes | Display name |
+| `group` | No | Clustering group (core, features, api, infrastructure, tests, utils) |
+| `type` | No | `"internal"` (default) or `"external"` |
+| `sloc` | No | Source lines of code (0 = smallest node, scales linearly to max) |
+
+#### Dependency Types
+
+`import` (solid), `framework` (dotted), `runtime` (dashed)
+
+#### Edge Weights
+
+`light` (1px), `medium` (2px), `heavy` (3px)
+
+#### Style Presets
+
+`dg_default`, `dg_dark`, `dg_minimal`, `dg_coupling`
+
+#### Stats Output
+
+```python
+stats = dg.get_stats()
+# {
+#   "title": "Module Dependencies",
+#   "total_modules": 19,
+#   "total_dependencies": 36,
+#   "total_circular": 1,
+#   "internal_count": 15,
+#   "external_count": 4,
+#   "groups": ["core", "api", "infrastructure", ...]
+# }
+```
+
+---
+
 ### CVSS Module
 
 Calculate and parse CVSS scores. Supports both CVSS 3.1 and CVSS 4.0.
@@ -2330,6 +2512,43 @@ model = (
                   protocol="PostgreSQL", isEncrypted=True)
     .add_boundary("dmz", "DMZ", elements=["webserver"])
     .to_threat_model("output")
+    .build()
+)
+```
+
+### ComponentDiagramBuilder
+
+```python
+from usecvislib import ComponentDiagramBuilder
+
+diagram = (
+    ComponentDiagramBuilder("Web Application Architecture")
+    .add_layer("client", "Client Tier", order=1)
+    .add_component("browser", "Web Browser", layer="client",
+                   type="frontend", tech="React SPA")
+    .add_layer("api", "API Tier", order=2)
+    .add_component("gateway", "API Gateway", layer="api",
+                   type="service", tech="Nginx + Lua")
+    .add_connection("browser", "gateway", label="HTTPS", style="sync")
+    .to_component_diagram("output", format="png", styleid="cd_default")
+    .build()
+)
+```
+
+### DependencyGraphBuilder
+
+```python
+from usecvislib import DependencyGraphBuilder
+
+graph = (
+    DependencyGraphBuilder("Module Dependencies")
+    .add_module("app_main", "app.main", group="core", sloc=350)
+    .add_module("routes", "routes.users", group="api", sloc=280)
+    .add_module("fastapi", "fastapi", type="external")
+    .add_dependency("app_main", "routes", type="import", weight="heavy")
+    .add_dependency("routes", "fastapi", type="framework", weight="medium")
+    .mark_circular(["config", "logging"], severity="low")
+    .to_dependency_graph("output", format="png", styleid="dg_default")
     .build()
 )
 ```
