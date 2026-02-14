@@ -56,6 +56,7 @@ The main navigation tabs for visualization modules:
 | **Custom Diagrams** | 🎨 | Create user-defined diagrams with custom schemas |
 | **Mermaid** | 🧜 | Render Mermaid syntax to images |
 | **Cloud** | ☁️ | Cloud architecture diagrams with provider icons |
+| **Privilege Gradient** | 🛡️ | Trust zone visualization with inversion detection |
 | **Binary Analysis** | 📊 | Analyze binary file patterns |
 
 ### Tools Dropdown
@@ -684,6 +685,154 @@ Examples:
 
 ---
 
+## Privilege Gradient Panel
+
+The Privilege Gradient panel visualizes trust zone hierarchies and detects privilege gradient inversions — cases where a lower-trust component has influence over a higher-trust component.
+
+### Concept
+
+A privilege gradient graph maps how trust, control, and resources are distributed across security zones. Components are placed within trust zones (rendered as colored columns from low to high trust), connected by typed influence edges. The system automatically detects **inversions** where the expected trust hierarchy is violated.
+
+### Features
+
+- **Trust Zone Columns**: Zones rendered left-to-right from low trust (red) to high trust (blue)
+- **Four Influence Types**: Data, Feedback, Resource, and Control with distinct visual styles
+- **Automatic Inversion Detection**: Flags where lower-trust components influence higher-trust ones
+- **Severity Classification**: Critical (gap >= 3), High (gap >= 2), Medium (gap = 1)
+- **Compact Legend**: Inline legend showing influence type colors and inversion marker
+
+### Actions
+
+| Button | Description |
+|--------|-------------|
+| **Generate Visualization** | Render the privilege gradient graph as an image |
+| **Analyze Structure** | Get statistics without rendering (zones, components, influences, inversions) |
+| **Detect Inversions** | Find and classify all privilege gradient inversions |
+| **Validate** | Check configuration structure for errors |
+
+### Results
+
+- **Visualization**: Zoomable image of the privilege gradient graph
+- **Stats Grid**: Zone count, component count, influence count, inversion count, max trust gap
+- **Components per Zone**: Horizontal bar chart showing distribution
+- **Inversions List**: Each inversion with source/target, zone info, trust gap, and severity badge
+
+### Style Presets
+
+| Style ID | Description |
+|----------|-------------|
+| `pg_default` | Clean professional (white background, standard colors) |
+| `pg_dark` | Dark theme with high contrast |
+| `pg_security` | Threat-focused with red/orange emphasis |
+| `pg_neon` | Cyberpunk theme with fluorescent colors |
+| `pg_corporate` | Enterprise professional (navy/gold) |
+
+### Example Configuration (TOML)
+
+```toml
+[gradient]
+name = "My Architecture"
+description = "Trust zone analysis"
+
+# Define trust zones (low to high)
+[[zones]]
+id = "untrusted"
+label = "Untrusted / External"
+trust_level = 0
+color = "#ffcccc"
+border_color = "#cc0000"
+font_color = "#660000"
+
+[[zones]]
+id = "dmz"
+label = "DMZ"
+trust_level = 1
+color = "#ffe0b2"
+border_color = "#e65100"
+font_color = "#663300"
+
+[[zones]]
+id = "internal"
+label = "Internal"
+trust_level = 2
+color = "#c8e6c9"
+border_color = "#2e7d32"
+font_color = "#1b5e20"
+
+# Define components within zones
+[[components]]
+id = "web_client"
+label = "Web Client"
+zone = "untrusted"
+
+[[components]]
+id = "api_gateway"
+label = "API Gateway"
+zone = "dmz"
+
+[[components]]
+id = "database"
+label = "Database"
+zone = "internal"
+
+# Define influence types
+[[influence_types]]
+id = "data"
+label = "Data Flow"
+color = "#3498db"
+style = "solid"
+arrowhead = "vee"
+penwidth = "1.5"
+
+[[influence_types]]
+id = "control"
+label = "Control"
+color = "#8e44ad"
+style = "bold"
+arrowhead = "dot"
+penwidth = "2"
+
+# Define influences between components
+[[influences]]
+id = "inf_1"
+from = "web_client"
+to = "api_gateway"
+type = "data"
+label = "HTTPS Request"
+
+[[influences]]
+id = "inf_2"
+from = "api_gateway"
+to = "database"
+type = "data"
+label = "SQL Query"
+```
+
+### Built-in Templates
+
+| Template | Description | Zones | Inversions |
+|----------|-------------|-------|------------|
+| `microservices_auth` | Microservices authentication architecture | 5 | 2 critical |
+| `corporate_network` | Enterprise network segmentation | 4 | 1 high (DMZ→DB) |
+| `iot_scada` | IEC 62443 Purdue Model for ICS/SCADA | 5 | 2 high |
+| `cloud_zero_trust` | NIST 800-207 zero trust architecture | 5 | 1 high |
+| `ci_cd_pipeline` | Software supply chain security | 5 | 1 critical |
+| `healthcare_ehr` | HIPAA-compliant EHR system | 5 | 1 critical |
+
+### Understanding Inversions
+
+Inversions occur when a lower-trust component has influence over a higher-trust component, violating the expected privilege hierarchy:
+
+| Severity | Trust Gap | Example |
+|----------|-----------|---------|
+| **Critical** | >= 3 levels | External user → Root of Trust |
+| **High** | 2 levels | DMZ server → Database server |
+| **Medium** | 1 level | Edge component → Application tier |
+
+Inversions represent potential security risks: misconfigurations, missing access controls, or architectural weaknesses that should be reviewed.
+
+---
+
 ## Settings Panel
 
 Access via the gear icon in the header.
@@ -730,6 +879,7 @@ Shows availability of:
 - Custom Diagrams
 - Mermaid Diagrams
 - Cloud Diagrams
+- Privilege Gradient
 - Binary Visualization
 
 ### Display Settings
