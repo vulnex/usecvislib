@@ -1,0 +1,347 @@
+#
+# Dependency Graph Example: Web Application Modules
+#
+
+title = "Web Application Module Dependencies"
+
+[[modules]]
+id = "app_main"
+name = "app.main"
+group = "core"
+sloc = 350
+
+[[modules]]
+id = "app_config"
+name = "app.config"
+group = "core"
+sloc = 120
+
+[[modules]]
+id = "routes_users"
+name = "routes.users"
+group = "api"
+sloc = 280
+
+[[modules]]
+id = "routes_orders"
+name = "routes.orders"
+group = "api"
+sloc = 320
+
+[[modules]]
+id = "routes_auth"
+name = "routes.auth"
+group = "api"
+sloc = 200
+
+[[modules]]
+id = "models_user"
+name = "models.user"
+group = "models"
+sloc = 150
+
+[[modules]]
+id = "models_order"
+name = "models.order"
+group = "models"
+sloc = 180
+
+[[modules]]
+id = "services_auth"
+name = "services.auth"
+group = "services"
+sloc = 400
+
+[[modules]]
+id = "services_payment"
+name = "services.payment"
+group = "services"
+sloc = 300
+
+[[modules]]
+id = "services_email"
+name = "services.email"
+group = "services"
+sloc = 150
+
+[[modules]]
+id = "db_engine"
+name = "db.engine"
+group = "infrastructure"
+sloc = 200
+
+[[modules]]
+id = "db_migrations"
+name = "db.migrations"
+group = "infrastructure"
+sloc = 90
+
+[[modules]]
+id = "cache_redis"
+name = "cache.redis"
+group = "infrastructure"
+sloc = 100
+
+[[modules]]
+id = "utils_logging"
+name = "utils.logging"
+group = "utils"
+sloc = 80
+
+[[modules]]
+id = "utils_validation"
+name = "utils.validation"
+group = "utils"
+sloc = 120
+
+# External dependencies
+[[modules]]
+id = "fastapi"
+name = "fastapi"
+group = "external"
+external = true
+sloc = 0
+
+[[modules]]
+id = "sqlalchemy"
+name = "sqlalchemy"
+group = "external"
+external = true
+sloc = 0
+
+[[modules]]
+id = "redis_py"
+name = "redis"
+group = "external"
+external = true
+sloc = 0
+
+[[modules]]
+id = "pydantic"
+name = "pydantic"
+group = "external"
+external = true
+sloc = 0
+
+# Dependencies
+[[dependencies]]
+from = "app_main"
+to = "app_config"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "app_main"
+to = "routes_users"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "app_main"
+to = "routes_orders"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "app_main"
+to = "routes_auth"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "app_main"
+to = "fastapi"
+type = "framework"
+weight = "heavy"
+
+[[dependencies]]
+from = "routes_users"
+to = "models_user"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "routes_users"
+to = "services_auth"
+type = "import"
+weight = "medium"
+
+[[dependencies]]
+from = "routes_users"
+to = "fastapi"
+type = "framework"
+weight = "medium"
+
+[[dependencies]]
+from = "routes_orders"
+to = "models_order"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "routes_orders"
+to = "services_payment"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "routes_orders"
+to = "fastapi"
+type = "framework"
+weight = "medium"
+
+[[dependencies]]
+from = "routes_auth"
+to = "services_auth"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "routes_auth"
+to = "fastapi"
+type = "framework"
+weight = "medium"
+
+[[dependencies]]
+from = "models_user"
+to = "sqlalchemy"
+type = "framework"
+weight = "heavy"
+
+[[dependencies]]
+from = "models_user"
+to = "pydantic"
+type = "framework"
+weight = "medium"
+
+[[dependencies]]
+from = "models_order"
+to = "sqlalchemy"
+type = "framework"
+weight = "heavy"
+
+[[dependencies]]
+from = "models_order"
+to = "models_user"
+type = "import"
+weight = "light"
+
+[[dependencies]]
+from = "models_order"
+to = "pydantic"
+type = "framework"
+weight = "medium"
+
+[[dependencies]]
+from = "services_auth"
+to = "models_user"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "services_auth"
+to = "cache_redis"
+type = "import"
+weight = "medium"
+
+[[dependencies]]
+from = "services_auth"
+to = "utils_logging"
+type = "import"
+weight = "light"
+
+[[dependencies]]
+from = "services_payment"
+to = "models_order"
+type = "import"
+weight = "medium"
+
+[[dependencies]]
+from = "services_payment"
+to = "utils_logging"
+type = "import"
+weight = "light"
+
+[[dependencies]]
+from = "services_payment"
+to = "utils_validation"
+type = "import"
+weight = "medium"
+
+[[dependencies]]
+from = "services_email"
+to = "utils_logging"
+type = "import"
+weight = "light"
+
+[[dependencies]]
+from = "services_email"
+to = "app_config"
+type = "import"
+weight = "medium"
+
+[[dependencies]]
+from = "db_engine"
+to = "sqlalchemy"
+type = "framework"
+weight = "heavy"
+
+[[dependencies]]
+from = "db_engine"
+to = "app_config"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "db_migrations"
+to = "db_engine"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "db_migrations"
+to = "models_user"
+type = "import"
+weight = "medium"
+
+[[dependencies]]
+from = "db_migrations"
+to = "models_order"
+type = "import"
+weight = "medium"
+
+[[dependencies]]
+from = "cache_redis"
+to = "redis_py"
+type = "framework"
+weight = "heavy"
+
+[[dependencies]]
+from = "cache_redis"
+to = "app_config"
+type = "import"
+weight = "medium"
+
+[[dependencies]]
+from = "utils_validation"
+to = "pydantic"
+type = "framework"
+weight = "medium"
+
+# Circular dependency
+[[dependencies]]
+from = "app_config"
+to = "utils_logging"
+type = "import"
+weight = "light"
+
+[[dependencies]]
+from = "utils_logging"
+to = "app_config"
+type = "runtime"
+weight = "light"
+
+# Circular declarations
+[[circular]]
+cycle = ["app_config", "utils_logging"]
+severity = "low"

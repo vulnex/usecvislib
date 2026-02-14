@@ -1,0 +1,194 @@
+#
+# Component Diagram Example: Web Application Architecture
+#
+
+title = "Web Application Architecture"
+
+[[layers]]
+name = "Client Tier"
+order = 1
+
+  [[layers.components]]
+  id = "browser"
+  name = "Web Browser"
+  type = "frontend"
+  tech = "React SPA"
+
+  [[layers.components]]
+  id = "mobile"
+  name = "Mobile App"
+  type = "frontend"
+  tech = "React Native"
+
+[[layers]]
+name = "API Tier"
+order = 2
+
+  [[layers.components]]
+  id = "gateway"
+  name = "API Gateway"
+  type = "service"
+  tech = "Nginx + Lua"
+
+  [[layers.components]]
+  id = "auth_svc"
+  name = "Auth Service"
+  type = "service"
+  tech = "Go + JWT"
+
+[[layers]]
+name = "Application Tier"
+order = 3
+
+  [[layers.components]]
+  id = "user_svc"
+  name = "User Service"
+  type = "service"
+  tech = "Python FastAPI"
+
+  [[layers.components]]
+  id = "order_svc"
+  name = "Order Service"
+  type = "service"
+  tech = "Python FastAPI"
+
+  [[layers.components]]
+  id = "notification_svc"
+  name = "Notification Service"
+  type = "service"
+  tech = "Node.js"
+
+  [[layers.components]]
+  id = "task_queue"
+  name = "Task Queue"
+  type = "queue"
+  tech = "Celery + Redis"
+
+[[layers]]
+name = "Data Tier"
+order = 4
+
+  [[layers.components]]
+  id = "user_db"
+  name = "User Database"
+  type = "database"
+  tech = "PostgreSQL"
+
+  [[layers.components]]
+  id = "order_db"
+  name = "Order Database"
+  type = "database"
+  tech = "PostgreSQL"
+
+  [[layers.components]]
+  id = "cache"
+  name = "Session Cache"
+  type = "cache"
+  tech = "Redis"
+
+  [[layers.components]]
+  id = "object_store"
+  name = "Object Storage"
+  type = "storage"
+  tech = "MinIO / S3"
+
+[[layers]]
+name = "External"
+order = 5
+
+  [[layers.components]]
+  id = "payment_gw"
+  name = "Payment Gateway"
+  type = "external_service"
+  tech = "Stripe API"
+
+  [[layers.components]]
+  id = "email_svc"
+  name = "Email Provider"
+  type = "external_service"
+  tech = "SendGrid"
+
+# Connections
+[[connections]]
+from = "browser"
+to = "gateway"
+label = "HTTPS"
+style = "sync"
+
+[[connections]]
+from = "mobile"
+to = "gateway"
+label = "HTTPS"
+style = "sync"
+
+[[connections]]
+from = "gateway"
+to = "auth_svc"
+label = "verify token"
+style = "sync"
+
+[[connections]]
+from = "gateway"
+to = "user_svc"
+label = "REST"
+style = "sync"
+
+[[connections]]
+from = "gateway"
+to = "order_svc"
+label = "REST"
+style = "sync"
+
+[[connections]]
+from = "user_svc"
+to = "user_db"
+label = "queries"
+style = "sync"
+
+[[connections]]
+from = "user_svc"
+to = "cache"
+label = "sessions"
+style = "sync"
+
+[[connections]]
+from = "order_svc"
+to = "order_db"
+label = "queries"
+style = "sync"
+
+[[connections]]
+from = "order_svc"
+to = "task_queue"
+label = "enqueue"
+style = "async"
+
+[[connections]]
+from = "order_svc"
+to = "payment_gw"
+label = "charge"
+style = "sync"
+
+[[connections]]
+from = "task_queue"
+to = "notification_svc"
+label = "process"
+style = "async"
+
+[[connections]]
+from = "notification_svc"
+to = "email_svc"
+label = "send email"
+style = "sync"
+
+[[connections]]
+from = "auth_svc"
+to = "cache"
+label = "token cache"
+style = "sync"
+
+[[connections]]
+from = "user_svc"
+to = "object_store"
+label = "avatars"
+style = "sync"

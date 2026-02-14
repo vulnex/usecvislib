@@ -156,7 +156,7 @@ class DependencyGraph(VisualizationBase):
         }
 
     def _get_metadata_root_key(self):
-        return "title"
+        return ""
 
     def _load_impl(self):
         try:

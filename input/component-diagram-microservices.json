@@ -1,0 +1,173 @@
+{
+  "title": "E-Commerce Microservices Architecture",
+  "layers": [
+    {
+      "name": "Edge",
+      "order": 1,
+      "components": [
+        {
+          "id": "cdn",
+          "name": "CDN",
+          "type": "external_service",
+          "tech": "CloudFront"
+        },
+        {
+          "id": "lb",
+          "name": "Load Balancer",
+          "type": "service",
+          "tech": "HAProxy"
+        }
+      ]
+    },
+    {
+      "name": "Frontend",
+      "order": 2,
+      "components": [
+        {
+          "id": "storefront",
+          "name": "Storefront",
+          "type": "frontend",
+          "tech": "Next.js"
+        },
+        {
+          "id": "admin_panel",
+          "name": "Admin Panel",
+          "type": "frontend",
+          "tech": "Vue 3"
+        }
+      ]
+    },
+    {
+      "name": "API Layer",
+      "order": 3,
+      "components": [
+        {
+          "id": "graphql_gw",
+          "name": "GraphQL Gateway",
+          "type": "service",
+          "tech": "Apollo Server"
+        }
+      ]
+    },
+    {
+      "name": "Microservices",
+      "order": 4,
+      "components": [
+        {
+          "id": "catalog_svc",
+          "name": "Catalog Service",
+          "type": "service",
+          "tech": "Go"
+        },
+        {
+          "id": "cart_svc",
+          "name": "Cart Service",
+          "type": "service",
+          "tech": "Node.js"
+        },
+        {
+          "id": "checkout_svc",
+          "name": "Checkout Service",
+          "type": "service",
+          "tech": "Python"
+        },
+        {
+          "id": "user_svc",
+          "name": "User Service",
+          "type": "service",
+          "tech": "Go"
+        },
+        {
+          "id": "search_svc",
+          "name": "Search Service",
+          "type": "service",
+          "tech": "Java"
+        }
+      ]
+    },
+    {
+      "name": "Messaging",
+      "order": 5,
+      "components": [
+        {
+          "id": "event_bus",
+          "name": "Event Bus",
+          "type": "queue",
+          "tech": "Apache Kafka"
+        },
+        {
+          "id": "notification_worker",
+          "name": "Notification Worker",
+          "type": "service",
+          "tech": "Python Celery"
+        }
+      ]
+    },
+    {
+      "name": "Data Stores",
+      "order": 6,
+      "components": [
+        {
+          "id": "catalog_db",
+          "name": "Catalog DB",
+          "type": "database",
+          "tech": "MongoDB"
+        },
+        {
+          "id": "user_db",
+          "name": "User DB",
+          "type": "database",
+          "tech": "PostgreSQL"
+        },
+        {
+          "id": "order_db",
+          "name": "Order DB",
+          "type": "database",
+          "tech": "PostgreSQL"
+        },
+        {
+          "id": "search_idx",
+          "name": "Search Index",
+          "type": "database",
+          "tech": "Elasticsearch"
+        },
+        {
+          "id": "session_cache",
+          "name": "Session Cache",
+          "type": "cache",
+          "tech": "Redis"
+        },
+        {
+          "id": "media_store",
+          "name": "Media Storage",
+          "type": "storage",
+          "tech": "S3"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    { "from": "cdn", "to": "lb", "label": "origin", "style": "sync" },
+    { "from": "lb", "to": "storefront", "label": "route", "style": "sync" },
+    { "from": "lb", "to": "admin_panel", "label": "route", "style": "sync" },
+    { "from": "storefront", "to": "graphql_gw", "label": "GraphQL", "style": "sync" },
+    { "from": "admin_panel", "to": "graphql_gw", "label": "GraphQL", "style": "sync" },
+    { "from": "graphql_gw", "to": "catalog_svc", "label": "gRPC", "style": "sync" },
+    { "from": "graphql_gw", "to": "cart_svc", "label": "gRPC", "style": "sync" },
+    { "from": "graphql_gw", "to": "checkout_svc", "label": "gRPC", "style": "sync" },
+    { "from": "graphql_gw", "to": "user_svc", "label": "gRPC", "style": "sync" },
+    { "from": "graphql_gw", "to": "search_svc", "label": "gRPC", "style": "sync" },
+    { "from": "catalog_svc", "to": "catalog_db", "label": "queries", "style": "sync" },
+    { "from": "catalog_svc", "to": "media_store", "label": "images", "style": "sync" },
+    { "from": "catalog_svc", "to": "event_bus", "label": "catalog.updated", "style": "event" },
+    { "from": "cart_svc", "to": "session_cache", "label": "cart data", "style": "sync" },
+    { "from": "checkout_svc", "to": "order_db", "label": "persist", "style": "sync" },
+    { "from": "checkout_svc", "to": "event_bus", "label": "order.placed", "style": "event" },
+    { "from": "user_svc", "to": "user_db", "label": "CRUD", "style": "sync" },
+    { "from": "user_svc", "to": "session_cache", "label": "sessions", "style": "sync" },
+    { "from": "search_svc", "to": "search_idx", "label": "search", "style": "sync" },
+    { "from": "event_bus", "to": "search_svc", "label": "reindex", "style": "async" },
+    { "from": "event_bus", "to": "notification_worker", "label": "notify", "style": "async" },
+    { "from": "checkout_svc", "to": "cart_svc", "label": "clear cart", "style": "sync" }
+  ]
+}
