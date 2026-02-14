@@ -1,0 +1,233 @@
+#
+# Privilege Gradient Graph: CI/CD Pipeline Security
+#
+# Models a software supply chain with:
+# - Developer environment, source control, build pipeline, artifact store, production
+# - Highlights trust boundaries in the software delivery lifecycle
+# - 2 inversions: dev pushing to prod artifacts + build pulling untrusted deps
+#
+
+[gradient]
+name = "CI/CD Pipeline Security"
+description = "Software supply chain privilege gradient analysis"
+version = "1.0"
+type = "Privilege Gradient Graph"
+
+# Trust Zones
+[[zones]]
+id = "dev"
+label = "Developer Environment"
+trust_level = 0
+color = "#ffcccc"
+border_color = "#cc0000"
+font_color = "#660000"
+
+[[zones]]
+id = "source"
+label = "Source Control"
+trust_level = 1
+color = "#ffe0b2"
+border_color = "#e65100"
+font_color = "#663300"
+
+[[zones]]
+id = "build"
+label = "Build / CI Pipeline"
+trust_level = 2
+color = "#fff9c4"
+border_color = "#f9a825"
+font_color = "#665500"
+
+[[zones]]
+id = "artifacts"
+label = "Artifact Store"
+trust_level = 3
+color = "#c8e6c9"
+border_color = "#2e7d32"
+font_color = "#1b5e20"
+
+[[zones]]
+id = "production"
+label = "Production"
+trust_level = 4
+color = "#bbdefb"
+border_color = "#1565c0"
+font_color = "#0d47a1"
+
+# Components
+[[components]]
+id = "developer"
+label = "Developer Laptop"
+zone = "dev"
+
+[[components]]
+id = "ext_deps"
+label = "Public Package Registry"
+zone = "dev"
+
+[[components]]
+id = "git_repo"
+label = "Git Repository"
+zone = "source"
+
+[[components]]
+id = "code_review"
+label = "Code Review"
+zone = "source"
+
+[[components]]
+id = "ci_runner"
+label = "CI Runner"
+zone = "build"
+
+[[components]]
+id = "sast"
+label = "SAST Scanner"
+zone = "build"
+
+[[components]]
+id = "container_build"
+label = "Container Builder"
+zone = "build"
+
+[[components]]
+id = "registry"
+label = "Container Registry"
+zone = "artifacts"
+
+[[components]]
+id = "signing"
+label = "Image Signing Service"
+zone = "artifacts"
+
+[[components]]
+id = "k8s"
+label = "Kubernetes Cluster"
+zone = "production"
+
+[[components]]
+id = "runtime_monitor"
+label = "Runtime Monitor"
+zone = "production"
+
+# Influence Types
+[[influence_types]]
+id = "data"
+label = "Data Flow"
+color = "#3498db"
+style = "solid"
+arrowhead = "vee"
+penwidth = "1.5"
+
+[[influence_types]]
+id = "feedback"
+label = "Feedback"
+color = "#e67e22"
+style = "dashed"
+arrowhead = "vee"
+penwidth = "1.5"
+
+[[influence_types]]
+id = "resource"
+label = "Resource"
+color = "#27ae60"
+style = "dotted"
+arrowhead = "diamond"
+penwidth = "2"
+
+[[influence_types]]
+id = "control"
+label = "Control"
+color = "#8e44ad"
+style = "bold"
+arrowhead = "dot"
+penwidth = "2"
+
+# Normal flows
+[[influences]]
+id = "inf_1"
+from = "developer"
+to = "git_repo"
+type = "data"
+label = "Git Push"
+
+[[influences]]
+id = "inf_2"
+from = "git_repo"
+to = "code_review"
+type = "data"
+label = "Pull Request"
+
+[[influences]]
+id = "inf_3"
+from = "code_review"
+to = "ci_runner"
+type = "control"
+label = "Merge Trigger"
+
+[[influences]]
+id = "inf_4"
+from = "ci_runner"
+to = "sast"
+type = "data"
+label = "Source Analysis"
+
+[[influences]]
+id = "inf_5"
+from = "sast"
+to = "ci_runner"
+type = "feedback"
+label = "Scan Results"
+
+[[influences]]
+id = "inf_6"
+from = "ci_runner"
+to = "container_build"
+type = "control"
+label = "Build Command"
+
+[[influences]]
+id = "inf_7"
+from = "container_build"
+to = "registry"
+type = "data"
+label = "Push Image"
+
+[[influences]]
+id = "inf_8"
+from = "signing"
+to = "registry"
+type = "control"
+label = "Sign Image"
+
+[[influences]]
+id = "inf_9"
+from = "registry"
+to = "k8s"
+type = "resource"
+label = "Pull Image"
+
+[[influences]]
+id = "inf_10"
+from = "runtime_monitor"
+to = "k8s"
+type = "feedback"
+label = "Health Checks"
+
+# INVERSIONS
+
+# Inversion 1: Developer direct-pushing to production registry (bypasses CI)
+[[influences]]
+id = "inv_1"
+from = "developer"
+to = "registry"
+type = "data"
+label = "Direct Push"
+
+# Inversion 2: Build pipeline pulling untrusted external dependencies
+[[influences]]
+id = "inv_2"
+from = "ext_deps"
+to = "container_build"
+type = "resource"
+label = "Untrusted Deps"

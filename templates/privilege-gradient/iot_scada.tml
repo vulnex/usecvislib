@@ -1,0 +1,243 @@
+#
+# Privilege Gradient Graph: ICS/SCADA Industrial Control System
+#
+# Based on IEC 62443 / Purdue Model zones:
+# - Level 0: Physical process (sensors/actuators)
+# - Level 1: Basic control (PLCs, RTUs)
+# - Level 2: Supervisory (SCADA, HMI)
+# - Level 3: Operations (historian, engineering workstation)
+# - Level 4: Enterprise IT
+# - Includes 2 inversions: HMI exposed to enterprise + sensor firmware push
+#
+
+[gradient]
+name = "ICS/SCADA Industrial Control System"
+description = "Purdue Model privilege gradient for industrial control systems (IEC 62443)"
+version = "1.0"
+type = "Privilege Gradient Graph"
+
+# Trust Zones (Purdue levels - higher level = lower trust in OT context)
+[[zones]]
+id = "enterprise"
+label = "Enterprise IT (Level 4)"
+trust_level = 0
+color = "#ffcccc"
+border_color = "#cc0000"
+font_color = "#660000"
+
+[[zones]]
+id = "operations"
+label = "Site Operations (Level 3)"
+trust_level = 1
+color = "#ffe0b2"
+border_color = "#e65100"
+font_color = "#663300"
+
+[[zones]]
+id = "supervisory"
+label = "Supervisory (Level 2)"
+trust_level = 2
+color = "#fff9c4"
+border_color = "#f9a825"
+font_color = "#665500"
+
+[[zones]]
+id = "control"
+label = "Basic Control (Level 1)"
+trust_level = 3
+color = "#c8e6c9"
+border_color = "#2e7d32"
+font_color = "#1b5e20"
+
+[[zones]]
+id = "process"
+label = "Physical Process (Level 0)"
+trust_level = 4
+color = "#bbdefb"
+border_color = "#1565c0"
+font_color = "#0d47a1"
+
+# Components
+[[components]]
+id = "erp"
+label = "ERP System"
+zone = "enterprise"
+
+[[components]]
+id = "email"
+label = "Email Server"
+zone = "enterprise"
+
+[[components]]
+id = "historian"
+label = "Process Historian"
+zone = "operations"
+
+[[components]]
+id = "eng_ws"
+label = "Engineering Workstation"
+zone = "operations"
+
+[[components]]
+id = "patch_server"
+label = "Patch Management"
+zone = "operations"
+
+[[components]]
+id = "scada"
+label = "SCADA Server"
+zone = "supervisory"
+
+[[components]]
+id = "hmi"
+label = "HMI Panel"
+zone = "supervisory"
+
+[[components]]
+id = "plc_main"
+label = "Main PLC"
+zone = "control"
+
+[[components]]
+id = "rtu"
+label = "Remote RTU"
+zone = "control"
+
+[[components]]
+id = "sensor_array"
+label = "Sensor Array"
+zone = "process"
+
+[[components]]
+id = "actuator"
+label = "Valve Actuator"
+zone = "process"
+
+# Influence Types
+[[influence_types]]
+id = "data"
+label = "Data Flow"
+color = "#3498db"
+style = "solid"
+arrowhead = "vee"
+penwidth = "1.5"
+
+[[influence_types]]
+id = "feedback"
+label = "Feedback"
+color = "#e67e22"
+style = "dashed"
+arrowhead = "vee"
+penwidth = "1.5"
+
+[[influence_types]]
+id = "resource"
+label = "Resource"
+color = "#27ae60"
+style = "dotted"
+arrowhead = "diamond"
+penwidth = "2"
+
+[[influence_types]]
+id = "control"
+label = "Control"
+color = "#8e44ad"
+style = "bold"
+arrowhead = "dot"
+penwidth = "2"
+
+# Normal flows (respecting Purdue hierarchy)
+[[influences]]
+id = "inf_1"
+from = "sensor_array"
+to = "plc_main"
+type = "data"
+label = "Process Values"
+
+[[influences]]
+id = "inf_2"
+from = "sensor_array"
+to = "rtu"
+type = "data"
+label = "Remote Telemetry"
+
+[[influences]]
+id = "inf_3"
+from = "plc_main"
+to = "actuator"
+type = "control"
+label = "Valve Commands"
+
+[[influences]]
+id = "inf_4"
+from = "plc_main"
+to = "scada"
+type = "data"
+label = "Status Updates"
+
+[[influences]]
+id = "inf_5"
+from = "rtu"
+to = "scada"
+type = "data"
+label = "Remote Data"
+
+[[influences]]
+id = "inf_6"
+from = "scada"
+to = "hmi"
+type = "data"
+label = "Display Data"
+
+[[influences]]
+id = "inf_7"
+from = "scada"
+to = "historian"
+type = "data"
+label = "Historical Logs"
+
+[[influences]]
+id = "inf_8"
+from = "eng_ws"
+to = "scada"
+type = "control"
+label = "Config Changes"
+
+[[influences]]
+id = "inf_9"
+from = "eng_ws"
+to = "plc_main"
+type = "control"
+label = "PLC Programming"
+
+[[influences]]
+id = "inf_10"
+from = "historian"
+to = "erp"
+type = "data"
+label = "Production Reports"
+
+[[influences]]
+id = "inf_11"
+from = "actuator"
+to = "sensor_array"
+type = "feedback"
+label = "Physical Feedback"
+
+# INVERSIONS
+
+# Inversion 1: Enterprise IT directly querying HMI (violates Purdue segmentation)
+[[influences]]
+id = "inv_1"
+from = "erp"
+to = "hmi"
+type = "data"
+label = "Direct Dashboard Query"
+
+# Inversion 2: Enterprise pushing firmware to PLCs (supply chain risk)
+[[influences]]
+id = "inv_2"
+from = "patch_server"
+to = "plc_main"
+type = "control"
+label = "Firmware Push"

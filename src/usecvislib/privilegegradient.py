@@ -531,57 +531,54 @@ class PrivilegeGradient(VisualizationBase):
                           f"{len(self._components)} components, {len(self._inversions)} inversions")
 
     def _add_legend(self) -> None:
-        """Add a legend subgraph showing influence types and inversion marker."""
-        with self.graph.subgraph(name="cluster_legend") as legend:
-            graph_style = self.style.get("graph", self._default_style()["graph"])
-            bg = graph_style.get("bgcolor", "white")
-            is_dark = bg.lower() in ("#1a1a2e", "#0d0d0d", "black", "#000000")
-            font_color = "#e0e0e0" if is_dark else "#333333"
-            legend_bg = "#2a2a3e" if is_dark else "#f8f8f8"
-            legend_border = "#555555" if is_dark else "#cccccc"
+        """Add a compact HTML-table legend at the bottom of the graph."""
+        graph_style = self.style.get("graph", self._default_style()["graph"])
+        bg = graph_style.get("bgcolor", "white")
+        is_dark = bg.lower() in ("#1a1a2e", "#0d0d0d", "black", "#000000")
+        font_color = "#e0e0e0" if is_dark else "#333333"
+        legend_bg = "#2a2a3e" if is_dark else "#f8f8f8"
+        legend_border = "#555555" if is_dark else "#cccccc"
 
-            legend.attr(
-                label="Legend",
-                style="filled,rounded",
-                fillcolor=legend_bg,
-                color=legend_border,
-                fontname="Arial Bold",
-                fontsize="11",
-                fontcolor=font_color,
+        inv_style = self.style.get("inversion", self._default_style()["inversion"])
+        inv_color = inv_style.get("color", "#cc0000")
+
+        # Build legend as a single HTML table node
+        rows = []
+        for inf_type in self._influence_types.values():
+            type_label = inf_type.get("label", inf_type.get("id", ""))
+            type_color = inf_type.get("color", "#333333")
+            line_style = inf_type.get("style", "solid")
+            # Use a colored line character to represent the edge style
+            if line_style == "dashed":
+                line_repr = "- - - -"
+            elif line_style == "dotted":
+                line_repr = "&#8226; &#8226; &#8226; &#8226;"
+            else:
+                line_repr = "&#8212;&#8212;&#8212;&#8212;"
+            rows.append(
+                f'<TD><FONT COLOR="{type_color}">{line_repr} &#9654;</FONT></TD>'
+                f'<TD><FONT COLOR="{font_color}" POINT-SIZE="8">{type_label}</FONT></TD>'
             )
 
-            # Add invisible nodes and styled edges for each influence type
-            for inf_type in self._influence_types.values():
-                type_id = inf_type.get("id", "unknown")
-                type_label = inf_type.get("label", type_id)
-                type_color = inf_type.get("color", "#333333")
+        # Inversion entry
+        rows.append(
+            f'<TD><FONT COLOR="{inv_color}"><B>&#8212;&#8212;&#8212;&#8212; &#9654;</B></FONT></TD>'
+            f'<TD><FONT COLOR="{inv_color}" POINT-SIZE="8"><B>INVERSION</B></FONT></TD>'
+        )
 
-                src_id = f"_legend_{type_id}_src"
-                dst_id = f"_legend_{type_id}_dst"
+        # Build horizontal table: all entries in one row
+        cells = "".join(f"<TD> </TD>{r}" for r in rows)
+        html_label = (
+            f'<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="4" CELLPADDING="2" '
+            f'BGCOLOR="{legend_bg}" COLOR="{legend_border}" STYLE="ROUNDED">'
+            f'<TR><TD COLSPAN="{len(rows) * 3}"><B><FONT COLOR="{font_color}" POINT-SIZE="9">'
+            f'Legend</FONT></B></TD></TR>'
+            f'<TR>{cells}</TR></TABLE>>'
+        )
 
-                legend.node(src_id, "", shape="point", width="0.01", style="invis")
-                legend.node(dst_id, type_label, shape="plaintext",
-                            fontname="Arial", fontsize="9", fontcolor=font_color)
-
-                legend.edge(src_id, dst_id,
-                            color=type_color,
-                            style=inf_type.get("style", "solid"),
-                            penwidth=str(inf_type.get("penwidth", "1.5")),
-                            arrowhead=inf_type.get("arrowhead", "vee"))
-
-            # Add inversion marker
-            inv_style = self.style.get("inversion", self._default_style()["inversion"])
-            inv_src = "_legend_inversion_src"
-            inv_dst = "_legend_inversion_dst"
-            legend.node(inv_src, "", shape="point", width="0.01", style="invis")
-            legend.node(inv_dst, "INVERSION", shape="plaintext",
-                        fontname="Arial Bold", fontsize="9",
-                        fontcolor=inv_style.get("color", "#cc0000"))
-            legend.edge(inv_src, inv_dst,
-                        color=inv_style.get("color", "#cc0000"),
-                        style=inv_style.get("style", "bold"),
-                        penwidth=inv_style.get("penwidth", "3"),
-                        arrowhead=inv_style.get("arrowhead", "normal"))
+        self.graph.node(
+            "_legend", label=html_label, shape="none", margin="0",
+        )
 
     def _draw_impl(self, outputfile: str) -> None:
         if self.graph is None:

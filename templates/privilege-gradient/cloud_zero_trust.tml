@@ -1,0 +1,237 @@
+#
+# Privilege Gradient Graph: Cloud Zero Trust Architecture
+#
+# Models a cloud-native zero trust deployment based on NIST SP 800-207:
+# - Public internet, CDN edge, application services, identity/policy, secrets
+# - Emphasizes policy decision/enforcement points
+# - 1 inversion: third-party webhook bypassing policy enforcement
+#
+
+[gradient]
+name = "Cloud Zero Trust Architecture"
+description = "NIST 800-207 zero trust privilege gradient for cloud-native deployments"
+version = "1.0"
+type = "Privilege Gradient Graph"
+
+# Trust Zones
+[[zones]]
+id = "public"
+label = "Public / Untrusted"
+trust_level = 0
+color = "#ffcccc"
+border_color = "#cc0000"
+font_color = "#660000"
+
+[[zones]]
+id = "edge"
+label = "Edge / CDN"
+trust_level = 1
+color = "#ffe0b2"
+border_color = "#e65100"
+font_color = "#663300"
+
+[[zones]]
+id = "workload"
+label = "Application Workloads"
+trust_level = 2
+color = "#fff9c4"
+border_color = "#f9a825"
+font_color = "#665500"
+
+[[zones]]
+id = "policy"
+label = "Policy Decision Point"
+trust_level = 3
+color = "#c8e6c9"
+border_color = "#2e7d32"
+font_color = "#1b5e20"
+
+[[zones]]
+id = "secrets"
+label = "Secrets / Identity Root"
+trust_level = 4
+color = "#bbdefb"
+border_color = "#1565c0"
+font_color = "#0d47a1"
+
+# Components
+[[components]]
+id = "mobile_app"
+label = "Mobile App"
+zone = "public"
+
+[[components]]
+id = "third_party"
+label = "3rd Party Webhook"
+zone = "public"
+
+[[components]]
+id = "cdn"
+label = "CDN / Edge Cache"
+zone = "edge"
+
+[[components]]
+id = "lb"
+label = "Load Balancer"
+zone = "edge"
+
+[[components]]
+id = "api_service"
+label = "API Service"
+zone = "workload"
+
+[[components]]
+id = "worker"
+label = "Background Worker"
+zone = "workload"
+
+[[components]]
+id = "message_queue"
+label = "Message Queue"
+zone = "workload"
+
+[[components]]
+id = "pdp"
+label = "Policy Decision Point"
+zone = "policy"
+
+[[components]]
+id = "idp"
+label = "Identity Provider"
+zone = "policy"
+
+[[components]]
+id = "vault"
+label = "Secrets Vault"
+zone = "secrets"
+
+[[components]]
+id = "kms"
+label = "Key Management Service"
+zone = "secrets"
+
+# Influence Types
+[[influence_types]]
+id = "data"
+label = "Data Flow"
+color = "#3498db"
+style = "solid"
+arrowhead = "vee"
+penwidth = "1.5"
+
+[[influence_types]]
+id = "feedback"
+label = "Feedback"
+color = "#e67e22"
+style = "dashed"
+arrowhead = "vee"
+penwidth = "1.5"
+
+[[influence_types]]
+id = "resource"
+label = "Resource"
+color = "#27ae60"
+style = "dotted"
+arrowhead = "diamond"
+penwidth = "2"
+
+[[influence_types]]
+id = "control"
+label = "Control"
+color = "#8e44ad"
+style = "bold"
+arrowhead = "dot"
+penwidth = "2"
+
+# Normal flows
+[[influences]]
+id = "inf_1"
+from = "mobile_app"
+to = "cdn"
+type = "data"
+label = "API Request"
+
+[[influences]]
+id = "inf_2"
+from = "cdn"
+to = "lb"
+type = "data"
+label = "Cache Miss"
+
+[[influences]]
+id = "inf_3"
+from = "lb"
+to = "api_service"
+type = "data"
+label = "Routed Request"
+
+[[influences]]
+id = "inf_4"
+from = "api_service"
+to = "message_queue"
+type = "data"
+label = "Async Task"
+
+[[influences]]
+id = "inf_5"
+from = "message_queue"
+to = "worker"
+type = "data"
+label = "Job Dispatch"
+
+[[influences]]
+id = "inf_6"
+from = "pdp"
+to = "api_service"
+type = "control"
+label = "AuthZ Decision"
+
+[[influences]]
+id = "inf_7"
+from = "idp"
+to = "pdp"
+type = "resource"
+label = "Identity Claims"
+
+[[influences]]
+id = "inf_8"
+from = "idp"
+to = "lb"
+type = "control"
+label = "Token Validation"
+
+[[influences]]
+id = "inf_9"
+from = "vault"
+to = "api_service"
+type = "resource"
+label = "DB Credentials"
+
+[[influences]]
+id = "inf_10"
+from = "vault"
+to = "worker"
+type = "resource"
+label = "API Keys"
+
+[[influences]]
+id = "inf_11"
+from = "kms"
+to = "vault"
+type = "resource"
+label = "Master Key"
+
+[[influences]]
+id = "inf_12"
+from = "worker"
+to = "api_service"
+type = "feedback"
+label = "Job Result"
+
+# INVERSION: 3rd-party webhook directly hitting internal API (bypasses PDP)
+[[influences]]
+id = "inv_1"
+from = "third_party"
+to = "api_service"
+type = "data"
+label = "Webhook Bypass"

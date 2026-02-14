@@ -1,0 +1,230 @@
+#
+# Privilege Gradient Graph: Healthcare EHR System
+#
+# Models a healthcare electronic health records system with:
+# - Patient-facing, clinical, backend services, compliance, and HSM zones
+# - HIPAA-relevant trust boundaries and data flows
+# - 1 inversion: patient portal with direct access to audit logs
+#
+
+[gradient]
+name = "Healthcare EHR System"
+description = "HIPAA-compliant EHR privilege gradient with PHI protection boundaries"
+version = "1.0"
+type = "Privilege Gradient Graph"
+
+# Trust Zones
+[[zones]]
+id = "patient"
+label = "Patient-Facing"
+trust_level = 0
+color = "#ffcccc"
+border_color = "#cc0000"
+font_color = "#660000"
+
+[[zones]]
+id = "clinical"
+label = "Clinical Systems"
+trust_level = 1
+color = "#ffe0b2"
+border_color = "#e65100"
+font_color = "#663300"
+
+[[zones]]
+id = "backend"
+label = "Backend Services"
+trust_level = 2
+color = "#fff9c4"
+border_color = "#f9a825"
+font_color = "#665500"
+
+[[zones]]
+id = "compliance"
+label = "Compliance / Audit"
+trust_level = 3
+color = "#c8e6c9"
+border_color = "#2e7d32"
+font_color = "#1b5e20"
+
+[[zones]]
+id = "crypto"
+label = "Cryptographic Core"
+trust_level = 4
+color = "#bbdefb"
+border_color = "#1565c0"
+font_color = "#0d47a1"
+
+# Components
+[[components]]
+id = "patient_portal"
+label = "Patient Portal"
+zone = "patient"
+
+[[components]]
+id = "mobile_health"
+label = "mHealth App"
+zone = "patient"
+
+[[components]]
+id = "ehr_client"
+label = "EHR Workstation"
+zone = "clinical"
+
+[[components]]
+id = "lab_system"
+label = "Lab Information System"
+zone = "clinical"
+
+[[components]]
+id = "pharmacy"
+label = "Pharmacy System"
+zone = "clinical"
+
+[[components]]
+id = "fhir_api"
+label = "FHIR API Gateway"
+zone = "backend"
+
+[[components]]
+id = "phi_database"
+label = "PHI Database"
+zone = "backend"
+
+[[components]]
+id = "audit_logger"
+label = "HIPAA Audit Logger"
+zone = "compliance"
+
+[[components]]
+id = "consent_mgr"
+label = "Consent Manager"
+zone = "compliance"
+
+[[components]]
+id = "encryption_svc"
+label = "PHI Encryption Service"
+zone = "crypto"
+
+[[components]]
+id = "key_store"
+label = "Key Store"
+zone = "crypto"
+
+# Influence Types
+[[influence_types]]
+id = "data"
+label = "Data Flow"
+color = "#3498db"
+style = "solid"
+arrowhead = "vee"
+penwidth = "1.5"
+
+[[influence_types]]
+id = "feedback"
+label = "Feedback"
+color = "#e67e22"
+style = "dashed"
+arrowhead = "vee"
+penwidth = "1.5"
+
+[[influence_types]]
+id = "resource"
+label = "Resource"
+color = "#27ae60"
+style = "dotted"
+arrowhead = "diamond"
+penwidth = "2"
+
+[[influence_types]]
+id = "control"
+label = "Control"
+color = "#8e44ad"
+style = "bold"
+arrowhead = "dot"
+penwidth = "2"
+
+# Normal flows
+[[influences]]
+id = "inf_1"
+from = "patient_portal"
+to = "fhir_api"
+type = "data"
+label = "Patient Query"
+
+[[influences]]
+id = "inf_2"
+from = "mobile_health"
+to = "fhir_api"
+type = "data"
+label = "Health Data"
+
+[[influences]]
+id = "inf_3"
+from = "ehr_client"
+to = "fhir_api"
+type = "data"
+label = "Clinical Records"
+
+[[influences]]
+id = "inf_4"
+from = "lab_system"
+to = "fhir_api"
+type = "data"
+label = "Lab Results"
+
+[[influences]]
+id = "inf_5"
+from = "fhir_api"
+to = "phi_database"
+type = "data"
+label = "Store PHI"
+
+[[influences]]
+id = "inf_6"
+from = "fhir_api"
+to = "pharmacy"
+type = "data"
+label = "Prescriptions"
+
+[[influences]]
+id = "inf_7"
+from = "consent_mgr"
+to = "fhir_api"
+type = "control"
+label = "Access Policy"
+
+[[influences]]
+id = "inf_8"
+from = "audit_logger"
+to = "fhir_api"
+type = "control"
+label = "Logging Policy"
+
+[[influences]]
+id = "inf_9"
+from = "encryption_svc"
+to = "phi_database"
+type = "resource"
+label = "Encrypt/Decrypt"
+
+[[influences]]
+id = "inf_10"
+from = "key_store"
+to = "encryption_svc"
+type = "resource"
+label = "Encryption Keys"
+
+[[influences]]
+id = "inf_11"
+from = "fhir_api"
+to = "audit_logger"
+type = "data"
+label = "Access Events"
+
+# INVERSION: Patient portal directly reading audit logs (should go via FHIR API)
+[[influences]]
+id = "inv_1"
+from = "patient_portal"
+to = "audit_logger"
+type = "data"
+label = "Direct Audit Query"
