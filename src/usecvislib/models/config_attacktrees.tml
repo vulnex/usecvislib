@@ -100,5 +100,43 @@ root = {margin = 0.15, fontcolor = "black", shape = "rectangle", style = "", fon
 node = {margin = 0.12, fontcolor = "black", shape = "rectangle", style = "", fontname = "Helvetica", fontsize = "11", penwidth = "1", color = "black"}
 edge = {color = "black", style = "solid", penwidth = "1", arrowsize = "0.7"}
 
+# =============================================================================
+# Nordic Frost - Scandinavian-inspired warm-cool harmony (teal, sand, sienna)
+# =============================================================================
+[at_nordic]
+root = {margin = 0.15, fontcolor = "white", fillcolor = "#264653", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica", fontsize = "14"}
+node = {margin = 0.12, fontcolor = "white", fillcolor = "#2A9D8F", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica", fontsize = "11"}
+edge = {color = "#457B9D", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
 
+# =============================================================================
+# Midnight Amethyst - Rich purple gradient with vivid orange accent
+# =============================================================================
+[at_amethyst]
+root = {margin = 0.15, fontcolor = "white", fillcolor = "#3C096C", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica", fontsize = "14", penwidth = "1.5"}
+node = {margin = 0.12, fontcolor = "white", fillcolor = "#7B2CBF", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica", fontsize = "11"}
+edge = {color = "#9D4EDD", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
+
+# =============================================================================
+# Steel & Coral - Cool neutral grays with coral/red and gold accents
+# =============================================================================
+[at_steel]
+root = {margin = 0.15, fontcolor = "white", fillcolor = "#2B2D42", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica", fontsize = "14"}
+node = {margin = 0.12, fontcolor = "white", fillcolor = "#8D99AE", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica", fontsize = "11"}
+edge = {color = "#6C757D", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
+
+# =============================================================================
+# Glacier - Monochromatic blue depth with red threat accent
+# =============================================================================
+[at_glacier]
+root = {margin = 0.15, fontcolor = "white", fillcolor = "#03045E", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica", fontsize = "14"}
+node = {margin = 0.12, fontcolor = "white", fillcolor = "#0077B6", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica", fontsize = "11"}
+edge = {color = "#023E8A", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
+
+# =============================================================================
+# Moss & Clay - Earth tones with terracotta, sage, and forest hues
+# =============================================================================
+[at_terra]
+root = {margin = 0.15, fontcolor = "white", fillcolor = "#344E41", shape = "rectangle", style = "filled,rounded", fontname = "Georgia", fontsize = "14"}
+node = {margin = 0.12, fontcolor = "white", fillcolor = "#588157", shape = "rectangle", style = "filled,rounded", fontname = "Georgia", fontsize = "11"}
+edge = {color = "#A3B18A", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
 

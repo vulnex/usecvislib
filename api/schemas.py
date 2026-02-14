@@ -50,6 +50,11 @@ class AttackTreeStyle(str, Enum):
     HACKER = "at_hacker"
     MINIMAL = "at_minimal"
     PLAIN = "at_plain"
+    NORDIC = "at_nordic"
+    AMETHYST = "at_amethyst"
+    STEEL = "at_steel"
+    GLACIER = "at_glacier"
+    TERRA = "at_terra"
 
 
 class ThreatModelStyle(str, Enum):
@@ -236,6 +241,11 @@ class AttackGraphStyle(str, Enum):
     HACKER = "ag_hacker"
     BLUEPRINT = "ag_blueprint"
     PLAIN = "ag_plain"
+    NORDIC = "ag_nordic"
+    AMETHYST = "ag_amethyst"
+    STEEL = "ag_steel"
+    GLACIER = "ag_glacier"
+    TERRA = "ag_terra"
 
 
 class VisualizationMode(str, Enum):

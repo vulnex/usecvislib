@@ -142,3 +142,68 @@ service = {shape = "box", style = "rounded", fontcolor = "black", fontname = "He
 edge = {color = "black", fontname = "Helvetica", fontsize = "9", penwidth = "1"}
 network_edge = {color = "black", style = "dashed", fontname = "Helvetica", fontsize = "9", penwidth = "1"}
 exploit_edge = {color = "black", style = "bold", fontname = "Helvetica", fontsize = "9", penwidth = "1.5"}
+
+# =============================================================================
+# Nordic Frost - Scandinavian-inspired warm-cool harmony (teal, sand, sienna)
+# =============================================================================
+[ag_nordic]
+graph = {rankdir = "LR", bgcolor = "white", fontname = "Helvetica", splines = "ortho", nodesep = "0.5", ranksep = "0.8"}
+host = {shape = "box3d", style = "filled", fillcolor = "#264653", fontcolor = "white", fontname = "Helvetica", fontsize = "11", margin = "0.15"}
+vulnerability = {shape = "diamond", style = "filled", fillcolor = "#E76F51", fontcolor = "white", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#E9C46A", fontcolor = "#264653", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
+service = {shape = "component", style = "filled", fillcolor = "#2A9D8F", fontcolor = "white", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
+edge = {color = "#457B9D", fontname = "Helvetica", fontsize = "9"}
+network_edge = {color = "#A8DADC", style = "dashed", fontname = "Helvetica", fontsize = "9", penwidth = "1.5"}
+exploit_edge = {color = "#E76F51", style = "bold", fontname = "Helvetica", fontsize = "9", penwidth = "2"}
+
+# =============================================================================
+# Midnight Amethyst - Rich purple gradient with vivid orange accent
+# =============================================================================
+[ag_amethyst]
+graph = {rankdir = "LR", bgcolor = "#1A1025", fontname = "Helvetica", fontcolor = "#E0AAFF", splines = "ortho", nodesep = "0.5", ranksep = "0.8"}
+host = {shape = "box3d", style = "filled", fillcolor = "#240046", fontcolor = "#E0AAFF", fontname = "Helvetica", fontsize = "11", penwidth = "2", color = "#7B2CBF"}
+vulnerability = {shape = "diamond", style = "filled", fillcolor = "#FF6D00", fontcolor = "white", fontname = "Helvetica", fontsize = "10", penwidth = "2", color = "#FF8500"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#E0AAFF", fontcolor = "#240046", fontname = "Helvetica", fontsize = "10", penwidth = "2", color = "#C77DFF"}
+service = {shape = "component", style = "filled", fillcolor = "#5A189A", fontcolor = "white", fontname = "Helvetica", fontsize = "10", penwidth = "2", color = "#7B2CBF"}
+edge = {color = "#7B2CBF", fontname = "Helvetica", fontsize = "9", fontcolor = "#C77DFF"}
+network_edge = {color = "#C77DFF", style = "dashed", fontname = "Helvetica", fontsize = "9", penwidth = "1.5", fontcolor = "#C77DFF"}
+exploit_edge = {color = "#FF6D00", style = "bold", fontname = "Helvetica", fontsize = "9", penwidth = "2.5", fontcolor = "#FF6D00"}
+
+# =============================================================================
+# Steel & Coral - Cool neutral grays with coral/red and gold accents
+# =============================================================================
+[ag_steel]
+graph = {rankdir = "LR", bgcolor = "white", fontname = "Helvetica", splines = "ortho", nodesep = "0.5", ranksep = "0.8"}
+host = {shape = "box3d", style = "filled", fillcolor = "#2B2D42", fontcolor = "white", fontname = "Helvetica", fontsize = "11", margin = "0.15"}
+vulnerability = {shape = "diamond", style = "filled", fillcolor = "#EF233C", fontcolor = "white", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#FCBF49", fontcolor = "#2B2D42", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
+service = {shape = "component", style = "filled", fillcolor = "#8D99AE", fontcolor = "white", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
+edge = {color = "#6C757D", fontname = "Helvetica", fontsize = "9"}
+network_edge = {color = "#ADB5BD", style = "dashed", fontname = "Helvetica", fontsize = "9", penwidth = "1.5"}
+exploit_edge = {color = "#EF233C", style = "bold", fontname = "Helvetica", fontsize = "9", penwidth = "2"}
+
+# =============================================================================
+# Glacier - Monochromatic blue depth with red threat accent
+# =============================================================================
+[ag_glacier]
+graph = {rankdir = "LR", bgcolor = "white", fontname = "Helvetica", splines = "ortho", nodesep = "0.5", ranksep = "0.8"}
+host = {shape = "box3d", style = "filled", fillcolor = "#03045E", fontcolor = "white", fontname = "Helvetica", fontsize = "11", margin = "0.15"}
+vulnerability = {shape = "diamond", style = "filled", fillcolor = "#D62828", fontcolor = "white", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#90E0EF", fontcolor = "#03045E", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
+service = {shape = "component", style = "filled", fillcolor = "#0077B6", fontcolor = "white", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
+edge = {color = "#023E8A", fontname = "Helvetica", fontsize = "9"}
+network_edge = {color = "#48CAE4", style = "dashed", fontname = "Helvetica", fontsize = "9", penwidth = "1.5"}
+exploit_edge = {color = "#D62828", style = "bold", fontname = "Helvetica", fontsize = "9", penwidth = "2"}
+
+# =============================================================================
+# Moss & Clay - Earth tones with terracotta, sage, and forest hues
+# =============================================================================
+[ag_terra]
+graph = {rankdir = "LR", bgcolor = "white", fontname = "Georgia", splines = "ortho", nodesep = "0.5", ranksep = "0.8"}
+host = {shape = "box3d", style = "filled", fillcolor = "#344E41", fontcolor = "white", fontname = "Georgia", fontsize = "11", margin = "0.15"}
+vulnerability = {shape = "diamond", style = "filled", fillcolor = "#BC4749", fontcolor = "white", fontname = "Georgia", fontsize = "10", margin = "0.1"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#DDB892", fontcolor = "#344E41", fontname = "Georgia", fontsize = "10", margin = "0.1"}
+service = {shape = "component", style = "filled", fillcolor = "#588157", fontcolor = "white", fontname = "Georgia", fontsize = "10", margin = "0.1"}
+edge = {color = "#A3B18A", fontname = "Georgia", fontsize = "9"}
+network_edge = {color = "#DAD7CD", style = "dashed", fontname = "Georgia", fontsize = "9", penwidth = "1.5"}
+exploit_edge = {color = "#BC4749", style = "bold", fontname = "Georgia", fontsize = "9", penwidth = "2"}
