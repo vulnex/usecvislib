@@ -50,7 +50,7 @@ pip install -r requirements.txt
 
 ```python
 import usecvislib
-print(usecvislib.__version__)  # 0.3.3
+print(usecvislib.__version__)  # 0.3.4
 ```
 
 ---
@@ -2198,7 +2198,7 @@ print(metadata)
 #     name="Corporate Network Attack",
 #     description="Attack paths through corporate infrastructure",
 #     version="1.0.0",
-#     engineversion="0.3.3",
+#     engineversion="0.3.4",
 #     type="Attack Graph",
 #     date="2025-12-25",
 #     last_modified="2025-12-27",
@@ -3466,4 +3466,4 @@ generate_security_report("threat_model.toml", "./reports")
 
 ---
 
-**USecVisLib** v0.3.3 - Universal Security Visualization Library
+**USecVisLib** v0.3.4 - Universal Security Visualization Library

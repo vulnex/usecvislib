@@ -1,6 +1,6 @@
 # USecVisLib Web UI Guide
 
-**Version:** 0.3.3
+**Version:** 0.3.4
 
 This guide covers the web-based user interface for USecVisLib.
 

@@ -1625,4 +1625,4 @@ See [UI Guide](UI_GUIDE.md#api-authentication) for configuring authentication in
 
 ---
 
-**USecVisLib** v0.3.3 - Universal Security Visualization Library
+**USecVisLib** v0.3.4 - Universal Security Visualization Library
