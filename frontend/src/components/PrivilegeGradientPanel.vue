@@ -152,7 +152,9 @@
           <div class="zone-bars">
             <div v-for="(count, zone) in stats.components_per_zone" :key="zone" class="zone-bar-item">
               <span class="zone-label">{{ zone }}</span>
-              <div class="zone-bar" :style="{ width: (count / maxZoneCount * 100) + '%' }"></div>
+              <div class="zone-bar-track">
+                <div class="zone-bar" :style="{ width: (count / maxZoneCount * 100) + '%' }"></div>
+              </div>
               <span class="zone-count">{{ count }}</span>
             </div>
           </div>
@@ -654,6 +656,10 @@ function saveTemplate() {
   font-weight: 500;
   color: var(--text-primary);
   text-align: right;
+}
+
+.zone-bar-track {
+  flex: 1;
 }
 
 .zone-bar {
