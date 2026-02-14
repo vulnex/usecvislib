@@ -18,7 +18,38 @@
     </div>
 
     <div class="panel-body">
-      <div class="doc-section">
+      <nav class="doc-toc">
+        <h4>Contents</h4>
+        <div class="toc-grid">
+          <div class="toc-group">
+            <span class="toc-group-label">Visualizations</span>
+            <a @click.prevent="scrollTo('getting-started')">Getting Started</a>
+            <a @click.prevent="scrollTo('attack-trees')">Attack Trees</a>
+            <a @click.prevent="scrollTo('attack-graphs')">Attack Graphs</a>
+            <a @click.prevent="scrollTo('threat-modeling')">Threat Modeling</a>
+            <a @click.prevent="scrollTo('custom-diagrams')">Custom Diagrams</a>
+            <a @click.prevent="scrollTo('mermaid-diagrams')">Mermaid Diagrams</a>
+            <a @click.prevent="scrollTo('cloud-diagrams')">Cloud Diagrams</a>
+            <a @click.prevent="scrollTo('privilege-gradient')">Privilege Gradient</a>
+            <a @click.prevent="scrollTo('binary-visualization')">Binary Analysis</a>
+          </div>
+          <div class="toc-group">
+            <span class="toc-group-label">Tools</span>
+            <a @click.prevent="scrollTo('cvss-calculator')">CVSS Calculator</a>
+            <a @click.prevent="scrollTo('format-conversion')">Format Conversion</a>
+            <a @click.prevent="scrollTo('batch-processing')">Batch Processing</a>
+            <a @click.prevent="scrollTo('export-data')">Export Data</a>
+            <a @click.prevent="scrollTo('compare-configurations')">Compare Configs</a>
+          </div>
+          <div class="toc-group">
+            <span class="toc-group-label">Reference</span>
+            <a @click.prevent="scrollTo('api-reference')">API Reference</a>
+            <a @click.prevent="scrollTo('settings')">Settings</a>
+          </div>
+        </div>
+      </nav>
+
+      <div id="getting-started" class="doc-section">
         <h3>Getting Started</h3>
         <p>USecVisLib is a Universal Security Visualization Library that provides eight main visualization modules:</p>
         <ul>
@@ -56,7 +87,7 @@
         </ul>
       </div>
 
-      <div class="doc-section">
+      <div id="attack-trees" class="doc-section">
         <h3>Attack Trees</h3>
         <p>Attack trees represent the hierarchical breakdown of an attack goal into sub-goals and attack steps.</p>
 
@@ -94,7 +125,7 @@ type = "LEAF"</code></pre>
         </ul>
       </div>
 
-      <div class="doc-section">
+      <div id="attack-graphs" class="doc-section">
         <h3>Attack Graphs</h3>
         <p>Attack graphs model all possible attack paths through a network, including hosts, vulnerabilities, privileges, and exploits.</p>
 
@@ -194,7 +225,7 @@ label = "Internet Access"</code></pre>
         </ol>
       </div>
 
-      <div class="doc-section">
+      <div id="threat-modeling" class="doc-section">
         <h3>Threat Modeling</h3>
         <p>Create Data Flow Diagrams (DFDs) and perform STRIDE threat analysis. Two engines are available for visualization.</p>
 
@@ -329,7 +360,7 @@ elements = ["api_server", "user_db"]</code></pre>
         </ul>
       </div>
 
-      <div class="doc-section">
+      <div id="binary-visualization" class="doc-section">
         <h3>Binary Visualization</h3>
         <p>Analyze binary files to identify patterns, compression, encryption, and anomalies.</p>
 
@@ -362,7 +393,7 @@ elements = ["api_server", "user_db"]</code></pre>
         </table>
       </div>
 
-      <div class="doc-section">
+      <div id="custom-diagrams" class="doc-section">
         <h3>Custom Diagrams</h3>
         <p>Create user-defined diagrams with custom node and edge types. Define your own schema for creating flowcharts, network diagrams, org charts, and more.</p>
 
@@ -453,7 +484,7 @@ type = "flow"</code></pre>
         <p>Click "Shape Gallery" in the Custom Diagrams panel to browse and copy shape IDs.</p>
       </div>
 
-      <div class="doc-section">
+      <div id="mermaid-diagrams" class="doc-section">
         <h3>Mermaid Diagrams</h3>
         <p>Render Mermaid syntax diagrams to images. Supports all Mermaid diagram types including flowcharts, sequence diagrams, class diagrams, state diagrams, ER diagrams, Gantt charts, pie charts, mindmaps, and timelines.</p>
 
@@ -487,7 +518,7 @@ type = "flow"</code></pre>
         </ul>
       </div>
 
-      <div class="doc-section">
+      <div id="cloud-diagrams" class="doc-section">
         <h3>Cloud Diagrams</h3>
         <p>Create cloud architecture diagrams using the <code>diagrams</code> library. Supports AWS, Azure, GCP, Kubernetes, and generic cloud provider icons.</p>
 
@@ -555,7 +586,7 @@ label = "SQL"</code></pre>
         </table>
       </div>
 
-      <div class="doc-section">
+      <div id="privilege-gradient" class="doc-section">
         <h3>Privilege Gradient</h3>
         <p>Visualize trust zone architectures and automatically detect privilege gradient inversions -- where lower-trust components have influence over higher-trust components. Based on concepts from CISA TIC 3.0, IEC 62443, and NIST Zero Trust frameworks.</p>
 
@@ -720,7 +751,7 @@ label = "Auth Decisions"</code></pre>
         </table>
       </div>
 
-      <div class="doc-section">
+      <div id="cvss-calculator" class="doc-section">
         <h3>CVSS Calculator</h3>
         <p>Calculate CVSS (Common Vulnerability Scoring System) 3.x scores from vector strings. Access from the Tools dropdown menu.</p>
 
@@ -826,7 +857,7 @@ label = "Auth Decisions"</code></pre>
         </ul>
       </div>
 
-      <div class="doc-section">
+      <div id="format-conversion" class="doc-section">
         <h3>Format Conversion</h3>
         <p>Convert configuration files between TOML, JSON, and YAML formats using the Format Converter tool.</p>
 
@@ -847,7 +878,7 @@ label = "Auth Decisions"</code></pre>
         </ul>
       </div>
 
-      <div class="doc-section">
+      <div id="batch-processing" class="doc-section">
         <h3>Batch Processing</h3>
         <p>Process multiple configuration files at once using the Batch tab. Generate visualizations for many files in a single operation.</p>
 
@@ -901,7 +932,7 @@ label = "Auth Decisions"</code></pre>
         </table>
       </div>
 
-      <div class="doc-section">
+      <div id="export-data" class="doc-section">
         <h3>Export Data</h3>
         <p>Export configuration data to various formats using the Export tab. Useful for reporting, analysis, or integration with other tools.</p>
 
@@ -954,7 +985,7 @@ label = "Auth Decisions"</code></pre>
         </ul>
       </div>
 
-      <div class="doc-section">
+      <div id="compare-configurations" class="doc-section">
         <h3>Compare Configurations</h3>
         <p>Compare two configuration files to identify changes between versions using the Compare tab. Useful for change tracking and security reviews.</p>
 
@@ -1011,7 +1042,7 @@ label = "Auth Decisions"</code></pre>
         </ul>
       </div>
 
-      <div class="doc-section">
+      <div id="api-reference" class="doc-section">
         <h3>API Reference</h3>
         <p>USecVisLib provides a REST API for programmatic access.</p>
 
@@ -1345,7 +1376,7 @@ label = "Auth Decisions"</code></pre>
         </p>
       </div>
 
-      <div class="doc-section">
+      <div id="settings" class="doc-section">
         <h3>Settings</h3>
         <p>Access application settings via the gear icon in the header bar.</p>
 
@@ -1421,12 +1452,67 @@ label = "Auth Decisions"</code></pre>
 </template>
 
 <script setup>
+function scrollTo(id) {
+  const el = document.getElementById(id)
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+}
 </script>
 
 <style scoped>
 .documentation-panel {
   max-width: 900px;
   margin: 0 auto;
+}
+
+.doc-toc {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.doc-toc h4 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: var(--primary-color);
+}
+
+.toc-grid {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.toc-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 150px;
+}
+
+.toc-group-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.2rem;
+}
+
+.toc-group a {
+  color: var(--text-color);
+  text-decoration: none;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.15rem 0;
+  transition: color 0.15s;
+}
+
+.toc-group a:hover {
+  color: var(--primary-color);
 }
 
 .doc-section {
