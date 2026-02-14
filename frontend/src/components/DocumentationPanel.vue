@@ -1370,7 +1370,7 @@ label = "Auth Decisions"</code></pre>
         </table>
 
         <p>
-          <a href="http://localhost:8000/docs" target="_blank" class="btn btn-secondary">
+          <a href="http://localhost:8003/docs" target="_blank" class="btn btn-secondary">
             View Full API Documentation
           </a>
         </p>
