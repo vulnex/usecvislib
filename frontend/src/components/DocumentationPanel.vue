@@ -30,6 +30,7 @@
             <a @click.prevent="scrollTo('custom-diagrams')">Custom Diagrams</a>
             <a @click.prevent="scrollTo('mermaid-diagrams')">Mermaid Diagrams</a>
             <a @click.prevent="scrollTo('cloud-diagrams')">Cloud Diagrams</a>
+            <a @click.prevent="scrollTo('architecture-diagrams')">Architecture</a>
             <a @click.prevent="scrollTo('privilege-gradient')">Privilege Gradient</a>
             <a @click.prevent="scrollTo('binary-visualization')">Binary Analysis</a>
           </div>
@@ -51,7 +52,7 @@
 
       <div id="getting-started" class="doc-section">
         <h3>Getting Started</h3>
-        <p>USecVisLib is a Universal Security Visualization Library that provides eight main visualization modules:</p>
+        <p>USecVisLib is a Universal Security Visualization Library that provides nine main visualization modules:</p>
         <ul>
           <li><strong>Attack Trees</strong> - Visualize attack paths and threat scenarios</li>
           <li><strong>Attack Graphs</strong> - Model network attack paths with vulnerability and privilege analysis</li>
@@ -59,6 +60,7 @@
           <li><strong>Custom Diagrams</strong> - Create user-defined diagrams with custom node and edge schemas</li>
           <li><strong>Mermaid Diagrams</strong> - Render Mermaid syntax diagrams (flowcharts, sequence, class, state, ER, etc.)</li>
           <li><strong>Cloud Diagrams</strong> - Cloud architecture visualization for AWS, Azure, GCP, and Kubernetes</li>
+          <li><strong>Architecture</strong> - Component diagrams and dependency graphs for software architecture documentation</li>
           <li><strong>Privilege Gradient</strong> - Trust zone visualization with automatic privilege inversion detection</li>
           <li><strong>Binary Analysis</strong> - Analyze binary files with entropy and pattern visualizations</li>
         </ul>
@@ -586,6 +588,219 @@ label = "SQL"</code></pre>
         </table>
       </div>
 
+      <div id="architecture-diagrams" class="doc-section">
+        <h3>Architecture Diagrams</h3>
+        <p>Create software architecture visualizations with two diagram types: Component Diagrams for layered architecture views and Dependency Graphs for module relationship analysis.</p>
+
+        <h4>Component Diagram</h4>
+        <p>Visualize layered software architecture with components organized into tiers (Client, API, Application, Data, etc.) connected by typed connections.</p>
+
+        <h4>TOML Format (Component Diagram)</h4>
+        <pre class="code-block"><code>title = "Web Application Architecture"
+
+[[layers]]
+name = "Client Tier"
+order = 1
+
+  [[layers.components]]
+  id = "browser"
+  name = "Web Browser"
+  type = "frontend"
+  tech = "React SPA"
+
+[[layers]]
+name = "API Tier"
+order = 2
+
+  [[layers.components]]
+  id = "gateway"
+  name = "API Gateway"
+  type = "service"
+  tech = "Nginx + Lua"
+
+[[connections]]
+from = "browser"
+to = "gateway"
+label = "HTTPS"
+style = "sync"</code></pre>
+
+        <h4>Component Types</h4>
+        <table class="info-table">
+          <tr>
+            <th>Type</th>
+            <th>Shape</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>frontend</code></td>
+            <td>Rounded box</td>
+            <td>Client-side applications (web, mobile)</td>
+          </tr>
+          <tr>
+            <td><code>service</code></td>
+            <td>Rounded box</td>
+            <td>Backend services and APIs</td>
+          </tr>
+          <tr>
+            <td><code>database</code></td>
+            <td>Cylinder</td>
+            <td>Databases (PostgreSQL, MongoDB, etc.)</td>
+          </tr>
+          <tr>
+            <td><code>cache</code></td>
+            <td>Rounded box</td>
+            <td>Caching layers (Redis, Memcached)</td>
+          </tr>
+          <tr>
+            <td><code>storage</code></td>
+            <td>Folder</td>
+            <td>File/object storage (S3, MinIO)</td>
+          </tr>
+          <tr>
+            <td><code>queue</code></td>
+            <td>Rounded box</td>
+            <td>Message queues (Kafka, RabbitMQ)</td>
+          </tr>
+          <tr>
+            <td><code>external_service</code></td>
+            <td>Dashed ellipse</td>
+            <td>Third-party services (Stripe, SendGrid)</td>
+          </tr>
+          <tr>
+            <td><code>cli</code></td>
+            <td>Rounded box</td>
+            <td>Command-line tools</td>
+          </tr>
+        </table>
+
+        <h4>Connection Styles</h4>
+        <table class="info-table">
+          <tr>
+            <th>Style</th>
+            <th>Appearance</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>sync</code></td>
+            <td>Solid arrow</td>
+            <td>Synchronous request/response</td>
+          </tr>
+          <tr>
+            <td><code>async</code></td>
+            <td>Dashed arrow (open head)</td>
+            <td>Asynchronous messaging</td>
+          </tr>
+          <tr>
+            <td><code>bidirectional</code></td>
+            <td>Solid, both arrows</td>
+            <td>Two-way communication</td>
+          </tr>
+          <tr>
+            <td><code>event</code></td>
+            <td>Dotted arrow</td>
+            <td>Event-driven messaging</td>
+          </tr>
+        </table>
+
+        <h4>Dependency Graph</h4>
+        <p>Visualize module dependencies with SLOC-based sizing, group coloring, and circular dependency detection. Uses force-directed layout for organic graph arrangement.</p>
+
+        <h4>TOML Format (Dependency Graph)</h4>
+        <pre class="code-block"><code>title = "Module Dependencies"
+
+[[modules]]
+id = "app_main"
+name = "app.main"
+group = "core"
+sloc = 350
+
+[[modules]]
+id = "routes_users"
+name = "routes.users"
+group = "api"
+sloc = 280
+
+[[modules]]
+id = "fastapi"
+name = "fastapi"
+type = "external"
+sloc = 0
+
+[[dependencies]]
+from = "app_main"
+to = "routes_users"
+type = "import"
+weight = "heavy"
+
+[[dependencies]]
+from = "routes_users"
+to = "fastapi"
+type = "framework"
+weight = "medium"
+
+# Circular dependency declarations
+[[circular]]
+cycle = ["config", "logging"]
+severity = "low"</code></pre>
+
+        <h4>Dependency Types</h4>
+        <ul>
+          <li><strong>import</strong> - Direct module import (solid edge)</li>
+          <li><strong>framework</strong> - Framework/library dependency (dotted edge)</li>
+          <li><strong>runtime</strong> - Runtime-only dependency (dashed edge)</li>
+        </ul>
+
+        <h4>Edge Weights</h4>
+        <ul>
+          <li><strong>light</strong> - Thin edge (1px) for weak coupling</li>
+          <li><strong>medium</strong> - Normal edge (2px) for moderate coupling</li>
+          <li><strong>heavy</strong> - Thick edge (3px) for strong coupling</li>
+        </ul>
+
+        <h4>Module Groups</h4>
+        <p>Modules are clustered by group and color-coded:</p>
+        <ul>
+          <li><strong>core</strong> - Blue, central application modules</li>
+          <li><strong>features</strong> - Green, feature modules</li>
+          <li><strong>api</strong> - Orange, API/route modules</li>
+          <li><strong>infrastructure</strong> - Purple, infrastructure modules</li>
+          <li><strong>tests</strong> - Teal, test modules</li>
+          <li><strong>utils</strong> - Yellow, utility modules</li>
+        </ul>
+        <p>External modules (type = "external") are rendered with dashed gray outlines.</p>
+
+        <h4>Panel Actions</h4>
+        <ul>
+          <li><strong>Generate Visualization</strong> - Render the selected diagram type (component diagram or dependency graph)</li>
+          <li><strong>Analyze Structure</strong> - Get stats: layers, components, connections (component diagram) or modules, dependencies, circulars, groups (dependency graph)</li>
+          <li><strong>Validate Config</strong> - Check for structural errors (invalid refs, missing sections, undefined types)</li>
+        </ul>
+
+        <h4>Style Presets</h4>
+        <table class="info-table">
+          <tr>
+            <th>Component Diagram</th>
+            <th>Dependency Graph</th>
+          </tr>
+          <tr>
+            <td><strong>cd_default</strong> - Clean professional look</td>
+            <td><strong>dg_default</strong> - Clean professional look</td>
+          </tr>
+          <tr>
+            <td><strong>cd_blueprint</strong> - Technical blueprint style</td>
+            <td><strong>dg_dark</strong> - Dark theme</td>
+          </tr>
+          <tr>
+            <td><strong>cd_minimal</strong> - Minimalist grayscale</td>
+            <td><strong>dg_minimal</strong> - Minimalist grayscale</td>
+          </tr>
+          <tr>
+            <td><strong>cd_dark</strong> - Dark theme</td>
+            <td><strong>dg_coupling</strong> - Coupling-focused visualization</td>
+          </tr>
+        </table>
+      </div>
+
       <div id="privilege-gradient" class="doc-section">
         <h3>Privilege Gradient</h3>
         <p>Visualize trust zone architectures and automatically detect privilege gradient inversions -- where lower-trust components have influence over higher-trust components. Based on concepts from CISA TIC 3.0, IEC 62443, and NIST Zero Trust frameworks.</p>
@@ -1088,6 +1303,16 @@ label = "Auth Decisions"</code></pre>
             <td>POST</td>
             <td>Generate privilege gradient visualization</td>
           </tr>
+          <tr>
+            <td><code>/visualize/component-diagram</code></td>
+            <td>POST</td>
+            <td>Generate component diagram visualization</td>
+          </tr>
+          <tr>
+            <td><code>/visualize/dependency-graph</code></td>
+            <td>POST</td>
+            <td>Generate dependency graph visualization</td>
+          </tr>
         </table>
 
         <h4>Analysis Endpoints</h4>
@@ -1131,6 +1356,16 @@ label = "Auth Decisions"</code></pre>
             <td><code>/analyze/privilege-gradient</code></td>
             <td>POST</td>
             <td>Get privilege gradient structure statistics</td>
+          </tr>
+          <tr>
+            <td><code>/analyze/component-diagram</code></td>
+            <td>POST</td>
+            <td>Get component diagram statistics</td>
+          </tr>
+          <tr>
+            <td><code>/analyze/dependency-graph</code></td>
+            <td>POST</td>
+            <td>Get dependency graph statistics</td>
           </tr>
           <tr>
             <td><code>/analyze/inversions</code></td>
@@ -1533,6 +1768,16 @@ label = "Auth Decisions"</code></pre>
             <td>POST</td>
             <td>Validate privilege gradient config structure</td>
           </tr>
+          <tr>
+            <td><code>/validate/component-diagram</code></td>
+            <td>POST</td>
+            <td>Validate component diagram config structure</td>
+          </tr>
+          <tr>
+            <td><code>/validate/dependency-graph</code></td>
+            <td>POST</td>
+            <td>Validate dependency graph config structure</td>
+          </tr>
         </table>
 
         <h4>Job/Progress Endpoints</h4>
@@ -1616,6 +1861,7 @@ label = "Auth Decisions"</code></pre>
           <li>Custom Diagrams</li>
           <li>Mermaid Diagrams</li>
           <li>Cloud Diagrams</li>
+          <li>Architecture (Component Diagrams + Dependency Graphs)</li>
           <li>Privilege Gradient</li>
           <li>Binary Visualization</li>
         </ul>
