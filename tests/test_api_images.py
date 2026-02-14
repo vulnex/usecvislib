@@ -298,7 +298,7 @@ class TestImageReferenceResolution:
 
     def test_resolve_image_references_attack_tree(self):
         """Test resolving image references in attack tree config."""
-        from api.main import resolve_image_references
+        from api.helpers import resolve_image_references
 
         # Mock config with image_id
         config = {
@@ -319,7 +319,7 @@ class TestImageReferenceResolution:
 
     def test_resolve_image_references_attack_graph(self):
         """Test resolving image references in attack graph config."""
-        from api.main import resolve_image_references
+        from api.helpers import resolve_image_references
 
         config = {
             "hosts": [
@@ -334,7 +334,7 @@ class TestImageReferenceResolution:
 
     def test_resolve_image_references_custom_diagram(self):
         """Test resolving image references in custom diagram config."""
-        from api.main import resolve_image_references
+        from api.helpers import resolve_image_references
 
         config = {
             "nodes": [
@@ -356,32 +356,32 @@ class TestImageHelpers:
 
     def test_is_valid_image_png(self, sample_png_content):
         """Test PNG validation."""
-        from api.main import is_valid_image
+        from api.helpers import is_valid_image
         assert is_valid_image(sample_png_content, "image/png") is True
 
     def test_is_valid_image_jpeg(self, sample_jpeg_content):
         """Test JPEG validation."""
-        from api.main import is_valid_image
+        from api.helpers import is_valid_image
         assert is_valid_image(sample_jpeg_content, "image/jpeg") is True
 
     def test_is_valid_image_gif(self, sample_gif_content):
         """Test GIF validation."""
-        from api.main import is_valid_image
+        from api.helpers import is_valid_image
         assert is_valid_image(sample_gif_content, "image/gif") is True
 
     def test_is_valid_image_svg(self, sample_svg_content):
         """Test SVG validation."""
-        from api.main import is_valid_image
+        from api.helpers import is_valid_image
         assert is_valid_image(sample_svg_content, "image/svg+xml") is True
 
     def test_is_valid_image_invalid(self):
         """Test invalid image content."""
-        from api.main import is_valid_image
+        from api.helpers import is_valid_image
         assert is_valid_image(b"not an image", "image/png") is False
 
     def test_get_image_content_type(self):
         """Test content type detection from filepath."""
-        from api.main import get_image_content_type
+        from api.helpers import get_image_content_type
 
         assert get_image_content_type("/path/to/image.png") == "image/png"
         assert get_image_content_type("/path/to/image.jpg") == "image/jpeg"
