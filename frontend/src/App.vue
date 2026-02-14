@@ -143,7 +143,7 @@ const primaryTabs = [
   { id: 'custom-diagram', name: 'Custom Diagrams', icon: '🎨' },
   { id: 'mermaid', name: 'Mermaid', icon: '🧜' },
   { id: 'cloud', name: 'Cloud', icon: '☁️' },
-  { id: 'privilege-gradient', name: 'Privilege Gradient', icon: '🛡️' },
+  { id: 'privilege-gradient', name: 'Privilege Gradient', icon: '🪜' },
   { id: 'binary', name: 'Binary Analysis', icon: '📊' }
 ]
 
