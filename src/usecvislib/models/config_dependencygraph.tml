@@ -1,0 +1,214 @@
+#
+# Config Dependency Graph Styles
+#
+
+# =============================================================================
+# Default - White background, colored nodes by group, gray edges
+# =============================================================================
+[dg_default]
+[dg_default.graph]
+bgcolor = "white"
+fontname = "Arial"
+splines = "true"
+overlap = "false"
+sep = "+15"
+pad = "0.5"
+
+[dg_default.module]
+shape = "box"
+style = "filled,rounded"
+fontname = "Arial"
+fontsize = "11"
+penwidth = "1.5"
+margin = "0.15,0.08"
+
+[dg_default.external_module]
+shape = "box"
+style = "dashed"
+fontname = "Arial"
+fontsize = "10"
+penwidth = "1"
+margin = "0.15,0.08"
+fillcolor = "#f8f8f8"
+fontcolor = "#666666"
+color = "#999999"
+
+[dg_default.dependency]
+color = "#888888"
+fontname = "Arial"
+fontsize = "9"
+fontcolor = "#888888"
+
+[dg_default.circular]
+color = "#cc0000"
+style = "bold"
+penwidth = "2.5"
+fontcolor = "#cc0000"
+
+[dg_default.group]
+style = "filled,rounded"
+fillcolor = "#f9f9f9"
+color = "#dddddd"
+fontname = "Arial Bold"
+fontsize = "12"
+fontcolor = "#555555"
+penwidth = "1"
+
+# =============================================================================
+# Dark - Dark background, high-contrast nodes
+# =============================================================================
+[dg_dark]
+[dg_dark.graph]
+bgcolor = "#1a1a2e"
+fontname = "Arial"
+splines = "true"
+overlap = "false"
+sep = "+15"
+pad = "0.5"
+fontcolor = "#e0e0e0"
+
+[dg_dark.module]
+shape = "box"
+style = "filled,rounded"
+fontname = "Arial"
+fontsize = "11"
+penwidth = "1.5"
+margin = "0.15,0.08"
+
+[dg_dark.external_module]
+shape = "box"
+style = "dashed,filled"
+fontname = "Arial"
+fontsize = "10"
+penwidth = "1"
+margin = "0.15,0.08"
+fillcolor = "#2a2a3e"
+fontcolor = "#999999"
+color = "#555555"
+
+[dg_dark.dependency]
+color = "#556677"
+fontname = "Arial"
+fontsize = "9"
+fontcolor = "#778899"
+
+[dg_dark.circular]
+color = "#ff4444"
+style = "bold"
+penwidth = "2.5"
+fontcolor = "#ff4444"
+
+[dg_dark.group]
+style = "filled,rounded"
+fillcolor = "#16213e"
+color = "#334466"
+fontname = "Arial Bold"
+fontsize = "12"
+fontcolor = "#8899aa"
+penwidth = "1"
+
+# =============================================================================
+# Minimal - Monochrome nodes, black edges, no fills
+# =============================================================================
+[dg_minimal]
+[dg_minimal.graph]
+bgcolor = "white"
+fontname = "Helvetica"
+splines = "true"
+overlap = "false"
+sep = "+15"
+pad = "0.5"
+
+[dg_minimal.module]
+shape = "box"
+style = "rounded"
+fontname = "Helvetica"
+fontsize = "11"
+penwidth = "1"
+margin = "0.15,0.08"
+fontcolor = "#333333"
+color = "#666666"
+
+[dg_minimal.external_module]
+shape = "box"
+style = "dashed"
+fontname = "Helvetica"
+fontsize = "10"
+penwidth = "1"
+margin = "0.15,0.08"
+fillcolor = "white"
+fontcolor = "#999999"
+color = "#bbbbbb"
+
+[dg_minimal.dependency]
+color = "#999999"
+fontname = "Helvetica"
+fontsize = "9"
+fontcolor = "#999999"
+
+[dg_minimal.circular]
+color = "#cc0000"
+style = "bold"
+penwidth = "2"
+fontcolor = "#cc0000"
+
+[dg_minimal.group]
+style = "rounded"
+fillcolor = "white"
+color = "#e0e0e0"
+fontname = "Helvetica"
+fontsize = "12"
+fontcolor = "#777777"
+penwidth = "1"
+
+# =============================================================================
+# Coupling - Heat-map coloring: high-connection nodes are warmer
+# =============================================================================
+[dg_coupling]
+[dg_coupling.graph]
+bgcolor = "white"
+fontname = "Arial"
+splines = "true"
+overlap = "false"
+sep = "+15"
+pad = "0.5"
+
+[dg_coupling.module]
+shape = "box"
+style = "filled,rounded"
+fontname = "Arial"
+fontsize = "11"
+penwidth = "1.5"
+margin = "0.15,0.08"
+
+[dg_coupling.external_module]
+shape = "box"
+style = "dashed"
+fontname = "Arial"
+fontsize = "10"
+penwidth = "1"
+margin = "0.15,0.08"
+fillcolor = "#f0f0f0"
+fontcolor = "#888888"
+color = "#bbbbbb"
+
+[dg_coupling.dependency]
+color = "#666666"
+fontname = "Arial"
+fontsize = "9"
+fontcolor = "#666666"
+
+[dg_coupling.circular]
+color = "#cc0000"
+style = "bold"
+penwidth = "3"
+fontcolor = "#cc0000"
+
+[dg_coupling.group]
+style = "filled,rounded"
+fillcolor = "#fafafa"
+color = "#e0e0e0"
+fontname = "Arial Bold"
+fontsize = "12"
+fontcolor = "#555555"
+penwidth = "1"

@@ -846,6 +846,156 @@ export async function validatePrivilegeGradientFromContent(content, configFormat
 }
 
 // =============================================================================
+// Architecture Diagram Functions (Component Diagram + Dependency Graph)
+// =============================================================================
+
+/**
+ * Generate component diagram visualization
+ * @param {File} file - Component diagram configuration file
+ * @param {string} format - Output format (png, svg, pdf)
+ * @param {string} style - Style preset
+ */
+export async function visualizeComponentDiagram(file, format = 'png', style = 'cd_default') {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post(
+    `/visualize/component-diagram?format=${format}&style=${style}`,
+    formData,
+    {
+      responseType: 'blob',
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }
+  )
+  return response.data
+}
+
+/**
+ * Generate component diagram visualization from text content
+ */
+export async function visualizeComponentDiagramFromContent(content, outputFormat = 'png', style = 'cd_default', configFormat = 'toml') {
+  const file = createFileFromContent(content, 'component_diagram', configFormat)
+  return visualizeComponentDiagram(file, outputFormat, style)
+}
+
+/**
+ * Analyze component diagram
+ * @param {File} file - Component diagram configuration file
+ */
+export async function analyzeComponentDiagram(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/analyze/component-diagram', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Analyze component diagram from text content
+ */
+export async function analyzeComponentDiagramFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'component_diagram', configFormat)
+  return analyzeComponentDiagram(file)
+}
+
+/**
+ * Validate component diagram
+ * @param {File} file - Component diagram configuration file
+ */
+export async function validateComponentDiagram(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/validate/component-diagram', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Validate component diagram from text content
+ */
+export async function validateComponentDiagramFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'component_diagram', configFormat)
+  return validateComponentDiagram(file)
+}
+
+/**
+ * Generate dependency graph visualization
+ * @param {File} file - Dependency graph configuration file
+ * @param {string} format - Output format (png, svg, pdf)
+ * @param {string} style - Style preset
+ */
+export async function visualizeDependencyGraph(file, format = 'png', style = 'dg_default') {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post(
+    `/visualize/dependency-graph?format=${format}&style=${style}`,
+    formData,
+    {
+      responseType: 'blob',
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }
+  )
+  return response.data
+}
+
+/**
+ * Generate dependency graph visualization from text content
+ */
+export async function visualizeDependencyGraphFromContent(content, outputFormat = 'png', style = 'dg_default', configFormat = 'toml') {
+  const file = createFileFromContent(content, 'dependency_graph', configFormat)
+  return visualizeDependencyGraph(file, outputFormat, style)
+}
+
+/**
+ * Analyze dependency graph
+ * @param {File} file - Dependency graph configuration file
+ */
+export async function analyzeDependencyGraph(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/analyze/dependency-graph', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Analyze dependency graph from text content
+ */
+export async function analyzeDependencyGraphFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'dependency_graph', configFormat)
+  return analyzeDependencyGraph(file)
+}
+
+/**
+ * Validate dependency graph
+ * @param {File} file - Dependency graph configuration file
+ */
+export async function validateDependencyGraph(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/validate/dependency-graph', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Validate dependency graph from text content
+ */
+export async function validateDependencyGraphFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'dependency_graph', configFormat)
+  return validateDependencyGraph(file)
+}
+
+// =============================================================================
 // Batch Processing Functions
 // =============================================================================
 
@@ -1737,4 +1887,17 @@ export default {
   analyzeInversionsFromContent,
   validatePrivilegeGradient,
   validatePrivilegeGradientFromContent,
+  // Architecture Diagrams
+  visualizeComponentDiagram,
+  visualizeComponentDiagramFromContent,
+  analyzeComponentDiagram,
+  analyzeComponentDiagramFromContent,
+  validateComponentDiagram,
+  validateComponentDiagramFromContent,
+  visualizeDependencyGraph,
+  visualizeDependencyGraphFromContent,
+  analyzeDependencyGraph,
+  analyzeDependencyGraphFromContent,
+  validateDependencyGraph,
+  validateDependencyGraphFromContent,
 }

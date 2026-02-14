@@ -1,0 +1,157 @@
+#
+# Config Component Diagram Styles
+#
+
+# =============================================================================
+# Default - Light gray layers, blue components, gray connections
+# =============================================================================
+[cd_default]
+[cd_default.graph]
+rankdir = "TB"
+bgcolor = "white"
+fontname = "Arial"
+splines = "ortho"
+nodesep = "0.8"
+ranksep = "1.0"
+pad = "0.5"
+
+[cd_default.layer]
+style = "filled,rounded"
+fillcolor = "#f5f5f5"
+color = "#cccccc"
+fontname = "Arial Bold"
+fontsize = "14"
+fontcolor = "#333333"
+penwidth = "1"
+
+[cd_default.component]
+fontname = "Arial"
+fontsize = "11"
+fontcolor = "white"
+fillcolor = "#4a90d9"
+color = "#357abd"
+penwidth = "1.5"
+margin = "0.2,0.1"
+
+[cd_default.connection]
+color = "#666666"
+fontname = "Arial"
+fontsize = "9"
+fontcolor = "#666666"
+penwidth = "1.2"
+
+# =============================================================================
+# Blueprint - Dark blue background, white components
+# =============================================================================
+[cd_blueprint]
+[cd_blueprint.graph]
+rankdir = "TB"
+bgcolor = "#1a2744"
+fontname = "Courier New"
+splines = "ortho"
+nodesep = "0.8"
+ranksep = "1.0"
+pad = "0.5"
+fontcolor = "#c0d0e0"
+
+[cd_blueprint.layer]
+style = "filled,rounded"
+fillcolor = "#243656"
+color = "#4a6a8a"
+fontname = "Courier New"
+fontsize = "14"
+fontcolor = "#a0c0e0"
+penwidth = "1"
+
+[cd_blueprint.component]
+fontname = "Courier New"
+fontsize = "11"
+fontcolor = "#1a2744"
+fillcolor = "#c0d8f0"
+color = "#8ab0d8"
+penwidth = "1.5"
+margin = "0.2,0.1"
+
+[cd_blueprint.connection]
+color = "#6090c0"
+fontname = "Courier New"
+fontsize = "9"
+fontcolor = "#80b0d0"
+penwidth = "1.2"
+
+# =============================================================================
+# Minimal - White background, thin borders, maximum readability
+# =============================================================================
+[cd_minimal]
+[cd_minimal.graph]
+rankdir = "TB"
+bgcolor = "white"
+fontname = "Helvetica"
+splines = "ortho"
+nodesep = "0.8"
+ranksep = "1.0"
+pad = "0.5"
+
+[cd_minimal.layer]
+style = "rounded"
+fillcolor = "white"
+color = "#e0e0e0"
+fontname = "Helvetica"
+fontsize = "13"
+fontcolor = "#555555"
+penwidth = "1"
+
+[cd_minimal.component]
+fontname = "Helvetica"
+fontsize = "11"
+fontcolor = "#333333"
+fillcolor = "white"
+color = "#999999"
+penwidth = "1"
+margin = "0.2,0.1"
+
+[cd_minimal.connection]
+color = "#bbbbbb"
+fontname = "Helvetica"
+fontsize = "9"
+fontcolor = "#999999"
+penwidth = "1"
+
+# =============================================================================
+# Dark - Dark background, high-contrast components
+# =============================================================================
+[cd_dark]
+[cd_dark.graph]
+rankdir = "TB"
+bgcolor = "#1a1a2e"
+fontname = "Arial"
+splines = "ortho"
+nodesep = "0.8"
+ranksep = "1.0"
+pad = "0.5"
+fontcolor = "#e0e0e0"
+
+[cd_dark.layer]
+style = "filled,rounded"
+fillcolor = "#16213e"
+color = "#334466"
+fontname = "Arial Bold"
+fontsize = "14"
+fontcolor = "#b0b0cc"
+penwidth = "1"
+
+[cd_dark.component]
+fontname = "Arial"
+fontsize = "11"
+fontcolor = "white"
+fillcolor = "#0f3460"
+color = "#2060a0"
+penwidth = "1.5"
+margin = "0.2,0.1"
+
+[cd_dark.connection]
+color = "#506080"
+fontname = "Arial"
+fontsize = "9"
+fontcolor = "#8090a0"
+penwidth = "1.2"

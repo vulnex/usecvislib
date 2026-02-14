@@ -45,6 +45,8 @@ def Usage() -> None:
     print("                            4 - Mermaid Diagrams")
     print("                            5 - Cloud Diagrams")
     print("                            6 - Privilege Gradient Graphs")
+    print("                            7 - Component Diagrams")
+    print("                            8 - Dependency Graphs")
     print("  -s, --styleid <id>      Style ID (per mode):")
     print("                          Attack Trees (mode 0):")
     print("                            at_default, at_corporate, at_neon, at_pastel,")
@@ -58,14 +60,19 @@ def Usage() -> None:
     print("                            ag_minimal, ag_neon, ag_corporate, ag_hacker,")
     print("                            ag_blueprint, ag_plain,")
     print("                            ag_nordic, ag_amethyst, ag_steel,")
-    print("                            ag_glacier, ag_terra")
+    print("                            ag_glacier, ag_terra, ag_doc_light")
     print("                          Threat Modeling (mode 1):")
     print("                            tm_default, tm_stride, tm_dark, tm_corporate,")
     print("                            tm_neon, tm_minimal, tm_ocean, tm_sunset,")
-    print("                            tm_forest, tm_blueprint, tm_hacker, tm_plain")
+    print("                            tm_forest, tm_blueprint, tm_hacker, tm_plain,")
+    print("                            tm_doc_light, tm_doc_clean")
     print("                          Privilege Gradient Graphs (mode 6):")
     print("                            pg_default, pg_dark, pg_security, pg_neon,")
     print("                            pg_corporate")
+    print("                          Component Diagrams (mode 7):")
+    print("                            cd_default, cd_blueprint, cd_minimal, cd_dark")
+    print("                          Dependency Graphs (mode 8):")
+    print("                            dg_default, dg_dark, dg_minimal, dg_coupling")
     print("                          Binary Visualization (mode 2):")
     print("                            bv_default, bv_dark, bv_security, bv_ocean,")
     print("                            bv_forest, bv_sunset, bv_cyber, bv_minimal,")
@@ -124,7 +131,7 @@ def validate_mode(mode: int) -> bool:
     Returns:
         True if mode is valid, False otherwise.
     """
-    return mode in [0, 1, 2, 3, 4, 5, 6]
+    return mode in [0, 1, 2, 3, 4, 5, 6, 7, 8]
 
 
 def error_exit(message: str, show_usage: bool = True) -> NoReturn:
@@ -194,7 +201,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             try:
                 mode = int(arg)
             except ValueError:
-                error_exit(f"Invalid mode: {arg}. Must be 0, 1, 2, 3, 4, 5, or 6.")
+                error_exit(f"Invalid mode: {arg}. Must be 0-8.")
         elif opt in ("-s", "--styleid"):
             styleid = arg
         elif opt in ("-S", "--stylefile"):
@@ -310,7 +317,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # Validate mode
     if not validate_mode(mode):
-        error_exit(f"Invalid mode: {mode}. Must be 0, 1, 2, 3, 4, 5, or 6.")
+        error_exit(f"Invalid mode: {mode}. Must be 0-8.")
 
     # Execute based on mode
     try:
@@ -497,6 +504,38 @@ def main(argv: Optional[List[str]] = None) -> int:
                     print(f"  [{inv['severity'].upper()}] {inv['from']} ({inv['from_zone']}) "
                           f"-> {inv['to']} ({inv['to_zone']}) "
                           f"[gap={inv['trust_gap']}]")
+
+        elif mode == 7:
+            # Component Diagrams
+            from . import componentdiagram
+            cd = componentdiagram.ComponentDiagram(inputfile, outputfile, format, styleid)
+            cd.BuildComponentDiagram()
+            print(f"Component diagram generated: {outputfile}.{format}")
+
+            stats = cd.get_stats()
+            print(f"\nDiagram Statistics:")
+            print(f"  Title: {stats['title']}")
+            print(f"  Layers: {stats['total_layers']}")
+            print(f"  Components: {stats['total_components']}")
+            print(f"  Connections: {stats['total_connections']}")
+
+        elif mode == 8:
+            # Dependency Graphs
+            from . import dependencygraph
+            dg = dependencygraph.DependencyGraph(inputfile, outputfile, format, styleid)
+            dg.BuildDependencyGraph()
+            print(f"Dependency graph generated: {outputfile}.{format}")
+
+            stats = dg.get_stats()
+            print(f"\nGraph Statistics:")
+            print(f"  Title: {stats['title']}")
+            print(f"  Modules: {stats['total_modules']}")
+            print(f"  Dependencies: {stats['total_dependencies']}")
+            print(f"  Circular: {stats['total_circular']}")
+            print(f"  Internal: {stats['internal_count']}")
+            print(f"  External: {stats['external_count']}")
+            if stats['groups']:
+                print(f"  Groups: {', '.join(stats['groups'])}")
 
     except FileNotFoundError as e:
         error_exit(str(e), show_usage=False)

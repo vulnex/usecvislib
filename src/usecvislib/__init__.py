@@ -84,6 +84,8 @@ from .clouddiagrams import (
     CloudDiagramResult,
 )
 from .privilegegradient import PrivilegeGradient, PrivilegeGradientError
+from .componentdiagram import ComponentDiagram, ComponentDiagramError
+from .dependencygraph import DependencyGraph, DependencyGraphError
 from .base import VisualizationBase
 from .constants import (
     OutputFormat,
@@ -154,6 +156,8 @@ from .builders import (
     AttackGraphBuilder,
     ThreatModelBuilder,
     PrivilegeGradientBuilder,
+    ComponentDiagramBuilder,
+    DependencyGraphBuilder,
 )
 from .batch import (
     BatchProcessor,
@@ -230,6 +234,8 @@ __all__ = [
     "MermaidDiagrams",
     "CloudDiagrams",
     "PrivilegeGradient",
+    "ComponentDiagram",
+    "DependencyGraph",
     # Base class
     "VisualizationBase",
     # Builder Classes
@@ -237,6 +243,8 @@ __all__ = [
     "AttackGraphBuilder",
     "ThreatModelBuilder",
     "PrivilegeGradientBuilder",
+    "ComponentDiagramBuilder",
+    "DependencyGraphBuilder",
     # Result Classes
     "Severity",
     "TemplateMetadata",
@@ -276,6 +284,8 @@ __all__ = [
     "DiagramsNotInstalledError",
     "IconNotFoundError",
     "PrivilegeGradientError",
+    "ComponentDiagramError",
+    "DependencyGraphError",
     "ConfigError",
     "FileError",
     "SecurityError",

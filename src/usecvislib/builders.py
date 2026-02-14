@@ -15,8 +15,8 @@
 Builder classes for programmatically creating security visualizations.
 
 This module provides fluent builder interfaces for creating attack trees,
-attack graphs, threat models, and privilege gradient graphs without needing
-to write configuration files.
+attack graphs, threat models, privilege gradient graphs, component diagrams,
+and dependency graphs without needing to write configuration files.
 
 Example:
     >>> tree = (
@@ -1148,3 +1148,280 @@ class PrivilegeGradientBuilder:
         pg = PrivilegeGradient(temp_path, outputfile, format=format, styleid=styleid)
         pg._temp_input = temp_path
         return pg
+
+
+class ComponentDiagramBuilder:
+    """Builder for programmatically creating component diagrams.
+
+    Provides a fluent interface for constructing layered architecture
+    diagrams with components and connections.
+
+    Example:
+        >>> builder = ComponentDiagramBuilder("Platform Architecture")
+        >>> builder.add_layer("Client", "top")
+        >>> builder.add_component("browser", "Vue.js SPA", "Client", tech="Vue 3")
+        >>> builder.add_connection("browser", "api", "HTTPS", style="sync")
+        >>> cd = builder.to_component_diagram("output")
+    """
+
+    def __init__(self, title: str, description: str = ""):
+        self._data: Dict[str, Any] = {
+            "title": title,
+            "description": description,
+            "layers": [],
+            "connections": [],
+        }
+        self._layer_map: Dict[str, Dict] = {}
+
+    def add_layer(
+        self,
+        name: str,
+        position: str = "middle",
+    ) -> 'ComponentDiagramBuilder':
+        """Add a layer to the diagram.
+
+        Args:
+            name: Layer name.
+            position: Position hint (top, middle, bottom).
+
+        Returns:
+            Self for method chaining.
+        """
+        layer = {
+            "name": name,
+            "position": position,
+            "components": [],
+        }
+        self._data["layers"].append(layer)
+        self._layer_map[name] = layer
+        return self
+
+    def add_component(
+        self,
+        comp_id: str,
+        name: str,
+        layer: str,
+        comp_type: str = "service",
+        tech: str = "",
+        **attrs
+    ) -> 'ComponentDiagramBuilder':
+        """Add a component to a layer.
+
+        Args:
+            comp_id: Unique component identifier.
+            name: Display name.
+            layer: Layer name to add the component to.
+            comp_type: Component type (frontend, service, database, etc.).
+            tech: Technology label.
+            **attrs: Additional attributes.
+
+        Returns:
+            Self for method chaining.
+        """
+        if layer not in self._layer_map:
+            self.add_layer(layer)
+
+        comp = {
+            "id": comp_id,
+            "name": name,
+            "type": comp_type,
+            **attrs,
+        }
+        if tech:
+            comp["tech"] = tech
+
+        self._layer_map[layer]["components"].append(comp)
+        return self
+
+    def add_connection(
+        self,
+        from_comp: str,
+        to_comp: str,
+        label: str = "",
+        style: str = "sync",
+        **attrs
+    ) -> 'ComponentDiagramBuilder':
+        """Add a connection between components.
+
+        Args:
+            from_comp: Source component ID.
+            to_comp: Target component ID.
+            label: Connection label.
+            style: Connection style (sync, async, bidirectional, event).
+            **attrs: Additional attributes.
+
+        Returns:
+            Self for method chaining.
+        """
+        conn = {
+            "from": from_comp,
+            "to": to_comp,
+            "style": style,
+            **attrs,
+        }
+        if label:
+            conn["label"] = label
+        self._data["connections"].append(conn)
+        return self
+
+    def build(self) -> Dict[str, Any]:
+        return self._data.copy()
+
+    def to_json(self, pretty: bool = True) -> str:
+        if pretty:
+            return json.dumps(self._data, indent=2)
+        return json.dumps(self._data)
+
+    def to_component_diagram(
+        self,
+        outputfile: str,
+        format: str = "png",
+        styleid: str = "cd_default"
+    ) -> 'ComponentDiagram':
+        """Create ComponentDiagram instance from builder data."""
+        from .componentdiagram import ComponentDiagram
+
+        with tempfile.NamedTemporaryFile(
+            mode='w', suffix='.json', delete=False
+        ) as f:
+            json.dump(self._data, f)
+            temp_path = f.name
+
+        cd = ComponentDiagram(temp_path, outputfile, format=format, styleid=styleid)
+        cd._temp_input = temp_path
+        return cd
+
+
+class DependencyGraphBuilder:
+    """Builder for programmatically creating dependency graphs.
+
+    Provides a fluent interface for constructing module dependency graphs
+    with SLOC sizing and circular dependency detection.
+
+    Example:
+        >>> builder = DependencyGraphBuilder("Module Dependencies")
+        >>> builder.add_module("accounts", "Accounts", sloc=1500, group="core")
+        >>> builder.add_dependency("scanning", "accounts", weight="heavy")
+        >>> builder.mark_circular(["scanning", "accounts"])
+        >>> dg = builder.to_dependency_graph("output")
+    """
+
+    def __init__(self, title: str, description: str = ""):
+        self._data: Dict[str, Any] = {
+            "title": title,
+            "description": description,
+            "modules": [],
+            "dependencies": [],
+            "circular": [],
+        }
+
+    def add_module(
+        self,
+        mod_id: str,
+        name: str,
+        mod_type: str = "internal",
+        sloc: int = 0,
+        language: str = "",
+        group: str = "",
+        version: str = "",
+        **attrs
+    ) -> 'DependencyGraphBuilder':
+        """Add a module to the graph.
+
+        Args:
+            mod_id: Unique module identifier.
+            name: Display name.
+            mod_type: Module type (internal, external).
+            sloc: Source lines of code.
+            language: Programming language.
+            group: Module group for clustering.
+            version: Version string (for external modules).
+            **attrs: Additional attributes.
+
+        Returns:
+            Self for method chaining.
+        """
+        mod = {
+            "id": mod_id,
+            "name": name,
+            "type": mod_type,
+            **attrs,
+        }
+        if sloc:
+            mod["sloc"] = sloc
+        if language:
+            mod["language"] = language
+        if group:
+            mod["group"] = group
+        if version:
+            mod["version"] = version
+        self._data["modules"].append(mod)
+        return self
+
+    def add_dependency(
+        self,
+        from_mod: str,
+        to_mod: str,
+        dep_type: str = "import",
+        weight: str = "medium",
+        **attrs
+    ) -> 'DependencyGraphBuilder':
+        """Add a dependency between modules.
+
+        Args:
+            from_mod: Source module ID.
+            to_mod: Target module ID.
+            dep_type: Dependency type (import, framework, runtime).
+            weight: Dependency weight (light, medium, heavy).
+            **attrs: Additional attributes.
+
+        Returns:
+            Self for method chaining.
+        """
+        self._data["dependencies"].append({
+            "from": from_mod,
+            "to": to_mod,
+            "type": dep_type,
+            "weight": weight,
+            **attrs,
+        })
+        return self
+
+    def mark_circular(self, cycle: List[str]) -> 'DependencyGraphBuilder':
+        """Mark a circular dependency.
+
+        Args:
+            cycle: List of module IDs forming a cycle.
+
+        Returns:
+            Self for method chaining.
+        """
+        self._data["circular"].append(cycle)
+        return self
+
+    def build(self) -> Dict[str, Any]:
+        return self._data.copy()
+
+    def to_json(self, pretty: bool = True) -> str:
+        if pretty:
+            return json.dumps(self._data, indent=2)
+        return json.dumps(self._data)
+
+    def to_dependency_graph(
+        self,
+        outputfile: str,
+        format: str = "png",
+        styleid: str = "dg_default"
+    ) -> 'DependencyGraph':
+        """Create DependencyGraph instance from builder data."""
+        from .dependencygraph import DependencyGraph
+
+        with tempfile.NamedTemporaryFile(
+            mode='w', suffix='.json', delete=False
+        ) as f:
+            json.dump(self._data, f)
+            temp_path = f.name
+
+        dg = DependencyGraph(temp_path, outputfile, format=format, styleid=styleid)
+        dg._temp_input = temp_path
+        return dg

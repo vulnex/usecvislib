@@ -1,0 +1,145 @@
+{
+  "title": "VibeSec Platform Architecture",
+  "layers": [
+    {
+      "name": "Presentation",
+      "order": 1,
+      "components": [
+        {
+          "id": "web_ui",
+          "name": "Web Dashboard",
+          "type": "frontend",
+          "tech": "Vue 3 + Vite"
+        },
+        {
+          "id": "cli",
+          "name": "CLI Tool",
+          "type": "cli",
+          "tech": "Python Click"
+        }
+      ]
+    },
+    {
+      "name": "API Gateway",
+      "order": 2,
+      "components": [
+        {
+          "id": "api_gw",
+          "name": "API Gateway",
+          "type": "service",
+          "tech": "FastAPI"
+        }
+      ]
+    },
+    {
+      "name": "Services",
+      "order": 3,
+      "components": [
+        {
+          "id": "viz_engine",
+          "name": "Visualization Engine",
+          "type": "service",
+          "tech": "USecVisLib"
+        },
+        {
+          "id": "analysis_svc",
+          "name": "Analysis Service",
+          "type": "service",
+          "tech": "Python + NetworkX"
+        },
+        {
+          "id": "codemap_svc",
+          "name": "CodeMap Service",
+          "type": "service",
+          "tech": "Python AST"
+        }
+      ]
+    },
+    {
+      "name": "Data",
+      "order": 4,
+      "components": [
+        {
+          "id": "template_db",
+          "name": "Template Store",
+          "type": "database",
+          "tech": "SQLite"
+        },
+        {
+          "id": "file_store",
+          "name": "File Storage",
+          "type": "storage",
+          "tech": "Local FS"
+        },
+        {
+          "id": "cache",
+          "name": "Result Cache",
+          "type": "cache",
+          "tech": "In-Memory"
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "from": "web_ui",
+      "to": "api_gw",
+      "label": "REST API",
+      "style": "sync"
+    },
+    {
+      "from": "cli",
+      "to": "api_gw",
+      "label": "REST API",
+      "style": "sync"
+    },
+    {
+      "from": "api_gw",
+      "to": "viz_engine",
+      "label": "generate()",
+      "style": "sync"
+    },
+    {
+      "from": "api_gw",
+      "to": "analysis_svc",
+      "label": "analyze()",
+      "style": "sync"
+    },
+    {
+      "from": "api_gw",
+      "to": "codemap_svc",
+      "label": "map()",
+      "style": "async"
+    },
+    {
+      "from": "viz_engine",
+      "to": "template_db",
+      "label": "read templates",
+      "style": "sync"
+    },
+    {
+      "from": "viz_engine",
+      "to": "file_store",
+      "label": "write output",
+      "style": "sync"
+    },
+    {
+      "from": "viz_engine",
+      "to": "cache",
+      "label": "cache result",
+      "style": "async"
+    },
+    {
+      "from": "analysis_svc",
+      "to": "template_db",
+      "label": "read configs",
+      "style": "sync"
+    },
+    {
+      "from": "codemap_svc",
+      "to": "file_store",
+      "label": "read source",
+      "style": "sync"
+    }
+  ]
+}

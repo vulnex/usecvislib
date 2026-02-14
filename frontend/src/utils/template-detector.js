@@ -25,6 +25,8 @@ export const TemplateType = {
   THREAT_MODEL: 'threat-model',
   CUSTOM_DIAGRAM: 'custom-diagram',
   PRIVILEGE_GRADIENT: 'privilege-gradient',
+  COMPONENT_DIAGRAM: 'component-diagram',
+  DEPENDENCY_GRAPH: 'dependency-graph',
   UNKNOWN: 'unknown'
 }
 
@@ -37,6 +39,8 @@ export const TemplateTypeNames = {
   [TemplateType.THREAT_MODEL]: 'Threat Model',
   [TemplateType.CUSTOM_DIAGRAM]: 'Custom Diagram',
   [TemplateType.PRIVILEGE_GRADIENT]: 'Privilege Gradient',
+  [TemplateType.COMPONENT_DIAGRAM]: 'Component Diagram',
+  [TemplateType.DEPENDENCY_GRAPH]: 'Dependency Graph',
   [TemplateType.UNKNOWN]: 'Unknown'
 }
 
@@ -49,6 +53,8 @@ export const TemplateTypePanels = {
   [TemplateType.THREAT_MODEL]: 'Threat Models',
   [TemplateType.CUSTOM_DIAGRAM]: 'Custom Diagrams',
   [TemplateType.PRIVILEGE_GRADIENT]: 'Privilege Gradient',
+  [TemplateType.COMPONENT_DIAGRAM]: 'Architecture',
+  [TemplateType.DEPENDENCY_GRAPH]: 'Architecture',
   [TemplateType.UNKNOWN]: null
 }
 
@@ -203,6 +209,38 @@ function isCustomDiagram(obj) {
 }
 
 /**
+ * Check if object has Component Diagram structure
+ * Component Diagrams have: layers[] with components[], connections[]
+ * @param {object} obj - Parsed configuration object
+ * @returns {boolean}
+ */
+function isComponentDiagram(obj) {
+  if (Array.isArray(obj.layers) && obj.layers.length > 0) {
+    const hasComponents = obj.layers.some(l => Array.isArray(l.components) && l.components.length > 0)
+    if (hasComponents && Array.isArray(obj.connections)) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Check if object has Dependency Graph structure
+ * Dependency Graphs have: modules[], dependencies[]
+ * @param {object} obj - Parsed configuration object
+ * @returns {boolean}
+ */
+function isDependencyGraph(obj) {
+  if (Array.isArray(obj.modules) && Array.isArray(obj.dependencies)) {
+    const hasModuleFields = obj.modules.some(m => m.id || m.name || m.group)
+    if (hasModuleFields) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
  * Check if object has Privilege Gradient structure
  * Privilege Gradients have: [gradient], [[zones]], [[components]], [[influences]]
  * @param {object} obj - Parsed configuration object
@@ -239,6 +277,16 @@ export function detectTemplateType(content, format = null) {
   }
 
   // Check each type in order of specificity
+  // Component Diagram is very specific (has layers[] with components[], connections[])
+  if (isComponentDiagram(obj)) {
+    return { type: TemplateType.COMPONENT_DIAGRAM, confidence: 'high', detectedFormat }
+  }
+
+  // Dependency Graph is very specific (has modules[], dependencies[])
+  if (isDependencyGraph(obj)) {
+    return { type: TemplateType.DEPENDENCY_GRAPH, confidence: 'high', detectedFormat }
+  }
+
   // Privilege Gradient is very specific (has gradient, zones, components)
   if (isPrivilegeGradient(obj)) {
     return { type: TemplateType.PRIVILEGE_GRADIENT, confidence: 'high', detectedFormat }

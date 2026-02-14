@@ -587,3 +587,103 @@ style = "dashed"
 penwidth = "1.5"
 fontname = "Helvetica"
 fontcolor = "black"
+
+# =============================================================================
+# Doc Light - Neutral documentation style with muted palette
+# =============================================================================
+[tm_doc_light]
+[tm_doc_light.graph]
+rankdir = "LR"
+bgcolor = "white"
+fontname = "Arial"
+
+[tm_doc_light.process]
+shape = "rectangle"
+style = "filled,rounded"
+fillcolor = "#5b8db8"
+fontcolor = "white"
+fontname = "Arial"
+fontsize = "11"
+
+[tm_doc_light.datastore]
+shape = "cylinder"
+style = "filled"
+fillcolor = "#7fb3d3"
+fontcolor = "white"
+fontname = "Arial"
+fontsize = "11"
+
+[tm_doc_light.external]
+shape = "rectangle"
+style = "filled,dashed"
+fillcolor = "#b0bec5"
+fontcolor = "white"
+fontname = "Arial"
+fontsize = "11"
+
+[tm_doc_light.dataflow]
+color = "#78909c"
+style = "solid"
+fontname = "Arial"
+fontsize = "9"
+penwidth = "1.2"
+
+[tm_doc_light.trustboundary]
+color = "#90a4ae"
+style = "dashed"
+penwidth = "1.5"
+fontname = "Arial"
+fontcolor = "#607d8b"
+
+# =============================================================================
+# Doc Clean - Minimal documentation style for wiki embedding
+# =============================================================================
+[tm_doc_clean]
+[tm_doc_clean.graph]
+rankdir = "LR"
+bgcolor = "white"
+fontname = "Helvetica"
+
+[tm_doc_clean.process]
+shape = "rectangle"
+style = "rounded"
+fillcolor = "white"
+fontcolor = "#333333"
+fontname = "Helvetica"
+fontsize = "11"
+penwidth = "1"
+color = "#999999"
+
+[tm_doc_clean.datastore]
+shape = "cylinder"
+style = ""
+fillcolor = "white"
+fontcolor = "#333333"
+fontname = "Helvetica"
+fontsize = "11"
+penwidth = "1"
+color = "#999999"
+
+[tm_doc_clean.external]
+shape = "rectangle"
+style = "dashed"
+fillcolor = "white"
+fontcolor = "#666666"
+fontname = "Helvetica"
+fontsize = "11"
+penwidth = "1"
+color = "#bbbbbb"
+
+[tm_doc_clean.dataflow]
+color = "#aaaaaa"
+style = "solid"
+fontname = "Helvetica"
+fontsize = "9"
+penwidth = "1"
+
+[tm_doc_clean.trustboundary]
+color = "#cccccc"
+style = "dashed"
+penwidth = "1"
+fontname = "Helvetica"
+fontcolor = "#999999"

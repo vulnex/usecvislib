@@ -106,6 +106,7 @@ import CustomDiagramPanel from './components/CustomDiagramPanel.vue'
 import MermaidDiagramPanel from './components/MermaidDiagramPanel.vue'
 import CloudDiagramPanel from './components/CloudDiagramPanel.vue'
 import PrivilegeGradientPanel from './components/PrivilegeGradientPanel.vue'
+import ArchitecturePanel from './components/ArchitecturePanel.vue'
 import DocumentationPanel from './components/DocumentationPanel.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 
@@ -143,6 +144,7 @@ const primaryTabs = [
   { id: 'custom-diagram', name: 'Custom Diagrams', icon: '🎨' },
   { id: 'mermaid', name: 'Mermaid', icon: '🧜' },
   { id: 'cloud', name: 'Cloud', icon: '☁️' },
+  { id: 'architecture', name: 'Architecture', icon: '🏗️' },
   { id: 'privilege-gradient', name: 'Privilege Gradient', icon: '🪜' },
   { id: 'binary', name: 'Binary Analysis', icon: '📊' }
 ]
@@ -190,6 +192,7 @@ const componentMap = {
   'mermaid': MermaidDiagramPanel,
   'cloud': CloudDiagramPanel,
   'binary': BinaryVisPanel,
+  'architecture': ArchitecturePanel,
   'privilege-gradient': PrivilegeGradientPanel,
   'cvss': CVSSCalculatorPanel,
   'convert': ConvertPanel,
@@ -252,6 +255,11 @@ const currentProps = computed(() => {
       return {
         ...baseProps,
         styles: styles.value.binary_visualization || [],
+        formats: formats.value
+      }
+    case 'architecture':
+      return {
+        ...baseProps,
         formats: formats.value
       }
     case 'privilege-gradient':

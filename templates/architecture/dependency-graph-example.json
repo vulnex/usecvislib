@@ -1,0 +1,202 @@
+{
+  "title": "VibeSec Module Dependencies",
+  "modules": [
+    {
+      "id": "api_main",
+      "name": "api.main",
+      "group": "api",
+      "sloc": 280
+    },
+    {
+      "id": "api_routers",
+      "name": "api.routers",
+      "group": "api",
+      "sloc": 520
+    },
+    {
+      "id": "viz_engine",
+      "name": "usecvislib.core",
+      "group": "core",
+      "sloc": 1200
+    },
+    {
+      "id": "attack_trees",
+      "name": "usecvislib.attacktrees",
+      "group": "core",
+      "sloc": 850
+    },
+    {
+      "id": "attack_graphs",
+      "name": "usecvislib.attackgraphs",
+      "group": "core",
+      "sloc": 950
+    },
+    {
+      "id": "threat_model",
+      "name": "usecvislib.threatmodeling",
+      "group": "core",
+      "sloc": 1100
+    },
+    {
+      "id": "utils",
+      "name": "usecvislib.utils",
+      "group": "utils",
+      "sloc": 600
+    },
+    {
+      "id": "codemap",
+      "name": "vibsec.codemap",
+      "group": "features",
+      "sloc": 750
+    },
+    {
+      "id": "settings",
+      "name": "usecvislib.settings",
+      "group": "utils",
+      "sloc": 150
+    },
+    {
+      "id": "graphviz",
+      "name": "graphviz",
+      "group": "external",
+      "external": true,
+      "sloc": 0
+    },
+    {
+      "id": "networkx",
+      "name": "networkx",
+      "group": "external",
+      "external": true,
+      "sloc": 0
+    },
+    {
+      "id": "fastapi",
+      "name": "fastapi",
+      "group": "external",
+      "external": true,
+      "sloc": 0
+    }
+  ],
+  "dependencies": [
+    {
+      "from": "api_main",
+      "to": "api_routers",
+      "type": "import",
+      "weight": "heavy"
+    },
+    {
+      "from": "api_main",
+      "to": "fastapi",
+      "type": "framework",
+      "weight": "heavy"
+    },
+    {
+      "from": "api_routers",
+      "to": "viz_engine",
+      "type": "import",
+      "weight": "heavy"
+    },
+    {
+      "from": "api_routers",
+      "to": "fastapi",
+      "type": "framework",
+      "weight": "medium"
+    },
+    {
+      "from": "viz_engine",
+      "to": "attack_trees",
+      "type": "import",
+      "weight": "medium"
+    },
+    {
+      "from": "viz_engine",
+      "to": "attack_graphs",
+      "type": "import",
+      "weight": "medium"
+    },
+    {
+      "from": "viz_engine",
+      "to": "threat_model",
+      "type": "import",
+      "weight": "medium"
+    },
+    {
+      "from": "viz_engine",
+      "to": "utils",
+      "type": "import",
+      "weight": "heavy"
+    },
+    {
+      "from": "attack_trees",
+      "to": "graphviz",
+      "type": "framework",
+      "weight": "heavy"
+    },
+    {
+      "from": "attack_trees",
+      "to": "utils",
+      "type": "import",
+      "weight": "medium"
+    },
+    {
+      "from": "attack_graphs",
+      "to": "graphviz",
+      "type": "framework",
+      "weight": "heavy"
+    },
+    {
+      "from": "attack_graphs",
+      "to": "networkx",
+      "type": "framework",
+      "weight": "heavy"
+    },
+    {
+      "from": "attack_graphs",
+      "to": "utils",
+      "type": "import",
+      "weight": "medium"
+    },
+    {
+      "from": "threat_model",
+      "to": "graphviz",
+      "type": "framework",
+      "weight": "heavy"
+    },
+    {
+      "from": "threat_model",
+      "to": "utils",
+      "type": "import",
+      "weight": "medium"
+    },
+    {
+      "from": "codemap",
+      "to": "viz_engine",
+      "type": "import",
+      "weight": "heavy"
+    },
+    {
+      "from": "codemap",
+      "to": "utils",
+      "type": "import",
+      "weight": "light"
+    },
+    {
+      "from": "settings",
+      "to": "utils",
+      "type": "import",
+      "weight": "light"
+    },
+    {
+      "from": "utils",
+      "to": "settings",
+      "type": "runtime",
+      "weight": "light"
+    }
+  ],
+  "circular": [
+    {
+      "cycle": ["utils", "settings"],
+      "severity": "low"
+    }
+  ]
+}

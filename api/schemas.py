@@ -71,6 +71,8 @@ class ThreatModelStyle(str, Enum):
     BLUEPRINT = "tm_blueprint"
     HACKER = "tm_hacker"
     PLAIN = "tm_plain"
+    DOC_LIGHT = "tm_doc_light"
+    DOC_CLEAN = "tm_doc_clean"
 
 
 class ThreatModelEngine(str, Enum):
@@ -246,6 +248,7 @@ class AttackGraphStyle(str, Enum):
     STEEL = "ag_steel"
     GLACIER = "ag_glacier"
     TERRA = "ag_terra"
+    DOC_LIGHT = "ag_doc_light"
 
 
 class PrivilegeGradientStyle(str, Enum):
@@ -255,6 +258,22 @@ class PrivilegeGradientStyle(str, Enum):
     SECURITY = "pg_security"
     NEON = "pg_neon"
     CORPORATE = "pg_corporate"
+
+
+class ComponentDiagramStyle(str, Enum):
+    """Available component diagram styles."""
+    DEFAULT = "cd_default"
+    BLUEPRINT = "cd_blueprint"
+    MINIMAL = "cd_minimal"
+    DARK = "cd_dark"
+
+
+class DependencyGraphStyle(str, Enum):
+    """Available dependency graph styles."""
+    DEFAULT = "dg_default"
+    DARK = "dg_dark"
+    MINIMAL = "dg_minimal"
+    COUPLING = "dg_coupling"
 
 
 class VisualizationMode(str, Enum):
@@ -267,6 +286,8 @@ class VisualizationMode(str, Enum):
     MERMAID = "mermaid"
     CLOUD = "cloud"
     PRIVILEGE_GRADIENT = "privilege_gradient"
+    COMPONENT_DIAGRAM = "component_diagram"
+    DEPENDENCY_GRAPH = "dependency_graph"
 
 
 class ConfigFormat(str, Enum):
@@ -443,6 +464,28 @@ class GradientStats(BaseModel):
     inversions: List[Dict[str, Any]] = Field(default=[], max_length=1000)
     components_per_zone: Dict[str, int] = Field(default={})
     max_trust_gap: int = Field(default=0)
+    metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
+
+
+class ComponentDiagramStats(BaseModel):
+    """Component diagram statistics response."""
+    title: str
+    total_layers: int
+    total_components: int
+    total_connections: int
+    components_per_layer: Dict[str, int] = Field(default={})
+    metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
+
+
+class DependencyGraphStats(BaseModel):
+    """Dependency graph statistics response."""
+    title: str
+    total_modules: int
+    total_dependencies: int
+    total_circular: int
+    internal_count: int = Field(default=0)
+    external_count: int = Field(default=0)
+    groups: List[str] = Field(default=[])
     metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
 
 

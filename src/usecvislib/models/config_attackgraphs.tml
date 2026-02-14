@@ -207,3 +207,16 @@ service = {shape = "component", style = "filled", fillcolor = "#588157", fontcol
 edge = {color = "#A3B18A", fontname = "Georgia", fontsize = "9"}
 network_edge = {color = "#DAD7CD", style = "dashed", fontname = "Georgia", fontsize = "9", penwidth = "1.5"}
 exploit_edge = {color = "#BC4749", style = "bold", fontname = "Georgia", fontsize = "9", penwidth = "2"}
+
+# =============================================================================
+# Doc Light - Neutral documentation style (no risk heat-map coloring)
+# =============================================================================
+[ag_doc_light]
+graph = {rankdir = "LR", bgcolor = "white", fontname = "Arial", splines = "ortho", nodesep = "0.5", ranksep = "0.8"}
+host = {shape = "box3d", style = "filled", fillcolor = "#5b8db8", fontcolor = "white", fontname = "Arial", fontsize = "11", margin = "0.15"}
+vulnerability = {shape = "diamond", style = "filled", fillcolor = "#90a4ae", fontcolor = "white", fontname = "Arial", fontsize = "10", margin = "0.1"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#b0bec5", fontcolor = "#333333", fontname = "Arial", fontsize = "10", margin = "0.1"}
+service = {shape = "component", style = "filled", fillcolor = "#7fb3d3", fontcolor = "white", fontname = "Arial", fontsize = "10", margin = "0.1"}
+edge = {color = "#78909c", fontname = "Arial", fontsize = "9"}
+network_edge = {color = "#b0bec5", style = "dashed", fontname = "Arial", fontsize = "9", penwidth = "1.2"}
+exploit_edge = {color = "#607d8b", style = "solid", fontname = "Arial", fontsize = "9", penwidth = "1.5"}
