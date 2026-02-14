@@ -1069,9 +1069,9 @@ label = "Auth Decisions"</code></pre>
             <td>Generate DFD visualization</td>
           </tr>
           <tr>
-            <td><code>/visualize/custom-diagram</code></td>
+            <td><code>/visualize/binary</code></td>
             <td>POST</td>
-            <td>Generate custom diagram visualization</td>
+            <td>Generate binary visualization</td>
           </tr>
           <tr>
             <td><code>/visualize/mermaid</code></td>
@@ -1079,7 +1079,7 @@ label = "Auth Decisions"</code></pre>
             <td>Render Mermaid syntax diagram</td>
           </tr>
           <tr>
-            <td><code>/visualize/cloud-diagram</code></td>
+            <td><code>/visualize/cloud</code></td>
             <td>POST</td>
             <td>Generate cloud architecture diagram</td>
           </tr>
@@ -1087,11 +1087,6 @@ label = "Auth Decisions"</code></pre>
             <td><code>/visualize/privilege-gradient</code></td>
             <td>POST</td>
             <td>Generate privilege gradient visualization</td>
-          </tr>
-          <tr>
-            <td><code>/visualize/binary</code></td>
-            <td>POST</td>
-            <td>Generate binary visualization</td>
           </tr>
         </table>
 
@@ -1113,6 +1108,36 @@ label = "Auth Decisions"</code></pre>
             <td>Get attack graph statistics</td>
           </tr>
           <tr>
+            <td><code>/analyze/threat-model</code></td>
+            <td>POST</td>
+            <td>Get threat model statistics</td>
+          </tr>
+          <tr>
+            <td><code>/analyze/binary</code></td>
+            <td>POST</td>
+            <td>Get binary file analysis statistics</td>
+          </tr>
+          <tr>
+            <td><code>/analyze/mermaid</code></td>
+            <td>POST</td>
+            <td>Analyze Mermaid diagram structure</td>
+          </tr>
+          <tr>
+            <td><code>/analyze/cloud</code></td>
+            <td>POST</td>
+            <td>Analyze cloud diagram structure</td>
+          </tr>
+          <tr>
+            <td><code>/analyze/privilege-gradient</code></td>
+            <td>POST</td>
+            <td>Get privilege gradient structure statistics</td>
+          </tr>
+          <tr>
+            <td><code>/analyze/inversions</code></td>
+            <td>POST</td>
+            <td>Detect privilege gradient inversions with severity</td>
+          </tr>
+          <tr>
             <td><code>/analyze/attack-paths</code></td>
             <td>POST</td>
             <td>Find attack paths between nodes</td>
@@ -1126,16 +1151,6 @@ label = "Auth Decisions"</code></pre>
             <td><code>/analyze/stride</code></td>
             <td>POST</td>
             <td>Run STRIDE threat analysis</td>
-          </tr>
-          <tr>
-            <td><code>/analyze/privilege-gradient</code></td>
-            <td>POST</td>
-            <td>Get privilege gradient structure statistics</td>
-          </tr>
-          <tr>
-            <td><code>/analyze/inversions</code></td>
-            <td>POST</td>
-            <td>Detect privilege gradient inversions with severity</td>
           </tr>
         </table>
 
@@ -1170,6 +1185,191 @@ label = "Auth Decisions"</code></pre>
             <td><code>/analyze/vulnerability-impact</code></td>
             <td>POST</td>
             <td>Calculate impact score for a specific vulnerability</td>
+          </tr>
+        </table>
+
+        <h4>Custom Diagrams Endpoints</h4>
+        <table class="info-table">
+          <tr>
+            <th>Endpoint</th>
+            <th>Method</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>/custom-diagrams/visualize</code></td>
+            <td>POST</td>
+            <td>Generate custom diagram visualization</td>
+          </tr>
+          <tr>
+            <td><code>/custom-diagrams/validate</code></td>
+            <td>POST</td>
+            <td>Validate custom diagram config</td>
+          </tr>
+          <tr>
+            <td><code>/custom-diagrams/stats</code></td>
+            <td>POST</td>
+            <td>Get custom diagram statistics</td>
+          </tr>
+          <tr>
+            <td><code>/custom-diagrams/import</code></td>
+            <td>POST</td>
+            <td>Import diagram from external format</td>
+          </tr>
+          <tr>
+            <td><code>/custom-diagrams/from-template</code></td>
+            <td>POST</td>
+            <td>Generate diagram from template</td>
+          </tr>
+          <tr>
+            <td><code>/custom-diagrams/shapes</code></td>
+            <td>GET</td>
+            <td>List all available shapes</td>
+          </tr>
+          <tr>
+            <td><code>/custom-diagrams/shapes/{shape_id}</code></td>
+            <td>GET</td>
+            <td>Get shape details by ID</td>
+          </tr>
+          <tr>
+            <td><code>/custom-diagrams/layouts</code></td>
+            <td>GET</td>
+            <td>List available layout engines</td>
+          </tr>
+          <tr>
+            <td><code>/custom-diagrams/styles</code></td>
+            <td>GET</td>
+            <td>List custom diagram style presets</td>
+          </tr>
+          <tr>
+            <td><code>/custom-diagrams/templates</code></td>
+            <td>GET</td>
+            <td>List custom diagram templates</td>
+          </tr>
+          <tr>
+            <td><code>/custom-diagrams/templates/{id}</code></td>
+            <td>GET</td>
+            <td>Get custom diagram template by ID</td>
+          </tr>
+        </table>
+
+        <h4>Mermaid Endpoints</h4>
+        <table class="info-table">
+          <tr>
+            <th>Endpoint</th>
+            <th>Method</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>/mermaid/templates</code></td>
+            <td>GET</td>
+            <td>List Mermaid diagram templates</td>
+          </tr>
+          <tr>
+            <td><code>/mermaid/template/{category}/{name}</code></td>
+            <td>GET</td>
+            <td>Get Mermaid template by category and name</td>
+          </tr>
+          <tr>
+            <td><code>/mermaid/themes</code></td>
+            <td>GET</td>
+            <td>List available Mermaid themes</td>
+          </tr>
+          <tr>
+            <td><code>/mermaid/types</code></td>
+            <td>GET</td>
+            <td>List supported Mermaid diagram types</td>
+          </tr>
+        </table>
+
+        <h4>Cloud Diagram Endpoints</h4>
+        <table class="info-table">
+          <tr>
+            <th>Endpoint</th>
+            <th>Method</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>/cloud/templates</code></td>
+            <td>GET</td>
+            <td>List cloud diagram templates</td>
+          </tr>
+          <tr>
+            <td><code>/cloud/template/{category}/{name}</code></td>
+            <td>GET</td>
+            <td>Get cloud template by category and name</td>
+          </tr>
+          <tr>
+            <td><code>/cloud/providers</code></td>
+            <td>GET</td>
+            <td>List supported cloud providers</td>
+          </tr>
+          <tr>
+            <td><code>/cloud/icons</code></td>
+            <td>GET</td>
+            <td>List available cloud provider icons</td>
+          </tr>
+          <tr>
+            <td><code>/cloud/generate-code</code></td>
+            <td>POST</td>
+            <td>Generate Python code from cloud diagram config</td>
+          </tr>
+        </table>
+
+        <h4>Image Management Endpoints</h4>
+        <table class="info-table">
+          <tr>
+            <th>Endpoint</th>
+            <th>Method</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>/images</code></td>
+            <td>GET</td>
+            <td>List uploaded images</td>
+          </tr>
+          <tr>
+            <td><code>/images/upload</code></td>
+            <td>POST</td>
+            <td>Upload a custom image</td>
+          </tr>
+          <tr>
+            <td><code>/images/{image_id}</code></td>
+            <td>GET</td>
+            <td>Get image metadata</td>
+          </tr>
+          <tr>
+            <td><code>/images/{image_id}</code></td>
+            <td>DELETE</td>
+            <td>Delete an uploaded image</td>
+          </tr>
+          <tr>
+            <td><code>/images/{image_id}/download</code></td>
+            <td>GET</td>
+            <td>Download an uploaded image</td>
+          </tr>
+        </table>
+
+        <h4>Icon Endpoints</h4>
+        <table class="info-table">
+          <tr>
+            <th>Endpoint</th>
+            <th>Method</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>/icons</code></td>
+            <td>GET</td>
+            <td>List available built-in icons</td>
+          </tr>
+          <tr>
+            <td><code>/icons/categories</code></td>
+            <td>GET</td>
+            <td>List icon categories</td>
+          </tr>
+          <tr>
+            <td><code>/icons/{icon_path}</code></td>
+            <td>GET</td>
+            <td>Get icon file by path</td>
           </tr>
         </table>
 
@@ -1332,6 +1532,25 @@ label = "Auth Decisions"</code></pre>
             <td><code>/validate/privilege-gradient</code></td>
             <td>POST</td>
             <td>Validate privilege gradient config structure</td>
+          </tr>
+        </table>
+
+        <h4>Job/Progress Endpoints</h4>
+        <table class="info-table">
+          <tr>
+            <th>Endpoint</th>
+            <th>Method</th>
+            <th>Description</th>
+          </tr>
+          <tr>
+            <td><code>/jobs/start-demo</code></td>
+            <td>POST</td>
+            <td>Start a demo background job</td>
+          </tr>
+          <tr>
+            <td><code>/progress/{job_id}</code></td>
+            <td>GET</td>
+            <td>Get progress status for a background job</td>
           </tr>
         </table>
 
