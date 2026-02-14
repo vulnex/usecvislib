@@ -48,7 +48,7 @@ from ..schemas import (
     OutputFormat, AttackTreeStyle, AttackGraphStyle,
     ThreatModelStyle, ThreatModelEngine,
     CustomDiagramStyle,
-    BinVisStyle,
+    BinVisStyle, PrivilegeGradientStyle,
     ConfigFormat, ReportFormat,
     HealthResponse, ConvertResponse, ReportResponse,
     ThreatLibraryResponse, ThreatLibraryItem,
@@ -119,6 +119,7 @@ async def get_available_styles(request: Request):
         "threat_model": [s.value for s in ThreatModelStyle],
         "custom_diagram": [s.value for s in CustomDiagramStyle],
         "binary_visualization": [s.value for s in BinVisStyle],
+        "privilege_gradient": [s.value for s in PrivilegeGradientStyle],
     }
 
 

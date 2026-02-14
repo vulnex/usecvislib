@@ -24,6 +24,7 @@ export const TemplateType = {
   ATTACK_GRAPH: 'attack-graph',
   THREAT_MODEL: 'threat-model',
   CUSTOM_DIAGRAM: 'custom-diagram',
+  PRIVILEGE_GRADIENT: 'privilege-gradient',
   UNKNOWN: 'unknown'
 }
 
@@ -35,6 +36,7 @@ export const TemplateTypeNames = {
   [TemplateType.ATTACK_GRAPH]: 'Attack Graph',
   [TemplateType.THREAT_MODEL]: 'Threat Model',
   [TemplateType.CUSTOM_DIAGRAM]: 'Custom Diagram',
+  [TemplateType.PRIVILEGE_GRADIENT]: 'Privilege Gradient',
   [TemplateType.UNKNOWN]: 'Unknown'
 }
 
@@ -46,6 +48,7 @@ export const TemplateTypePanels = {
   [TemplateType.ATTACK_GRAPH]: 'Attack Graphs',
   [TemplateType.THREAT_MODEL]: 'Threat Models',
   [TemplateType.CUSTOM_DIAGRAM]: 'Custom Diagrams',
+  [TemplateType.PRIVILEGE_GRADIENT]: 'Privilege Gradient',
   [TemplateType.UNKNOWN]: null
 }
 
@@ -200,6 +203,21 @@ function isCustomDiagram(obj) {
 }
 
 /**
+ * Check if object has Privilege Gradient structure
+ * Privilege Gradients have: [gradient], [[zones]], [[components]], [[influences]]
+ * @param {object} obj - Parsed configuration object
+ * @returns {boolean}
+ */
+function isPrivilegeGradient(obj) {
+  if (obj.gradient) {
+    if (obj.zones || obj.components || obj.influences) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
  * Detect template type from content
  * @param {string} content - Raw configuration content (TOML, JSON, or YAML)
  * @param {string} [format] - Optional format hint ('toml', 'json', 'yaml')
@@ -221,6 +239,11 @@ export function detectTemplateType(content, format = null) {
   }
 
   // Check each type in order of specificity
+  // Privilege Gradient is very specific (has gradient, zones, components)
+  if (isPrivilegeGradient(obj)) {
+    return { type: TemplateType.PRIVILEGE_GRADIENT, confidence: 'high', detectedFormat }
+  }
+
   // Attack Graph is most specific (has unique fields like hosts, vulnerabilities)
   if (isAttackGraph(obj)) {
     return { type: TemplateType.ATTACK_GRAPH, confidence: 'high', detectedFormat }

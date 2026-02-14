@@ -143,7 +143,9 @@ body {
 }
 
 .tabs-primary {
-  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
 }
 
 .tab {

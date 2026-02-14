@@ -747,6 +747,105 @@ export async function analyzeVulnerabilityImpactFromContent(content, vulnId, con
 }
 
 // =============================================================================
+// Privilege Gradient Functions
+// =============================================================================
+
+/**
+ * Generate privilege gradient visualization
+ * @param {File} file - Privilege gradient configuration file
+ * @param {string} format - Output format (png, svg, pdf)
+ * @param {string} style - Style preset
+ */
+export async function visualizePrivilegeGradient(file, format = 'png', style = 'pg_default') {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post(
+    `/visualize/privilege-gradient?format=${format}&style=${style}`,
+    formData,
+    {
+      responseType: 'blob',
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }
+  )
+  return response.data
+}
+
+/**
+ * Generate privilege gradient visualization from text content
+ */
+export async function visualizePrivilegeGradientFromContent(content, outputFormat = 'png', style = 'pg_default', configFormat = 'toml') {
+  const file = createFileFromContent(content, 'privilege_gradient', configFormat)
+  return visualizePrivilegeGradient(file, outputFormat, style)
+}
+
+/**
+ * Analyze privilege gradient
+ * @param {File} file - Privilege gradient configuration file
+ */
+export async function analyzePrivilegeGradient(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/analyze/privilege-gradient', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Analyze privilege gradient from text content
+ */
+export async function analyzePrivilegeGradientFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'privilege_gradient', configFormat)
+  return analyzePrivilegeGradient(file)
+}
+
+/**
+ * Detect privilege gradient inversions
+ * @param {File} file - Privilege gradient configuration file
+ */
+export async function analyzeInversions(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/analyze/inversions', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Detect privilege gradient inversions from text content
+ */
+export async function analyzeInversionsFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'privilege_gradient', configFormat)
+  return analyzeInversions(file)
+}
+
+/**
+ * Validate privilege gradient
+ * @param {File} file - Privilege gradient configuration file
+ */
+export async function validatePrivilegeGradient(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/validate/privilege-gradient', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Validate privilege gradient from text content
+ */
+export async function validatePrivilegeGradientFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'privilege_gradient', configFormat)
+  return validatePrivilegeGradient(file)
+}
+
+// =============================================================================
 // Batch Processing Functions
 // =============================================================================
 
@@ -1629,4 +1728,13 @@ export default {
   getCloudTemplate,
   generateCloudCode,
   generateCloudCodeFromContent,
+  // Privilege Gradient
+  visualizePrivilegeGradient,
+  visualizePrivilegeGradientFromContent,
+  analyzePrivilegeGradient,
+  analyzePrivilegeGradientFromContent,
+  analyzeInversions,
+  analyzeInversionsFromContent,
+  validatePrivilegeGradient,
+  validatePrivilegeGradientFromContent,
 }
