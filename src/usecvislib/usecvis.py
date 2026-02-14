@@ -44,6 +44,7 @@ def Usage() -> None:
     print("                            3 - Attack Graphs")
     print("                            4 - Mermaid Diagrams")
     print("                            5 - Cloud Diagrams")
+    print("                            6 - Privilege Gradient Graphs")
     print("  -s, --styleid <id>      Style ID (per mode):")
     print("                          Attack Trees (mode 0):")
     print("                            at_default, at_corporate, at_neon, at_pastel,")
@@ -62,6 +63,9 @@ def Usage() -> None:
     print("                            tm_default, tm_stride, tm_dark, tm_corporate,")
     print("                            tm_neon, tm_minimal, tm_ocean, tm_sunset,")
     print("                            tm_forest, tm_blueprint, tm_hacker, tm_plain")
+    print("                          Privilege Gradient Graphs (mode 6):")
+    print("                            pg_default, pg_dark, pg_security, pg_neon,")
+    print("                            pg_corporate")
     print("                          Binary Visualization (mode 2):")
     print("                            bv_default, bv_dark, bv_security, bv_ocean,")
     print("                            bv_forest, bv_sunset, bv_cyber, bv_minimal,")
@@ -120,7 +124,7 @@ def validate_mode(mode: int) -> bool:
     Returns:
         True if mode is valid, False otherwise.
     """
-    return mode in [0, 1, 2, 3, 4, 5]
+    return mode in [0, 1, 2, 3, 4, 5, 6]
 
 
 def error_exit(message: str, show_usage: bool = True) -> NoReturn:
@@ -190,7 +194,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             try:
                 mode = int(arg)
             except ValueError:
-                error_exit(f"Invalid mode: {arg}. Must be 0, 1, 2, 3, 4, or 5.")
+                error_exit(f"Invalid mode: {arg}. Must be 0, 1, 2, 3, 4, 5, or 6.")
         elif opt in ("-s", "--styleid"):
             styleid = arg
         elif opt in ("-S", "--stylefile"):
@@ -306,7 +310,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     # Validate mode
     if not validate_mode(mode):
-        error_exit(f"Invalid mode: {mode}. Must be 0, 1, 2, 3, 4, or 5.")
+        error_exit(f"Invalid mode: {mode}. Must be 0, 1, 2, 3, 4, 5, or 6.")
 
     # Execute based on mode
     try:
@@ -467,6 +471,32 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"  Clusters: {stats['cluster_count']}")
             if stats['providers_used']:
                 print(f"  Providers: {', '.join(stats['providers_used'])}")
+
+        elif mode == 6:
+            # Privilege Gradient Graphs
+            from . import privilegegradient
+            pg = privilegegradient.PrivilegeGradient(inputfile, outputfile, format, styleid)
+            pg.BuildPrivilegeGradient()
+            print(f"Privilege gradient graph generated: {outputfile}.{format}")
+
+            # Print stats
+            stats = pg.get_stats()
+            print(f"\nGradient Statistics:")
+            print(f"  Name: {stats['name']}")
+            print(f"  Zones: {stats['total_zones']}")
+            print(f"  Components: {stats['total_components']}")
+            print(f"  Influences: {stats['total_influences']}")
+            print(f"  Inversions: {stats['total_inversions']}")
+            if stats['max_trust_gap'] > 0:
+                print(f"  Max trust gap: {stats['max_trust_gap']}")
+
+            # Print inversions
+            if stats['total_inversions'] > 0:
+                print(f"\nDetected Inversions:")
+                for inv in stats['inversions']:
+                    print(f"  [{inv['severity'].upper()}] {inv['from']} ({inv['from_zone']}) "
+                          f"-> {inv['to']} ({inv['to_zone']}) "
+                          f"[gap={inv['trust_gap']}]")
 
     except FileNotFoundError as e:
         error_exit(str(e), show_usage=False)

@@ -192,6 +192,7 @@ class VisualizationType(str, Enum):
     ATTACK_GRAPH = "attack_graph"
     THREAT_MODEL = "threat_model"
     BINVIS = "binvis"
+    PRIVILEGE_GRADIENT = "privilege_gradient"
 
     @classmethod
     def values(cls) -> List[str]:
@@ -215,6 +216,7 @@ DEFAULTS: Dict[str, any] = {
         "attack_graph": "ag_default",
         "threat_model": "tm_default",
         "binvis": "bv_default",
+        "privilege_gradient": "pg_default",
     },
     "max_file_sizes": {
         "config": 10 * 1024 * 1024,       # 10 MB
@@ -225,6 +227,7 @@ DEFAULTS: Dict[str, any] = {
         "attack_graph": "config_attackgraphs.tml",
         "threat_model": "config_threatmodeling.tml",
         "binvis": "config_binvis.tml",
+        "privilege_gradient": "config_privilegegradient.tml",
     },
     "cvss_display": DEFAULT_CVSS_DISPLAY,
 }
@@ -278,6 +281,18 @@ COLORS: Dict[str, Dict[str, str]] = {
         "external": "#95a5a6",
         "dataflow": "#34495e",
         "boundary": "#e74c3c",
+    },
+    "privilege_gradient": {
+        "zone_untrusted": "#ffcccc",
+        "zone_edge": "#ffe0b2",
+        "zone_application": "#fff9c4",
+        "zone_control": "#c8e6c9",
+        "zone_root": "#bbdefb",
+        "data_influence": "#3498db",
+        "feedback_influence": "#e67e22",
+        "resource_influence": "#27ae60",
+        "control_influence": "#8e44ad",
+        "inversion": "#cc0000",
     },
 }
 

@@ -248,6 +248,15 @@ class AttackGraphStyle(str, Enum):
     TERRA = "ag_terra"
 
 
+class PrivilegeGradientStyle(str, Enum):
+    """Available privilege gradient graph styles."""
+    DEFAULT = "pg_default"
+    DARK = "pg_dark"
+    SECURITY = "pg_security"
+    NEON = "pg_neon"
+    CORPORATE = "pg_corporate"
+
+
 class VisualizationMode(str, Enum):
     """Visualization modes."""
     ATTACK_TREE = "attack_tree"
@@ -257,6 +266,7 @@ class VisualizationMode(str, Enum):
     BINARY = "binary"
     MERMAID = "mermaid"
     CLOUD = "cloud"
+    PRIVILEGE_GRADIENT = "privilege_gradient"
 
 
 class ConfigFormat(str, Enum):
@@ -407,6 +417,50 @@ class GraphStats(BaseModel):
     critical_vulnerabilities: int
     metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
 
+
+class GradientInversion(BaseModel):
+    """A privilege gradient inversion."""
+    source: str = Field(alias="from", description="Source component ID")
+    target: str = Field(alias="to", description="Target component ID")
+    from_zone: str = Field(description="Source zone ID")
+    to_zone: str = Field(description="Target zone ID")
+    from_trust: int = Field(description="Source trust level")
+    to_trust: int = Field(description="Target trust level")
+    trust_gap: int = Field(description="Trust level difference")
+    severity: str = Field(description="Severity: critical, high, medium")
+    influence_type: str = Field(description="Influence type")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class GradientStats(BaseModel):
+    """Privilege gradient graph statistics response."""
+    name: str
+    total_zones: int
+    total_components: int
+    total_influences: int
+    total_inversions: int
+    inversions: List[Dict[str, Any]] = Field(default=[], max_length=1000)
+    components_per_zone: Dict[str, int] = Field(default={})
+    max_trust_gap: int = Field(default=0)
+    metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
+
+
+class InversionsResponse(BaseModel):
+    """Response for privilege gradient inversion analysis."""
+    total: int = Field(description="Total number of inversions detected")
+    by_severity: Dict[str, int] = Field(description="Counts by severity")
+    inversions: List[Dict[str, Any]] = Field(default=[], max_length=1000)
+
+    model_config = ConfigDict(json_schema_extra={
+            "example": {
+                "total": 2,
+                "by_severity": {"critical": 0, "high": 1, "medium": 1},
+                "inversions": [
+                    {"from": "browser", "to": "cert_auth", "severity": "high", "trust_gap": 3}
+                ]
+            }
+        })
 
 class CriticalNode(BaseModel):
     """Critical node in attack graph."""

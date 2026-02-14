@@ -21,6 +21,7 @@ A Python library for creating security visualizations including:
 - Custom Diagrams: Flexible, schema-driven diagram visualization
 - Mermaid Diagrams: Render Mermaid syntax to images via mermaid-cli
 - Cloud Diagrams: Cloud architecture diagrams with provider icons
+- Privilege Gradient Graphs: Trust zone visualization with inversion detection
 
 Example usage:
     >>> from usecvislib import AttackTrees
@@ -82,6 +83,7 @@ from .clouddiagrams import (
     CloudCluster,
     CloudDiagramResult,
 )
+from .privilegegradient import PrivilegeGradient, PrivilegeGradientError
 from .base import VisualizationBase
 from .constants import (
     OutputFormat,
@@ -151,6 +153,7 @@ from .builders import (
     AttackTreeBuilder,
     AttackGraphBuilder,
     ThreatModelBuilder,
+    PrivilegeGradientBuilder,
 )
 from .batch import (
     BatchProcessor,
@@ -226,12 +229,14 @@ __all__ = [
     "CustomDiagrams",
     "MermaidDiagrams",
     "CloudDiagrams",
+    "PrivilegeGradient",
     # Base class
     "VisualizationBase",
     # Builder Classes
     "AttackTreeBuilder",
     "AttackGraphBuilder",
     "ThreatModelBuilder",
+    "PrivilegeGradientBuilder",
     # Result Classes
     "Severity",
     "TemplateMetadata",
@@ -270,6 +275,7 @@ __all__ = [
     "CloudDiagramError",
     "DiagramsNotInstalledError",
     "IconNotFoundError",
+    "PrivilegeGradientError",
     "ConfigError",
     "FileError",
     "SecurityError",

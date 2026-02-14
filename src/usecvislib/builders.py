@@ -15,7 +15,8 @@
 Builder classes for programmatically creating security visualizations.
 
 This module provides fluent builder interfaces for creating attack trees,
-attack graphs, and threat models without needing to write configuration files.
+attack graphs, threat models, and privilege gradient graphs without needing
+to write configuration files.
 
 Example:
     >>> tree = (
@@ -850,3 +851,300 @@ class ThreatModelBuilder:
         tm = ThreatModeling(temp_path, outputfile, format=format, styleid=styleid)
         tm._temp_input = temp_path  # Mark for cleanup
         return tm
+
+
+class PrivilegeGradientBuilder:
+    """Builder for programmatically creating privilege gradient graphs.
+
+    Provides a fluent interface for constructing privilege gradient graphs
+    with trust zones, components, influence types, and influences.
+
+    Example:
+        >>> builder = PrivilegeGradientBuilder("Auth Architecture")
+        >>> builder.add_component("browser", "Browser", "Z0")
+        >>> builder.add_component("api_gw", "API Gateway", "Z1")
+        >>> builder.add_data_influence("browser", "api_gw", "HTTP Request")
+        >>> pg = builder.to_privilege_gradient("output")
+    """
+
+    DEFAULT_ZONES = [
+        {"id": "Z0", "label": "Untrusted / External", "trust_level": 0,
+         "color": "#ffcccc", "border_color": "#cc0000", "font_color": "#660000"},
+        {"id": "Z1", "label": "Edge / DMZ", "trust_level": 1,
+         "color": "#ffe0b2", "border_color": "#e65100", "font_color": "#663300"},
+        {"id": "Z2", "label": "Application Tier", "trust_level": 2,
+         "color": "#fff9c4", "border_color": "#f9a825", "font_color": "#665500"},
+        {"id": "Z3", "label": "Control Plane", "trust_level": 3,
+         "color": "#c8e6c9", "border_color": "#2e7d32", "font_color": "#1b5e20"},
+        {"id": "Z4", "label": "Root of Trust", "trust_level": 4,
+         "color": "#bbdefb", "border_color": "#1565c0", "font_color": "#0d47a1"},
+    ]
+
+    DEFAULT_INFLUENCE_TYPES = [
+        {"id": "data", "label": "Data Flow", "color": "#3498db",
+         "style": "solid", "arrowhead": "vee", "penwidth": "1.5"},
+        {"id": "feedback", "label": "Feedback", "color": "#e67e22",
+         "style": "dashed", "arrowhead": "vee", "penwidth": "1.5"},
+        {"id": "resource", "label": "Resource", "color": "#27ae60",
+         "style": "dotted", "arrowhead": "diamond", "penwidth": "2"},
+        {"id": "control", "label": "Control", "color": "#8e44ad",
+         "style": "bold", "arrowhead": "dot", "penwidth": "2"},
+    ]
+
+    def __init__(
+        self,
+        name: str,
+        description: str = "",
+        use_default_zones: bool = True,
+        use_default_influence_types: bool = True
+    ):
+        """Initialize PrivilegeGradientBuilder.
+
+        Args:
+            name: Name of the privilege gradient graph.
+            description: Optional description.
+            use_default_zones: Whether to include default trust zones.
+            use_default_influence_types: Whether to include default influence types.
+        """
+        self._data: Dict[str, Any] = {
+            "gradient": {
+                "name": name,
+                "description": description,
+            },
+            "zones": [],
+            "components": [],
+            "influence_types": [],
+            "influences": [],
+        }
+
+        if use_default_zones:
+            for z in self.DEFAULT_ZONES:
+                self._data["zones"].append(z.copy())
+
+        if use_default_influence_types:
+            for it in self.DEFAULT_INFLUENCE_TYPES:
+                self._data["influence_types"].append(it.copy())
+
+        self._influence_counter = 0
+
+    def add_zone(
+        self,
+        zone_id: str,
+        label: str,
+        trust_level: int,
+        color: str = "#f0f0f0",
+        border_color: str = "#999999",
+        font_color: str = "#333333",
+        **attrs
+    ) -> 'PrivilegeGradientBuilder':
+        """Add a trust zone.
+
+        Args:
+            zone_id: Unique identifier for the zone.
+            label: Display label.
+            trust_level: Trust level (0 = lowest).
+            color: Zone background fill color.
+            border_color: Zone border color.
+            font_color: Zone label font color.
+            **attrs: Additional attributes.
+
+        Returns:
+            Self for method chaining.
+        """
+        self._data["zones"].append({
+            "id": zone_id,
+            "label": label,
+            "trust_level": trust_level,
+            "color": color,
+            "border_color": border_color,
+            "font_color": font_color,
+            **attrs
+        })
+        return self
+
+    def add_component(
+        self,
+        comp_id: str,
+        label: str,
+        zone: str,
+        **attrs
+    ) -> 'PrivilegeGradientBuilder':
+        """Add a component to a zone.
+
+        Args:
+            comp_id: Unique identifier for the component.
+            label: Display label.
+            zone: Zone ID this component belongs to.
+            **attrs: Additional attributes.
+
+        Returns:
+            Self for method chaining.
+        """
+        self._data["components"].append({
+            "id": comp_id,
+            "label": label,
+            "zone": zone,
+            **attrs
+        })
+        return self
+
+    def add_influence_type(
+        self,
+        type_id: str,
+        label: str,
+        color: str = "#333333",
+        style: str = "solid",
+        arrowhead: str = "vee",
+        penwidth: str = "1.5",
+        **attrs
+    ) -> 'PrivilegeGradientBuilder':
+        """Add an influence type definition.
+
+        Args:
+            type_id: Unique identifier for the influence type.
+            label: Display label.
+            color: Edge color.
+            style: Edge style (solid, dashed, dotted, bold).
+            arrowhead: Arrow head style.
+            penwidth: Edge pen width.
+            **attrs: Additional attributes.
+
+        Returns:
+            Self for method chaining.
+        """
+        self._data["influence_types"].append({
+            "id": type_id,
+            "label": label,
+            "color": color,
+            "style": style,
+            "arrowhead": arrowhead,
+            "penwidth": penwidth,
+            **attrs
+        })
+        return self
+
+    def add_influence(
+        self,
+        from_comp: str,
+        to_comp: str,
+        influence_type: str = "data",
+        label: str = "",
+        influence_id: Optional[str] = None,
+        **attrs
+    ) -> 'PrivilegeGradientBuilder':
+        """Add an influence edge between components.
+
+        Args:
+            from_comp: Source component ID.
+            to_comp: Target component ID.
+            influence_type: Influence type ID.
+            label: Edge label.
+            influence_id: Optional unique ID for the influence.
+            **attrs: Additional attributes.
+
+        Returns:
+            Self for method chaining.
+        """
+        if influence_id is None:
+            self._influence_counter += 1
+            influence_id = f"inf_{self._influence_counter}"
+
+        influence = {
+            "id": influence_id,
+            "from": from_comp,
+            "to": to_comp,
+            "type": influence_type,
+            **attrs
+        }
+        if label:
+            influence["label"] = label
+        self._data["influences"].append(influence)
+        return self
+
+    def add_data_influence(
+        self, from_comp: str, to_comp: str, label: str = "", **attrs
+    ) -> 'PrivilegeGradientBuilder':
+        """Add a data flow influence."""
+        return self.add_influence(from_comp, to_comp, "data", label, **attrs)
+
+    def add_feedback_influence(
+        self, from_comp: str, to_comp: str, label: str = "", **attrs
+    ) -> 'PrivilegeGradientBuilder':
+        """Add a feedback influence."""
+        return self.add_influence(from_comp, to_comp, "feedback", label, **attrs)
+
+    def add_resource_influence(
+        self, from_comp: str, to_comp: str, label: str = "", **attrs
+    ) -> 'PrivilegeGradientBuilder':
+        """Add a resource dependency influence."""
+        return self.add_influence(from_comp, to_comp, "resource", label, **attrs)
+
+    def add_control_influence(
+        self, from_comp: str, to_comp: str, label: str = "", **attrs
+    ) -> 'PrivilegeGradientBuilder':
+        """Add a control flow influence."""
+        return self.add_influence(from_comp, to_comp, "control", label, **attrs)
+
+    def set_gradient_attribute(self, key: str, value: Any) -> 'PrivilegeGradientBuilder':
+        """Set a gradient-level attribute.
+
+        Args:
+            key: Attribute name.
+            value: Attribute value.
+
+        Returns:
+            Self for method chaining.
+        """
+        self._data["gradient"][key] = value
+        return self
+
+    def build(self) -> Dict[str, Any]:
+        """Build and return the data as a dictionary.
+
+        Returns:
+            Dictionary representation of the privilege gradient graph.
+        """
+        return self._data.copy()
+
+    def to_json(self, pretty: bool = True) -> str:
+        """Convert to JSON string.
+
+        Args:
+            pretty: Whether to use pretty formatting.
+
+        Returns:
+            JSON string representation.
+        """
+        if pretty:
+            return json.dumps(self._data, indent=2)
+        return json.dumps(self._data)
+
+    def to_privilege_gradient(
+        self,
+        outputfile: str,
+        format: str = "png",
+        styleid: str = "pg_default"
+    ) -> 'PrivilegeGradient':
+        """Create PrivilegeGradient instance from builder data.
+
+        Args:
+            outputfile: Output file path (without extension).
+            format: Output format (png, svg, pdf, dot).
+            styleid: Style identifier to use.
+
+        Returns:
+            Configured PrivilegeGradient instance ready for rendering.
+        """
+        from .privilegegradient import PrivilegeGradient
+
+        with tempfile.NamedTemporaryFile(
+            mode='w',
+            suffix='.json',
+            delete=False
+        ) as f:
+            json.dump(self._data, f)
+            temp_path = f.name
+
+        pg = PrivilegeGradient(temp_path, outputfile, format=format, styleid=styleid)
+        pg._temp_input = temp_path
+        return pg

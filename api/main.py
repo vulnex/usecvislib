@@ -58,6 +58,7 @@ from .routers import (
     icons,
     settings,
     utilities,
+    privilege_gradient,
 )
 
 logger = logging.getLogger("usecvislib.api")
@@ -206,6 +207,7 @@ app.include_router(cloud.router)
 app.include_router(images.router)
 app.include_router(icons.router)
 app.include_router(settings.router)
+app.include_router(privilege_gradient.router)
 
 
 # =============================================================================

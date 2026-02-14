@@ -1,0 +1,78 @@
+#
+# Config Privilege Gradient Graph Styles
+#
+# Element types:
+#   - graph: Overall graph attributes
+#   - zone: Trust zone column styling
+#   - component: Component node styling
+#   - inversion: Privilege gradient inversion edge styling
+#   - data_influence: Data flow influence edge styling
+#   - feedback_influence: Feedback loop influence edge styling
+#   - resource_influence: Resource dependency influence edge styling
+#   - control_influence: Control flow influence edge styling
+#
+
+# =============================================================================
+# Default Style - Clean professional look
+# =============================================================================
+[pg_default]
+graph = {rankdir = "LR", bgcolor = "white", fontname = "Arial", splines = "spline", compound = "true", nodesep = "0.6", ranksep = "1.2", fontsize = "14", label = "", labelloc = "t"}
+zone = {style = "filled,rounded", fontname = "Arial Bold", fontsize = "13", fontcolor = "#333333", penwidth = "2"}
+component = {shape = "box", style = "filled,rounded", fontname = "Arial", fontsize = "10", fontcolor = "white", margin = "0.15,0.08", penwidth = "1.5"}
+inversion = {color = "#cc0000", style = "bold", fontname = "Arial Bold", fontsize = "9", fontcolor = "#cc0000", penwidth = "3", arrowhead = "normal", arrowsize = "1.2"}
+data_influence = {color = "#3498db", style = "solid", fontname = "Arial", fontsize = "9", fontcolor = "#3498db", penwidth = "1.5", arrowhead = "vee"}
+feedback_influence = {color = "#e67e22", style = "dashed", fontname = "Arial", fontsize = "9", fontcolor = "#e67e22", penwidth = "1.5", arrowhead = "vee"}
+resource_influence = {color = "#27ae60", style = "dotted", fontname = "Arial", fontsize = "9", fontcolor = "#27ae60", penwidth = "2", arrowhead = "diamond"}
+control_influence = {color = "#8e44ad", style = "bold", fontname = "Arial", fontsize = "9", fontcolor = "#8e44ad", penwidth = "2", arrowhead = "dot"}
+
+# =============================================================================
+# Dark - Dark theme with high contrast
+# =============================================================================
+[pg_dark]
+graph = {rankdir = "LR", bgcolor = "#1a1a2e", fontname = "Arial", fontcolor = "#e0e0e0", splines = "spline", compound = "true", nodesep = "0.6", ranksep = "1.2", fontsize = "14", label = "", labelloc = "t"}
+zone = {style = "filled,rounded", fontname = "Arial Bold", fontsize = "13", fontcolor = "#e0e0e0", penwidth = "2"}
+component = {shape = "box", style = "filled,rounded", fontname = "Arial", fontsize = "10", fontcolor = "#e0e0e0", margin = "0.15,0.08", penwidth = "2"}
+inversion = {color = "#ff4444", style = "bold", fontname = "Arial Bold", fontsize = "9", fontcolor = "#ff4444", penwidth = "3", arrowhead = "normal", arrowsize = "1.2"}
+data_influence = {color = "#4a90d9", style = "solid", fontname = "Arial", fontsize = "9", fontcolor = "#4a90d9", penwidth = "1.5", arrowhead = "vee"}
+feedback_influence = {color = "#f0a030", style = "dashed", fontname = "Arial", fontsize = "9", fontcolor = "#f0a030", penwidth = "1.5", arrowhead = "vee"}
+resource_influence = {color = "#5ed98a", style = "dotted", fontname = "Arial", fontsize = "9", fontcolor = "#5ed98a", penwidth = "2", arrowhead = "diamond"}
+control_influence = {color = "#c77dff", style = "bold", fontname = "Arial", fontsize = "9", fontcolor = "#c77dff", penwidth = "2", arrowhead = "dot"}
+
+# =============================================================================
+# Security - Threat-focused red/orange emphasis
+# =============================================================================
+[pg_security]
+graph = {rankdir = "LR", bgcolor = "#fafafa", fontname = "Arial", splines = "spline", compound = "true", nodesep = "0.6", ranksep = "1.2", fontsize = "14", label = "", labelloc = "t"}
+zone = {style = "filled,rounded", fontname = "Arial Bold", fontsize = "13", fontcolor = "#2c3e50", penwidth = "3"}
+component = {shape = "box", style = "filled,rounded", fontname = "Arial Bold", fontsize = "10", fontcolor = "white", margin = "0.15,0.08", penwidth = "2"}
+inversion = {color = "#8b0000", style = "bold", fontname = "Arial Bold", fontsize = "10", fontcolor = "#8b0000", penwidth = "4", arrowhead = "normal", arrowsize = "1.4"}
+data_influence = {color = "#2c3e50", style = "solid", fontname = "Arial", fontsize = "9", fontcolor = "#2c3e50", penwidth = "2", arrowhead = "vee"}
+feedback_influence = {color = "#d35400", style = "dashed", fontname = "Arial", fontsize = "9", fontcolor = "#d35400", penwidth = "2", arrowhead = "vee"}
+resource_influence = {color = "#7f8c8d", style = "dotted", fontname = "Arial", fontsize = "9", fontcolor = "#7f8c8d", penwidth = "2", arrowhead = "diamond"}
+control_influence = {color = "#c0392b", style = "bold", fontname = "Arial", fontsize = "9", fontcolor = "#c0392b", penwidth = "2.5", arrowhead = "dot"}
+
+# =============================================================================
+# Neon - Cyberpunk fluorescent style
+# =============================================================================
+[pg_neon]
+graph = {rankdir = "LR", bgcolor = "#0d0d0d", fontname = "Consolas", fontcolor = "#00ff9f", splines = "spline", compound = "true", nodesep = "0.6", ranksep = "1.2", fontsize = "14", label = "", labelloc = "t"}
+zone = {style = "filled,rounded", fontname = "Consolas", fontsize = "13", fontcolor = "#00ff9f", penwidth = "2"}
+component = {shape = "box", style = "filled,rounded", fontname = "Consolas", fontsize = "10", fontcolor = "#00ff9f", margin = "0.15,0.08", penwidth = "2"}
+inversion = {color = "#ff0080", style = "bold", fontname = "Consolas", fontsize = "9", fontcolor = "#ff0080", penwidth = "3", arrowhead = "normal", arrowsize = "1.2"}
+data_influence = {color = "#00d4ff", style = "solid", fontname = "Consolas", fontsize = "9", fontcolor = "#00d4ff", penwidth = "2", arrowhead = "vee"}
+feedback_influence = {color = "#ffff00", style = "dashed", fontname = "Consolas", fontsize = "9", fontcolor = "#ffff00", penwidth = "2", arrowhead = "vee"}
+resource_influence = {color = "#00ff9f", style = "dotted", fontname = "Consolas", fontsize = "9", fontcolor = "#00ff9f", penwidth = "2", arrowhead = "diamond"}
+control_influence = {color = "#ff6600", style = "bold", fontname = "Consolas", fontsize = "9", fontcolor = "#ff6600", penwidth = "2", arrowhead = "dot"}
+
+# =============================================================================
+# Corporate - Enterprise professional navy/gold
+# =============================================================================
+[pg_corporate]
+graph = {rankdir = "LR", bgcolor = "#fafafa", fontname = "Arial", splines = "spline", compound = "true", nodesep = "0.6", ranksep = "1.2", fontsize = "14", label = "", labelloc = "t"}
+zone = {style = "filled,rounded", fontname = "Arial", fontsize = "13", fontcolor = "#1e3a5f", penwidth = "2"}
+component = {shape = "box", style = "filled,rounded", fontname = "Arial", fontsize = "10", fontcolor = "white", margin = "0.15,0.08", penwidth = "1.5"}
+inversion = {color = "#8b0000", style = "bold", fontname = "Arial Bold", fontsize = "9", fontcolor = "#8b0000", penwidth = "3", arrowhead = "normal", arrowsize = "1.2"}
+data_influence = {color = "#4682b4", style = "solid", fontname = "Arial", fontsize = "9", fontcolor = "#4682b4", penwidth = "1.5", arrowhead = "vee"}
+feedback_influence = {color = "#b8860b", style = "dashed", fontname = "Arial", fontsize = "9", fontcolor = "#b8860b", penwidth = "1.5", arrowhead = "vee"}
+resource_influence = {color = "#3d5a80", style = "dotted", fontname = "Arial", fontsize = "9", fontcolor = "#3d5a80", penwidth = "2", arrowhead = "diamond"}
+control_influence = {color = "#6b7b8c", style = "bold", fontname = "Arial", fontsize = "9", fontcolor = "#6b7b8c", penwidth = "2", arrowhead = "dot"}
