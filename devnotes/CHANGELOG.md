@@ -9,20 +9,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **MCP Server (`usecvislib-mcp` v0.1.0)**
+- **MCP Server (`usecvislib-mcp` v0.4.0)**
+  - Streamable-HTTP transport support via `USECVISLIB_MCP_TRANSPORT=streamable-http`
+  - API key authentication for HTTP transports (`USECVISLIB_MCP_API_KEY`) using SHA-256 hashed constant-time comparison
+  - `/health` endpoint (unauthenticated) for container health checks
+  - Production `Dockerfile` based on usecvislib-api image with streamable-http defaults
+  - `usecvislib-mcp` service in `docker-compose.yml` (port 8001, depends on usecvislib-api)
+  - `README.md` with installation, transport options, authentication, Docker deployment, client setup examples
+  - `docs/MCP_TOOLS.md` comprehensive tool reference (49 tools, 15 resources, 6 prompts)
+  - 130 tests (all passing) — added `test_auth.py` (4 tests) and new config getter tests (7 tests)
+  - `uvicorn` dependency for HTTP transport serving
+  - MCP environment variables in `.env.example`
+
+- **MCP Server (`usecvislib-mcp` v0.3.0)**
   - New `usecvislib-mcp` package (sibling repo) wrapping USecVisLib via the MCP SDK's `FastMCP` class
-  - 14 MCP tools:
-    - Attack Trees: `generate_attack_tree`, `validate_attack_tree`, `get_attack_tree_stats`, `build_attack_tree_from_spec`
-    - Attack Graphs: `generate_attack_graph`, `validate_attack_graph`, `get_attack_graph_stats`, `find_attack_paths`, `analyze_critical_nodes`
-    - Threat Models: `generate_threat_model`, `validate_threat_model`, `get_threat_model_stats`, `analyze_stride_threats`
-    - Mermaid: `render_mermaid`
-  - 9 MCP resources:
+  - 49 MCP tools across 13 modules:
+    - Attack Trees (4): `generate_attack_tree`, `validate_attack_tree`, `get_attack_tree_stats`, `build_attack_tree_from_spec`
+    - Attack Graphs (5): `generate_attack_graph`, `validate_attack_graph`, `get_attack_graph_stats`, `find_attack_paths`, `analyze_critical_nodes`
+    - Threat Models (4): `generate_threat_model`, `validate_threat_model`, `get_threat_model_stats`, `analyze_stride_threats`
+    - Mermaid (1): `render_mermaid`
+    - Binary Analysis (5): `analyze_binary_entropy`, `analyze_binary_distribution`, `analyze_binary_heatmap`, `analyze_binary_all`, `get_binary_stats`
+    - Cloud Diagrams (6): `generate_cloud_diagram`, `validate_cloud_diagram`, `get_cloud_diagram_stats`, `search_cloud_icons`, `list_cloud_providers`, `list_cloud_icons`
+    - Privilege Gradient (5): `generate_privilege_gradient`, `validate_privilege_gradient`, `get_privilege_gradient_stats`, `detect_privilege_inversions`, `analyze_zone_influence`
+    - Custom Diagrams (3): `generate_custom_diagram`, `validate_custom_diagram`, `get_custom_diagram_stats`
+    - Architecture (6): `generate_component_diagram`, `validate_component_diagram`, `get_component_diagram_stats`, `generate_dependency_graph`, `validate_dependency_graph`, `get_dependency_graph_stats`
+    - Utilities (4): `convert_to_mermaid`, `calculate_cvss_score`, `detect_config_type`, `list_shapes`
+    - Batch (1): `batch_process` — parallel processing of multiple configs via `process_batch()`
+    - Export (2): `export_data` (JSON/CSV/YAML/Markdown), `generate_report` (multi-format report generation via `ReportGenerator`)
+    - Analysis (3): `find_chokepoints`, `analyze_centrality` (betweenness centrality), `compare_visualizations` (structural diff via `compare_files()`)
+  - 15 MCP resources:
     - Template browsing: `usecvislib://templates/list`, `usecvislib://templates/{category}/list`, `usecvislib://templates/{category}/{name}`
     - Style catalog: `usecvislib://styles/list`, `usecvislib://styles/{visualization_type}`
-    - Config schemas: `usecvislib://schemas/attack-tree`, `usecvislib://schemas/attack-graph`, `usecvislib://schemas/threat-model`, `usecvislib://schemas/mermaid`
-  - 3 MCP prompt templates: `create_attack_tree`, `create_threat_model`, `create_attack_graph`
-  - Core infrastructure: env-based config, file/base64 output modes, async executor wrapping, temp file lifecycle management
-  - 58 tests (all passing in Docker with Graphviz + mermaid-cli)
+    - Config schemas: `usecvislib://schemas/attack-tree`, `usecvislib://schemas/attack-graph`, `usecvislib://schemas/threat-model`, `usecvislib://schemas/mermaid`, `usecvislib://schemas/binary-analysis`, `usecvislib://schemas/cloud-diagram`, `usecvislib://schemas/privilege-gradient`, `usecvislib://schemas/custom-diagram`, `usecvislib://schemas/component-diagram`, `usecvislib://schemas/dependency-graph`
+  - 6 MCP prompt templates: `create_attack_tree`, `create_threat_model`, `create_attack_graph`, `analyze_binary`, `create_privilege_gradient`, `review_cloud_security`
+  - Skill directory (`skill/SKILL.md`) with visualization selection guide, per-type configuration best practices, style recommendations by audience, 4 multi-step workflow orchestrations (Comprehensive Security Assessment, Binary Triage Pipeline, Cloud Security Review, Attack Surface Mapping), export/output guidance, and auto-detection guidance
+  - 3 example JSON configs: `attack_tree_web_app.json`, `threat_model_microservice.json`, `cloud_aws_three_tier.json`
+  - Core infrastructure: env-based config, file/base64 output modes, async executor wrapping, temp file lifecycle management, Pattern A and Pattern B helper functions
+  - 119 tests (all passing in Docker with Graphviz + mermaid-cli + diagrams)
   - Entry point: `usecvislib-mcp = "usecvislib_mcp.server:main"`
 
 ## [0.3.4] - 2026-02-14

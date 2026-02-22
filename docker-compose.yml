@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile
     container_name: usecvislib-api
     ports:
-      - "8000:8000"
+      - "8003:8000"
     environment:
       - PYTHONUNBUFFERED=1
       # Authentication settings (disabled by default for easy setup)
@@ -21,6 +21,8 @@ services:
       # Image upload configuration
       - IMAGE_UPLOAD_DIR=/app/images
       - IMAGE_CLEANUP_AGE=${IMAGE_CLEANUP_AGE:-3600}
+      # CORS: Allow BytesRevealer and default origins
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3001,http://localhost:3000,http://127.0.0.1:3001,http://127.0.0.1:3000,http://localhost:8080}
     volumes:
       # Mount for persistent output files (optional)
       - ./output:/app/output
@@ -72,6 +74,34 @@ services:
     # Override command when running (supports .tml, .toml, .json, .yaml, .yml):
     # docker-compose run --rm usecvislib-cli -i /app/input/file.json -o /app/output/result -m 0
     # docker-compose run --rm usecvislib-cli -i /app/input/file.yaml -o /app/output/result -m 1
+
+  # =============================================================================
+  # USecVisLib MCP Server
+  # =============================================================================
+  usecvislib-mcp:
+    build:
+      context: ../usecvislib-mcp
+      args:
+        BASE_IMAGE: usecvislib-usecvislib-api:latest
+    container_name: usecvislib-mcp
+    ports:
+      - "8001:8000"
+    environment:
+      - USECVISLIB_MCP_TRANSPORT=${USECVISLIB_MCP_TRANSPORT:-streamable-http}
+      - USECVISLIB_MCP_HOST=0.0.0.0
+      - USECVISLIB_MCP_PORT=8000
+      - USECVISLIB_MCP_API_KEY=${USECVISLIB_MCP_API_KEY:-}
+      - USECVISLIB_MCP_LOG_LEVEL=${USECVISLIB_MCP_LOG_LEVEL:-INFO}
+    depends_on:
+      usecvislib-api:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
 # =============================================================================
 # Volumes
