@@ -5,11 +5,11 @@
 <h1 align="center">Universal Security Visualization Library</h1>
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python](https://img.shields.io/badge/Python-3.8+-green.svg)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.10+-green.svg)](https://python.org)
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.x-brightgreen.svg)](https://vuejs.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-teal.svg)](https://fastapi.tiangolo.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-teal.svg)](https://fastapi.tiangolo.com)
 
-A comprehensive Python library and web application for creating security visualizations including attack trees, attack graphs, threat models, binary analysis diagrams, Mermaid diagrams, and cloud architecture diagrams.
+A comprehensive Python library and web application for creating security visualizations including attack trees, attack graphs, threat models, binary analysis diagrams, custom diagrams, Mermaid diagrams, cloud architecture diagrams, privilege gradient graphs, component diagrams, and dependency graphs.
 
 ![USecVisLib](docs/images/ui-main.png)
 
@@ -19,12 +19,15 @@ A comprehensive Python library and web application for creating security visuali
 
 | Module | Description | Key Features |
 |--------|-------------|--------------|
-| **Attack Trees** | Hierarchical attack scenario diagrams | AND/OR gates, leaf nodes, 13 style presets |
-| **Attack Graphs** | Network attack path visualization | Path finding, critical node analysis, CVSS scoring |
+| **Attack Trees** | Hierarchical attack scenario diagrams | AND/OR gates, leaf nodes, 18 style presets, CVSS scoring |
+| **Attack Graphs** | Network attack path visualization | Path finding, critical node analysis, CVSS 3.x/4.0 scoring |
 | **Threat Modeling** | Data Flow Diagrams with STRIDE analysis | PyTM integration, report generation, trust boundaries |
 | **Custom Diagrams** | Flexible schema-driven diagrams | 100+ shapes, 20+ templates, custom schemas |
 | **Mermaid Diagrams** | Render Mermaid syntax to images | Flowcharts, sequence, class, state, ER, Gantt, pie charts |
 | **Cloud Diagrams** | Cloud architecture visualization | AWS, Azure, GCP, Kubernetes icons, clusters, templates |
+| **Privilege Gradient** | Trust zone and privilege level visualization | Zone inversion detection, escalation pathways, 5 styles |
+| **Component Diagrams** | Software component architecture diagrams | Layered architecture, connection types (sync/async/event), 4 styles |
+| **Dependency Graphs** | Module/package dependency visualization | SLOC-based sizing, circular dependency detection, 4 styles |
 | **Binary Analysis** | Binary file pattern visualization | Entropy, byte distribution, wind rose, heatmap |
 
 ### Platform Features
@@ -59,6 +62,12 @@ A comprehensive Python library and web application for creating security visuali
 ### Cloud Diagrams
 ![Cloud Diagrams](docs/images/cloud.png)
 
+### Privilege Gradient
+![Privilege Gradient](docs/images/privilege-gradient.png)
+
+### Architecture (Component Diagrams & Dependency Graphs)
+![Architecture](docs/images/architecture.png)
+
 ### Binary Analysis
 ![Binary Analysis](docs/images/binary-vis.png)
 
@@ -67,7 +76,7 @@ A comprehensive Python library and web application for creating security visuali
 The web interface provides an intuitive way to create visualizations:
 
 ### Navigation
-- **Primary Tabs**: Attack Trees, Attack Graphs, Threat Modeling, Custom Diagrams, Mermaid, Cloud, Binary Analysis
+- **Primary Tabs**: Attack Trees, Attack Graphs, Threat Modeling, Custom Diagrams, Mermaid, Cloud, Architecture (Component Diagrams & Dependency Graphs), Privilege Gradient, Binary Analysis
 - **Tools Menu**: CVSS Calculator, Format Converter, Batch Processing, Export, Compare
 - **Header Actions**: Documentation, Settings, Clean/Reset
 
@@ -81,7 +90,7 @@ The web interface provides an intuitive way to create visualizations:
 
 See the [UI Guide](docs/UI_GUIDE.md) for detailed documentation.
 
-For Custom Diagrams, see the [Custom Diagrams Guide](docs/CUSTOM_DIAGRAMS_GUIDE.md).
+For Custom Diagrams, see the [Custom Diagrams Guide](docs/CUSTOM_DIAGRAMS_GUIDE.md). For CLI usage, see the [CLI Guide](docs/CLI_GUIDE.md). For the Python library API, see the [Python API Reference](docs/PYTHON_API.md).
 
 ## Installation
 
@@ -130,7 +139,7 @@ cd ..
 
 ### System Requirements
 
-- Python 3.8+
+- Python 3.10+
 - Node.js 18+ (for frontend)
 - Graphviz (for graph rendering)
 
@@ -187,6 +196,15 @@ usecvis -m 2 -i binary.exe -o analysis -v all
 # Custom Diagram
 usecvis -m 4 -i diagram.toml -o output -f png -s cd_default
 
+# Privilege Gradient Graph
+usecvis -m 6 -i gradient.toml -o output -f png -s pg_default
+
+# Component Diagram
+usecvis -m 7 -i components.toml -o output -f png -s cd_default
+
+# Dependency Graph
+usecvis -m 8 -i dependencies.toml -o output -f png -s dg_default
+
 # Format Conversion (including Mermaid export)
 usecvis -i attack.toml -o output --convert json
 usecvis -i threat.yaml -o diagram --convert mermaid
@@ -195,7 +213,9 @@ usecvis -i threat.yaml -o diagram --convert mermaid
 ### Python API
 
 ```python
-from usecvislib import AttackTrees, AttackGraphs, ThreatModeling, BinVis, CustomDiagrams
+from usecvislib import (AttackTrees, AttackGraphs, ThreatModeling, BinVis,
+                        CustomDiagrams, PrivilegeGradient, ComponentDiagram,
+                        DependencyGraph)
 
 # Attack Trees
 at = AttackTrees("attack.toml", "output", format="png", styleid="at_neon")
@@ -224,6 +244,18 @@ cd = CustomDiagrams()
 cd.load("diagram.toml")
 result = cd.BuildCustomDiagram(output="diagram", format="png")
 stats = cd.get_stats()
+
+# Privilege Gradient
+pg = PrivilegeGradient("gradient.toml", "output", format="png", styleid="pg_default")
+pg.build()
+
+# Component Diagram
+comp = ComponentDiagram("components.toml", "output", format="png", styleid="cd_default")
+comp.build()
+
+# Dependency Graph
+dg = DependencyGraph("dependencies.toml", "output", format="png", styleid="dg_default")
+dg.build()
 
 # Mermaid Diagrams (render Mermaid syntax to images)
 from usecvislib import MermaidDiagrams
@@ -460,14 +492,23 @@ label = "SQL"
 
 ## Available Styles
 
-### Attack Trees (13 styles)
-`at_default`, `at_white_black`, `at_black_white`, `at_corporate`, `at_neon`, `at_pastel`, `at_forest`, `at_fire`, `at_blueprint`, `at_sunset`, `at_hacker`, `at_minimal`, `at_plain`
+### Attack Trees (18 styles)
+`at_default`, `at_white_black`, `at_black_white`, `at_corporate`, `at_neon`, `at_pastel`, `at_forest`, `at_fire`, `at_blueprint`, `at_sunset`, `at_hacker`, `at_minimal`, `at_plain`, `at_nordic`, `at_amethyst`, `at_steel`, `at_glacier`, `at_terra`
 
-### Attack Graphs (10 styles)
-`ag_default`, `ag_dark`, `ag_security`, `ag_network`, `ag_minimal`, `ag_neon`, `ag_corporate`, `ag_hacker`, `ag_blueprint`, `ag_plain`
+### Attack Graphs (16 styles)
+`ag_default`, `ag_dark`, `ag_security`, `ag_network`, `ag_minimal`, `ag_neon`, `ag_corporate`, `ag_hacker`, `ag_blueprint`, `ag_plain`, `ag_nordic`, `ag_amethyst`, `ag_steel`, `ag_glacier`, `ag_terra`, `ag_doc_light`
 
-### Threat Models (12 styles)
-`tm_default`, `tm_stride`, `tm_dark`, `tm_corporate`, `tm_neon`, `tm_minimal`, `tm_ocean`, `tm_sunset`, `tm_forest`, `tm_blueprint`, `tm_hacker`, `tm_plain`
+### Threat Models (14 styles)
+`tm_default`, `tm_stride`, `tm_dark`, `tm_corporate`, `tm_neon`, `tm_minimal`, `tm_ocean`, `tm_sunset`, `tm_forest`, `tm_blueprint`, `tm_hacker`, `tm_plain`, `tm_doc_light`, `tm_doc_clean`
+
+### Privilege Gradient (5 styles)
+`pg_default`, `pg_dark`, `pg_security`, `pg_neon`, `pg_corporate`
+
+### Component Diagrams (4 styles)
+`cd_default`, `cd_blueprint`, `cd_minimal`, `cd_dark`
+
+### Dependency Graphs (4 styles)
+`dg_default`, `dg_dark`, `dg_minimal`, `dg_coupling`
 
 ### Binary Visualization (12 styles)
 `bv_default`, `bv_dark`, `bv_security`, `bv_ocean`, `bv_forest`, `bv_sunset`, `bv_cyber`, `bv_minimal`, `bv_corporate`, `bv_fire`, `bv_purple`, `bv_rainbow`
@@ -508,6 +549,12 @@ The FastAPI-based REST API provides programmatic access to all features.
 | | `/cloud/template/{category}/{name}` | GET | Get template content |
 | | `/cloud/icons` | GET | List available cloud icons |
 | | `/cloud/providers` | GET | List supported providers |
+| **Privilege Gradient** | `/visualize/privilege-gradient` | POST | Generate privilege gradient |
+| | `/analyze/privilege-gradient` | POST | Analyze trust zones |
+| **Architecture** | `/visualize/component-diagram` | POST | Generate component diagram |
+| | `/analyze/component-diagram` | POST | Get component statistics |
+| | `/visualize/dependency-graph` | POST | Generate dependency graph |
+| | `/analyze/dependency-graph` | POST | Get dependency statistics |
 | **Utilities** | `/convert` | POST | Convert formats |
 | | `/styles` | GET | List available styles |
 | | `/templates` | GET | List templates |
@@ -532,6 +579,10 @@ usecvislib/
 │   ├── customdiagrams.py     # Custom diagrams module
 │   ├── mermaiddiagrams.py    # Mermaid diagram rendering
 │   ├── clouddiagrams.py      # Cloud architecture diagrams
+│   ├── privilegegradient.py  # Privilege gradient graphs
+│   ├── componentdiagram.py   # Component architecture diagrams
+│   ├── dependencygraph.py    # Dependency graph visualization
+│   ├── builders.py           # Builder pattern classes
 │   ├── shapes/               # Shape gallery system
 │   ├── schema/               # Schema validation
 │   ├── utils.py              # Utility functions
@@ -552,8 +603,11 @@ usecvislib/
 │   ├── threat-models/
 │   ├── custom-diagrams/
 │   ├── mermaid/              # Mermaid diagram templates
-│   └── cloud/                # Cloud architecture templates
-├── tests/                    # Unit tests (490+ tests)
+│   ├── cloud/                # Cloud architecture templates
+│   ├── privilege-gradient/   # Privilege gradient templates
+│   ├── component-diagrams/   # Component diagram templates
+│   └── dependency-graphs/    # Dependency graph templates
+├── tests/                    # Unit tests (955+ tests)
 ├── docker-compose.yml        # Docker Compose config
 ├── Dockerfile                # Docker image
 ├── requirements.txt          # Python dependencies
