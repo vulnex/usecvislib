@@ -1,0 +1,254 @@
+# Changelog
+
+All notable changes to USecVisLib will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- **MCP Server (`usecvislib-mcp` v0.1.0)**
+  - New `usecvislib-mcp` package (sibling repo) wrapping USecVisLib via the MCP SDK's `FastMCP` class
+  - 14 MCP tools:
+    - Attack Trees: `generate_attack_tree`, `validate_attack_tree`, `get_attack_tree_stats`, `build_attack_tree_from_spec`
+    - Attack Graphs: `generate_attack_graph`, `validate_attack_graph`, `get_attack_graph_stats`, `find_attack_paths`, `analyze_critical_nodes`
+    - Threat Models: `generate_threat_model`, `validate_threat_model`, `get_threat_model_stats`, `analyze_stride_threats`
+    - Mermaid: `render_mermaid`
+  - 9 MCP resources:
+    - Template browsing: `usecvislib://templates/list`, `usecvislib://templates/{category}/list`, `usecvislib://templates/{category}/{name}`
+    - Style catalog: `usecvislib://styles/list`, `usecvislib://styles/{visualization_type}`
+    - Config schemas: `usecvislib://schemas/attack-tree`, `usecvislib://schemas/attack-graph`, `usecvislib://schemas/threat-model`, `usecvislib://schemas/mermaid`
+  - 3 MCP prompt templates: `create_attack_tree`, `create_threat_model`, `create_attack_graph`
+  - Core infrastructure: env-based config, file/base64 output modes, async executor wrapping, temp file lifecycle management
+  - 58 tests (all passing in Docker with Graphviz + mermaid-cli)
+  - Entry point: `usecvislib-mcp = "usecvislib_mcp.server:main"`
+
+## [0.3.4] - 2026-02-14
+
+### Added
+
+- **Architecture Diagrams (Component Diagram + Dependency Graph)**
+  - New `ComponentDiagram` class for layered software architecture visualization
+  - Components organized into layers (Client, Application, Data, etc.) with typed shapes
+  - 8 component types: frontend, service, database, cache, storage, queue, external_service, cli
+  - 4 connection styles: sync (solid), async (dashed), bidirectional (both arrows), event (dotted)
+  - 4 built-in styles: cd_default, cd_blueprint, cd_minimal, cd_dark
+  - New `DependencyGraph` class for module dependency visualization
+  - SLOC-based node sizing with linear scale (0.5 to 2.0)
+  - Force-directed layout (fdp engine) with group-based subgraph clustering
+  - Circular dependency detection with red highlighted edges
+  - 3 dependency types: import (solid), framework (dotted), runtime (dashed)
+  - 3 edge weights: light (1px), medium (2px), heavy (3px)
+  - Group coloring for internal modules (core, features, api, infrastructure, tests, utils)
+  - 4 built-in styles: dg_default, dg_dark, dg_minimal, dg_coupling
+  - `ComponentDiagramBuilder` and `DependencyGraphBuilder` fluent APIs
+  - CLI modes 7 (Component Diagrams) and 8 (Dependency Graphs)
+
+- **Architecture Diagram API Endpoints**
+  - `POST /visualize/component-diagram` - generate component diagram visualization
+  - `POST /visualize/dependency-graph` - generate dependency graph visualization
+  - `POST /analyze/component-diagram` - return component diagram stats
+  - `POST /analyze/dependency-graph` - return dependency graph stats
+  - `POST /validate/component-diagram` - validate component diagram config
+  - `POST /validate/dependency-graph` - validate dependency graph config
+
+- **Architecture Frontend Panel**
+  - Single "Architecture" tab with diagram type toggle (Component Diagram / Dependency Graph)
+  - Dynamic style selector that switches between cd_* and dg_* styles based on diagram type
+  - Generate Visualization, Analyze Structure, and Validate actions
+  - Stats display with layer/component/connection breakdowns (component diagram) and module/dependency/circular/group breakdowns (dependency graph)
+  - Template type detection for both component diagram and dependency graph configs
+  - 5 example templates: webapp TOML, microservices JSON, dependency graph TOML, and 2 JSON examples
+
+- **Privilege Gradient Graph Visualization**
+  - New `PrivilegeGradient` class for trust zone visualization with automatic inversion detection
+  - Components placed within trust zones rendered as vertical colored columns (low to high trust)
+  - Four influence edge types: Data, Feedback, Resource, Control with distinct visual styles
+  - Automatic detection of privilege gradient inversions where lower-trust components influence higher-trust components
+  - Severity classification for inversions: critical (trust gap >= 3), high (>= 2), medium (1)
+  - NetworkX-based analysis: degree centrality, influence path finding, zone influence matrix
+  - Compact HTML-table legend rendered inline with the graph
+  - 5 built-in styles: pg_default, pg_dark, pg_security, pg_neon, pg_corporate
+  - CLI mode 6 for command-line generation
+  - `PrivilegeGradientBuilder` fluent API for programmatic graph construction
+  - Validation of config structure (zone refs, influence refs, duplicate IDs)
+
+- **Privilege Gradient API Endpoints**
+  - `POST /visualize/privilege-gradient` - generate visualization from config file
+  - `POST /analyze/privilege-gradient` - return stats without rendering
+  - `POST /analyze/inversions` - detect and return inversions with severity
+  - `POST /validate/privilege-gradient` - validate config structure
+
+- **Privilege Gradient Frontend Panel**
+  - Full Vue 3 panel with file upload, drag-and-drop, and config editor
+  - Generate Visualization, Analyze Structure, Detect Inversions, and Validate actions
+  - Stats grid showing zones, components, influences, inversions, and max trust gap
+  - Components per Zone bar chart with aligned count numbers
+  - Inversions list with severity badges and color-coded borders
+  - Template type detection for privilege gradient configs (TOML, JSON, YAML)
+
+- **6 Example Templates**
+  - `microservices_auth.tml` - Microservices authentication architecture (5 zones, 10 components)
+  - `corporate_network.tml` - Enterprise network segmentation with DMZ misconfiguration
+  - `iot_scada.tml` - ICS/SCADA based on IEC 62443 Purdue Model (5 levels)
+  - `cloud_zero_trust.tml` - NIST 800-207 zero trust cloud-native architecture
+  - `ci_cd_pipeline.tml` - Software supply chain security with CI/CD stages
+  - `healthcare_ehr.tml` - HIPAA-compliant EHR system with PHI protection boundaries
+
+- **5 New Color Schemes**
+  - New attack tree styles: at_ocean, at_sunset, at_forest, at_midnight, at_blueprint
+  - New attack graph styles: ag_ocean, ag_sunset, ag_forest, ag_midnight, ag_blueprint
+
+### Changed
+
+- **Migrate setup.py to pyproject.toml**
+  - Modern Python packaging with `[build-system]` and `[project]` metadata
+  - Fixed license from MIT to Apache-2.0 (matching LICENSE file and README)
+  - Added `[project.optional-dependencies]` dev group (pytest, pytest-cov, pytest-asyncio, ruff)
+  - Added ruff and pytest configuration sections
+  - Removed legacy `setup.py`
+
+- **Drop Python 3.8/3.9 support**
+  - Minimum Python version is now 3.10+
+  - Added Python 3.13 classifier
+
+- **Split monolithic API into FastAPI routers**
+  - Refactored 5,691-line `api/main.py` into focused modules
+  - New `api/config.py` for constants, environment variables, and logging setup
+  - New `api/middleware.py` for security headers and request logging middleware
+  - New `api/helpers.py` for shared utility functions
+  - 12 router modules under `api/routers/`: attack_trees, attack_graphs, threat_models, binary, custom_diagrams, mermaid, cloud, privilege_gradient, images, icons, settings, utilities
+  - No changes to existing endpoint paths or behavior
+
+- **Frontend tab layout**
+  - Tighter tab spacing to accommodate 9 primary visualization tabs
+  - Privilege Gradient tab positioned before Binary Analysis
+
+### Fixed
+
+- **Docker build compatibility**
+  - Fixed setuptools build backend from `setuptools.backends._legacy` to `setuptools.build_meta`
+  - Removed deprecated license classifier for PEP 639 compliance
+
+### Added (CI/CD)
+
+- **GitHub Actions CI/CD pipeline**
+  - Ruff linting on Python 3.12
+  - Test matrix across Python 3.10, 3.11, 3.12, 3.13
+  - System dependency installation (graphviz)
+
+## [0.3.3] - 2025-01-15
+
+### Added
+
+- **Mermaid Diagrams Module**
+  - New `MermaidDiagrams` class for rendering Mermaid syntax to images via mermaid-cli
+  - Support for all Mermaid diagram types: flowcharts, sequence, class, state, ER, Gantt, pie, mindmap, timeline, etc.
+  - Template system with categories (flowcharts, sequence, class, state, etc.)
+  - API endpoints for Mermaid visualization and template management
+  - Frontend panel with editor, template browser, and zoom/pan support
+  - Theme and background customization options
+  - Docker support with Chromium and puppeteer configuration for sandbox environments
+
+- **Cloud Diagrams Module**
+  - New `CloudDiagrams` class for cloud architecture visualization using the `diagrams` library
+  - Support for AWS, Azure, GCP, Kubernetes, and generic cloud provider icons
+  - Cluster support for grouping related components
+  - Edge labels and styling for connections between nodes
+  - Template system with security, microservices, and infrastructure patterns
+  - API endpoints for cloud diagram visualization and template management
+  - Frontend panel with editor, template browser, and zoom/pan support
+
+- **Zoom/Pan Support**
+  - Added `ZoomableImage` component to Mermaid and Cloud diagram panels
+  - Consistent zoom experience across all visualization modules
+
+- **CVSS 4.0 Support**
+  - Full CVSS 4.0 implementation with MacroVector scoring algorithm
+  - All 11 base metrics: Attack Vector, Attack Complexity, Attack Requirements, Privileges Required, User Interaction, plus 6 impact metrics (Vulnerable/Subsequent system separation)
+  - Optional Threat metric (Exploit Maturity) and Environmental metrics
+  - Version-agnostic `cvss_unified` module with automatic version detection
+  - CVSS 4.0 is now the default version in the calculator
+
+- **CVSS Vector Import**
+  - Reverse vector parsing: paste a CVSS vector string to auto-configure UI metrics
+  - Auto-detects version (3.1 or 4.0) and switches calculator tab accordingly
+  - Supports both base-only and full vectors with optional metrics
+
+- **Python API Examples**
+  - New `mermaid_diagram_basic.py` with examples for flowcharts, sequence, ER, state, mindmap, Gantt, class diagrams
+  - New `cloud_diagram_basic.py` with examples for AWS, Kubernetes, multi-cloud architectures
+  - Updated README with quick start examples for Mermaid and Cloud diagrams
+
+### Documentation
+
+- **PYTHON_API.md**
+  - Rewrote CVSS Module section with unified interface (recommended), CVSS 4.0 module, and CVSS 3.1 module
+  - Added CVSS 4.0 metric tables (11 base metrics + threat metric)
+  - Updated enum documentation for both versions
+
+- **UI_GUIDE.md**
+  - Updated CVSS Calculator section with version toggle, vector import, and both 3.1/4.0 metrics
+  - Updated tools dropdown description
+
+### Fixed
+
+- **Mermaid Diagrams**
+  - Fixed constructor parameter handling - moved rendering options to `render()` method
+  - Fixed TOML format detection for files starting with comments
+  - Fixed theme/background options not being passed to visualization API
+
+- **Cloud Diagrams**
+  - Fixed format compatibility between frontend and backend TOML structures
+  - Fixed template content not loading when selecting from template browser
+  - Fixed icon naming issues in security templates (e.g., `NetworkFirewall` → `FirewallManager`)
+
+- **Consistent Style Application Across All Modules**
+  - Fixed Custom Diagrams API endpoint not applying the style parameter
+  - Fixed Attack Trees leaf nodes ignoring selected style
+  - Fixed Attack Graphs vulnerability nodes ignoring selected style
+
+### Changed
+
+- **CVSS Integration**
+  - Attack Trees, Attack Graphs, and Threat Modeling now use unified CVSS module
+  - Automatic version detection for CVSS vectors in visualization definitions
+
+- **Custom Diagrams Style System Overhaul**
+  - Custom Diagrams now loads style configuration from `config_customdiagrams.tml`
+  - Added `_strip_style_attrs()` method for style attribute management
+  - Style presets now fully apply to all diagram elements
+
+## [0.3.2] - 2025-01-09
+
+### Security
+
+- Security hardening and vulnerability fixes
+- Added per-request timeouts to prevent resource exhaustion
+- Implemented CORS origin validation
+- Added API key authentication with constant-time comparison
+
+### Added
+
+- Rate limiting for API endpoints
+- Image MIME type and magic byte validation
+- Automatic temporary file cleanup
+
+## [0.3.1] - 2025-01-01
+
+### Added
+
+- Initial public release
+- Attack Trees visualization with CVSS support
+- Attack Graphs with NetworkX analysis
+- Threat Modeling with STRIDE/DFD support
+- Binary Visualization (entropy, distribution, heatmap)
+- Custom Diagrams with schema-driven flexibility
+- REST API with FastAPI
+- Vue.js 3 web frontend
+- CLI tool for command-line usage
+- 100+ built-in shapes
+- Multiple style presets per module
+- Export to PNG, SVG, PDF, DOT formats
