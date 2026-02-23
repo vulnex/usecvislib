@@ -265,6 +265,13 @@ def is_valid_image(content: bytes, claimed_type: str) -> bool:
     Returns:
         True if content matches a valid image format
     """
+    # Check magic bytes FIRST (defense-in-depth: verify actual content before trusting claimed type)
+    magic_match = False
+    for magic, detected_type in IMAGE_MAGIC_BYTES.items():
+        if content.startswith(magic):
+            magic_match = True
+            break
+
     # For SVG, check for XML/SVG content with XXE prevention
     if claimed_type == 'image/svg+xml':
         try:
@@ -277,12 +284,7 @@ def is_valid_image(content: bytes, claimed_type: str) -> bool:
         except Exception:
             return False
 
-    # Check magic bytes for other formats
-    for magic, detected_type in IMAGE_MAGIC_BYTES.items():
-        if content.startswith(magic):
-            return True
-
-    return False
+    return magic_match
 
 
 def get_image_content_type(filepath: str) -> str:
@@ -574,11 +576,22 @@ def _cleanup_old_progress_entries() -> int:
     return len(expired_keys)
 
 
+PROGRESS_MAX_STEP_LENGTH = 500
+PROGRESS_MAX_STATUS_LENGTH = 100
+PROGRESS_MAX_JOB_ID_LENGTH = 128
+
+
 def update_progress(job_id: str, step: str, progress: int, total: int = 100, status: str = "running"):
     """Update progress for a job.
 
-    SECURITY: Enforces maximum entries limit to prevent memory exhaustion.
+    SECURITY: Enforces maximum entries limit and per-field size limits
+    to prevent memory exhaustion.
     """
+    # Truncate user-controlled string fields to prevent memory abuse
+    job_id = str(job_id)[:PROGRESS_MAX_JOB_ID_LENGTH]
+    step = str(step)[:PROGRESS_MAX_STEP_LENGTH]
+    status = str(status)[:PROGRESS_MAX_STATUS_LENGTH]
+
     # SECURITY: Cleanup expired entries periodically
     if len(_progress_store) >= PROGRESS_MAX_ENTRIES:
         removed = _cleanup_old_progress_entries()

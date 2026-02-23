@@ -210,6 +210,12 @@ def validate_input_path(
         logger.warning(f"Null byte detected in path: {repr(path)}")
         raise SecurityError("Null byte detected in path")
 
+    # Check for symlinks before resolving (prevents symlink-based traversal)
+    raw_path = Path(path)
+    if raw_path.is_symlink():
+        logger.warning(f"Symlink detected in input path: {path}")
+        raise SecurityError("Symlink detected in path — use the real path instead", path=path)
+
     # Resolve to absolute path
     try:
         resolved = Path(path).resolve()
@@ -1133,12 +1139,23 @@ def parse_json(content: str) -> Dict[str, Any]:
         Parsed data as dictionary.
 
     Raises:
-        ConfigError: If content is not valid JSON.
+        ConfigError: If content is not valid JSON or exceeds depth limits.
     """
+    old_limit = sys.getrecursionlimit()
     try:
+        # Temporarily set a lower recursion limit to prevent stack exhaustion
+        # from deeply nested JSON (normal configs rarely exceed 50 levels)
+        sys.setrecursionlimit(min(old_limit, 200))
         return json.loads(content)
     except json.JSONDecodeError as e:
         raise ConfigError(f"Invalid JSON content: {e}")
+    except RecursionError:
+        raise ConfigError(
+            "JSON content exceeds maximum nesting depth. "
+            "This may indicate a malformed or malicious configuration."
+        )
+    finally:
+        sys.setrecursionlimit(old_limit)
 
 
 def parse_yaml(content: str) -> Dict[str, Any]:
@@ -1151,8 +1168,12 @@ def parse_yaml(content: str) -> Dict[str, Any]:
         Parsed data as dictionary.
 
     Raises:
-        ConfigError: If content is not valid YAML.
+        ConfigError: If content is not valid YAML or exceeds size limits.
     """
+    if len(content) > MAX_CONFIG_SIZE:
+        raise ConfigError(
+            f"YAML content size ({len(content)} bytes) exceeds maximum ({MAX_CONFIG_SIZE} bytes)"
+        )
     try:
         result = yaml.safe_load(content)
         if result is None:
