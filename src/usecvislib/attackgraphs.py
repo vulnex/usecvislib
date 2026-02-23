@@ -417,6 +417,20 @@ class AttackGraphs(VisualizationBase):
         # Get graph metadata
         graph_meta = self.inputdata.get("graph", {})
 
+        # Check graph complexity limits
+        hosts = self.inputdata.get("hosts", {})
+        vulns = self.inputdata.get("vulnerabilities", {})
+        services = self.inputdata.get("services", {})
+        exploits = self.inputdata.get("exploits", {})
+        total_nodes = len(hosts) + len(vulns) + len(services) + len(exploits)
+        total_edges = (
+            len(self.inputdata.get("network_edges", {}))
+            + sum(len(v) if isinstance(v, list) else 0 for v in self.inputdata.get("network", {}).values())
+            + sum(len(e.get("preconditions", [])) + len(e.get("postconditions", [])) for e in exploits.values())
+            + len(vulns) + len(services)  # host-vuln and host-svc links
+        )
+        utils.check_graph_complexity(total_nodes, total_edges)
+
         # Get styles
         graph_style = self.style.get("graph", self._default_style()["graph"])
         host_style = self.style.get("host", self._default_style()["host"])
@@ -465,7 +479,7 @@ class AttackGraphs(VisualizationBase):
             node_attrs.pop("ip", None)
             node_attrs.pop("os", None)
             node_attrs.pop("description", None)
-            self.graph.node(host_id, label, **node_attrs)
+            self.graph.node(utils.sanitize_node_id(host_id), label, **node_attrs)
 
         # Add vulnerabilities with CVSS-based color coding
         vulnerabilities = self.inputdata.get("vulnerabilities", {})
@@ -520,7 +534,7 @@ class AttackGraphs(VisualizationBase):
             node_attrs.pop("description", None)
             node_attrs.pop("cwe", None)
             node_attrs.pop("affected_host", None)
-            self.graph.node(vuln_id, label, **node_attrs)
+            self.graph.node(utils.sanitize_node_id(vuln_id), label, **node_attrs)
 
         # Add privileges
         privileges = self.inputdata.get("privileges", {})
@@ -549,7 +563,7 @@ class AttackGraphs(VisualizationBase):
                 label = f"{label}\\n[{level}]"
             node_attrs.pop("host", None)
             node_attrs.pop("level", None)
-            self.graph.node(priv_id, label, **node_attrs)
+            self.graph.node(utils.sanitize_node_id(priv_id), label, **node_attrs)
 
         # Add services
         services = self.inputdata.get("services", {})
@@ -579,7 +593,7 @@ class AttackGraphs(VisualizationBase):
             node_attrs.pop("host", None)
             node_attrs.pop("port", None)
             node_attrs.pop("protocol", None)
-            self.graph.node(svc_id, label, **node_attrs)
+            self.graph.node(utils.sanitize_node_id(svc_id), label, **node_attrs)
 
         # Add network edges
         network_edges = self.inputdata.get("network_edges", {})
@@ -591,7 +605,7 @@ class AttackGraphs(VisualizationBase):
                 edge_label = edge_data.get("label", "")
                 if edge_label:
                     edge_attrs["label"] = edge_label
-                self.graph.edge(source, target, **edge_attrs)
+                self.graph.edge(utils.sanitize_node_id(source), utils.sanitize_node_id(target), **edge_attrs)
 
         # Also support old dict-style network format
         network = self.inputdata.get("network", {})
@@ -600,14 +614,14 @@ class AttackGraphs(VisualizationBase):
                 if isinstance(targets, list):
                     for target in targets:
                         edge_attrs = utils.stringify_dict(network_edge_style.copy())
-                        self.graph.edge(source, target, **edge_attrs)
+                        self.graph.edge(utils.sanitize_node_id(source), utils.sanitize_node_id(target), **edge_attrs)
 
         # Add exploit edges
         exploits = self.inputdata.get("exploits", {})
         for exploit_id, exploit_data in exploits.items():
             exploit_label = exploit_data.get("label", exploit_id)
             self.graph.node(
-                exploit_id,
+                utils.sanitize_node_id(exploit_id),
                 exploit_label,
                 shape="hexagon",
                 style="filled",
@@ -624,23 +638,23 @@ class AttackGraphs(VisualizationBase):
 
             for pre in preconditions:
                 edge_attrs = utils.stringify_dict(exploit_edge_style.copy())
-                self.graph.edge(pre, exploit_id, **edge_attrs)
+                self.graph.edge(utils.sanitize_node_id(pre), utils.sanitize_node_id(exploit_id), **edge_attrs)
 
             for post in postconditions:
                 edge_attrs = utils.stringify_dict(exploit_edge_style.copy())
-                self.graph.edge(exploit_id, post, **edge_attrs)
+                self.graph.edge(utils.sanitize_node_id(exploit_id), utils.sanitize_node_id(post), **edge_attrs)
 
         # Link vulnerabilities to hosts
         for vuln_id, vuln_data in vulnerabilities.items():
             host = vuln_data.get("host") or vuln_data.get("affected_host")
             if host:
-                self.graph.edge(host, vuln_id, style="dotted", color="#95a5a6")
+                self.graph.edge(utils.sanitize_node_id(host), utils.sanitize_node_id(vuln_id), style="dotted", color="#95a5a6")
 
         # Link services to hosts
         for svc_id, svc_data in services.items():
             host = svc_data.get("host")
             if host:
-                self.graph.edge(host, svc_id, style="dotted", color="#95a5a6")
+                self.graph.edge(utils.sanitize_node_id(host), utils.sanitize_node_id(svc_id), style="dotted", color="#95a5a6")
 
         self.logger.debug(f"Rendered attack graph with {len(hosts)} hosts")
 

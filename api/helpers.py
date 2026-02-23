@@ -265,11 +265,15 @@ def is_valid_image(content: bytes, claimed_type: str) -> bool:
     Returns:
         True if content matches a valid image format
     """
-    # For SVG, check for XML/SVG content
+    # For SVG, check for XML/SVG content with XXE prevention
     if claimed_type == 'image/svg+xml':
         try:
-            text = content[:1000].decode('utf-8', errors='ignore').lower()
-            return '<svg' in text or '<?xml' in text
+            text = content[:4000].decode('utf-8', errors='ignore')
+            text_lower = text.lower()
+            # Reject SVGs containing DTD declarations or entity definitions (XXE vectors)
+            if '<!doctype' in text_lower or '<!entity' in text_lower:
+                return False
+            return '<svg' in text_lower or '<?xml' in text_lower
         except Exception:
             return False
 

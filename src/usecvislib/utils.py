@@ -33,9 +33,27 @@ try:
     import tomllib  # Python 3.11+ standard library
 except ImportError:
     tomllib = None
+import atexit
 import toml  # Fallback for older parsing
 import yaml
 import tempfile
+
+# Track temp files for cleanup on exit
+_temp_files_to_cleanup: list[str] = []
+
+
+def _cleanup_temp_files():
+    """Clean up any temporary files created during the session."""
+    for path in _temp_files_to_cleanup:
+        try:
+            Path(path).unlink(missing_ok=True)
+        except OSError:
+            pass
+    _temp_files_to_cleanup.clear()
+
+
+atexit.register(_cleanup_temp_files)
+
 
 # Optional PIL for image resizing
 try:
@@ -440,28 +458,19 @@ def _convert_svg_to_png(svg_path: Path, size: int = 48) -> Optional[Path]:
         # Create a cache directory for converted icons
         cache_dir = Path(tempfile.gettempdir()) / "usecvislib_icon_cache"
 
-        # SECURITY: TOCTOU-resistant directory creation
-        # Use os.lstat() which doesn't follow symlinks, then check mode
+        # SECURITY: TOCTOU-resistant directory creation using fd-based verification
         try:
-            # Try to create the directory first (atomic operation)
-            cache_dir.mkdir(exist_ok=False)
-        except FileExistsError:
-            # Directory already exists - verify it's safe using lstat
-            pass
-
-        # SECURITY: Use lstat to check the path without following symlinks
-        try:
-            dir_stat = os.lstat(cache_dir)
-            # Verify it's a directory (not a symlink or file)
-            if not stat.S_ISDIR(dir_stat.st_mode):
-                logger.error(f"Security: Cache path is not a directory: {cache_dir}")
-                return None
-            # Check if it's a symlink (S_ISLNK check on lstat result)
-            if stat.S_ISLNK(dir_stat.st_mode):
-                logger.error(f"Security: Cache directory is a symlink: {cache_dir}")
-                return None
+            cache_dir.mkdir(exist_ok=True)
         except OSError as e:
-            logger.error(f"Security: Cannot stat cache directory: {cache_dir}: {e}")
+            logger.error(f"Security: Cannot create cache directory: {cache_dir}: {e}")
+            return None
+
+        # Verify using O_DIRECTORY|O_NOFOLLOW to atomically open the real dir (not a symlink)
+        try:
+            fd = os.open(str(cache_dir), os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            os.close(fd)
+        except OSError as e:
+            logger.error(f"Security: Cache path is not a safe directory (symlink or not a dir): {cache_dir}: {e}")
             return None
 
         # Generate cache filename based on SVG path hash
@@ -806,13 +815,16 @@ def process_node_image(
                         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
                             img.save(tmp.name)
                             display_path = tmp.name
+                            _temp_files_to_cleanup.append(tmp.name)
                             log.debug(f"Created thumbnail for large icon: {resolved_path} -> {tmp.name}")
             except Exception as e:
                 log.debug(f"Could not resize image {resolved_path}: {e}")
 
         # Use HTML TABLE for consistent icon + text layout
         # Image on top, text below - this ensures consistent positioning
-        escaped_display = _escape_html(display_path)
+        # Use html.escape for paths (not _escape_html which converts \n to <BR/>)
+        import html as _html
+        escaped_display = _html.escape(str(display_path), quote=True)
         html_label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
 <TR><TD><IMG SRC="{escaped_display}"/></TD></TR>
 <TR><TD>{safe_label}</TD></TR>
@@ -909,6 +921,41 @@ def sanitize_node_id(node_id: Any) -> str:
         return 'unnamed'
 
     return sanitized
+
+
+# =============================================================================
+# Graph Complexity Limits
+# =============================================================================
+
+# Maximum number of nodes/edges allowed in a single graph to prevent DoS
+MAX_GRAPH_NODES = 10000
+MAX_GRAPH_EDGES = 50000
+
+
+def check_graph_complexity(nodes_count: int, edges_count: int,
+                           max_nodes: int = MAX_GRAPH_NODES,
+                           max_edges: int = MAX_GRAPH_EDGES) -> None:
+    """Check that graph complexity is within safe limits.
+
+    Args:
+        nodes_count: Number of nodes in the graph.
+        edges_count: Number of edges in the graph.
+        max_nodes: Maximum allowed nodes.
+        max_edges: Maximum allowed edges.
+
+    Raises:
+        ValueError: If complexity exceeds limits.
+    """
+    if nodes_count > max_nodes:
+        raise ValueError(
+            f"Graph complexity limit exceeded: {nodes_count} nodes "
+            f"(maximum {max_nodes}). Reduce the input size."
+        )
+    if edges_count > max_edges:
+        raise ValueError(
+            f"Graph complexity limit exceeded: {edges_count} edges "
+            f"(maximum {max_edges}). Reduce the input size."
+        )
 
 
 # =============================================================================
@@ -1117,6 +1164,33 @@ def parse_yaml(content: str) -> Dict[str, Any]:
         raise ConfigError(f"Invalid YAML content: {e}")
 
 
+MAX_CONFIG_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_NESTING_DEPTH = 50
+
+
+def _check_nesting_depth(data: Any, max_depth: int = MAX_NESTING_DEPTH, _current: int = 0) -> None:
+    """Check that parsed config data doesn't exceed maximum nesting depth.
+
+    Args:
+        data: Parsed configuration data.
+        max_depth: Maximum allowed nesting depth.
+
+    Raises:
+        ConfigError: If nesting depth exceeds the limit.
+    """
+    if _current > max_depth:
+        raise ConfigError(
+            f"Configuration nesting depth exceeds maximum ({max_depth}). "
+            f"This may indicate a malformed or malicious configuration."
+        )
+    if isinstance(data, dict):
+        for v in data.values():
+            _check_nesting_depth(v, max_depth, _current + 1)
+    elif isinstance(data, list):
+        for item in data:
+            _check_nesting_depth(item, max_depth, _current + 1)
+
+
 def parse_content(content: str, format: ConfigFormat) -> Dict[str, Any]:
     """Parse configuration content in the specified format.
 
@@ -1128,8 +1202,14 @@ def parse_content(content: str, format: ConfigFormat) -> Dict[str, Any]:
         Parsed data as dictionary.
 
     Raises:
-        ConfigError: If content is invalid or format is unsupported.
+        ConfigError: If content is invalid, too large, too deeply nested, or format is unsupported.
     """
+    if len(content) > MAX_CONFIG_SIZE:
+        raise ConfigError(
+            f"Configuration size ({len(content)} bytes) exceeds maximum "
+            f"({MAX_CONFIG_SIZE} bytes)"
+        )
+
     parsers = {
         "toml": parse_toml,
         "json": parse_json,
@@ -1139,7 +1219,9 @@ def parse_content(content: str, format: ConfigFormat) -> Dict[str, Any]:
     if format not in parsers:
         raise ConfigError(f"Unsupported format: {format}")
 
-    return parsers[format](content)
+    result = parsers[format](content)
+    _check_nesting_depth(result)
+    return result
 
 
 def ReadConfigFile(filepath: str, format: Optional[ConfigFormat] = None) -> Dict[str, Any]:

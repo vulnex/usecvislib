@@ -77,34 +77,25 @@ class IconNotFoundError(CloudDiagramError):
 def _escape_python_string(value: str, max_length: int = 500) -> str:
     """Escape a string for safe use in generated Python code.
 
-    SECURITY: Prevents code injection attacks by properly escaping all
-    characters that could break out of a Python string literal. This is
-    critical when generating Python code from user-provided input.
-
-    The function:
-    1. Removes/replaces control characters (newlines, tabs, etc.)
-    2. Escapes backslashes first (to prevent interaction with other escapes)
-    3. Escapes quotes
-    4. Truncates overly long strings
-    5. Removes null bytes
+    SECURITY: Uses repr() for comprehensive escaping of all characters that
+    could break out of a Python string literal. This prevents code injection
+    when generating Python code from user-provided input.
 
     Args:
         value: The string to escape
         max_length: Maximum allowed length (truncated if exceeded)
 
     Returns:
-        Escaped string safe for use in Python string literals
+        Escaped string safe for use inside double-quoted Python string literals
 
     Example:
         >>> _escape_python_string('Hello "World"')
         'Hello \\"World\\"'
-        >>> _escape_python_string('Line1\\nLine2')
-        'Line1 Line2'
     """
     if not value:
         return ""
 
-    # Remove null bytes (potential security issue)
+    # Remove null bytes
     value = value.replace('\x00', '')
 
     # Truncate if too long
@@ -112,24 +103,19 @@ def _escape_python_string(value: str, max_length: int = 500) -> str:
         value = value[:max_length - 3] + "..."
         logger.warning(f"Truncated string to {max_length} characters for code generation")
 
-    # Remove/replace control characters that could break the string
-    # Replace newlines and carriage returns with spaces
-    value = value.replace('\r\n', ' ')
-    value = value.replace('\n', ' ')
-    value = value.replace('\r', ' ')
-    # Replace tabs with spaces
-    value = value.replace('\t', ' ')
-    # Remove other control characters (ASCII 0-31 except those already handled)
-    value = ''.join(c if ord(c) >= 32 or c in ' ' else '' for c in value)
+    # Use repr() for comprehensive escaping, then strip the outer quotes
+    # repr() handles backslashes, quotes, control chars, unicode, and all edge cases
+    escaped = repr(value)
+    # Strip the outer quotes (could be ' or ")
+    escaped = escaped[1:-1]
+    # Ensure double quotes are escaped (repr may use single-quote wrapping)
+    escaped = escaped.replace('"', '\\"')
+    # Ensure single quotes are escaped for safety
+    escaped = escaped.replace("'", "\\'")
+    # Escape f-string braces to prevent code execution in f-strings
+    escaped = escaped.replace('{', '{{').replace('}', '}}')
 
-    # Escape backslashes FIRST (before escaping quotes)
-    # This prevents backslashes from interacting with quote escaping
-    value = value.replace('\\', '\\\\')
-
-    # Escape double quotes
-    value = value.replace('"', '\\"')
-
-    return value
+    return escaped
 
 
 @dataclass

@@ -239,7 +239,7 @@ class ComponentDiagram(VisualizationBase):
                     node_attrs["style"] = type_attrs["style"]
                     node_attrs = utils.stringify_dict(node_attrs)
 
-                    sub.node(comp_id, label, **node_attrs)
+                    sub.node(utils.sanitize_node_id(comp_id), label, **node_attrs)
 
         # Draw connections
         for conn in self._connections:
@@ -260,7 +260,7 @@ class ComponentDiagram(VisualizationBase):
                 edge_attrs["label"] = f" {conn_label}"
 
             edge_attrs = utils.stringify_dict(edge_attrs)
-            self.graph.edge(src, tgt, **edge_attrs)
+            self.graph.edge(utils.sanitize_node_id(src), utils.sanitize_node_id(tgt), **edge_attrs)
 
         self.logger.debug(f"Rendered component diagram with {len(self._layers)} layers, "
                           f"{len(self._components)} components")

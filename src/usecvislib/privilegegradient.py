@@ -427,7 +427,7 @@ class PrivilegeGradient(VisualizationBase):
                 )
 
                 # Add invisible anchor node for ordering
-                anchor_id = f"_anchor_{zone_id}"
+                anchor_id = f"_anchor_{utils.sanitize_node_id(zone_id)}"
                 sub.node(anchor_id, "", shape="point", style="invis", width="0", height="0")
                 zone_anchors.append(anchor_id)
 
@@ -461,7 +461,7 @@ class PrivilegeGradient(VisualizationBase):
                         # Remove non-graphviz keys
                         for key in ("id", "zone", "description", "type"):
                             node_attrs.pop(key, None)
-                        sub.node(comp_id, label, **node_attrs)
+                        sub.node(utils.sanitize_node_id(comp_id), label, **node_attrs)
 
         # Add invisible edges between zone anchors for ordering
         for i in range(len(zone_anchors) - 1):
@@ -522,7 +522,7 @@ class PrivilegeGradient(VisualizationBase):
                 if inf_label:
                     edge_attrs["label"] = f" {inf_label}"
 
-            self.graph.edge(source, target, **edge_attrs)
+            self.graph.edge(utils.sanitize_node_id(source), utils.sanitize_node_id(target), **edge_attrs)
 
         # Add legend
         self._add_legend()

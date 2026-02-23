@@ -218,6 +218,10 @@ class AttackTrees(VisualizationBase):
         nodes = self.inputdata["nodes"]
         edges = self.inputdata["edges"]
 
+        # Check graph complexity limits
+        total_edges = sum(len(e.get("children", [])) for e in edges.values())
+        utils.check_graph_complexity(len(nodes), total_edges)
+
         # Get style defaults
         root_defaults = self.style.get("root", {})
         node_defaults = self.style.get("node", {})
@@ -267,7 +271,7 @@ class AttackTrees(VisualizationBase):
         # Process image AFTER merge so icon settings take priority
         utils.process_node_image(root_node_kwargs, root_node, self.logger, preserve_shape=user_set_shape)
         root_node_kwargs = utils.stringify_dict(root_node_kwargs)
-        self.dot.node(root_node, **root_node_kwargs)
+        self.dot.node(utils.sanitize_node_id(root_node), **root_node_kwargs)
 
         # Add remaining nodes with styling and CVSS support
         for node, attributes in nodes.items():
@@ -337,7 +341,7 @@ class AttackTrees(VisualizationBase):
             # Process image AFTER merge so icon settings take priority
             utils.process_node_image(node_kwargs, node, self.logger, preserve_shape=user_set_shape)
             node_kwargs = utils.stringify_dict(node_kwargs)
-            self.dot.node(node, **node_kwargs)
+            self.dot.node(utils.sanitize_node_id(node), **node_kwargs)
 
         # Add edges
         for parent, children in edges.items():
@@ -356,7 +360,7 @@ class AttackTrees(VisualizationBase):
                 edge_attrs = {k: v for k, v in child.items() if k != 'to'}
                 edge_kwargs = utils.merge_dicts(edge_attrs, edge_defaults)
                 edge_kwargs = utils.stringify_dict(edge_kwargs)
-                self.dot.edge(parent, child['to'], **edge_kwargs)
+                self.dot.edge(utils.sanitize_node_id(parent), utils.sanitize_node_id(child['to']), **edge_kwargs)
 
         self.logger.debug(f"Rendered attack tree with {len(nodes)} nodes")
 

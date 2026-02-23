@@ -290,7 +290,7 @@ class DependencyGraph(VisualizationBase):
             edge_attrs["penwidth"] = self.WEIGHT_MAP.get(weight, "2")
 
             edge_attrs = utils.stringify_dict(edge_attrs)
-            self.graph.edge(src, tgt, **edge_attrs)
+            self.graph.edge(utils.sanitize_node_id(src), utils.sanitize_node_id(tgt), **edge_attrs)
 
         self.logger.debug(f"Rendered dependency graph with {len(self._modules)} modules")
 
@@ -327,7 +327,7 @@ class DependencyGraph(VisualizationBase):
         node_attrs["fixedsize"] = "false"
 
         node_attrs = utils.stringify_dict(node_attrs)
-        graph.node(mod_id, label, **node_attrs)
+        graph.node(utils.sanitize_node_id(mod_id), label, **node_attrs)
 
     def _draw_impl(self, outputfile):
         if self.graph is None:
