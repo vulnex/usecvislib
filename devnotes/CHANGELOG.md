@@ -50,6 +50,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.4] - 2026-02-14
 
+### Security
+
+- **Critical & High Security Fixes** (commit `a5e113e`)
+  - C1: DOT injection prevention — `sanitize_node_id()` applied across 5 visualization modules
+  - C3: SVG XXE prevention — reject `<!DOCTYPE` and `<!ENTITY` in SVG inputs
+  - H1: SVG XXE hardening in image validation
+  - H2: Cache directory verification using `O_DIRECTORY|O_NOFOLLOW` flags
+  - H3: Graph complexity limits — max 10,000 nodes, 50,000 edges via `check_graph_complexity()`
+  - H4: Config parsing limits — 10MB max size, 50 nesting depth
+  - H5: Temporary file cleanup registration on process exit
+  - H6: HTML escape for image paths in Graphviz labels
+  - H7: Hardened `_escape_python_string()` with `repr()` and f-string brace escaping
+
+- **Medium Security Fixes** (commit `f15e354`)
+  - M1: YAML pre-parse size check (10MB limit)
+  - M2: JSON recursion limit guard
+  - M5: Image validation — magic bytes check before MIME type
+  - M7: Symlink pre-resolve check in `validate_input_path()`
+  - M8: Per-field size limits for progress store entries
+
 ### Added
 
 - **Architecture Diagrams (Component Diagram + Dependency Graph)**
