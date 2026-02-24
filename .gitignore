@@ -46,6 +46,7 @@ env/
 
 # Claude Code
 .claude/
+.mcp.json
 
 # Testing
 .tox/
