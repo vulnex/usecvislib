@@ -219,7 +219,7 @@ class AttackTrees(VisualizationBase):
         edges = self.inputdata["edges"]
 
         # Check graph complexity limits
-        total_edges = sum(len(e.get("children", [])) for e in edges.values())
+        total_edges = sum(len(e) if isinstance(e, list) else len(e.get("children", [])) for e in edges.values())
         utils.check_graph_complexity(len(nodes), total_edges)
 
         # Get style defaults
