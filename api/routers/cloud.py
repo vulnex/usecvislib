@@ -24,6 +24,7 @@ from ..config import (
 from ..helpers import (
     save_upload_file, cleanup_files, validate_config_file_extension,
     run_sync_with_timeout, sanitize_filename_for_log,
+    validate_path_component,
 )
 from ..schemas import (
     CloudProvider, CloudOutputFormat, CloudDiagramDirection,
@@ -368,7 +369,14 @@ async def get_cloud_template(
     """
     try:
         template_id = f"{category}/{name}"
+
+        # SECURITY: Validate each path component to prevent path traversal
+        if not validate_path_component(category) or not validate_path_component(name):
+            logger.warning(f"Path traversal attempt blocked in cloud template: {template_id}")
+            raise HTTPException(status_code=400, detail="Invalid template ID")
+
         templates_dir = CloudDiagrams.get_templates_dir()
+        base_dir = templates_dir.resolve()
 
         # Try .toml first, then .yaml, then .json
         template_path = None
@@ -381,8 +389,20 @@ async def get_cloud_template(
         if not template_path:
             raise HTTPException(status_code=404, detail=f"Template not found: {template_id}")
 
+        # SECURITY: Verify resolved path stays within templates directory
+        try:
+            resolved_path = template_path.resolve()
+            if not resolved_path.is_relative_to(base_dir):
+                logger.warning(f"Path traversal attempt blocked: {template_id}")
+                raise HTTPException(status_code=400, detail="Invalid template ID")
+            if resolved_path.is_symlink():
+                logger.warning(f"Symlink rejected: {template_id}")
+                raise HTTPException(status_code=400, detail="Invalid template")
+        except (ValueError, RuntimeError):
+            raise HTTPException(status_code=400, detail="Invalid template ID")
+
         # Read the template content
-        content = template_path.read_text()
+        content = resolved_path.read_text()
 
         # Detect providers used
         providers = []

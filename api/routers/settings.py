@@ -14,7 +14,7 @@ from fastapi import APIRouter, Request, HTTPException
 from usecvislib.settings import get_settings, get_cvss_display_settings, set_cvss_display_settings
 
 from ..config import (
-    limiter, RATE_LIMIT_DEFAULT,
+    limiter, RATE_LIMIT_DEFAULT, ENABLE_TRACEBACK_LOGGING,
 )
 from ..schemas import (
     DisplaySettingsResponse, CVSSDisplaySettings, DisplaySettingsRequest,
@@ -38,10 +38,14 @@ async def get_display_settings(request: Request):
     Returns the current state of all display settings that control
     how visualizations are rendered.
     """
-    cvss_settings = get_cvss_display_settings()
-    return DisplaySettingsResponse(
-        cvss_display=CVSSDisplaySettings(**cvss_settings)
-    )
+    try:
+        cvss_settings = get_cvss_display_settings()
+        return DisplaySettingsResponse(
+            cvss_display=CVSSDisplaySettings(**cvss_settings)
+        )
+    except Exception as e:
+        logger.error(f"Error getting display settings: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred while retrieving settings")
 
 
 @router.put(
@@ -68,15 +72,21 @@ async def update_display_settings(
 
     Settings persist for the lifetime of the API server.
     """
-    if settings.cvss_display:
-        set_cvss_display_settings(settings.cvss_display.model_dump())
-        logger.info(f"Updated CVSS display settings: {settings.cvss_display.model_dump()}")
+    try:
+        if settings.cvss_display:
+            set_cvss_display_settings(settings.cvss_display.model_dump())
+            logger.info(f"Updated CVSS display settings: {settings.cvss_display.model_dump()}")
 
-    # Return updated settings
-    cvss_settings = get_cvss_display_settings()
-    return DisplaySettingsResponse(
-        cvss_display=CVSSDisplaySettings(**cvss_settings)
-    )
+        # Return updated settings
+        cvss_settings = get_cvss_display_settings()
+        return DisplaySettingsResponse(
+            cvss_display=CVSSDisplaySettings(**cvss_settings)
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid settings value: {str(e)}")
+    except Exception as e:
+        logger.error(f"Error updating display settings: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred while updating settings")
 
 
 @router.post(
@@ -91,14 +101,18 @@ async def enable_cvss_all(request: Request):
 
     Sets all CVSS display toggles to True.
     """
-    settings = get_settings()
-    settings.enable_cvss_all()
-    logger.info("Enabled CVSS display for all visualization types")
+    try:
+        settings = get_settings()
+        settings.enable_cvss_all()
+        logger.info("Enabled CVSS display for all visualization types")
 
-    cvss_settings = get_cvss_display_settings()
-    return DisplaySettingsResponse(
-        cvss_display=CVSSDisplaySettings(**cvss_settings)
-    )
+        cvss_settings = get_cvss_display_settings()
+        return DisplaySettingsResponse(
+            cvss_display=CVSSDisplaySettings(**cvss_settings)
+        )
+    except Exception as e:
+        logger.error(f"Error enabling CVSS display: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred while updating settings")
 
 
 @router.post(
@@ -113,14 +127,18 @@ async def disable_cvss_all(request: Request):
 
     Sets all CVSS display toggles to False.
     """
-    settings = get_settings()
-    settings.disable_cvss_all()
-    logger.info("Disabled CVSS display for all visualization types")
+    try:
+        settings = get_settings()
+        settings.disable_cvss_all()
+        logger.info("Disabled CVSS display for all visualization types")
 
-    cvss_settings = get_cvss_display_settings()
-    return DisplaySettingsResponse(
-        cvss_display=CVSSDisplaySettings(**cvss_settings)
-    )
+        cvss_settings = get_cvss_display_settings()
+        return DisplaySettingsResponse(
+            cvss_display=CVSSDisplaySettings(**cvss_settings)
+        )
+    except Exception as e:
+        logger.error(f"Error disabling CVSS display: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred while updating settings")
 
 
 @router.post(
@@ -135,11 +153,15 @@ async def reset_display_settings(request: Request):
 
     Restores CVSS display to enabled for all visualization types.
     """
-    settings = get_settings()
-    settings.reset()
-    logger.info("Reset display settings to defaults")
+    try:
+        settings = get_settings()
+        settings.reset()
+        logger.info("Reset display settings to defaults")
 
-    cvss_settings = get_cvss_display_settings()
-    return DisplaySettingsResponse(
-        cvss_display=CVSSDisplaySettings(**cvss_settings)
-    )
+        cvss_settings = get_cvss_display_settings()
+        return DisplaySettingsResponse(
+            cvss_display=CVSSDisplaySettings(**cvss_settings)
+        )
+    except Exception as e:
+        logger.error(f"Error resetting display settings: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred while resetting settings")

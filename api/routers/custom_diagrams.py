@@ -562,16 +562,35 @@ async def custom_diagram_from_template(
             raise HTTPException(status_code=400, detail="Invalid template ID format. Use 'category/template_name'")
 
         category, template_name = parts
-        template_path = os.path.join(CUSTOM_DIAGRAMS_TEMPLATES_DIR, category, f"{template_name}.toml")
 
-        if not os.path.exists(template_path):
+        # SECURITY: Validate each path component to prevent path traversal
+        if not validate_path_component(category) or not validate_path_component(template_name):
+            logger.warning(f"Path traversal attempt blocked in custom diagram template: {template_id}")
+            raise HTTPException(status_code=400, detail="Invalid template ID")
+
+        base_dir = Path(CUSTOM_DIAGRAMS_TEMPLATES_DIR).resolve()
+        template_path = Path(CUSTOM_DIAGRAMS_TEMPLATES_DIR) / category / f"{template_name}.toml"
+
+        # SECURITY: Verify resolved path stays within templates directory
+        try:
+            resolved_path = template_path.resolve()
+            if not resolved_path.is_relative_to(base_dir):
+                logger.warning(f"Path traversal attempt blocked: {template_id}")
+                raise HTTPException(status_code=400, detail="Invalid template ID")
+            if resolved_path.is_symlink():
+                logger.warning(f"Symlink rejected: {template_id}")
+                raise HTTPException(status_code=400, detail="Invalid template")
+        except (ValueError, RuntimeError):
+            raise HTTPException(status_code=400, detail="Invalid template ID")
+
+        if not resolved_path.exists():
             raise HTTPException(status_code=404, detail=f"Template '{template_id}' not found")
 
         output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
 
         # Create CustomDiagrams instance and build visualization
         cd = CustomDiagrams()
-        cd.load(template_path)
+        cd.load(str(resolved_path))
 
         # Build the diagram with timeout protection
         # SECURITY: Prevents resource exhaustion from complex templates
