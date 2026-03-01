@@ -57,7 +57,7 @@ Example usage:
 """
 
 __version__ = "0.3.4"
-__author__ = "VulnEx"
+__author__ = "VULNEX"
 
 from .attacktrees import AttackTrees, AttackTreeError
 from .attackgraphs import AttackGraphs, AttackGraphError
