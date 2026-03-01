@@ -66,7 +66,8 @@ class ComponentDiagram(VisualizationBase):
         "event": {"style": "dotted", "arrowhead": "normal"},
     }
 
-    def __init__(self, inputfile, outputfile, format="", styleid="", validate_paths=True):
+    def __init__(self, inputfile: str, outputfile: str, format: str = "",
+                 styleid: str = "", validate_paths: bool = True) -> None:
         if format == "":
             format = "png"
         if styleid == "":
@@ -81,9 +82,9 @@ class ComponentDiagram(VisualizationBase):
         )
 
         self.graph: Optional[Digraph] = None
-        self._layers: List[Dict] = []
-        self._components: Dict[str, Dict] = {}
-        self._connections: List[Dict] = []
+        self._layers: List[Dict[str, Any]] = []
+        self._components: Dict[str, Dict[str, Any]] = {}
+        self._connections: List[Dict[str, Any]] = []
         self._temp_input: Optional[str] = None
 
     def __del__(self):
@@ -95,7 +96,7 @@ class ComponentDiagram(VisualizationBase):
             except Exception:
                 pass
 
-    def _default_style(self):
+    def _default_style(self) -> Dict[str, Any]:
         return {
             "graph": {
                 "rankdir": "TB",
@@ -133,10 +134,10 @@ class ComponentDiagram(VisualizationBase):
             },
         }
 
-    def _get_metadata_root_key(self):
+    def _get_metadata_root_key(self) -> str:
         return ""
 
-    def _load_impl(self):
+    def _load_impl(self) -> Dict[str, Any]:
         try:
             data = utils.ReadConfigFile(self.inputfile)
         except (utils.FileError, utils.ConfigError) as e:
@@ -152,7 +153,7 @@ class ComponentDiagram(VisualizationBase):
                           f"{len(self._components)} components, {len(self._connections)} connections")
         return data
 
-    def _normalize_data(self):
+    def _normalize_data(self) -> None:
         """Normalize the input data structures."""
         # Layers - each layer contains components
         layers_raw = self.inputdata.get("layers", [])
@@ -177,7 +178,7 @@ class ComponentDiagram(VisualizationBase):
         else:
             self._connections = []
 
-    def _render_impl(self):
+    def _render_impl(self) -> None:
         """Build the component diagram from loaded data."""
         title = self.inputdata.get("title", "Component Diagram")
 
@@ -265,7 +266,7 @@ class ComponentDiagram(VisualizationBase):
         self.logger.debug(f"Rendered component diagram with {len(self._layers)} layers, "
                           f"{len(self._components)} components")
 
-    def _draw_impl(self, outputfile):
+    def _draw_impl(self, outputfile: str) -> None:
         if self.graph is None:
             raise ComponentDiagramError("Graph not rendered. Call render() first.")
 
@@ -276,8 +277,8 @@ class ComponentDiagram(VisualizationBase):
             self.logger.error(f"Failed to render graph to {outputfile}: {e}")
             raise ComponentDiagramError(f"Failed to render graph: {e}")
 
-    def _validate_impl(self):
-        errors = []
+    def _validate_impl(self) -> List[str]:
+        errors: List[str] = []
 
         if not self.inputdata.get("layers"):
             errors.append("Missing or empty 'layers' section")
@@ -313,7 +314,7 @@ class ComponentDiagram(VisualizationBase):
 
         return errors
 
-    def _get_stats_impl(self):
+    def _get_stats_impl(self) -> Dict[str, Any]:
         title = self.inputdata.get("title", "Unknown")
 
         components_per_layer = {}
@@ -330,6 +331,6 @@ class ComponentDiagram(VisualizationBase):
         }
 
     # Backward compatibility
-    def BuildComponentDiagram(self):
+    def BuildComponentDiagram(self) -> None:
         """Deprecated: Use build() instead."""
         self.build()

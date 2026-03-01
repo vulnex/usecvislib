@@ -16,6 +16,7 @@ from fastapi import APIRouter, File, UploadFile, Query, Form, BackgroundTasks, R
 from fastapi.responses import FileResponse
 
 from usecvislib import BinVis
+from usecvislib.utils import FileError, ConfigError, RenderError
 
 from ..config import (
     limiter, RATE_LIMIT_VISUALIZE, RATE_LIMIT_ANALYZE,
@@ -155,10 +156,13 @@ async def visualize_binary(
             filename=f"binary_{vis_type}.{format.value}",
         )
 
-    except FileNotFoundError as e:
+    except (FileNotFoundError, FileError, ConfigError) as e:
         cleanup_files(input_path, output_path)
         raise HTTPException(status_code=400, detail=str(e))
     except ValueError as e:
+        cleanup_files(input_path, output_path)
+        raise HTTPException(status_code=400, detail=str(e))
+    except RenderError as e:
         cleanup_files(input_path, output_path)
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -200,7 +204,9 @@ async def analyze_binary(
 
         return FileStats(**stats)
 
-    except FileNotFoundError as e:
+    except (FileNotFoundError, FileError, ConfigError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RenderError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)

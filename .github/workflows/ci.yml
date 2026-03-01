@@ -20,8 +20,30 @@ jobs:
       - name: Install dependencies
         run: pip install ruff
 
-      - name: Run ruff
+      - name: Run ruff linting
         run: ruff check src/ api/
+
+      - name: Run ruff format check
+        run: ruff format --check src/ api/
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pip-audit
+        run: pip install pip-audit
+
+      - name: Install project dependencies
+        run: pip install -r requirements.txt
+
+      - name: Audit dependencies for vulnerabilities
+        run: pip-audit
 
   test:
     runs-on: ubuntu-latest
@@ -51,5 +73,5 @@ jobs:
           pip install -r requirements.txt
           pip install -e ".[dev]"
 
-      - name: Run tests
-        run: pytest tests/ -v --tb=short -q
+      - name: Run tests with coverage
+        run: pytest tests/ -v --tb=short -q --cov=src/usecvislib --cov=api --cov-report=term-missing --cov-fail-under=40

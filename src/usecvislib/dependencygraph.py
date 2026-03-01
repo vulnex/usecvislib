@@ -73,7 +73,8 @@ class DependencyGraph(VisualizationBase):
         "heavy": "3",
     }
 
-    def __init__(self, inputfile, outputfile, format="", styleid="", validate_paths=True):
+    def __init__(self, inputfile: str, outputfile: str, format: str = "",
+                 styleid: str = "", validate_paths: bool = True) -> None:
         if format == "":
             format = "png"
         if styleid == "":
@@ -88,8 +89,8 @@ class DependencyGraph(VisualizationBase):
         )
 
         self.graph: Optional[Digraph] = None
-        self._modules: Dict[str, Dict] = {}
-        self._dependencies: List[Dict] = []
+        self._modules: Dict[str, Dict[str, Any]] = {}
+        self._dependencies: List[Dict[str, Any]] = []
         self._circular: List[List[str]] = []
         self._circular_edges: set = set()
         self._temp_input: Optional[str] = None
@@ -103,7 +104,7 @@ class DependencyGraph(VisualizationBase):
             except Exception:
                 pass
 
-    def _default_style(self):
+    def _default_style(self) -> Dict[str, Any]:
         return {
             "graph": {
                 "bgcolor": "white",
@@ -155,10 +156,10 @@ class DependencyGraph(VisualizationBase):
             },
         }
 
-    def _get_metadata_root_key(self):
+    def _get_metadata_root_key(self) -> str:
         return ""
 
-    def _load_impl(self):
+    def _load_impl(self) -> Dict[str, Any]:
         try:
             data = utils.ReadConfigFile(self.inputfile)
         except (utils.FileError, utils.ConfigError) as e:
@@ -175,7 +176,7 @@ class DependencyGraph(VisualizationBase):
                           f"{len(self._dependencies)} dependencies, {len(self._circular)} circular")
         return data
 
-    def _normalize_data(self):
+    def _normalize_data(self) -> None:
         """Normalize the input data structures."""
         modules_raw = self.inputdata.get("modules", [])
         self._modules = {}
@@ -200,7 +201,7 @@ class DependencyGraph(VisualizationBase):
         else:
             self._circular = []
 
-    def _build_circular_edges(self):
+    def _build_circular_edges(self) -> None:
         """Build set of circular dependency edge pairs."""
         self._circular_edges = set()
         for cycle in self._circular:
@@ -210,7 +211,7 @@ class DependencyGraph(VisualizationBase):
                     tgt = cycle[(i + 1) % len(cycle)]
                     self._circular_edges.add((src, tgt))
 
-    def _calc_node_size(self, sloc):
+    def _calc_node_size(self, sloc: int) -> tuple[str, str]:
         """Calculate node size proportional to SLOC. Linear scale from 0.5 to 2.0."""
         if not sloc or sloc <= 0:
             return "0.5", "0.4"
@@ -224,7 +225,7 @@ class DependencyGraph(VisualizationBase):
         height = 0.4 + ratio * 1.0  # Range: 0.4 to 1.4
         return f"{width:.2f}", f"{height:.2f}"
 
-    def _render_impl(self):
+    def _render_impl(self) -> None:
         """Build the dependency graph from loaded data."""
         title = self.inputdata.get("title", "Dependency Graph")
 
@@ -294,7 +295,8 @@ class DependencyGraph(VisualizationBase):
 
         self.logger.debug(f"Rendered dependency graph with {len(self._modules)} modules")
 
-    def _add_module_node(self, graph, mod_id, mod_data, module_style, external_style):
+    def _add_module_node(self, graph: Digraph, mod_id: str, mod_data: Dict[str, Any],
+                         module_style: Dict[str, Any], external_style: Dict[str, Any]) -> None:
         """Add a module node to the graph."""
         mod_name = mod_data.get("name", mod_id)
         mod_type = mod_data.get("type", "internal")
@@ -329,7 +331,7 @@ class DependencyGraph(VisualizationBase):
         node_attrs = utils.stringify_dict(node_attrs)
         graph.node(utils.sanitize_node_id(mod_id), label, **node_attrs)
 
-    def _draw_impl(self, outputfile):
+    def _draw_impl(self, outputfile: str) -> None:
         if self.graph is None:
             raise DependencyGraphError("Graph not rendered. Call render() first.")
 
@@ -340,8 +342,8 @@ class DependencyGraph(VisualizationBase):
             self.logger.error(f"Failed to render graph to {outputfile}: {e}")
             raise DependencyGraphError(f"Failed to render graph: {e}")
 
-    def _validate_impl(self):
-        errors = []
+    def _validate_impl(self) -> List[str]:
+        errors: List[str] = []
 
         if not self._modules:
             errors.append("No modules defined")
@@ -380,7 +382,7 @@ class DependencyGraph(VisualizationBase):
 
         return errors
 
-    def _get_stats_impl(self):
+    def _get_stats_impl(self) -> Dict[str, Any]:
         title = self.inputdata.get("title", "Unknown")
 
         internal_count = sum(1 for m in self._modules.values() if m.get("type", "internal") == "internal")
@@ -403,6 +405,6 @@ class DependencyGraph(VisualizationBase):
         }
 
     # Backward compatibility
-    def BuildDependencyGraph(self):
+    def BuildDependencyGraph(self) -> None:
         """Deprecated: Use build() instead."""
         self.build()

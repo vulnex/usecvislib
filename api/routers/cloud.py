@@ -168,7 +168,8 @@ async def visualize_cloud(
         )
     except IconNotFoundError as e:
         cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=f"Icon not found: {str(e)}")
+        logger.warning(f"Icon not found: {str(e)}")
+        raise HTTPException(status_code=400, detail="One or more specified icons could not be found")
     except CloudDiagramError as e:
         cleanup_files(input_path, output_path)
         raise HTTPException(status_code=400, detail=str(e))

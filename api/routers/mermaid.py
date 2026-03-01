@@ -154,7 +154,8 @@ async def visualize_mermaid(
         )
     except MermaidSyntaxError as e:
         cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=f"Mermaid syntax error: {str(e)}")
+        logger.warning(f"Mermaid syntax error: {str(e)}")
+        raise HTTPException(status_code=400, detail="Mermaid syntax error in the provided diagram definition")
     except MermaidError as e:
         cleanup_files(input_path, output_path)
         raise HTTPException(status_code=400, detail=str(e))

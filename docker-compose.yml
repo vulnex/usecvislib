@@ -11,9 +11,9 @@ services:
       - "8003:8000"
     environment:
       - PYTHONUNBUFFERED=1
-      # Authentication settings (disabled by default for easy setup)
-      # To enable: set USECVISLIB_AUTH_ENABLED=true and USECVISLIB_API_KEY in .env
-      - USECVISLIB_AUTH_ENABLED=${USECVISLIB_AUTH_ENABLED:-false}
+      # Authentication settings (enabled by default for security)
+      # To disable for local development: set USECVISLIB_AUTH_ENABLED=false in .env
+      - USECVISLIB_AUTH_ENABLED=${USECVISLIB_AUTH_ENABLED:-true}
       - USECVISLIB_API_KEY=${USECVISLIB_API_KEY:-}
       - USECVISLIB_API_KEYS=${USECVISLIB_API_KEYS:-}
       # Logging
@@ -21,7 +21,7 @@ services:
       # Image upload configuration
       - IMAGE_UPLOAD_DIR=/app/images
       - IMAGE_CLEANUP_AGE=${IMAGE_CLEANUP_AGE:-3600}
-      # CORS: Allow BytesRevealer and default origins
+      # CORS: Allow frontend and default origins
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:3001,http://localhost:3000,http://127.0.0.1:3001,http://127.0.0.1:3000,http://localhost:8080}
     volumes:
       # Mount for persistent output files (optional)
@@ -29,12 +29,20 @@ services:
       # Mount for uploaded images (persists across restarts)
       - image_uploads:/app/images
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2.0"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+    networks:
+      - internal
+      - frontend
 
   # =============================================================================
   # USecVisLib Frontend Service
@@ -47,14 +55,22 @@ services:
     ports:
       - "3001:80"
     depends_on:
-      - usecvislib-api
+      usecvislib-api:
+        condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+    networks:
+      - frontend
 
   # =============================================================================
   # USecVisLib CLI Service (for one-off commands)
@@ -71,6 +87,13 @@ services:
       - ./input:/app/input:ro
       - ./output:/app/output
     entrypoint: ["usecvis"]
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
+    networks:
+      - internal
     # Override command when running (supports .tml, .toml, .json, .yaml, .yml):
     # docker-compose run --rm usecvislib-cli -i /app/input/file.json -o /app/output/result -m 0
     # docker-compose run --rm usecvislib-cli -i /app/input/file.yaml -o /app/output/result -m 1
@@ -82,10 +105,10 @@ services:
     build:
       context: ../usecvislib-mcp
       args:
-        BASE_IMAGE: usecvislib-usecvislib-api:latest
+        BASE_IMAGE: usecvislib-usecvislib-api
     container_name: usecvislib-mcp
     ports:
-      - "8001:8000"
+      - "8002:8000"
     environment:
       - USECVISLIB_MCP_TRANSPORT=${USECVISLIB_MCP_TRANSPORT:-streamable-http}
       - USECVISLIB_MCP_HOST=0.0.0.0
@@ -96,12 +119,28 @@ services:
       usecvislib-api:
         condition: service_healthy
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1.0"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+    networks:
+      - internal
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  internal:
+    driver: bridge
+  frontend:
+    driver: bridge
 
 # =============================================================================
 # Volumes

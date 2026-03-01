@@ -81,12 +81,35 @@ async def health_check(
 ):
     """Check API health and module availability.
 
+    Performs runtime checks on critical dependencies (graphviz, temp directory).
     SECURITY: By default, only returns status to prevent information disclosure.
     Pass ?details=true to include version and module information.
     """
+    # Runtime dependency checks
+    checks_passed = True
+    check_details = {}
+
+    # Check graphviz (dot executable)
+    graphviz_ok = shutil.which("dot") is not None
+    checks_passed = checks_passed and graphviz_ok
+    check_details["graphviz"] = graphviz_ok
+
+    # Check temp directory is writable
+    try:
+        temp_test = os.path.join(TEMP_DIR, ".health_check")
+        with open(temp_test, "w") as f:
+            f.write("ok")
+        os.unlink(temp_test)
+        check_details["temp_dir"] = True
+    except Exception:
+        checks_passed = False
+        check_details["temp_dir"] = False
+
+    status = "healthy" if checks_passed else "degraded"
+
     if details:
         return HealthResponse(
-            status="healthy",
+            status=status,
             version=lib_version,
             modules={
                 "attack_trees": True,
@@ -94,11 +117,12 @@ async def health_check(
                 "threat_modeling": True,
                 "binary_visualization": True,
                 "custom_diagrams": True,
+                **check_details,
             }
         )
     else:
         # SECURITY: Minimal response to prevent information disclosure
-        return HealthResponse(status="healthy")
+        return HealthResponse(status=status)
 
 
 # =============================================================================

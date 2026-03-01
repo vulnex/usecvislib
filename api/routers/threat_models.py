@@ -14,7 +14,7 @@ from fastapi import APIRouter, File, UploadFile, Query, BackgroundTasks, Request
 from fastapi.responses import FileResponse
 
 from usecvislib import ThreatModeling
-from usecvislib.utils import FileError, ConfigError, ReadConfigFile
+from usecvislib.utils import FileError, ConfigError, ValidationError, RenderError, ReadConfigFile
 
 from ..config import (
     limiter, RATE_LIMIT_VISUALIZE, RATE_LIMIT_ANALYZE,
@@ -175,6 +175,8 @@ async def analyze_threat_model(
 
         return ModelStats(**stats)
 
+    except (FileError, ConfigError, ValidationError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")
@@ -247,6 +249,8 @@ async def analyze_stride(
             elevation_of_privilege=[convert_threat(t) for t in threats.get("Elevation of Privilege", [])],
         )
 
+    except (FileError, ConfigError, ValidationError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred")

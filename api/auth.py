@@ -48,9 +48,9 @@ AUTH_EXCLUDED_PATHS = {
     "/docs/oauth2-redirect",
     "/redoc",
     "/openapi.json",
+    "/health",            # Health check endpoint (required for orchestrator/Docker probes)
     "/icons",             # Icon list endpoint (needed for gallery)
     "/icons/categories",  # Icon categories endpoint (needed for gallery)
-    # NOTE: /health removed - should require auth to prevent information disclosure
 }
 
 # Path prefixes that don't require authentication (for wildcard routes)

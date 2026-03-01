@@ -69,7 +69,29 @@ target-version = "py310"
 line-length = 120
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I"]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # Pyflakes
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "B",    # flake8-bugbear (common bugs)
+    "S",    # flake8-bandit (security)
+    "UP",   # pyupgrade (Python version modernization)
+    "SIM",  # flake8-simplify
+    "T20",  # flake8-print (stray prints)
+    "C4",   # flake8-comprehensions
+    "RUF",  # Ruff-specific rules
+]
+ignore = [
+    "S101",   # assert used (needed in tests)
+    "S603",   # subprocess call (false positives on safe usage)
+    "S607",   # partial executable path (false positives)
+    "B008",   # function call in default argument (FastAPI Depends pattern)
+    "UP007",  # Use X | Y for union types (keep Optional for 3.10 compat)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = ["S101", "S105", "S106", "T20"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

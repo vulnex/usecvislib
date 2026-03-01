@@ -275,12 +275,14 @@ def is_valid_image(content: bytes, claimed_type: str) -> bool:
     # For SVG, check for XML/SVG content with XXE prevention
     if claimed_type == 'image/svg+xml':
         try:
-            text = content[:4000].decode('utf-8', errors='ignore')
+            text = content.decode('utf-8', errors='ignore')
             text_lower = text.lower()
-            # Reject SVGs containing DTD declarations or entity definitions (XXE vectors)
+            # SECURITY: Scan entire content for DTD/entity declarations (XXE vectors)
             if '<!doctype' in text_lower or '<!entity' in text_lower:
                 return False
-            return '<svg' in text_lower or '<?xml' in text_lower
+            # Check header for valid SVG/XML markers
+            header_lower = text_lower[:4000]
+            return '<svg' in header_lower or '<?xml' in header_lower
         except Exception:
             return False
 
@@ -676,17 +678,27 @@ async def cleanup_old_images():
                 cutoff = datetime.now() - timedelta(seconds=IMAGE_CLEANUP_AGE)
                 cleaned = 0
 
-                for filename in os.listdir(IMAGE_UPLOAD_DIR):
-                    filepath = os.path.join(IMAGE_UPLOAD_DIR, filename)
-                    if os.path.isfile(filepath):
+                # Walk all files including user-namespaced subdirectories
+                for dirpath, dirnames, filenames in os.walk(IMAGE_UPLOAD_DIR):
+                    for filename in filenames:
+                        filepath = os.path.join(dirpath, filename)
                         try:
                             mtime = datetime.fromtimestamp(os.path.getmtime(filepath))
                             if mtime < cutoff:
                                 os.unlink(filepath)
                                 cleaned += 1
-                                logger.debug(f"Cleaned up old image: {filename}")
+                                logger.debug(f"Cleaned up old image: {filepath}")
                         except Exception as e:
                             logger.error(f"Failed to cleanup {filepath}: {e}")
+                    # Remove empty subdirectories after file cleanup
+                    for dirname in dirnames:
+                        subdir = os.path.join(dirpath, dirname)
+                        try:
+                            if not os.listdir(subdir):
+                                os.rmdir(subdir)
+                                logger.debug(f"Removed empty directory: {subdir}")
+                        except Exception:
+                            pass
 
                 if cleaned > 0:
                     logger.info(f"Cleaned up {cleaned} old images")
