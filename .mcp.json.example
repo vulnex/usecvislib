@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "usecvislib": {
+      "type": "http",
+      "url": "http://localhost:8002/mcp",
+      "headers": {
+        "Authorization": "Bearer <YOUR_MCP_API_KEY>"
+      }
+    }
+  }
+}
