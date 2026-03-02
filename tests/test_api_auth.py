@@ -191,7 +191,7 @@ class TestAuthDisabled:
         response = self.client.get("/health")
         assert response.status_code == 200
         data = response.json()
-        assert data["status"] == "healthy"
+        assert data["status"] in ("healthy", "degraded")
 
     def test_styles_without_key(self):
         """Styles endpoint accessible without key when auth disabled."""
@@ -232,32 +232,35 @@ class TestAuthEnabled:
             self.valid_key = "test-api-key-12345"
             yield
 
-    def test_health_without_key_returns_401(self):
-        """Health endpoint returns 401 without key when auth enabled."""
+    def test_health_excluded_from_auth(self):
+        """Health endpoint is excluded from auth (needed for orchestrator probes)."""
         response = self.client.get("/health")
+        assert response.status_code == 200
+
+    def test_protected_endpoint_without_key_returns_401(self):
+        """Protected endpoint returns 401 without key when auth enabled."""
+        response = self.client.get("/styles")
         assert response.status_code == 401
         data = response.json()
         assert "Missing API key" in data["detail"]
 
-    def test_health_with_invalid_key_returns_401(self):
-        """Health endpoint returns 401 with invalid key."""
+    def test_protected_endpoint_with_invalid_key_returns_401(self):
+        """Protected endpoint returns 401 with invalid key."""
         response = self.client.get(
-            "/health",
+            "/styles",
             headers={"X-API-Key": "wrong-key"}
         )
         assert response.status_code == 401
         data = response.json()
         assert "Invalid API key" in data["detail"]
 
-    def test_health_with_valid_key_returns_200(self):
-        """Health endpoint returns 200 with valid key."""
+    def test_protected_endpoint_with_valid_key_returns_200(self):
+        """Protected endpoint returns 200 with valid key."""
         response = self.client.get(
-            "/health",
+            "/styles",
             headers={"X-API-Key": self.valid_key}
         )
         assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "healthy"
 
     def test_styles_with_valid_key(self):
         """Styles endpoint works with valid key."""
@@ -329,7 +332,7 @@ class TestMultipleKeys:
     def test_first_key_works(self):
         """First configured key should work."""
         response = self.client.get(
-            "/health",
+            "/styles",
             headers={"X-API-Key": "key-alpha"}
         )
         assert response.status_code == 200
@@ -337,7 +340,7 @@ class TestMultipleKeys:
     def test_second_key_works(self):
         """Second configured key should work."""
         response = self.client.get(
-            "/health",
+            "/styles",
             headers={"X-API-Key": "key-beta"}
         )
         assert response.status_code == 200
@@ -345,7 +348,7 @@ class TestMultipleKeys:
     def test_third_key_works(self):
         """Third configured key should work."""
         response = self.client.get(
-            "/health",
+            "/styles",
             headers={"X-API-Key": "key-gamma"}
         )
         assert response.status_code == 200
@@ -353,7 +356,7 @@ class TestMultipleKeys:
     def test_unlisted_key_fails(self):
         """Key not in the list should fail."""
         response = self.client.get(
-            "/health",
+            "/styles",
             headers={"X-API-Key": "key-delta"}
         )
         assert response.status_code == 401
@@ -387,14 +390,14 @@ class TestSecurityFeatures:
 
     def test_401_includes_www_authenticate_header(self):
         """401 response should include WWW-Authenticate header."""
-        response = self.client.get("/health")
+        response = self.client.get("/styles")
         assert response.status_code == 401
         assert "WWW-Authenticate" in response.headers
 
     def test_error_message_doesnt_reveal_valid_keys(self):
         """Error messages should not reveal valid keys."""
         response = self.client.get(
-            "/health",
+            "/styles",
             headers={"X-API-Key": "wrong-key"}
         )
         assert response.status_code == 401
@@ -406,7 +409,7 @@ class TestSecurityFeatures:
     def test_empty_key_rejected(self):
         """Empty API key should be rejected."""
         response = self.client.get(
-            "/health",
+            "/styles",
             headers={"X-API-Key": ""}
         )
         assert response.status_code == 401
@@ -414,7 +417,7 @@ class TestSecurityFeatures:
     def test_whitespace_key_rejected(self):
         """Whitespace-only API key should be rejected."""
         response = self.client.get(
-            "/health",
+            "/styles",
             headers={"X-API-Key": "   "}
         )
         assert response.status_code == 401

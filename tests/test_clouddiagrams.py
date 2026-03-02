@@ -496,8 +496,8 @@ label = 'Server "Main"'
         # Verify the generated code is valid Python (no literal newlines breaking strings)
         compile(code, '<test>', 'exec')
 
-        # The literal newlines should be replaced with spaces
-        assert "Server with newline" in code or "Server  with newline" in code
+        # The literal newlines should be escaped (not raw newlines that would break strings)
+        assert "Server\\nwith newline" in code or "Server with newline" in code
 
     def test_code_generation_escapes_backslashes(self):
         """SECURITY: Test that backslashes are properly escaped."""

@@ -278,16 +278,17 @@ class TestImageEdgeCases:
             os.chdir(original_cwd)
 
     def test_symlink_handling(self, temp_image_file):
-        """Test handling of symlinked images."""
+        """Test that symlinked images are rejected for security."""
         import tempfile
+        from usecvislib.utils import SecurityError
 
         # Create a symlink to the temp image
         with tempfile.TemporaryDirectory() as tmpdir:
             link_path = os.path.join(tmpdir, 'link.png')
             try:
                 os.symlink(temp_image_file, link_path)
-                result = validate_image_path(link_path)
-                assert result.exists()
+                with pytest.raises(SecurityError, match="Symlink detected"):
+                    validate_image_path(link_path)
             except OSError:
                 # Skip if symlinks not supported
                 pytest.skip("Symlinks not supported on this platform")
