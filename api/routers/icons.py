@@ -7,20 +7,25 @@
 # Copyright (c) 2025 VULNEX. All rights reserved.
 #
 
-import os
 import logging
-from typing import Optional, List
+import os
 from pathlib import Path
+from typing import Optional
 
-from fastapi import APIRouter, Query, Request, HTTPException
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse
 
 from ..config import (
-    limiter, RATE_LIMIT_DEFAULT,
-    BUNDLED_ICONS_DIR, BUNDLED_ICON_CATEGORIES, BUNDLED_ICON_EXTENSIONS,
+    BUNDLED_ICON_CATEGORIES,
+    BUNDLED_ICON_EXTENSIONS,
+    BUNDLED_ICONS_DIR,
+    RATE_LIMIT_DEFAULT,
+    limiter,
 )
 from ..schemas import (
-    BundledIconInfo, BundledIconsListResponse, BundledIconsCategoriesResponse,
+    BundledIconInfo,
+    BundledIconsCategoriesResponse,
+    BundledIconsListResponse,
 )
 
 logger = logging.getLogger("usecvislib.api")
@@ -28,7 +33,7 @@ logger = logging.getLogger("usecvislib.api")
 router = APIRouter(tags=["Icons"])
 
 
-def _scan_bundled_icons(category: Optional[str] = None) -> List[dict]:
+def _scan_bundled_icons(category: Optional[str] = None) -> list[dict]:
     """Scan the bundled icons directory recursively and return icon information."""
     icons = []
 

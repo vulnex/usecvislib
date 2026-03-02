@@ -23,11 +23,10 @@ import base64
 import logging
 import re
 from pathlib import Path
-from typing import Dict, Any, Optional, List
+from typing import Any, Optional
 
 from .base import Shape, ShapeCategory
 from .registry import ShapeRegistry
-
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +83,7 @@ class CustomShapeLoader:
 
     def load_custom_shapes(
         self,
-        config: Dict[str, Any],
+        config: dict[str, Any],
         base_path: Optional[Path] = None
     ) -> int:
         """Load custom shapes from configuration.
@@ -115,7 +114,7 @@ class CustomShapeLoader:
                 raise
             except Exception as e:
                 logger.error(f"Unexpected error loading shape '{shape_id}': {e}")
-                raise CustomShapeError(f"Error loading shape '{shape_id}': {e}")
+                raise CustomShapeError(f"Error loading shape '{shape_id}': {e}") from e
 
         logger.info(f"Loaded {count} custom shapes")
         return count
@@ -123,7 +122,7 @@ class CustomShapeLoader:
     def _create_custom_shape(
         self,
         shape_id: str,
-        definition: Dict[str, Any],
+        definition: dict[str, Any],
         base_path: Optional[Path] = None
     ) -> Shape:
         """Create a custom shape from definition.
@@ -154,7 +153,7 @@ class CustomShapeLoader:
     def _create_svg_shape(
         self,
         shape_id: str,
-        definition: Dict[str, Any],
+        definition: dict[str, Any],
         base_path: Optional[Path] = None
     ) -> Shape:
         """Create an SVG-based custom shape.
@@ -219,7 +218,7 @@ class CustomShapeLoader:
     def _create_dot_shape(
         self,
         shape_id: str,
-        definition: Dict[str, Any]
+        definition: dict[str, Any]
     ) -> Shape:
         """Create a DOT-based custom shape.
 
@@ -308,7 +307,7 @@ class CustomShapeLoader:
         try:
             path = path.resolve()
         except Exception as e:
-            raise CustomShapeError(f"Invalid SVG path: {svg_path}: {e}")
+            raise CustomShapeError(f"Invalid SVG path: {svg_path}: {e}") from e
 
         # SECURITY: Verify resolved path stays within base_path (if provided)
         if base_path:
@@ -316,16 +315,16 @@ class CustomShapeLoader:
                 resolved_base = base_path.resolve()
                 if not path.is_relative_to(resolved_base):
                     raise CustomShapeError(
-                        f"SVG path escapes base directory: access denied"
+                        "SVG path escapes base directory: access denied"
                     )
             except ValueError:
                 raise CustomShapeError(
-                    f"SVG path escapes base directory: access denied"
-                )
+                    "SVG path escapes base directory: access denied"
+                ) from None
 
         # SECURITY: Reject symlinks to prevent symlink attacks
         if path.is_symlink():
-            raise CustomShapeError(f"SVG symlinks not allowed for security")
+            raise CustomShapeError("SVG symlinks not allowed for security")
 
         # Check file exists and size
         if not path.exists():
@@ -345,7 +344,7 @@ class CustomShapeLoader:
         try:
             return path.read_text(encoding="utf-8")
         except Exception as e:
-            raise CustomShapeError(f"Error reading SVG file: {e}")
+            raise CustomShapeError(f"Error reading SVG file: {e}") from e
 
     def _validate_svg(self, svg_data: str) -> str:
         """Validate SVG content.
@@ -453,7 +452,7 @@ class CustomShapeLoader:
         encoded = base64.b64encode(svg_data.encode("utf-8")).decode("ascii")
         return f"data:image/svg+xml;base64,{encoded}"
 
-    def _parse_dot_definition(self, dot_def: str) -> Dict[str, str]:
+    def _parse_dot_definition(self, dot_def: str) -> dict[str, str]:
         """Parse a DOT definition string into attributes.
 
         Supports formats like:
@@ -497,7 +496,7 @@ class CustomShapeLoader:
 
 def register_custom_shapes(
     registry: ShapeRegistry,
-    config: Dict[str, Any],
+    config: dict[str, Any],
     base_path: Optional[Path] = None
 ) -> int:
     """Convenience function to register custom shapes.

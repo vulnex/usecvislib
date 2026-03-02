@@ -25,12 +25,12 @@ Example:
     >>> print(result.summary())
 """
 
-import os
 import logging
-from pathlib import Path
-from typing import List, Dict, Any, Optional, Callable, Type
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +43,8 @@ class BatchResult:
         successes: Dictionary mapping filenames to their processing results.
         failures: Dictionary mapping filenames to error messages.
     """
-    successes: Dict[str, Any] = field(default_factory=dict)
-    failures: Dict[str, str] = field(default_factory=dict)
+    successes: dict[str, Any] = field(default_factory=dict)
+    failures: dict[str, str] = field(default_factory=dict)
 
     @property
     def total(self) -> int:
@@ -73,7 +73,7 @@ class BatchResult:
         """Get success rate as a percentage (0-100)."""
         return self.success_rate * 100
 
-    def summary(self) -> Dict[str, Any]:
+    def summary(self) -> dict[str, Any]:
         """Get a summary of the batch processing results.
 
         Returns:
@@ -88,7 +88,7 @@ class BatchResult:
             "failed_files": list(self.failures.keys())
         }
 
-    def get_stats(self, filename: str) -> Optional[Dict[str, Any]]:
+    def get_stats(self, filename: str) -> Optional[dict[str, Any]]:
         """Get statistics for a specific file.
 
         Args:
@@ -112,7 +112,7 @@ class BatchResult:
         """
         return self.failures.get(filename)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "summary": self.summary(),
@@ -134,16 +134,16 @@ class BatchProcessor:
     """
 
     # Lazy module mapping to avoid circular imports
-    _MODULES: Optional[Dict[str, Type]] = None
+    _MODULES: Optional[dict[str, type]] = None
 
     @classmethod
-    def _get_modules(cls) -> Dict[str, Type]:
+    def _get_modules(cls) -> dict[str, type]:
         """Get module mapping, loading lazily to avoid circular imports."""
         if cls._MODULES is None:
-            from .attacktrees import AttackTrees
             from .attackgraphs import AttackGraphs
-            from .threatmodeling import ThreatModeling
+            from .attacktrees import AttackTrees
             from .binvis import BinVis
+            from .threatmodeling import ThreatModeling
 
             cls._MODULES = {
                 "attack_tree": AttackTrees,
@@ -195,7 +195,7 @@ class BatchProcessor:
 
     def process_files(
         self,
-        input_files: List[str],
+        input_files: list[str],
         collect_stats: bool = True,
         validate: bool = True,
         skip_on_error: bool = True,
@@ -272,7 +272,7 @@ class BatchProcessor:
         input_file: str,
         collect_stats: bool,
         validate: bool
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Process a single file.
 
         Args:
@@ -291,14 +291,14 @@ class BatchProcessor:
         output_path = str(self.output_dir / filename)
 
         # Prepare kwargs for instance creation
-        kwargs: Dict[str, Any] = {"format": self.format}
+        kwargs: dict[str, Any] = {"format": self.format}
         if self.style:
             kwargs["styleid"] = self.style
 
         # Create instance
         instance = self.module_class(input_file, output_path, **kwargs)
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "file": input_file,
             "output": f"{output_path}.{self.format}"
         }
@@ -337,7 +337,7 @@ class BatchProcessor:
     def process_directory(
         self,
         input_dir: str,
-        extensions: Optional[List[str]] = None,
+        extensions: Optional[list[str]] = None,
         recursive: bool = False,
         **kwargs
     ) -> BatchResult:
@@ -372,7 +372,7 @@ class BatchProcessor:
             raise ValueError(f"Not a directory: {input_dir}")
 
         # Collect files
-        files: List[Path] = []
+        files: list[Path] = []
         for ext in extensions:
             if recursive:
                 files.extend(input_path.rglob(f"*{ext}"))
@@ -382,7 +382,7 @@ class BatchProcessor:
         logger.info(f"Found {len(files)} files in {input_dir}")
         return self.process_files([str(f) for f in files], **kwargs)
 
-    def aggregate_stats(self, result: BatchResult) -> Dict[str, Any]:
+    def aggregate_stats(self, result: BatchResult) -> dict[str, Any]:
         """Aggregate statistics from batch processing results.
 
         Combines statistics from all successfully processed files
@@ -402,7 +402,7 @@ class BatchProcessor:
         if not result.successes:
             return {"file_count": 0}
 
-        aggregated: Dict[str, Any] = {
+        aggregated: dict[str, Any] = {
             "file_count": len(result.successes),
             "total_nodes": 0,
             "total_edges": 0,
@@ -443,7 +443,7 @@ class BatchProcessor:
 
 def process_batch(
     module_type: str,
-    input_files: List[str],
+    input_files: list[str],
     output_dir: str,
     format: str = "png",
     style: Optional[str] = None,

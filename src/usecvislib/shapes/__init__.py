@@ -61,21 +61,18 @@ Shape Gallery Files:
 """
 
 from .base import (
+    GRAPHVIZ_SHAPES,
+    STANDARD_PORTS,
+    Port,
     Shape,
     ShapeCategory,
-    Port,
-    STANDARD_PORTS,
-    GRAPHVIZ_SHAPES,
 )
-
-from .registry import ShapeRegistry
-
 from .custom import (
-    CustomShapeLoader,
     CustomShapeError,
+    CustomShapeLoader,
     register_custom_shapes,
 )
-
+from .registry import ShapeRegistry
 
 __all__ = [
     # Base types

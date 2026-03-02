@@ -17,8 +17,8 @@ This module provides centralized constants, enumerations, and default
 values used throughout the library.
 """
 
-from enum import Enum, auto
-from typing import Any, Dict, List, Optional, Set, Tuple
+from enum import Enum
+from typing import Any, Optional
 
 
 class OutputFormat(str, Enum):
@@ -29,7 +29,7 @@ class OutputFormat(str, Enum):
     DOT = "dot"
 
     @classmethod
-    def values(cls) -> List[str]:
+    def values(cls) -> list[str]:
         """Get all format values as a list."""
         return [f.value for f in cls]
 
@@ -103,7 +103,7 @@ class STRIDECategory(str, Enum):
     ELEVATION_OF_PRIVILEGE = "Elevation of Privilege"
 
     @classmethod
-    def from_element_type(cls, element_type: ElementType) -> List['STRIDECategory']:
+    def from_element_type(cls, element_type: ElementType) -> list['STRIDECategory']:
         """Get applicable STRIDE categories for an element type.
 
         Args:
@@ -140,7 +140,7 @@ class BinaryVisualization(str, Enum):
     ALL = "all"
 
     @classmethod
-    def values(cls) -> List[str]:
+    def values(cls) -> list[str]:
         """Get all visualization types as a list."""
         return [v.value for v in cls]
 
@@ -152,7 +152,7 @@ class ThreatModelEngine(str, Enum):
 
 
 # File extension mappings
-EXTENSION_FORMAT_MAP: Dict[str, ConfigFormat] = {
+EXTENSION_FORMAT_MAP: dict[str, ConfigFormat] = {
     ".toml": ConfigFormat.TOML,
     ".tml": ConfigFormat.TOML,
     ".json": ConfigFormat.JSON,
@@ -161,12 +161,12 @@ EXTENSION_FORMAT_MAP: Dict[str, ConfigFormat] = {
 }
 
 # Allowed configuration file extensions
-CONFIG_EXTENSIONS: List[str] = ['.toml', '.tml', '.json', '.yaml', '.yml']
+CONFIG_EXTENSIONS: list[str] = ['.toml', '.tml', '.json', '.yaml', '.yml']
 
 # Sensitive system paths that should not be written to
 # SECURITY: Comprehensive list of paths that should never be written to
 # NOTE: /var/tmp, /tmp, and /private/var/folders are excluded as they are temp dirs
-SENSITIVE_PATHS: List[str] = [
+SENSITIVE_PATHS: list[str] = [
     # Core system directories
     '/etc', '/usr', '/bin', '/sbin', '/root', '/boot', '/lib',
     # Linux kernel/process filesystems
@@ -195,13 +195,13 @@ class VisualizationType(str, Enum):
     PRIVILEGE_GRADIENT = "privilege_gradient"
 
     @classmethod
-    def values(cls) -> List[str]:
+    def values(cls) -> list[str]:
         """Get all visualization types as a list."""
         return [v.value for v in cls]
 
 
 # Default CVSS display settings
-DEFAULT_CVSS_DISPLAY: Dict[str, bool] = {
+DEFAULT_CVSS_DISPLAY: dict[str, bool] = {
     "enabled": True,  # Global toggle
     "attack_tree": True,
     "attack_graph": True,
@@ -209,7 +209,7 @@ DEFAULT_CVSS_DISPLAY: Dict[str, bool] = {
 }
 
 # Default values
-DEFAULTS: Dict[str, any] = {
+DEFAULTS: dict[str, any] = {
     "output_format": OutputFormat.PNG,
     "styles": {
         "attack_tree": "at_default",
@@ -233,7 +233,7 @@ DEFAULTS: Dict[str, any] = {
 }
 
 # Default graph attributes
-DEFAULT_GRAPH_ATTRS: Dict[str, str] = {
+DEFAULT_GRAPH_ATTRS: dict[str, str] = {
     "fontname": "Arial",
     "fontsize": "12",
     "rankdir": "TB",
@@ -243,7 +243,7 @@ DEFAULT_GRAPH_ATTRS: Dict[str, str] = {
 }
 
 # Default node attributes
-DEFAULT_NODE_ATTRS: Dict[str, str] = {
+DEFAULT_NODE_ATTRS: dict[str, str] = {
     "fontname": "Arial",
     "fontsize": "10",
     "shape": "box",
@@ -251,13 +251,13 @@ DEFAULT_NODE_ATTRS: Dict[str, str] = {
 }
 
 # Default edge attributes
-DEFAULT_EDGE_ATTRS: Dict[str, str] = {
+DEFAULT_EDGE_ATTRS: dict[str, str] = {
     "fontname": "Arial",
     "fontsize": "9",
 }
 
 # Color schemes
-COLORS: Dict[str, Dict[str, str]] = {
+COLORS: dict[str, dict[str, str]] = {
     "attack_tree": {
         "root": "#e74c3c",
         "node": "#3498db",
@@ -306,7 +306,7 @@ class RiskLevel(str, Enum):
     INFO = "info"
 
 
-RISK_COLORS: Dict[RiskLevel, str] = {
+RISK_COLORS: dict[RiskLevel, str] = {
     RiskLevel.CRITICAL: "#8b0000",
     RiskLevel.HIGH: "#e74c3c",
     RiskLevel.MEDIUM: "#f39c12",
@@ -349,7 +349,7 @@ def cvss_to_color(cvss_score: float) -> str:
     return RISK_COLORS[risk_level]
 
 
-def validate_cvss_score(cvss_score: Any) -> Tuple[bool, Optional[float], Optional[str]]:
+def validate_cvss_score(cvss_score: Any) -> tuple[bool, Optional[float], Optional[str]]:
     """Validate a CVSS score value.
 
     Args:
@@ -376,7 +376,7 @@ def validate_cvss_score(cvss_score: Any) -> Tuple[bool, Optional[float], Optiona
 
 
 # CVSS severity labels for display
-CVSS_SEVERITY_LABELS: Dict[RiskLevel, str] = {
+CVSS_SEVERITY_LABELS: dict[RiskLevel, str] = {
     RiskLevel.CRITICAL: "Critical",
     RiskLevel.HIGH: "High",
     RiskLevel.MEDIUM: "Medium",

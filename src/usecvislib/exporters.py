@@ -25,12 +25,10 @@ Example:
     >>> ag.export_csv("hosts.csv", section="hosts")
 """
 
-import json
 import csv
+import json
 import logging
-from typing import Dict, Any, List, Optional, Union, TextIO
-from pathlib import Path
-from abc import ABC, abstractmethod
+from typing import Any, Optional
 
 from .utils import validate_output_path
 
@@ -78,7 +76,7 @@ class ExportMixin:
         if not getattr(self, '_loaded', False):
             self.load()
 
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
 
         # Add metadata
         if include_metadata:
@@ -187,7 +185,7 @@ class ExportMixin:
         logger.info(f"Exported {len(data)} rows to CSV: {output}")
         return len(data)
 
-    def _get_csv_data(self, section: str) -> List[Dict[str, Any]]:
+    def _get_csv_data(self, section: str) -> list[dict[str, Any]]:
         """Get data for CSV export from a specific section.
 
         Override in subclasses to provide section-specific data.
@@ -221,7 +219,7 @@ class ExportMixin:
 
         return []
 
-    def get_exportable_sections(self) -> List[str]:
+    def get_exportable_sections(self) -> list[str]:
         """Get list of sections that can be exported.
 
         Returns:
@@ -254,7 +252,7 @@ class Exporter:
 
     @staticmethod
     def to_json(
-        data: Dict[str, Any],
+        data: dict[str, Any],
         output: Optional[str] = None,
         pretty: bool = True
     ) -> str:
@@ -282,9 +280,9 @@ class Exporter:
 
     @staticmethod
     def to_csv(
-        data: List[Dict[str, Any]],
+        data: list[dict[str, Any]],
         output: str,
-        fieldnames: Optional[List[str]] = None,
+        fieldnames: Optional[list[str]] = None,
         delimiter: str = ","
     ) -> int:
         """Export list of dictionaries to CSV.
@@ -326,7 +324,7 @@ class Exporter:
 
     @staticmethod
     def to_yaml(
-        data: Dict[str, Any],
+        data: dict[str, Any],
         output: Optional[str] = None
     ) -> str:
         """Export dictionary to YAML.
@@ -385,9 +383,9 @@ class Exporter:
 
     @staticmethod
     def to_markdown_table(
-        data: List[Dict[str, Any]],
+        data: list[dict[str, Any]],
         output: Optional[str] = None,
-        columns: Optional[List[str]] = None
+        columns: Optional[list[str]] = None
     ) -> str:
         """Export list of dictionaries to Markdown table.
 
@@ -459,9 +457,9 @@ class ReportGenerator:
     def generate_report(
         self,
         output_dir: str,
-        formats: Optional[List[str]] = None,
+        formats: Optional[list[str]] = None,
         prefix: str = "report"
-    ) -> Dict[str, str]:
+    ) -> dict[str, str]:
         """Generate a report in multiple formats.
 
         Args:

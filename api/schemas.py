@@ -14,9 +14,9 @@
 """Pydantic schemas for API request/response models."""
 
 from enum import Enum
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from typing import Any, Optional
 
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # =============================================================================
 # Security Constants for Dict Size Limits
@@ -125,7 +125,7 @@ class EntropyConfig(BaseModel):
     step: int = Field(default=64, description="Step size for sliding window", gt=0)
     dpi: int = Field(default=150, description="Output image DPI", gt=0)
     show_thresholds: bool = Field(default=True, description="Show threshold lines")
-    thresholds: List[EntropyThreshold] = Field(
+    thresholds: list[EntropyThreshold] = Field(
         default=[
             EntropyThreshold(value=7.5, color="r", style="--", alpha=0.5, label="High entropy (compressed/encrypted)"),
             EntropyThreshold(value=4.0, color="g", style="--", alpha=0.5, label="Medium entropy (code)"),
@@ -161,7 +161,7 @@ class ByteDistributionConfig(BaseModel):
     bar_alpha: float = Field(default=0.7, description="Bar transparency (0-1)", ge=0, le=1)
     dpi: int = Field(default=150, description="Output image DPI", gt=0)
     show_regions: bool = Field(default=True, description="Show region highlights")
-    regions: List[DistributionRegion] = Field(
+    regions: list[DistributionRegion] = Field(
         default=[
             DistributionRegion(start=0, end=31, color="red", alpha=0.1, label="Control chars"),
             DistributionRegion(start=32, end=126, color="green", alpha=0.1, label="Printable ASCII"),
@@ -182,7 +182,7 @@ class WindRoseConfig(BaseModel):
     """Configuration for wind rose visualization."""
     bar_alpha: float = Field(default=0.7, description="Bar transparency (0-1)", ge=0, le=1)
     dpi: int = Field(default=150, description="Output image DPI", gt=0)
-    rticks: List[float] = Field(
+    rticks: list[float] = Field(
         default=[0.25, 0.5, 0.75, 1.0],
         description="Radial tick positions",
         max_length=20  # SECURITY: Limit to prevent DoS
@@ -461,8 +461,8 @@ class GradientStats(BaseModel):
     total_components: int
     total_influences: int
     total_inversions: int
-    inversions: List[Dict[str, Any]] = Field(default=[], max_length=1000)
-    components_per_zone: Dict[str, int] = Field(default={})
+    inversions: list[dict[str, Any]] = Field(default=[], max_length=1000)
+    components_per_zone: dict[str, int] = Field(default={})
     max_trust_gap: int = Field(default=0)
     metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
 
@@ -473,7 +473,7 @@ class ComponentDiagramStats(BaseModel):
     total_layers: int
     total_components: int
     total_connections: int
-    components_per_layer: Dict[str, int] = Field(default={})
+    components_per_layer: dict[str, int] = Field(default={})
     metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
 
 
@@ -485,15 +485,15 @@ class DependencyGraphStats(BaseModel):
     total_circular: int
     internal_count: int = Field(default=0)
     external_count: int = Field(default=0)
-    groups: List[str] = Field(default=[])
+    groups: list[str] = Field(default=[])
     metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
 
 
 class InversionsResponse(BaseModel):
     """Response for privilege gradient inversion analysis."""
     total: int = Field(description="Total number of inversions detected")
-    by_severity: Dict[str, int] = Field(description="Counts by severity")
-    inversions: List[Dict[str, Any]] = Field(default=[], max_length=1000)
+    by_severity: dict[str, int] = Field(description="Counts by severity")
+    inversions: list[dict[str, Any]] = Field(default=[], max_length=1000)
 
     model_config = ConfigDict(json_schema_extra={
             "example": {
@@ -518,7 +518,7 @@ class CriticalNode(BaseModel):
 
 class AttackPath(BaseModel):
     """Attack path result."""
-    path: List[str]
+    path: list[str]
     length: int
 
 
@@ -526,7 +526,7 @@ class AttackPathsResponse(BaseModel):
     """Response for attack path analysis."""
     source: str
     target: str
-    paths: List[AttackPath]
+    paths: list[AttackPath]
     total_paths: int
     shortest_path_length: Optional[int] = None
 
@@ -572,12 +572,12 @@ class StrideCategory(BaseModel):
 class StrideReport(BaseModel):
     """STRIDE analysis report."""
     model_name: str
-    spoofing: List[StrideCategory]
-    tampering: List[StrideCategory]
-    repudiation: List[StrideCategory]
-    information_disclosure: List[StrideCategory]
-    denial_of_service: List[StrideCategory]
-    elevation_of_privilege: List[StrideCategory]
+    spoofing: list[StrideCategory]
+    tampering: list[StrideCategory]
+    repudiation: list[StrideCategory]
+    information_disclosure: list[StrideCategory]
+    denial_of_service: list[StrideCategory]
+    elevation_of_privilege: list[StrideCategory]
 
 
 class ErrorResponse(BaseModel):
@@ -608,7 +608,7 @@ class HealthResponse(BaseModel):
     """
     status: str
     version: Optional[str] = Field(default=None, description="API version (requires ?details=true)")
-    modules: Optional[Dict[str, bool]] = Field(default=None, description="Module availability (requires ?details=true)")
+    modules: Optional[dict[str, bool]] = Field(default=None, description="Module availability (requires ?details=true)")
 
 
 class ConvertResponse(BaseModel):
@@ -650,17 +650,17 @@ class ThreatLibraryItem(BaseModel):
     id: str = Field(description="Threat identifier", max_length=256)
     description: str = Field(description="Threat description", max_length=4096)
     severity: str = Field(description="Threat severity level", max_length=64)
-    target: List[str] = Field(default=[], description="Target element types", max_length=100)
+    target: list[str] = Field(default=[], description="Target element types", max_length=100)
     condition: str = Field(default="", description="Condition for threat applicability", max_length=2048)
     prerequisites: str = Field(default="", description="Prerequisites for threat", max_length=2048)
     mitigations: str = Field(default="", description="Recommended mitigations", max_length=4096)
-    references: List[str] = Field(default=[], description="Reference links", max_length=50)
+    references: list[str] = Field(default=[], description="Reference links", max_length=50)
 
 
 class ThreatLibraryResponse(BaseModel):
     """Threat library response."""
     total: int = Field(description="Total number of threats in library")
-    threats: List[ThreatLibraryItem] = Field(description="List of threats", max_length=1000)
+    threats: list[ThreatLibraryItem] = Field(description="List of threats", max_length=1000)
     pytm_available: bool = Field(description="Whether PyTM is installed")
 
 
@@ -674,7 +674,7 @@ class BatchItemResult(BaseModel):
     success: bool = Field(description="Whether processing succeeded")
     output_file: Optional[str] = Field(default=None, description="Output filename if successful")
     error: Optional[str] = Field(default=None, description="Error message if failed")
-    stats: Optional[Dict[str, Any]] = Field(default=None, description="Statistics if collected")
+    stats: Optional[dict[str, Any]] = Field(default=None, description="Statistics if collected")
     image_data: Optional[str] = Field(default=None, description="Base64-encoded image data for download")
 
 
@@ -684,8 +684,8 @@ class BatchResponse(BaseModel):
     success_count: int = Field(description="Number of successful files")
     failure_count: int = Field(description="Number of failed files")
     success_rate: float = Field(description="Success rate (0.0 to 1.0)")
-    results: List[BatchItemResult] = Field(description="Individual file results", max_length=100)
-    aggregate_stats: Optional[Dict[str, Any]] = Field(default=None, description="Aggregate statistics")
+    results: list[BatchItemResult] = Field(description="Individual file results", max_length=100)
+    aggregate_stats: Optional[dict[str, Any]] = Field(default=None, description="Aggregate statistics")
 
     model_config = ConfigDict(json_schema_extra={
             "example": {
@@ -762,7 +762,7 @@ class DiffResponse(BaseModel):
     summary: DiffSummary = Field(description="Summary of changes")
     old_source: Optional[str] = Field(default=None, description="Old file name")
     new_source: Optional[str] = Field(default=None, description="New file name")
-    changes: List[ChangeItem] = Field(description="List of all changes")
+    changes: list[ChangeItem] = Field(description="List of all changes")
     report: Optional[str] = Field(default=None, description="Markdown report if requested")
 
     model_config = ConfigDict(json_schema_extra={
@@ -800,7 +800,7 @@ class ValidationResponse(BaseModel):
     valid: bool = Field(description="Whether config is valid (no errors)")
     error_count: int = Field(description="Number of errors")
     warning_count: int = Field(description="Number of warnings")
-    issues: List[ValidationIssue] = Field(description="List of all issues")
+    issues: list[ValidationIssue] = Field(description="List of all issues")
 
     model_config = ConfigDict(json_schema_extra={
             "example": {
@@ -891,7 +891,7 @@ class CentralityNode(BaseModel):
 
 class CentralityResponse(BaseModel):
     """Response for centrality analysis."""
-    nodes: List[CentralityNode] = Field(description="Nodes with centrality scores")
+    nodes: list[CentralityNode] = Field(description="Nodes with centrality scores")
     algorithm: str = Field(description="Algorithm used (betweenness, closeness, pagerank, or all)")
     total_nodes: int = Field(description="Total nodes in graph")
 
@@ -914,7 +914,7 @@ class GraphMetricsResponse(BaseModel):
     largest_scc_size: int = Field(description="Size of largest SCC")
     num_cycles: int = Field(description="Number of simple cycles")
     is_dag: bool = Field(description="Whether graph is a DAG (no cycles)")
-    node_types: Dict[str, int] = Field(description="Count of nodes by type")
+    node_types: dict[str, int] = Field(description="Count of nodes by type")
 
     model_config = ConfigDict(json_schema_extra={
             "example": {
@@ -942,7 +942,7 @@ class ChokepointNode(BaseModel):
 
 class ChokepointsResponse(BaseModel):
     """Response for chokepoint analysis."""
-    chokepoints: List[ChokepointNode] = Field(description="Critical chokepoint nodes")
+    chokepoints: list[ChokepointNode] = Field(description="Critical chokepoint nodes")
     total_analyzed: int = Field(description="Total nodes analyzed")
 
     model_config = ConfigDict(json_schema_extra={
@@ -965,7 +965,7 @@ class AttackSurfaceNode(BaseModel):
 
 class AttackSurfaceResponse(BaseModel):
     """Response for attack surface analysis."""
-    entry_points: List[AttackSurfaceNode] = Field(description="Attack surface entry points")
+    entry_points: list[AttackSurfaceNode] = Field(description="Attack surface entry points")
     total_attack_surface: int = Field(description="Total number of entry points")
 
     model_config = ConfigDict(json_schema_extra={
@@ -1041,7 +1041,7 @@ class ShapeInfo(BaseModel):
     bordercolor: Optional[str] = Field(default=None, description="Shape border color")
     fontcolor: Optional[str] = Field(default=None, description="Font color for labels")
     style: Optional[str] = Field(default=None, description="Graphviz style (filled, rounded, etc.)")
-    tags: List[str] = Field(default=[], description="Shape tags")
+    tags: list[str] = Field(default=[], description="Shape tags")
     custom: bool = Field(default=False, description="Whether this is a custom shape")
 
     model_config = ConfigDict(json_schema_extra={
@@ -1060,9 +1060,9 @@ class ShapeInfo(BaseModel):
         })
 class ShapeListResponse(BaseModel):
     """Response for listing shapes."""
-    shapes: List[ShapeInfo] = Field(description="Available shapes")
+    shapes: list[ShapeInfo] = Field(description="Available shapes")
     total: int = Field(description="Total number of shapes")
-    categories: List[str] = Field(description="Available categories")
+    categories: list[str] = Field(description="Available categories")
 
 
 class TemplateInfo(BaseModel):
@@ -1088,9 +1088,9 @@ class TemplateInfo(BaseModel):
         })
 class TemplateListResponse(BaseModel):
     """Response for listing templates."""
-    templates: List[TemplateInfo] = Field(description="Available templates")
+    templates: list[TemplateInfo] = Field(description="Available templates")
     total: int = Field(description="Total number of templates")
-    categories: List[str] = Field(description="Available categories")
+    categories: list[str] = Field(description="Available categories")
 
 
 class NodeSchema(BaseModel):
@@ -1099,14 +1099,14 @@ class NodeSchema(BaseModel):
     SECURITY: Dict fields have validators to limit size and prevent DoS attacks.
     """
     shape: str = Field(description="Shape identifier", max_length=64)
-    required_fields: List[str] = Field(default=["name"], description="Required fields", max_length=50)
-    optional_fields: List[str] = Field(default=[], description="Optional fields", max_length=50)
-    style: Dict[str, str] = Field(default={}, description="Default style attributes")
+    required_fields: list[str] = Field(default=["name"], description="Required fields", max_length=50)
+    optional_fields: list[str] = Field(default=[], description="Optional fields", max_length=50)
+    style: dict[str, str] = Field(default={}, description="Default style attributes")
     label_template: str = Field(default="{name}", description="Label template", max_length=512)
 
     @field_validator('style')
     @classmethod
-    def validate_style_size(cls, v: Dict[str, str]) -> Dict[str, str]:
+    def validate_style_size(cls, v: dict[str, str]) -> dict[str, str]:
         """SECURITY: Limit number of style properties."""
         if len(v) > MAX_STYLE_ENTRIES:
             raise ValueError(f"Too many style properties: {len(v)} (max: {MAX_STYLE_ENTRIES})")
@@ -1173,12 +1173,12 @@ class DiagramCluster(BaseModel):
     """
     id: str = Field(description="Cluster identifier", max_length=256)
     label: str = Field(description="Cluster label", max_length=512)
-    nodes: List[str] = Field(description="Node IDs in this cluster", max_length=1000)
-    style: Dict[str, str] = Field(default={}, description="Cluster style")
+    nodes: list[str] = Field(description="Node IDs in this cluster", max_length=1000)
+    style: dict[str, str] = Field(default={}, description="Cluster style")
 
     @field_validator('style')
     @classmethod
-    def validate_style_size(cls, v: Dict[str, str]) -> Dict[str, str]:
+    def validate_style_size(cls, v: dict[str, str]) -> dict[str, str]:
         """SECURITY: Limit number of style properties."""
         if len(v) > MAX_STYLE_ENTRIES:
             raise ValueError(f"Too many style properties: {len(v)} (max: {MAX_STYLE_ENTRIES})")
@@ -1217,12 +1217,12 @@ class CustomDiagramSchema(BaseModel):
 
     SECURITY: Dict fields have validators to limit size and prevent DoS attacks.
     """
-    nodes: Dict[str, NodeSchema] = Field(description="Node type definitions")
-    edges: Dict[str, EdgeSchema] = Field(default={}, description="Edge type definitions")
+    nodes: dict[str, NodeSchema] = Field(description="Node type definitions")
+    edges: dict[str, EdgeSchema] = Field(default={}, description="Edge type definitions")
 
     @field_validator('nodes')
     @classmethod
-    def validate_nodes_size(cls, v: Dict[str, NodeSchema]) -> Dict[str, NodeSchema]:
+    def validate_nodes_size(cls, v: dict[str, NodeSchema]) -> dict[str, NodeSchema]:
         """SECURITY: Limit number of node type definitions."""
         if len(v) > MAX_SCHEMA_ENTRIES:
             raise ValueError(f"Too many node types: {len(v)} (max: {MAX_SCHEMA_ENTRIES})")
@@ -1230,7 +1230,7 @@ class CustomDiagramSchema(BaseModel):
 
     @field_validator('edges')
     @classmethod
-    def validate_edges_size(cls, v: Dict[str, EdgeSchema]) -> Dict[str, EdgeSchema]:
+    def validate_edges_size(cls, v: dict[str, EdgeSchema]) -> dict[str, EdgeSchema]:
         """SECURITY: Limit number of edge type definitions."""
         if len(v) > MAX_SCHEMA_ENTRIES:
             raise ValueError(f"Too many edge types: {len(v)} (max: {MAX_SCHEMA_ENTRIES})")
@@ -1260,9 +1260,9 @@ class CustomDiagramRequest(BaseModel):
     """
     diagram: DiagramSettings = Field(default_factory=DiagramSettings, description="Diagram settings")
     schema_def: CustomDiagramSchema = Field(alias="schema", description="Schema definition")
-    nodes: List[DiagramNode] = Field(description="Node instances", max_length=5000)
-    edges: List[DiagramEdge] = Field(default=[], description="Edge instances", max_length=10000)
-    clusters: List[DiagramCluster] = Field(default=[], description="Cluster definitions", max_length=500)
+    nodes: list[DiagramNode] = Field(description="Node instances", max_length=5000)
+    edges: list[DiagramEdge] = Field(default=[], description="Edge instances", max_length=10000)
+    clusters: list[DiagramCluster] = Field(default=[], description="Cluster definitions", max_length=500)
     format: OutputFormat = Field(default=OutputFormat.PNG, description="Output format")
 
     model_config = ConfigDict(populate_by_name=True, json_schema_extra={
@@ -1298,9 +1298,9 @@ class CustomDiagramValidateRequest(BaseModel):
     """
     diagram: Optional[DiagramSettings] = Field(default=None, description="Diagram settings")
     schema_def: Optional[CustomDiagramSchema] = Field(alias="schema", default=None, description="Schema definition")
-    nodes: List[DiagramNode] = Field(default=[], description="Node instances", max_length=5000)
-    edges: List[DiagramEdge] = Field(default=[], description="Edge instances", max_length=10000)
-    clusters: List[DiagramCluster] = Field(default=[], description="Cluster definitions", max_length=500)
+    nodes: list[DiagramNode] = Field(default=[], description="Node instances", max_length=5000)
+    edges: list[DiagramEdge] = Field(default=[], description="Edge instances", max_length=10000)
+    clusters: list[DiagramCluster] = Field(default=[], description="Cluster definitions", max_length=500)
 
     model_config = ConfigDict(populate_by_name=True)
 class ValidationError(BaseModel):
@@ -1313,8 +1313,8 @@ class ValidationError(BaseModel):
 class CustomDiagramValidateResponse(BaseModel):
     """Response for diagram validation."""
     valid: bool = Field(description="Whether the diagram is valid")
-    errors: List[str] = Field(default=[], description="Validation errors", max_length=1000)
-    warnings: List[str] = Field(default=[], description="Validation warnings", max_length=1000)
+    errors: list[str] = Field(default=[], description="Validation errors", max_length=1000)
+    warnings: list[str] = Field(default=[], description="Validation warnings", max_length=1000)
     node_count: int = Field(default=0, description="Number of nodes in diagram")
     edge_count: int = Field(default=0, description="Number of edges in diagram")
     cluster_count: int = Field(default=0, description="Number of clusters in diagram")
@@ -1335,8 +1335,8 @@ class CustomDiagramStatsResponse(BaseModel):
     total_nodes: int = Field(default=0, description="Number of nodes")
     total_edges: int = Field(default=0, description="Number of edges")
     total_clusters: int = Field(default=0, description="Number of clusters")
-    node_types: Dict[str, int] = Field(default={}, description="Count by node type")
-    edge_types: Dict[str, int] = Field(default={}, description="Count by edge type")
+    node_types: dict[str, int] = Field(default={}, description="Count by node type")
+    edge_types: dict[str, int] = Field(default={}, description="Count by edge type")
     layout: str = Field(default="hierarchical", description="Layout algorithm")
     direction: str = Field(default="TB", description="Graph direction")
 
@@ -1423,7 +1423,7 @@ class ImageDeleteResponse(BaseModel):
         })
 class ImageListResponse(BaseModel):
     """Response listing uploaded images."""
-    images: List[ImageInfoResponse] = Field(description="List of uploaded images")
+    images: list[ImageInfoResponse] = Field(description="List of uploaded images")
     total: int = Field(description="Total number of images")
 
     model_config = ConfigDict(json_schema_extra={
@@ -1467,9 +1467,9 @@ class BundledIconInfo(BaseModel):
         })
 class BundledIconsListResponse(BaseModel):
     """Response listing bundled icons with pagination."""
-    icons: List[BundledIconInfo] = Field(description="List of bundled icons")
-    categories: List[str] = Field(description="Available icon categories")
-    subcategories: List[str] = Field(default=[], description="Available subcategories for filtered category")
+    icons: list[BundledIconInfo] = Field(description="List of bundled icons")
+    categories: list[str] = Field(description="Available icon categories")
+    subcategories: list[str] = Field(default=[], description="Available subcategories for filtered category")
     total: int = Field(description="Total number of icons matching filters")
     page: int = Field(default=1, description="Current page number")
     page_size: int = Field(default=50, description="Number of icons per page")
@@ -1500,8 +1500,8 @@ class BundledIconsListResponse(BaseModel):
         })
 class BundledIconsCategoriesResponse(BaseModel):
     """Response listing bundled icon categories."""
-    categories: List[str] = Field(description="Available icon categories")
-    counts: Dict[str, int] = Field(description="Number of icons per category")
+    categories: list[str] = Field(description="Available icon categories")
+    counts: dict[str, int] = Field(description="Number of icons per category")
 
     model_config = ConfigDict(json_schema_extra={
             "example": {
@@ -1581,7 +1581,7 @@ class MermaidStats(BaseModel):
 class MermaidValidateResponse(BaseModel):
     """Response for Mermaid validation."""
     valid: bool = Field(description="Whether the diagram is valid")
-    errors: List[str] = Field(default=[], description="List of validation errors")
+    errors: list[str] = Field(default=[], description="List of validation errors")
     diagram_type: Optional[str] = Field(default=None, description="Detected diagram type")
     stats: Optional[MermaidStats] = Field(default=None, description="Diagram statistics")
 
@@ -1617,8 +1617,8 @@ class MermaidTemplateInfo(BaseModel):
         })
 class MermaidTemplateListResponse(BaseModel):
     """Response listing Mermaid templates."""
-    templates: List[MermaidTemplateInfo] = Field(description="List of templates")
-    categories: List[str] = Field(description="Available categories")
+    templates: list[MermaidTemplateInfo] = Field(description="List of templates")
+    categories: list[str] = Field(description="Available categories")
     total: int = Field(description="Total number of templates")
 
     model_config = ConfigDict(json_schema_extra={
@@ -1714,7 +1714,7 @@ class CloudStats(BaseModel):
     node_count: int = Field(description="Number of nodes")
     edge_count: int = Field(description="Number of edges")
     cluster_count: int = Field(description="Number of clusters")
-    providers_used: List[str] = Field(description="Cloud providers used")
+    providers_used: list[str] = Field(description="Cloud providers used")
     loaded: bool = Field(description="Whether diagram is loaded")
 
     model_config = ConfigDict(json_schema_extra={
@@ -1730,7 +1730,7 @@ class CloudStats(BaseModel):
 class CloudValidateResponse(BaseModel):
     """Response for cloud diagram validation."""
     valid: bool = Field(description="Whether the diagram is valid")
-    errors: List[str] = Field(default=[], description="List of validation errors")
+    errors: list[str] = Field(default=[], description="List of validation errors")
     stats: Optional[CloudStats] = Field(default=None, description="Diagram statistics")
 
     model_config = ConfigDict(json_schema_extra={
@@ -1764,7 +1764,7 @@ class CloudIconInfo(BaseModel):
         })
 class CloudIconsListResponse(BaseModel):
     """Response listing cloud diagram icons."""
-    icons: List[CloudIconInfo] = Field(description="List of icons")
+    icons: list[CloudIconInfo] = Field(description="List of icons")
     provider: str = Field(description="Provider filter applied")
     category: Optional[str] = Field(default=None, description="Category filter applied")
     total: int = Field(description="Total number of icons")
@@ -1786,7 +1786,7 @@ class CloudIconsListResponse(BaseModel):
         })
 class CloudProvidersResponse(BaseModel):
     """Response listing cloud providers."""
-    providers: List[Dict[str, str]] = Field(description="List of providers with details")
+    providers: list[dict[str, str]] = Field(description="List of providers with details")
 
     model_config = ConfigDict(json_schema_extra={
             "example": {
@@ -1802,7 +1802,7 @@ class CloudTemplateInfo(BaseModel):
     name: str = Field(description="Template name")
     category: str = Field(description="Template category")
     path: str = Field(description="Relative path to template")
-    providers: List[str] = Field(default=[], description="Providers used")
+    providers: list[str] = Field(default=[], description="Providers used")
 
     model_config = ConfigDict(json_schema_extra={
             "example": {
@@ -1814,8 +1814,8 @@ class CloudTemplateInfo(BaseModel):
         })
 class CloudTemplateListResponse(BaseModel):
     """Response listing cloud diagram templates."""
-    templates: List[CloudTemplateInfo] = Field(description="List of templates")
-    categories: List[str] = Field(description="Available categories")
+    templates: list[CloudTemplateInfo] = Field(description="List of templates")
+    categories: list[str] = Field(description="Available categories")
     total: int = Field(description="Total number of templates")
 
     model_config = ConfigDict(json_schema_extra={
@@ -1839,7 +1839,7 @@ class CloudTemplateContentResponse(BaseModel):
     category: str = Field(description="Template category")
     content: str = Field(description="Template content (TOML/YAML/JSON)")
     filename: str = Field(description="Original filename")
-    providers: List[str] = Field(default=[], description="Providers used in template")
+    providers: list[str] = Field(default=[], description="Providers used in template")
 
     model_config = ConfigDict(json_schema_extra={
             "example": {

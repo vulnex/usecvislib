@@ -30,10 +30,10 @@ Example:
 """
 
 import logging
-from typing import Dict, Any, List, Set, Optional, Union
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ class Change:
             return f"<{type(value).__name__}>"
         return str(value)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "type": self.change_type.value,
@@ -108,13 +108,13 @@ class DiffResult:
         new_source: Source path of new visualization.
         metadata: Additional metadata about the comparison.
     """
-    changes: List[Change] = field(default_factory=list)
+    changes: list[Change] = field(default_factory=list)
     old_source: Optional[str] = None
     new_source: Optional[str] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
-    def summary(self) -> Dict[str, int]:
+    def summary(self) -> dict[str, int]:
         """Get summary counts by change type."""
         return {
             "added": len(self.added()),
@@ -128,19 +128,19 @@ class DiffResult:
         """Check if any changes were detected."""
         return any(c.change_type != ChangeType.UNCHANGED for c in self.changes)
 
-    def added(self) -> List[Change]:
+    def added(self) -> list[Change]:
         """Get all additions."""
         return [c for c in self.changes if c.change_type == ChangeType.ADDED]
 
-    def removed(self) -> List[Change]:
+    def removed(self) -> list[Change]:
         """Get all removals."""
         return [c for c in self.changes if c.change_type == ChangeType.REMOVED]
 
-    def modified(self) -> List[Change]:
+    def modified(self) -> list[Change]:
         """Get all modifications."""
         return [c for c in self.changes if c.change_type == ChangeType.MODIFIED]
 
-    def by_path_prefix(self, prefix: str) -> List[Change]:
+    def by_path_prefix(self, prefix: str) -> list[Change]:
         """Get changes under a specific path prefix.
 
         Args:
@@ -151,7 +151,7 @@ class DiffResult:
         """
         return [c for c in self.changes if c.path.startswith(prefix)]
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "summary": self.summary,
@@ -194,7 +194,7 @@ class VisualizationDiff:
         if not getattr(self.new, '_loaded', False):
             self.new.load()
 
-    def compare(self, ignore_paths: Optional[List[str]] = None) -> DiffResult:
+    def compare(self, ignore_paths: Optional[list[str]] = None) -> DiffResult:
         """Compare the two visualizations.
 
         Args:
@@ -231,10 +231,10 @@ class VisualizationDiff:
 
     def _compare_dicts(
         self,
-        old: Dict,
-        new: Dict,
+        old: dict,
+        new: dict,
         path: str
-    ) -> List[Change]:
+    ) -> list[Change]:
         """Recursively compare two dictionaries.
 
         Args:
@@ -291,10 +291,10 @@ class VisualizationDiff:
 
     def _compare_lists(
         self,
-        old: List,
-        new: List,
+        old: list,
+        new: list,
         path: str
-    ) -> List[Change]:
+    ) -> list[Change]:
         """Compare two lists.
 
         For lists of dicts with 'id' fields, compares by ID.
@@ -399,8 +399,8 @@ class VisualizationDiff:
             f"- **Old Version:** `{diff.old_source or 'unknown'}`",
             f"- **New Version:** `{diff.new_source or 'unknown'}`",
             "",
-            f"| Change Type | Count |",
-            f"|-------------|-------|",
+            "| Change Type | Count |",
+            "|-------------|-------|",
             f"| Added       | {diff.summary['added']} |",
             f"| Removed     | {diff.summary['removed']} |",
             f"| Modified    | {diff.summary['modified']} |",
@@ -497,8 +497,8 @@ def compare_files(
         ... )
     """
     # Import visualization classes
-    from .attacktrees import AttackTrees
     from .attackgraphs import AttackGraphs
+    from .attacktrees import AttackTrees
     from .threatmodeling import ThreatModeling
 
     classes = {

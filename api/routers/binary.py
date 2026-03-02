@@ -7,28 +7,38 @@
 # Copyright (c) 2025 VULNEX. All rights reserved.
 #
 
-import os
 import json
 import logging
+import os
 from typing import Optional
 
-from fastapi import APIRouter, File, UploadFile, Query, Form, BackgroundTasks, Request, HTTPException
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 
 from usecvislib import BinVis
-from usecvislib.utils import FileError, ConfigError, RenderError
+from usecvislib.utils import ConfigError, FileError, RenderError
 
 from ..config import (
-    limiter, RATE_LIMIT_VISUALIZE, RATE_LIMIT_ANALYZE,
-    ENABLE_TRACEBACK_LOGGING, TEMP_DIR,
-    REQUEST_TIMEOUT_VISUALIZE, MAX_BINARY_FILE_SIZE,
+    ENABLE_TRACEBACK_LOGGING,
+    MAX_BINARY_FILE_SIZE,
+    RATE_LIMIT_ANALYZE,
+    RATE_LIMIT_VISUALIZE,
+    REQUEST_TIMEOUT_VISUALIZE,
+    TEMP_DIR,
+    limiter,
 )
 from ..helpers import (
-    save_upload_file, cleanup_files, get_content_type,
+    cleanup_files,
+    get_content_type,
     run_sync_with_timeout,
+    save_upload_file,
 )
 from ..schemas import (
-    OutputFormat, BinVisStyle, BinVisType, BinVisConfig, FileStats,
+    BinVisConfig,
+    BinVisStyle,
+    BinVisType,
+    FileStats,
+    OutputFormat,
 )
 
 logger = logging.getLogger("usecvislib.api")
@@ -122,8 +132,8 @@ async def visualize_binary(
                 apply_binvis_config(bv, config)
                 logger.debug(f"Applied custom config: {list(config_dict.keys())}")
             except (json.JSONDecodeError, ValueError) as e:
-                logger.warning(f"Invalid config JSON: {str(e)}")
-                raise HTTPException(status_code=400, detail="Invalid configuration format")
+                logger.warning(f"Invalid config JSON: {e!s}")
+                raise HTTPException(status_code=400, detail="Invalid configuration format") from e
 
         # Generate visualization with timeout protection
         # SECURITY: Prevents resource exhaustion from large binary files
@@ -158,17 +168,17 @@ async def visualize_binary(
 
     except (FileNotFoundError, FileError, ConfigError) as e:
         cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except ValueError as e:
         cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except RenderError as e:
         cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         cleanup_files(input_path, output_path)
-        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred")
+        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
 @router.post(
@@ -205,11 +215,11 @@ async def analyze_binary(
         return FileStats(**stats)
 
     except (FileNotFoundError, FileError, ConfigError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except RenderError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred")
+        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred") from e
     finally:
         cleanup_files(input_path)

@@ -39,8 +39,8 @@ Usage:
 """
 
 import re
-from typing import Dict, List, Any, Optional, Tuple
 from enum import Enum
+from typing import Any, Optional
 
 
 class MermaidDiagramType(str, Enum):
@@ -137,7 +137,7 @@ def escape_label(text: str, max_length: int = 100) -> str:
 # Visualization Type Detection
 # =============================================================================
 
-def detect_visualization_type(data: Dict[str, Any]) -> str:
+def detect_visualization_type(data: dict[str, Any]) -> str:
     """
     Detect the visualization type from configuration data.
 
@@ -192,7 +192,7 @@ def detect_visualization_type(data: Dict[str, Any]) -> str:
 # =============================================================================
 
 def _convert_attack_tree(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     direction: MermaidDirection = MermaidDirection.TOP_DOWN
 ) -> str:
     """
@@ -289,7 +289,7 @@ def _convert_attack_tree(
 # =============================================================================
 
 def _convert_threat_model(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     diagram_type: str = "flowchart"
 ) -> str:
     """
@@ -307,7 +307,7 @@ def _convert_threat_model(
     return _convert_threat_model_flowchart(data)
 
 
-def _convert_threat_model_flowchart(data: Dict[str, Any]) -> str:
+def _convert_threat_model_flowchart(data: dict[str, Any]) -> str:
     """Convert threat model to DFD-style flowchart."""
     lines = ["flowchart LR"]
 
@@ -398,7 +398,7 @@ def _convert_threat_model_flowchart(data: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _convert_threat_model_sequence(data: Dict[str, Any]) -> str:
+def _convert_threat_model_sequence(data: dict[str, Any]) -> str:
     """Convert threat model flows to sequence diagram."""
     lines = ["sequenceDiagram"]
 
@@ -436,7 +436,7 @@ def _convert_threat_model_sequence(data: Dict[str, Any]) -> str:
 # Attack Graph Converter
 # =============================================================================
 
-def _list_to_dict(items: Any, id_key: str = "id") -> Dict[str, Any]:
+def _list_to_dict(items: Any, id_key: str = "id") -> dict[str, Any]:
     """Convert list of items to dict keyed by id_key."""
     if isinstance(items, dict):
         return items
@@ -446,7 +446,7 @@ def _list_to_dict(items: Any, id_key: str = "id") -> Dict[str, Any]:
 
 
 def _convert_attack_graph(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     max_nodes: int = 100
 ) -> str:
     """
@@ -570,7 +570,7 @@ def _convert_attack_graph(
 # =============================================================================
 
 def _convert_killchain(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     diagram_type: str = "flowchart"
 ) -> str:
     """
@@ -588,7 +588,7 @@ def _convert_killchain(
     return _convert_killchain_flowchart(data)
 
 
-def _convert_killchain_flowchart(data: Dict[str, Any]) -> str:
+def _convert_killchain_flowchart(data: dict[str, Any]) -> str:
     """Convert kill chain to horizontal flowchart."""
     lines = ["flowchart LR"]
 
@@ -653,7 +653,7 @@ def _convert_killchain_flowchart(data: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _convert_killchain_timeline(data: Dict[str, Any]) -> str:
+def _convert_killchain_timeline(data: dict[str, Any]) -> str:
     """Convert kill chain to Mermaid timeline."""
     lines = ["timeline"]
 
@@ -665,7 +665,7 @@ def _convert_killchain_timeline(data: Dict[str, Any]) -> str:
     lines.append("")
 
     # Group techniques by tactic
-    tactics: Dict[str, List[str]] = {}
+    tactics: dict[str, list[str]] = {}
     for tech_id, tech_data in techniques.items():
         tactic = tech_data.get("tactic", "Unknown")
         if tactic not in tactics:
@@ -685,7 +685,7 @@ def _convert_killchain_timeline(data: Dict[str, Any]) -> str:
 # Timeline/Incident Converter
 # =============================================================================
 
-def _convert_timeline(data: Dict[str, Any]) -> str:
+def _convert_timeline(data: dict[str, Any]) -> str:
     """
     Convert incident timeline to Mermaid Gantt chart.
 
@@ -724,7 +724,7 @@ def _convert_timeline(data: Dict[str, Any]) -> str:
                     _add_gantt_event(lines, event)
     else:
         # Group by lane
-        lanes: Dict[str, List] = {}
+        lanes: dict[str, list] = {}
         for event in events:
             lane = event.get("lane", "Events")
             if lane not in lanes:
@@ -739,7 +739,7 @@ def _convert_timeline(data: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _add_gantt_event(lines: List[str], event: Dict[str, Any]) -> None:
+def _add_gantt_event(lines: list[str], event: dict[str, Any]) -> None:
     """Add a single event to Gantt chart lines."""
     title = event.get("title", "Event")
     event_id = event.get("id", "")
@@ -774,7 +774,7 @@ def _add_gantt_event(lines: List[str], event: Dict[str, Any]) -> None:
 # =============================================================================
 
 def _convert_access_graph(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     max_nodes: int = 50
 ) -> str:
     """
@@ -869,7 +869,7 @@ def _convert_access_graph(
 # Vulnerability Tree Converter
 # =============================================================================
 
-def _convert_vuln_tree(data: Dict[str, Any]) -> str:
+def _convert_vuln_tree(data: dict[str, Any]) -> str:
     """
     Convert vulnerability dependency tree to Mermaid flowchart.
 
@@ -957,7 +957,7 @@ def _convert_vuln_tree(data: Dict[str, Any]) -> str:
 # Generic/Unknown Format Converter
 # =============================================================================
 
-def _convert_generic(data: Dict[str, Any]) -> str:
+def _convert_generic(data: dict[str, Any]) -> str:
     """
     Convert generic/unknown configuration to basic Mermaid flowchart.
 
@@ -974,13 +974,8 @@ def _convert_generic(data: Dict[str, Any]) -> str:
     lines.append("")
 
     # Create nodes for top-level keys
-    node_id = 0
-    for key in data.keys():
-        if isinstance(data[key], dict):
-            safe_key = sanitize_node_id(key)
-            count = len(data[key])
-            lines.append(f'    {safe_key}["{escape_label(key)} ({count} items)"]')
-        elif isinstance(data[key], list):
+    for key in data:
+        if isinstance(data[key], dict) or isinstance(data[key], list):
             safe_key = sanitize_node_id(key)
             count = len(data[key])
             lines.append(f'    {safe_key}["{escape_label(key)} ({count} items)"]')
@@ -993,7 +988,7 @@ def _convert_generic(data: Dict[str, Any]) -> str:
 # =============================================================================
 
 def serialize_to_mermaid(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     diagram_type: Optional[str] = None,
     direction: MermaidDirection = MermaidDirection.TOP_DOWN,
     max_nodes: int = 100

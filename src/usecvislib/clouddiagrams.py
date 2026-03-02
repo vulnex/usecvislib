@@ -31,26 +31,29 @@ Example:
     >>> print(cd.to_python_code())
 """
 
-from typing import Dict, List, Any, Optional, Union, Set, Tuple
-from pathlib import Path
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-import logging
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Optional, Union
+
+if TYPE_CHECKING:
+    from .customdiagrams import CustomDiagrams
 import importlib
+import logging
 import pkgutil
-import tempfile
+import re
 import subprocess
 import sys
-import re
+import tempfile
 
 from .utils import (
     ReadConfigFile,
-    parse_content,
-    ValidationError,
     RenderError,
+    ValidationError,
+    parse_content,
     validate_output_path,
-    sanitize_node_id,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -137,12 +140,12 @@ class CloudDiagramConfig:
     outformat: str = "png"
     filename: str = ""
     show: bool = False
-    graph_attr: Dict[str, str] = field(default_factory=dict)
-    node_attr: Dict[str, str] = field(default_factory=dict)
-    edge_attr: Dict[str, str] = field(default_factory=dict)
+    graph_attr: dict[str, str] = field(default_factory=dict)
+    node_attr: dict[str, str] = field(default_factory=dict)
+    edge_attr: dict[str, str] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CloudDiagramConfig":
+    def from_dict(cls, data: dict[str, Any]) -> CloudDiagramConfig:
         """Create from dictionary.
 
         Supports both [diagram] section (templates) and [cloud] section (frontend).
@@ -177,7 +180,7 @@ class CloudNode:
     cluster_id: Optional[str] = None
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any], cluster_id: str = None) -> "CloudNode":
+    def from_dict(cls, data: dict[str, Any], cluster_id: str = None) -> CloudNode:
         """Create from dictionary."""
         return cls(
             id=data.get("id", ""),
@@ -198,14 +201,14 @@ class CloudEdge:
         color: Edge color
         style: Edge style (solid, dashed, dotted, bold)
     """
-    from_id: Union[str, List[str]]
-    to_id: Union[str, List[str]]
+    from_id: Union[str, list[str]]
+    to_id: Union[str, list[str]]
     label: str = ""
     color: str = ""
     style: str = ""
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CloudEdge":
+    def from_dict(cls, data: dict[str, Any]) -> CloudEdge:
         """Create from dictionary."""
         return cls(
             from_id=data.get("from", ""),
@@ -228,11 +231,11 @@ class CloudCluster:
     """
     id: str
     label: str
-    nodes: List[CloudNode] = field(default_factory=list)
-    style: Dict[str, str] = field(default_factory=dict)
+    nodes: list[CloudNode] = field(default_factory=list)
+    style: dict[str, str] = field(default_factory=dict)
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CloudCluster":
+    def from_dict(cls, data: dict[str, Any]) -> CloudCluster:
         """Create from dictionary."""
         cluster_id = data.get("id", "")
         nodes = [
@@ -259,10 +262,10 @@ class CloudDiagramResult:
     """
     output_path: str
     format: str
-    stats: Dict[str, Any] = field(default_factory=dict)
+    stats: dict[str, Any] = field(default_factory=dict)
     success: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "output_path": self.output_path,
@@ -329,7 +332,7 @@ class CloudDiagrams:
     ALLOWED_EXTENSIONS = [".toml", ".tml", ".json", ".yaml", ".yml"]
 
     # Icon cache for performance
-    _icon_cache: Dict[str, List[Dict[str, str]]] = {}
+    _icon_cache: dict[str, list[dict[str, str]]] = {}
 
     def __init__(self, validate_diagrams: bool = True):
         """Initialize CloudDiagrams.
@@ -341,9 +344,9 @@ class CloudDiagrams:
             DiagramsNotInstalledError: If diagrams library is not installed
         """
         self.config = CloudDiagramConfig()
-        self.nodes: List[CloudNode] = []
-        self.edges: List[CloudEdge] = []
-        self.clusters: List[CloudCluster] = []
+        self.nodes: list[CloudNode] = []
+        self.edges: list[CloudEdge] = []
+        self.clusters: list[CloudCluster] = []
         self._config_path: Optional[Path] = None
         self._loaded = False
         self._diagrams_available = False
@@ -364,13 +367,13 @@ class CloudDiagrams:
         except ImportError:
             raise DiagramsNotInstalledError(
                 "diagrams library not found. Install with: pip install diagrams"
-            )
+            ) from None
 
     # =========================================================================
     # Input Methods
     # =========================================================================
 
-    def load(self, filepath: str) -> "CloudDiagrams":
+    def load(self, filepath: str) -> CloudDiagrams:
         """Load from TOML/YAML/JSON config file.
 
         Args:
@@ -408,7 +411,7 @@ class CloudDiagrams:
         self,
         content: str,
         format: str = "toml"
-    ) -> "CloudDiagrams":
+    ) -> CloudDiagrams:
         """Load from string content.
 
         Args:
@@ -436,7 +439,7 @@ class CloudDiagrams:
         logger.info(f"Loaded cloud diagram from string ({format})")
         return self
 
-    def _load_from_dict(self, data: Dict[str, Any]) -> None:
+    def _load_from_dict(self, data: dict[str, Any]) -> None:
         """Load configuration from dictionary.
 
         Supports two formats:
@@ -565,7 +568,7 @@ class CloudDiagrams:
             )
 
         except subprocess.TimeoutExpired:
-            raise CloudDiagramError("Diagram rendering timed out (120s limit)")
+            raise CloudDiagramError("Diagram rendering timed out (120s limit)") from None
 
         finally:
             try:
@@ -607,16 +610,16 @@ class CloudDiagrams:
         # SECURITY: Use _escape_python_string to prevent code injection
         title_escaped = _escape_python_string(self.config.title)
         direction_escaped = _escape_python_string(self.config.direction)
-        lines.append(f'with Diagram(')
+        lines.append('with Diagram(')
         lines.append(f'    "{title_escaped}",')
         lines.append(f'    filename="{output}",')
         lines.append(f'    outformat="{format}",')
         lines.append(f'    show={show},')
         lines.append(f'    direction="{direction_escaped}",')
-        lines.append(f'):')
+        lines.append('):')
 
         # Track node variable names for edge references
-        node_vars: Dict[str, str] = {}
+        node_vars: dict[str, str] = {}
 
         # Add standalone nodes (not in clusters)
         cluster_node_ids = {n.id for c in self.clusters for n in c.nodes}
@@ -632,7 +635,7 @@ class CloudDiagrams:
         # Add clusters with their nodes
         for cluster in self.clusters:
             cluster_label_escaped = _escape_python_string(cluster.label)
-            lines.append(f'')
+            lines.append('')
             lines.append(f'    with Cluster("{cluster_label_escaped}"):')
 
             for node in cluster.nodes:
@@ -652,7 +655,7 @@ class CloudDiagrams:
 
         return "\n".join(lines)
 
-    def _collect_imports(self) -> Set[str]:
+    def _collect_imports(self) -> set[str]:
         """Collect all required imports based on icons used.
 
         Returns:
@@ -718,7 +721,7 @@ class CloudDiagrams:
 
         # Try generic as fallback
         if "." not in icon and ":" not in icon:
-            return f"generic.blank.Blank"
+            return "generic.blank.Blank"
 
         return icon
 
@@ -780,7 +783,7 @@ class CloudDiagrams:
     def _generate_edge_code(
         self,
         edge: CloudEdge,
-        node_vars: Dict[str, str]
+        node_vars: dict[str, str]
     ) -> Optional[str]:
         """Generate Python code for an edge.
 
@@ -886,7 +889,7 @@ class CloudDiagrams:
     # =========================================================================
 
     @classmethod
-    def list_providers(cls) -> List[Dict[str, str]]:
+    def list_providers(cls) -> list[dict[str, str]]:
         """List available cloud providers.
 
         Returns:
@@ -898,7 +901,7 @@ class CloudDiagrams:
         ]
 
     @classmethod
-    def list_categories(cls, provider: str) -> List[str]:
+    def list_categories(cls, provider: str) -> list[str]:
         """List icon categories for a provider.
 
         Args:
@@ -923,7 +926,7 @@ class CloudDiagrams:
         cls,
         provider: str,
         category: str = None
-    ) -> List[Dict[str, str]]:
+    ) -> list[dict[str, str]]:
         """List available icons.
 
         Args:
@@ -964,7 +967,7 @@ class CloudDiagrams:
         return icons
 
     @classmethod
-    def search_icons(cls, query: str, limit: int = 50) -> List[Dict[str, str]]:
+    def search_icons(cls, query: str, limit: int = 50) -> list[dict[str, str]]:
         """Search icons by name across all providers.
 
         Args:
@@ -994,7 +997,7 @@ class CloudDiagrams:
     # Validation
     # =========================================================================
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate configuration.
 
         Checks:
@@ -1060,7 +1063,7 @@ class CloudDiagrams:
         except ImportError:
             return False
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get diagram statistics.
 
         Returns:
@@ -1088,7 +1091,7 @@ class CloudDiagrams:
     # =========================================================================
 
     @classmethod
-    def from_attack_tree(cls, config_path: str) -> "CloudDiagrams":
+    def from_attack_tree(cls, config_path: str) -> CloudDiagrams:
         """Convert attack tree to cloud diagram.
 
         Mapping:
@@ -1155,7 +1158,7 @@ class CloudDiagrams:
         return cd
 
     @classmethod
-    def from_attack_graph(cls, config_path: str) -> "CloudDiagrams":
+    def from_attack_graph(cls, config_path: str) -> CloudDiagrams:
         """Convert attack graph to cloud diagram.
 
         Mapping:
@@ -1239,7 +1242,7 @@ class CloudDiagrams:
         return cd
 
     @classmethod
-    def from_threat_model(cls, config_path: str) -> "CloudDiagrams":
+    def from_threat_model(cls, config_path: str) -> CloudDiagrams:
         """Convert threat model DFD to cloud diagram.
 
         Mapping:
@@ -1264,7 +1267,7 @@ class CloudDiagrams:
         cd.config.direction = "LR"
 
         # Track node to boundary mapping
-        node_to_boundary: Dict[str, str] = {}
+        node_to_boundary: dict[str, str] = {}
         for boundary_id, boundary_data in tm.inputdata.get("boundaries", {}).items():
             for elem in boundary_data.get("elements", []):
                 node_to_boundary[elem] = boundary_id
@@ -1318,7 +1321,7 @@ class CloudDiagrams:
         return cd
 
     @classmethod
-    def from_custom_diagram(cls, custom: "CustomDiagrams") -> "CloudDiagrams":
+    def from_custom_diagram(cls, custom: CustomDiagrams) -> CloudDiagrams:
         """Convert CustomDiagrams to CloudDiagrams.
 
         Args:
@@ -1405,7 +1408,7 @@ class CloudDiagrams:
         )
 
     @classmethod
-    def list_templates(cls, category: Optional[str] = None) -> List[Dict[str, str]]:
+    def list_templates(cls, category: Optional[str] = None) -> list[dict[str, str]]:
         """List available cloud diagram templates.
 
         Args:
@@ -1442,7 +1445,7 @@ class CloudDiagrams:
         return sorted(templates, key=lambda t: (t["category"], t["name"]))
 
     @classmethod
-    def list_template_categories(cls) -> List[str]:
+    def list_template_categories(cls) -> list[str]:
         """List available template categories.
 
         Returns:
@@ -1461,7 +1464,7 @@ class CloudDiagrams:
         return sorted(categories)
 
     @classmethod
-    def from_template(cls, template_id: str) -> "CloudDiagrams":
+    def from_template(cls, template_id: str) -> CloudDiagrams:
         """Load from a built-in template.
 
         Args:
@@ -1507,7 +1510,7 @@ class CloudDiagrams:
     # Context Manager
     # =========================================================================
 
-    def __enter__(self) -> "CloudDiagrams":
+    def __enter__(self) -> CloudDiagrams:
         """Enter context manager."""
         return self
 

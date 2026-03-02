@@ -7,9 +7,9 @@
 # Copyright (c) 2025 VULNEX. All rights reserved.
 #
 
+import logging
 import time
 import uuid
-import logging
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -123,7 +123,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             duration = (time.time() - start_time) * 1000
             logger.error(
-                f"[{request_id}] <-- ERROR {type(e).__name__}: {str(e)} "
+                f"[{request_id}] <-- ERROR {type(e).__name__}: {e!s} "
                 f"duration={duration:.2f}ms"
             )
             raise

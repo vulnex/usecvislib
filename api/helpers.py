@@ -7,30 +7,29 @@
 # Copyright (c) 2025 VULNEX. All rights reserved.
 #
 
+import asyncio
+import json
+import logging
 import os
 import time
-import json
-import asyncio
-import logging
-from pathlib import Path
+from collections.abc import Callable, Coroutine
 from functools import wraps
-from typing import Optional, Callable, TypeVar, Coroutine, Any
+from pathlib import Path
+from typing import Any, Optional, TypeVar
 
-from fastapi import UploadFile, HTTPException
+from fastapi import HTTPException, UploadFile
 
 from .config import (
-    ENABLE_TRACEBACK_LOGGING,
-    MAX_CONFIG_FILE_SIZE,
-    SUPPORTED_CONFIG_EXTENSIONS,
-    IMAGE_UPLOAD_DIR,
-    IMAGE_MAX_SIZE,
-    IMAGE_CLEANUP_AGE,
     IMAGE_ALLOWED_TYPES,
+    IMAGE_CLEANUP_AGE,
     IMAGE_MAGIC_BYTES,
+    IMAGE_UPLOAD_DIR,
+    MAX_CONFIG_FILE_SIZE,
+    PROGRESS_ENTRY_TTL,
+    PROGRESS_MAX_ENTRIES,
+    SUPPORTED_CONFIG_EXTENSIONS,
     TEMP_DIR,
     UUID_PATTERN,
-    PROGRESS_MAX_ENTRIES,
-    PROGRESS_ENTRY_TTL,
 )
 from .schemas import OutputFormat
 
@@ -70,7 +69,7 @@ async def run_with_timeout(
         raise HTTPException(
             status_code=504,
             detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
-        )
+        ) from None
 
 
 async def run_sync_with_timeout(
@@ -107,7 +106,7 @@ async def run_sync_with_timeout(
         raise HTTPException(
             status_code=504,
             detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
-        )
+        ) from None
 
 
 def with_timeout(timeout_seconds: int, operation_name: str = "operation"):
@@ -135,7 +134,7 @@ def with_timeout(timeout_seconds: int, operation_name: str = "operation"):
                 raise HTTPException(
                     status_code=504,
                     detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
-                )
+                ) from None
         return wrapper
     return decorator
 

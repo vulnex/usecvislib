@@ -20,13 +20,12 @@ configurations against user-defined schemas. It performs two-phase validation:
 """
 
 import logging
-from typing import Dict, List, Any, Optional, Set
+from typing import Any
 
 from .types import (
-    NodeTypeSchema,
-    EdgeTypeSchema,
     DiagramSchema,
-    FieldType,
+    EdgeTypeSchema,
+    NodeTypeSchema,
 )
 
 logger = logging.getLogger(__name__)
@@ -66,10 +65,10 @@ class SchemaValidator:
             shape_registry: ShapeRegistry instance for shape validation
         """
         self.shape_registry = shape_registry
-        self.node_types: Dict[str, NodeTypeSchema] = {}
-        self.edge_types: Dict[str, EdgeTypeSchema] = {}
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
+        self.node_types: dict[str, NodeTypeSchema] = {}
+        self.edge_types: dict[str, EdgeTypeSchema] = {}
+        self.errors: list[str] = []
+        self.warnings: list[str] = []
         self._schema_loaded = False
 
     def reset(self) -> None:
@@ -80,7 +79,7 @@ class SchemaValidator:
         self.warnings = []
         self._schema_loaded = False
 
-    def load_schema(self, schema_def: Dict[str, Any]) -> bool:
+    def load_schema(self, schema_def: dict[str, Any]) -> bool:
         """Load and validate a schema definition.
 
         Args:
@@ -113,7 +112,7 @@ class SchemaValidator:
 
         return self._schema_loaded
 
-    def _validate_node_type(self, type_name: str, type_def: Dict) -> bool:
+    def _validate_node_type(self, type_name: str, type_def: dict) -> bool:
         """Validate a single node type definition.
 
         Args:
@@ -185,7 +184,7 @@ class SchemaValidator:
 
         return valid
 
-    def _validate_edge_type(self, type_name: str, type_def: Dict) -> bool:
+    def _validate_edge_type(self, type_name: str, type_def: dict) -> bool:
         """Validate a single edge type definition.
 
         Args:
@@ -228,7 +227,7 @@ class SchemaValidator:
 
         return valid
 
-    def validate_data(self, nodes: List[Dict], edges: List[Dict]) -> bool:
+    def validate_data(self, nodes: list[dict], edges: list[dict]) -> bool:
         """Validate diagram data against loaded schema.
 
         Args:
@@ -245,7 +244,7 @@ class SchemaValidator:
         self.errors = []
         self.warnings = []
 
-        node_ids: Set[str] = set()
+        node_ids: set[str] = set()
 
         # Validate nodes
         for i, node in enumerate(nodes):
@@ -257,7 +256,7 @@ class SchemaValidator:
 
         return len(self.errors) == 0
 
-    def _validate_node(self, index: int, node: Dict, node_ids: Set[str]) -> None:
+    def _validate_node(self, index: int, node: dict, node_ids: set[str]) -> None:
         """Validate a single node.
 
         Args:
@@ -301,14 +300,14 @@ class SchemaValidator:
 
         # Warn about unknown fields
         known_fields = {"id", "type"} | set(schema.required_fields) | set(schema.optional_fields)
-        for field_name in node.keys():
+        for field_name in node:
             if field_name not in known_fields:
                 self.warnings.append(
                     f"Node '{node_id}': unknown field '{field_name}' "
                     f"(not in schema for type '{node_type}')"
                 )
 
-    def _validate_edge(self, index: int, edge: Dict, node_ids: Set[str]) -> None:
+    def _validate_edge(self, index: int, edge: dict, node_ids: set[str]) -> None:
         """Validate a single edge.
 
         Args:
@@ -339,7 +338,7 @@ class SchemaValidator:
                 f"Valid types: {list(self.edge_types.keys())}"
             )
 
-    def validate_clusters(self, clusters: List[Dict], node_ids: Set[str]) -> bool:
+    def validate_clusters(self, clusters: list[dict], node_ids: set[str]) -> bool:
         """Validate cluster definitions.
 
         Args:
@@ -368,7 +367,7 @@ class SchemaValidator:
         self.errors.extend(cluster_errors)
         return len(cluster_errors) == 0
 
-    def get_validation_report(self) -> Dict[str, Any]:
+    def get_validation_report(self) -> dict[str, Any]:
         """Get a detailed validation report.
 
         Returns:

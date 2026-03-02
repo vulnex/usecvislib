@@ -19,7 +19,7 @@ definitions used in custom diagram configurations.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Any, Optional
 
 
 class FieldType(Enum):
@@ -76,7 +76,7 @@ class FieldSchema:
     required: bool = False
     default: Any = None
     description: str = ""
-    validators: List[str] = field(default_factory=list)
+    validators: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -98,19 +98,19 @@ class NodeTypeSchema:
     """
     name: str
     shape: str
-    required_fields: List[str] = field(default_factory=list)
-    optional_fields: List[str] = field(default_factory=list)
-    style: Dict[str, str] = field(default_factory=dict)
+    required_fields: list[str] = field(default_factory=list)
+    optional_fields: list[str] = field(default_factory=list)
+    style: dict[str, str] = field(default_factory=dict)
     label_template: str = "{name}"
-    field_types: Dict[str, FieldType] = field(default_factory=dict)
+    field_types: dict[str, FieldType] = field(default_factory=dict)
     description: str = ""
 
     @property
-    def all_fields(self) -> List[str]:
+    def all_fields(self) -> list[str]:
         """Get all known fields (required + optional)."""
         return self.required_fields + self.optional_fields
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "name": self.name,
@@ -123,7 +123,7 @@ class NodeTypeSchema:
         }
 
     @classmethod
-    def from_dict(cls, name: str, data: Dict[str, Any]) -> "NodeTypeSchema":
+    def from_dict(cls, name: str, data: dict[str, Any]) -> "NodeTypeSchema":
         """Create NodeTypeSchema from dictionary."""
         return cls(
             name=name,
@@ -161,7 +161,7 @@ class EdgeTypeSchema:
     penwidth: str = "1"
     description: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "name": self.name,
@@ -174,7 +174,7 @@ class EdgeTypeSchema:
             "description": self.description,
         }
 
-    def get_graphviz_attrs(self) -> Dict[str, str]:
+    def get_graphviz_attrs(self) -> dict[str, str]:
         """Get Graphviz edge attributes."""
         attrs = {
             "style": self.style,
@@ -188,7 +188,7 @@ class EdgeTypeSchema:
         return attrs
 
     @classmethod
-    def from_dict(cls, name: str, data: Dict[str, Any]) -> "EdgeTypeSchema":
+    def from_dict(cls, name: str, data: dict[str, Any]) -> "EdgeTypeSchema":
         """Create EdgeTypeSchema from dictionary."""
         return cls(
             name=name,
@@ -214,21 +214,21 @@ class ClusterSchema:
     """
     id: str
     label: str = ""
-    nodes: List[str] = field(default_factory=list)
-    style: Dict[str, str] = field(default_factory=dict)
+    nodes: list[str] = field(default_factory=list)
+    style: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self):
         if not self.label:
             self.label = self.id
 
-    def get_graphviz_attrs(self) -> Dict[str, str]:
+    def get_graphviz_attrs(self) -> dict[str, str]:
         """Get Graphviz cluster attributes."""
         attrs = dict(self.style)
         attrs["label"] = self.label
         return attrs
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ClusterSchema":
+    def from_dict(cls, data: dict[str, Any]) -> "ClusterSchema":
         """Create ClusterSchema from dictionary."""
         return cls(
             id=data.get("id", ""),
@@ -249,8 +249,8 @@ class DiagramSchema:
         edge_types: Dictionary of edge type schemas
         allow_unknown_types: Whether to allow undefined types
     """
-    node_types: Dict[str, NodeTypeSchema] = field(default_factory=dict)
-    edge_types: Dict[str, EdgeTypeSchema] = field(default_factory=dict)
+    node_types: dict[str, NodeTypeSchema] = field(default_factory=dict)
+    edge_types: dict[str, EdgeTypeSchema] = field(default_factory=dict)
     allow_unknown_types: bool = False
 
     def has_node_type(self, type_name: str) -> bool:
@@ -269,7 +269,7 @@ class DiagramSchema:
         """Get an edge type schema by name."""
         return self.edge_types.get(type_name)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "nodes": {
@@ -283,7 +283,7 @@ class DiagramSchema:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DiagramSchema":
+    def from_dict(cls, data: dict[str, Any]) -> "DiagramSchema":
         """Create DiagramSchema from dictionary."""
         node_types = {}
         for name, node_def in data.get("nodes", {}).items():

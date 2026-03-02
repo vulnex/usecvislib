@@ -9,15 +9,19 @@
 
 import logging
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
-from usecvislib.settings import get_settings, get_cvss_display_settings, set_cvss_display_settings
+from usecvislib.settings import get_cvss_display_settings, get_settings, set_cvss_display_settings
 
 from ..config import (
-    limiter, RATE_LIMIT_DEFAULT, ENABLE_TRACEBACK_LOGGING,
+    ENABLE_TRACEBACK_LOGGING,
+    RATE_LIMIT_DEFAULT,
+    limiter,
 )
 from ..schemas import (
-    DisplaySettingsResponse, CVSSDisplaySettings, DisplaySettingsRequest,
+    CVSSDisplaySettings,
+    DisplaySettingsRequest,
+    DisplaySettingsResponse,
 )
 
 logger = logging.getLogger("usecvislib.api")
@@ -44,8 +48,8 @@ async def get_display_settings(request: Request):
             cvss_display=CVSSDisplaySettings(**cvss_settings)
         )
     except Exception as e:
-        logger.error(f"Error getting display settings: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred while retrieving settings")
+        logger.error(f"Error getting display settings: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred while retrieving settings") from e
 
 
 @router.put(
@@ -83,10 +87,10 @@ async def update_display_settings(
             cvss_display=CVSSDisplaySettings(**cvss_settings)
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Invalid settings value: {str(e)}")
+        raise HTTPException(status_code=400, detail=f"Invalid settings value: {e!s}") from e
     except Exception as e:
-        logger.error(f"Error updating display settings: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred while updating settings")
+        logger.error(f"Error updating display settings: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred while updating settings") from e
 
 
 @router.post(
@@ -111,8 +115,8 @@ async def enable_cvss_all(request: Request):
             cvss_display=CVSSDisplaySettings(**cvss_settings)
         )
     except Exception as e:
-        logger.error(f"Error enabling CVSS display: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred while updating settings")
+        logger.error(f"Error enabling CVSS display: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred while updating settings") from e
 
 
 @router.post(
@@ -137,8 +141,8 @@ async def disable_cvss_all(request: Request):
             cvss_display=CVSSDisplaySettings(**cvss_settings)
         )
     except Exception as e:
-        logger.error(f"Error disabling CVSS display: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred while updating settings")
+        logger.error(f"Error disabling CVSS display: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred while updating settings") from e
 
 
 @router.post(
@@ -163,5 +167,5 @@ async def reset_display_settings(request: Request):
             cvss_display=CVSSDisplaySettings(**cvss_settings)
         )
     except Exception as e:
-        logger.error(f"Error resetting display settings: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred while resetting settings")
+        logger.error(f"Error resetting display settings: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred while resetting settings") from e

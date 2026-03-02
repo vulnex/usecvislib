@@ -7,28 +7,40 @@
 # Copyright (c) 2025 VULNEX. All rights reserved.
 #
 
-import os
 import logging
+import os
 
-from fastapi import APIRouter, File, UploadFile, Query, BackgroundTasks, Request, HTTPException
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 
 from usecvislib import ThreatModeling
-from usecvislib.utils import FileError, ConfigError, ValidationError, RenderError, ReadConfigFile
+from usecvislib.utils import ConfigError, FileError, ReadConfigFile, ValidationError
 
 from ..config import (
-    limiter, RATE_LIMIT_VISUALIZE, RATE_LIMIT_ANALYZE,
-    ENABLE_TRACEBACK_LOGGING, TEMP_DIR,
+    ENABLE_TRACEBACK_LOGGING,
+    RATE_LIMIT_ANALYZE,
+    RATE_LIMIT_VISUALIZE,
     REQUEST_TIMEOUT_VISUALIZE,
+    TEMP_DIR,
+    limiter,
 )
 from ..helpers import (
-    save_upload_file, cleanup_files, get_content_type,
-    validate_config_file_extension, resolve_image_references,
-    write_config_file, run_sync_with_timeout, sanitize_filename_for_log,
+    cleanup_files,
+    get_content_type,
+    resolve_image_references,
+    run_sync_with_timeout,
+    save_upload_file,
+    validate_config_file_extension,
+    write_config_file,
 )
 from ..schemas import (
-    OutputFormat, ThreatModelStyle, ThreatModelEngine,
-    ModelStats, TemplateMetadata, StrideReport, StrideCategory,
+    ModelStats,
+    OutputFormat,
+    StrideCategory,
+    StrideReport,
+    TemplateMetadata,
+    ThreatModelEngine,
+    ThreatModelStyle,
 )
 
 logger = logging.getLogger("usecvislib.api")
@@ -129,11 +141,11 @@ async def visualize_threat_model(
 
     except (FileError, ConfigError) as e:
         cleanup_files(input_path, modified_input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         cleanup_files(input_path, modified_input_path, output_path)
-        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred")
+        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
 @router.post(
@@ -176,10 +188,10 @@ async def analyze_threat_model(
         return ModelStats(**stats)
 
     except (FileError, ConfigError, ValidationError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred")
+        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred") from e
     finally:
         cleanup_files(input_path)
 
@@ -250,9 +262,9 @@ async def analyze_stride(
         )
 
     except (FileError, ConfigError, ValidationError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        logger.error(f"Internal error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred")
+        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred") from e
     finally:
         cleanup_files(input_path)

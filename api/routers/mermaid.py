@@ -7,29 +7,39 @@
 # Copyright (c) 2025 VULNEX. All rights reserved.
 #
 
-import os
 import logging
+import os
 from typing import Optional
 
-from fastapi import APIRouter, File, UploadFile, Query, BackgroundTasks, Request, HTTPException
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 
-from usecvislib.mermaiddiagrams import MermaidDiagrams, MermaidError, MermaidCLINotFoundError, MermaidSyntaxError
+from usecvislib.mermaiddiagrams import MermaidCLINotFoundError, MermaidDiagrams, MermaidError, MermaidSyntaxError
 
 from ..config import (
-    limiter, RATE_LIMIT_VISUALIZE, RATE_LIMIT_ANALYZE, RATE_LIMIT_DEFAULT,
-    ENABLE_TRACEBACK_LOGGING, TEMP_DIR,
+    ENABLE_TRACEBACK_LOGGING,
+    RATE_LIMIT_ANALYZE,
+    RATE_LIMIT_DEFAULT,
+    RATE_LIMIT_VISUALIZE,
     REQUEST_TIMEOUT_VISUALIZE,
+    TEMP_DIR,
+    limiter,
 )
 from ..helpers import (
-    save_upload_file, cleanup_files, run_sync_with_timeout,
+    cleanup_files,
+    run_sync_with_timeout,
+    save_upload_file,
     validate_path_component,
 )
 from ..schemas import (
-    MermaidTheme, MermaidDiagramType, MermaidOutputFormat,
-    MermaidStats, MermaidValidateResponse,
-    MermaidTemplateInfo, MermaidTemplateListResponse,
+    MermaidDiagramType,
+    MermaidOutputFormat,
+    MermaidStats,
     MermaidTemplateContentResponse,
+    MermaidTemplateInfo,
+    MermaidTemplateListResponse,
+    MermaidTheme,
+    MermaidValidateResponse,
 )
 
 logger = logging.getLogger("usecvislib.api")
@@ -151,18 +161,18 @@ async def visualize_mermaid(
         raise HTTPException(
             status_code=503,
             detail="Mermaid CLI (mmdc) not installed. Run: npm install -g @mermaid-js/mermaid-cli"
-        )
+        ) from e
     except MermaidSyntaxError as e:
         cleanup_files(input_path, output_path)
-        logger.warning(f"Mermaid syntax error: {str(e)}")
-        raise HTTPException(status_code=400, detail="Mermaid syntax error in the provided diagram definition")
+        logger.warning(f"Mermaid syntax error: {e!s}")
+        raise HTTPException(status_code=400, detail="Mermaid syntax error in the provided diagram definition") from e
     except MermaidError as e:
         cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         cleanup_files(input_path, output_path)
-        logger.error(f"Mermaid rendering error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred")
+        logger.error(f"Mermaid rendering error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
 @router.post(
@@ -227,11 +237,11 @@ async def analyze_mermaid(
 
     except MermaidError as e:
         cleanup_files(input_path)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         cleanup_files(input_path)
-        logger.error(f"Mermaid analysis error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred")
+        logger.error(f"Mermaid analysis error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
 @router.get(
@@ -269,8 +279,8 @@ async def list_mermaid_templates(
             total=len(templates)
         )
     except Exception as e:
-        logger.error(f"Error listing Mermaid templates: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to list templates")
+        logger.error(f"Error listing Mermaid templates: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Failed to list templates") from e
 
 
 @router.get(
@@ -318,7 +328,7 @@ async def get_mermaid_template(
                 logger.warning(f"Symlink rejected: {template_id}")
                 raise HTTPException(status_code=400, detail="Invalid template")
         except (ValueError, RuntimeError):
-            raise HTTPException(status_code=400, detail="Invalid template ID")
+            raise HTTPException(status_code=400, detail="Invalid template ID") from None
 
         # Read the template content
         content = resolved_path.read_text()
@@ -363,8 +373,8 @@ async def get_mermaid_template(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting Mermaid template: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to get template")
+        logger.error(f"Error getting Mermaid template: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Failed to get template") from e
 
 
 @router.get(

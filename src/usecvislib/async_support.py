@@ -32,11 +32,17 @@ Example:
     >>> stats = asyncio.run(main())
 """
 
+from __future__ import annotations
+
 import asyncio
 import logging
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from typing import TypeVar, Generic, Optional, Any, Dict, List, Callable
 from functools import partial
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
+
+if TYPE_CHECKING:
+    from .batch import BatchResult
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +135,7 @@ class AsyncVisualization(Generic[T]):
         logger.debug("Async build completed")
         return self._sync
 
-    async def validate(self) -> List[str]:
+    async def validate(self) -> list[str]:
         """Async validation.
 
         Returns:
@@ -143,7 +149,7 @@ class AsyncVisualization(Generic[T]):
         logger.debug(f"Async validate completed with {len(result)} issues")
         return result
 
-    async def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> dict[str, Any]:
         """Async statistics collection.
 
         Returns:
@@ -189,7 +195,7 @@ class AsyncVisualization(Generic[T]):
             self._executor.shutdown(wait=True)
             logger.debug("Async executor shutdown")
 
-    async def __aenter__(self) -> 'AsyncVisualization[T]':
+    async def __aenter__(self) -> AsyncVisualization[T]:
         """Async context manager entry."""
         return self
 
@@ -258,11 +264,11 @@ class AsyncBatchProcessor:
 
     async def process_files(
         self,
-        input_files: List[str],
+        input_files: list[str],
         collect_stats: bool = True,
         validate: bool = True,
         on_progress: Optional[Callable[[str, bool, Optional[str]], None]] = None
-    ) -> 'BatchResult':
+    ) -> BatchResult:
         """Process multiple files concurrently.
 
         Args:
@@ -318,12 +324,12 @@ class AsyncBatchProcessor:
 
 async def process_files_async(
     module_type: str,
-    input_files: List[str],
+    input_files: list[str],
     output_dir: str,
     format: str = "png",
     max_concurrent: int = 4,
     **kwargs
-) -> 'BatchResult':
+) -> BatchResult:
     """Convenience function for async batch processing.
 
     Args:

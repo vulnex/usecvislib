@@ -32,27 +32,26 @@ Example:
     >>> result = cd.BuildCustomDiagram(output="diagram.png")
 """
 
-import re
 import logging
-from typing import Dict, List, Any, Optional, Union, Set
-from pathlib import Path
+import re
 from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Optional, Union
 
 import graphviz as gv
 
+from .schema import SchemaValidator
 from .shapes import ShapeRegistry
 from .shapes.custom import CustomShapeLoader
-from .schema import SchemaValidator
 from .utils import (
     ReadConfigFile,
-    parse_content,
-    ValidationError,
     RenderError,
-    sanitize_node_id,
+    ValidationError,
     escape_dot_label,
+    parse_content,
     process_node_image,
+    sanitize_node_id,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -74,10 +73,10 @@ class VisualizationResult:
     """
     output_path: str
     format: str
-    stats: Dict[str, Any] = field(default_factory=dict)
+    stats: dict[str, Any] = field(default_factory=dict)
     success: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "output_path": self.output_path,
@@ -124,7 +123,7 @@ class DiagramSettings:
             self.rankdir = self.direction
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "DiagramSettings":
+    def from_dict(cls, data: dict[str, Any]) -> "DiagramSettings":
         """Create DiagramSettings from dictionary."""
         return cls(
             title=data.get("title", "Custom Diagram"),
@@ -212,17 +211,17 @@ class CustomDiagrams:
         self.schema_validator = SchemaValidator(self.shape_registry)
 
         self.settings: Optional[DiagramSettings] = None
-        self.schema: Dict[str, Any] = {}
-        self.nodes: List[Dict] = []
-        self.edges: List[Dict] = []
-        self.clusters: List[Dict] = []
-        self.custom_shapes: Dict[str, Dict] = {}
+        self.schema: dict[str, Any] = {}
+        self.nodes: list[dict] = []
+        self.edges: list[dict] = []
+        self.clusters: list[dict] = []
+        self.custom_shapes: dict[str, dict] = {}
 
         self._config_loaded = False
         self._config_path: Optional[Path] = None
 
         # Load style configuration
-        self._style_config: Dict[str, Any] = {}
+        self._style_config: dict[str, Any] = {}
         self._load_style_config()
 
         logger.debug("CustomDiagrams initialized")
@@ -242,7 +241,7 @@ class CustomDiagrams:
         except Exception as e:
             logger.warning(f"Could not load style config: {e}")
 
-    def _get_style_config(self) -> Dict[str, Any]:
+    def _get_style_config(self) -> dict[str, Any]:
         """Get the current style configuration.
 
         Returns:
@@ -251,7 +250,7 @@ class CustomDiagrams:
         style_id = self.settings.style if self.settings else self.DEFAULT_STYLE_ID
         return self._style_config.get(style_id, self._style_config.get(self.DEFAULT_STYLE_ID, {}))
 
-    def _strip_style_attrs(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+    def _strip_style_attrs(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """Strip style-related attributes from node/edge data when a style is selected.
 
         When a non-default style is explicitly selected, schema-defined colors
@@ -313,7 +312,7 @@ class CustomDiagrams:
         logger.info(f"Loaded diagram from string ({format} format)")
         return self
 
-    def _load_from_dict(self, config: Dict[str, Any],
+    def _load_from_dict(self, config: dict[str, Any],
                         base_path: Optional[Path] = None) -> None:
         """Load configuration from dictionary.
 
@@ -339,7 +338,7 @@ class CustomDiagrams:
         self.edges = config.get("edges", [])
         self.clusters = config.get("clusters", [])
 
-    def validate(self, raise_on_error: bool = True) -> Dict[str, Any]:
+    def validate(self, raise_on_error: bool = True) -> dict[str, Any]:
         """Validate the loaded configuration.
 
         Performs two-phase validation:
@@ -435,7 +434,7 @@ class CustomDiagrams:
 
         return graph
 
-    def _add_node(self, graph: Union[gv.Digraph, gv.Graph], node: Dict) -> None:
+    def _add_node(self, graph: Union[gv.Digraph, gv.Graph], node: dict) -> None:
         """Add a node to the graph.
 
         Args:
@@ -492,7 +491,7 @@ class CustomDiagrams:
             **shape_attrs
         )
 
-    def _add_edge(self, graph: gv.Digraph, edge: Dict) -> None:
+    def _add_edge(self, graph: gv.Digraph, edge: dict) -> None:
         """Add an edge to the graph.
 
         Args:
@@ -533,7 +532,7 @@ class CustomDiagrams:
 
         graph.edge(from_id, to_id, **attrs)
 
-    def _add_clusters(self, graph: gv.Digraph) -> Set[str]:
+    def _add_clusters(self, graph: gv.Digraph) -> set[str]:
         """Add clusters (subgraphs) and return set of clustered node IDs.
 
         Args:
@@ -542,7 +541,7 @@ class CustomDiagrams:
         Returns:
             Set of node IDs that are in clusters
         """
-        clustered_nodes: Set[str] = set()
+        clustered_nodes: set[str] = set()
 
         # Get cluster style from style config
         style_config = self._get_style_config()
@@ -580,7 +579,7 @@ class CustomDiagrams:
 
         return clustered_nodes
 
-    def _build_label(self, template: str, data: Dict) -> str:
+    def _build_label(self, template: str, data: dict) -> str:
         """Build node label from template and data.
 
         Args:
@@ -693,18 +692,18 @@ class CustomDiagrams:
         except Exception as e:
             raise CustomDiagramError(f"Failed to render diagram: {e}") from e
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get diagram statistics.
 
         Returns:
             Dictionary with diagram statistics
         """
-        node_type_counts: Dict[str, int] = {}
+        node_type_counts: dict[str, int] = {}
         for node in self.nodes:
             node_type = node.get("type", "unknown")
             node_type_counts[node_type] = node_type_counts.get(node_type, 0) + 1
 
-        edge_type_counts: Dict[str, int] = {}
+        edge_type_counts: dict[str, int] = {}
         for edge in self.edges:
             edge_type = edge.get("type", "default")
             edge_type_counts[edge_type] = edge_type_counts.get(edge_type, 0) + 1
@@ -722,7 +721,7 @@ class CustomDiagrams:
             "layout": self.settings.layout if self.settings else "hierarchical",
         }
 
-    def list_shapes(self, category: Optional[str] = None) -> List[Dict]:
+    def list_shapes(self, category: Optional[str] = None) -> list[dict]:
         """List available shapes from the gallery.
 
         Args:
@@ -769,7 +768,7 @@ class CustomDiagrams:
         import toml
 
         # Build template structure
-        template: Dict[str, Any] = {
+        template: dict[str, Any] = {
             "diagram": {
                 "title": "New Diagram",
                 "description": "Description here",
@@ -1238,7 +1237,7 @@ class CustomDiagrams:
         )
 
     @classmethod
-    def list_templates(cls, category: Optional[str] = None) -> List[Dict[str, str]]:
+    def list_templates(cls, category: Optional[str] = None) -> list[dict[str, str]]:
         """List available diagram templates.
 
         Args:
@@ -1278,7 +1277,7 @@ class CustomDiagrams:
         return sorted(templates, key=lambda t: (t["category"], t["name"]))
 
     @classmethod
-    def list_template_categories(cls) -> List[str]:
+    def list_template_categories(cls) -> list[str]:
         """List available template categories.
 
         Returns:

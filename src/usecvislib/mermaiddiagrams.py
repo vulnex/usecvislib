@@ -33,23 +33,27 @@ Example:
     >>> md.render("output", format="png")
 """
 
-from typing import Dict, List, Any, Optional, Union
-from pathlib import Path
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-import subprocess
-import tempfile
-import shutil
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from .customdiagrams import CustomDiagrams
 import logging
 import re
+import shutil
+import subprocess
+import tempfile
 
 from .utils import (
     ReadConfigFile,
-    parse_content,
-    ValidationError,
     RenderError,
+    ValidationError,
+    parse_content,
     validate_output_path,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +93,7 @@ class MermaidConfig:
     source: str = ""
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "MermaidConfig":
+    def from_dict(cls, data: dict[str, Any]) -> MermaidConfig:
         """Create MermaidConfig from dictionary.
 
         Args:
@@ -121,10 +125,10 @@ class MermaidResult:
     """
     output_path: str
     format: str
-    stats: Dict[str, Any] = field(default_factory=dict)
+    stats: dict[str, Any] = field(default_factory=dict)
     success: bool = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "output_path": self.output_path,
@@ -264,12 +268,12 @@ class MermaidDiagrams:
             logger.debug(f"mermaid-cli version: {version}")
             self._cli_validated = True
         except subprocess.TimeoutExpired:
-            raise MermaidCLINotFoundError("mermaid-cli version check timed out")
+            raise MermaidCLINotFoundError("mermaid-cli version check timed out") from None
         except FileNotFoundError:
             raise MermaidCLINotFoundError(
                 "mermaid-cli (mmdc) not found. "
                 "Install with: npm install -g @mermaid-js/mermaid-cli"
-            )
+            ) from None
 
     def _get_puppeteer_config(self) -> Optional[str]:
         """Get path to puppeteer config file if available.
@@ -301,7 +305,7 @@ class MermaidDiagrams:
     # Input Methods
     # =========================================================================
 
-    def load(self, filepath: str) -> "MermaidDiagrams":
+    def load(self, filepath: str) -> MermaidDiagrams:
         """Load Mermaid from file.
 
         Supports:
@@ -354,7 +358,7 @@ class MermaidDiagrams:
         self,
         content: str,
         format: str = "mermaid"
-    ) -> "MermaidDiagrams":
+    ) -> MermaidDiagrams:
         """Load from string content.
 
         Args:
@@ -505,7 +509,7 @@ class MermaidDiagrams:
             )
 
         except subprocess.TimeoutExpired:
-            raise MermaidError("mermaid-cli rendering timed out (120s limit)")
+            raise MermaidError("mermaid-cli rendering timed out (120s limit)") from None
 
         finally:
             # Cleanup temp file
@@ -536,7 +540,7 @@ class MermaidDiagrams:
     # Validation & Info
     # =========================================================================
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate Mermaid syntax.
 
         Performs a dry-run render to check for syntax errors.
@@ -583,7 +587,7 @@ class MermaidDiagrams:
             except subprocess.TimeoutExpired:
                 errors.append("Validation timed out")
             except Exception as e:
-                errors.append(f"Validation failed: {str(e)}")
+                errors.append(f"Validation failed: {e!s}")
 
         return errors
 
@@ -616,7 +620,7 @@ class MermaidDiagrams:
 
         return "unknown"
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get diagram statistics.
 
         Returns:
@@ -680,7 +684,7 @@ class MermaidDiagrams:
     # =========================================================================
 
     @classmethod
-    def from_attack_tree(cls, config_path: str, **kwargs) -> "MermaidDiagrams":
+    def from_attack_tree(cls, config_path: str, **kwargs) -> MermaidDiagrams:
         """Create from attack tree configuration.
 
         Uses existing mermaid.py serialization to convert attack tree
@@ -704,7 +708,7 @@ class MermaidDiagrams:
         return instance
 
     @classmethod
-    def from_attack_graph(cls, config_path: str, **kwargs) -> "MermaidDiagrams":
+    def from_attack_graph(cls, config_path: str, **kwargs) -> MermaidDiagrams:
         """Create from attack graph configuration.
 
         Args:
@@ -725,7 +729,7 @@ class MermaidDiagrams:
         return instance
 
     @classmethod
-    def from_threat_model(cls, config_path: str, **kwargs) -> "MermaidDiagrams":
+    def from_threat_model(cls, config_path: str, **kwargs) -> MermaidDiagrams:
         """Create from threat model configuration.
 
         Args:
@@ -748,9 +752,9 @@ class MermaidDiagrams:
     @classmethod
     def from_custom_diagram(
         cls,
-        custom_diagram: "CustomDiagrams",
+        custom_diagram: CustomDiagrams,
         **kwargs
-    ) -> "MermaidDiagrams":
+    ) -> MermaidDiagrams:
         """Create from CustomDiagrams instance.
 
         Converts CustomDiagrams to Mermaid flowchart syntax.
@@ -821,7 +825,7 @@ class MermaidDiagrams:
     # Conversion TO other formats
     # =========================================================================
 
-    def to_custom_diagram(self) -> "CustomDiagrams":
+    def to_custom_diagram(self) -> CustomDiagrams:
         """Convert to CustomDiagrams format.
 
         Note: Only works for flowchart/graph diagram types.
@@ -935,7 +939,7 @@ class MermaidDiagrams:
         )
 
     @classmethod
-    def list_templates(cls, category: Optional[str] = None) -> List[Dict[str, str]]:
+    def list_templates(cls, category: Optional[str] = None) -> list[dict[str, str]]:
         """List available Mermaid templates.
 
         Args:
@@ -980,7 +984,7 @@ class MermaidDiagrams:
         return sorted(templates, key=lambda t: (t["category"], t["name"]))
 
     @classmethod
-    def list_template_categories(cls) -> List[str]:
+    def list_template_categories(cls) -> list[str]:
         """List available template categories.
 
         Returns:
@@ -999,7 +1003,7 @@ class MermaidDiagrams:
         return sorted(categories)
 
     @classmethod
-    def from_template(cls, template_id: str, **kwargs) -> "MermaidDiagrams":
+    def from_template(cls, template_id: str, **kwargs) -> MermaidDiagrams:
         """Load from a built-in template.
 
         Args:
@@ -1044,7 +1048,7 @@ class MermaidDiagrams:
     # Context Manager
     # =========================================================================
 
-    def __enter__(self) -> "MermaidDiagrams":
+    def __enter__(self) -> MermaidDiagrams:
         """Enter context manager."""
         return self
 

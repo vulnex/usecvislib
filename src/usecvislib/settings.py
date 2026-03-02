@@ -18,9 +18,9 @@ particularly for CVSS visibility in different visualization types.
 """
 
 from copy import deepcopy
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
-from .constants import DEFAULT_CVSS_DISPLAY, VisualizationType
+from .constants import DEFAULT_CVSS_DISPLAY
 
 
 class DisplaySettings:
@@ -43,7 +43,7 @@ class DisplaySettings:
         """Initialize settings with defaults."""
         if self._initialized:
             return
-        self._cvss_display: Dict[str, bool] = deepcopy(DEFAULT_CVSS_DISPLAY)
+        self._cvss_display: dict[str, bool] = deepcopy(DEFAULT_CVSS_DISPLAY)
         self._initialized = True
 
     def reset(self) -> None:
@@ -52,7 +52,7 @@ class DisplaySettings:
 
     # CVSS Display Settings
 
-    def get_cvss_display(self) -> Dict[str, bool]:
+    def get_cvss_display(self) -> dict[str, bool]:
         """Get all CVSS display settings.
 
         Returns:
@@ -60,7 +60,7 @@ class DisplaySettings:
         """
         return deepcopy(self._cvss_display)
 
-    def set_cvss_display(self, settings: Dict[str, bool]) -> None:
+    def set_cvss_display(self, settings: dict[str, bool]) -> None:
         """Update CVSS display settings.
 
         Args:
@@ -126,7 +126,7 @@ class DisplaySettings:
         for key in self._cvss_display:
             self._cvss_display[key] = False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Export all settings as a dictionary.
 
         Returns:
@@ -136,7 +136,7 @@ class DisplaySettings:
             "cvss_display": deepcopy(self._cvss_display),
         }
 
-    def from_dict(self, data: Dict[str, Any]) -> None:
+    def from_dict(self, data: dict[str, Any]) -> None:
         """Import settings from a dictionary.
 
         Args:
@@ -171,7 +171,7 @@ def is_cvss_enabled(viz_type: Optional[str] = None) -> bool:
     return _settings.is_cvss_enabled(viz_type)
 
 
-def get_cvss_display_settings() -> Dict[str, bool]:
+def get_cvss_display_settings() -> dict[str, bool]:
     """Convenience function to get CVSS display settings.
 
     Returns:
@@ -180,7 +180,7 @@ def get_cvss_display_settings() -> Dict[str, bool]:
     return _settings.get_cvss_display()
 
 
-def set_cvss_display_settings(settings: Dict[str, bool]) -> None:
+def set_cvss_display_settings(settings: dict[str, bool]) -> None:
     """Convenience function to update CVSS display settings.
 
     Args:

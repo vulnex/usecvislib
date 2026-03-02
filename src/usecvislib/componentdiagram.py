@@ -20,7 +20,7 @@ connected by typed connections (sync, async, bidirectional, event).
 Supports TOML, JSON, and YAML input formats.
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Any, Optional
 
 from graphviz import Digraph
 
@@ -82,9 +82,9 @@ class ComponentDiagram(VisualizationBase):
         )
 
         self.graph: Optional[Digraph] = None
-        self._layers: List[Dict[str, Any]] = []
-        self._components: Dict[str, Dict[str, Any]] = {}
-        self._connections: List[Dict[str, Any]] = []
+        self._layers: list[dict[str, Any]] = []
+        self._components: dict[str, dict[str, Any]] = {}
+        self._connections: list[dict[str, Any]] = []
         self._temp_input: Optional[str] = None
 
     def __del__(self):
@@ -96,7 +96,7 @@ class ComponentDiagram(VisualizationBase):
             except Exception:
                 pass
 
-    def _default_style(self) -> Dict[str, Any]:
+    def _default_style(self) -> dict[str, Any]:
         return {
             "graph": {
                 "rankdir": "TB",
@@ -137,15 +137,15 @@ class ComponentDiagram(VisualizationBase):
     def _get_metadata_root_key(self) -> str:
         return ""
 
-    def _load_impl(self) -> Dict[str, Any]:
+    def _load_impl(self) -> dict[str, Any]:
         try:
             data = utils.ReadConfigFile(self.inputfile)
         except (utils.FileError, utils.ConfigError) as e:
             self.logger.error(f"Failed to load component diagram from {self.inputfile}: {e}")
-            raise ComponentDiagramError(f"Failed to load component diagram: {e}")
+            raise ComponentDiagramError(f"Failed to load component diagram: {e}") from e
         except FileNotFoundError as e:
             self.logger.error(f"Input file not found: {self.inputfile}")
-            raise ComponentDiagramError(f"Input file not found: {e}")
+            raise ComponentDiagramError(f"Input file not found: {e}") from e
 
         self.inputdata = data
         self._normalize_data()
@@ -275,10 +275,10 @@ class ComponentDiagram(VisualizationBase):
             self.logger.debug("Successfully wrote component diagram visualization")
         except Exception as e:
             self.logger.error(f"Failed to render graph to {outputfile}: {e}")
-            raise ComponentDiagramError(f"Failed to render graph: {e}")
+            raise ComponentDiagramError(f"Failed to render graph: {e}") from e
 
-    def _validate_impl(self) -> List[str]:
-        errors: List[str] = []
+    def _validate_impl(self) -> list[str]:
+        errors: list[str] = []
 
         if not self.inputdata.get("layers"):
             errors.append("Missing or empty 'layers' section")
@@ -314,7 +314,7 @@ class ComponentDiagram(VisualizationBase):
 
         return errors
 
-    def _get_stats_impl(self) -> Dict[str, Any]:
+    def _get_stats_impl(self) -> dict[str, Any]:
         title = self.inputdata.get("title", "Unknown")
 
         components_per_layer = {}

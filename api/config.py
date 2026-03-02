@@ -7,11 +7,10 @@
 # Copyright (c) 2025 VULNEX. All rights reserved.
 #
 
+import logging
 import os
 import re
 import tempfile
-import logging
-from typing import List
 from urllib.parse import urlparse
 
 from slowapi import Limiter
@@ -88,11 +87,11 @@ def _validate_cors_origin(origin: str) -> str:
         if not parsed.netloc:
             raise ValueError(f"Invalid origin URL: {origin}")
     except Exception as e:
-        raise ValueError(f"Cannot parse origin URL: {origin}: {e}")
+        raise ValueError(f"Cannot parse origin URL: {origin}: {e}") from e
     return origin
 
 
-def _parse_allowed_origins() -> List[str]:
+def _parse_allowed_origins() -> list[str]:
     """Parse and validate ALLOWED_ORIGINS environment variable.
 
     SECURITY: Validates each origin to prevent CORS misconfiguration attacks.

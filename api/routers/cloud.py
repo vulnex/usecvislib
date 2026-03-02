@@ -7,32 +7,44 @@
 # Copyright (c) 2025 VULNEX. All rights reserved.
 #
 
-import os
 import logging
+import os
 from typing import Optional
 
-from fastapi import APIRouter, File, UploadFile, Query, BackgroundTasks, Request, HTTPException
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 
-from usecvislib.clouddiagrams import CloudDiagrams, CloudDiagramError, DiagramsNotInstalledError, IconNotFoundError
+from usecvislib.clouddiagrams import CloudDiagramError, CloudDiagrams, DiagramsNotInstalledError, IconNotFoundError
 
 from ..config import (
-    limiter, RATE_LIMIT_VISUALIZE, RATE_LIMIT_ANALYZE, RATE_LIMIT_DEFAULT,
-    ENABLE_TRACEBACK_LOGGING, TEMP_DIR,
+    ENABLE_TRACEBACK_LOGGING,
+    RATE_LIMIT_ANALYZE,
+    RATE_LIMIT_DEFAULT,
+    RATE_LIMIT_VISUALIZE,
     REQUEST_TIMEOUT_VISUALIZE,
+    TEMP_DIR,
+    limiter,
 )
 from ..helpers import (
-    save_upload_file, cleanup_files, validate_config_file_extension,
-    run_sync_with_timeout, sanitize_filename_for_log,
+    cleanup_files,
+    run_sync_with_timeout,
+    save_upload_file,
+    validate_config_file_extension,
     validate_path_component,
 )
 from ..schemas import (
-    CloudProvider, CloudOutputFormat, CloudDiagramDirection,
-    CloudStats, CloudValidateResponse,
-    CloudIconInfo, CloudIconsListResponse,
+    CloudDiagramDirection,
+    CloudIconInfo,
+    CloudIconsListResponse,
+    CloudOutputFormat,
+    CloudProvider,
     CloudProvidersResponse,
-    CloudTemplateInfo, CloudTemplateListResponse,
-    CloudTemplateContentResponse, CloudPythonCodeResponse,
+    CloudPythonCodeResponse,
+    CloudStats,
+    CloudTemplateContentResponse,
+    CloudTemplateInfo,
+    CloudTemplateListResponse,
+    CloudValidateResponse,
 )
 
 logger = logging.getLogger("usecvislib.api")
@@ -165,18 +177,18 @@ async def visualize_cloud(
         raise HTTPException(
             status_code=503,
             detail="Python diagrams library not installed. Run: pip install diagrams"
-        )
+        ) from e
     except IconNotFoundError as e:
         cleanup_files(input_path, output_path)
-        logger.warning(f"Icon not found: {str(e)}")
-        raise HTTPException(status_code=400, detail="One or more specified icons could not be found")
+        logger.warning(f"Icon not found: {e!s}")
+        raise HTTPException(status_code=400, detail="One or more specified icons could not be found") from e
     except CloudDiagramError as e:
         cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         cleanup_files(input_path, output_path)
-        logger.error(f"Cloud diagram rendering error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred")
+        logger.error(f"Cloud diagram rendering error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
 @router.post(
@@ -230,11 +242,11 @@ async def analyze_cloud(
 
     except CloudDiagramError as e:
         cleanup_files(input_path)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         cleanup_files(input_path)
-        logger.error(f"Cloud diagram analysis error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred")
+        logger.error(f"Cloud diagram analysis error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
 @router.get(
@@ -303,14 +315,14 @@ async def list_cloud_icons(
             category=category,
             total=len(icons)
         )
-    except DiagramsNotInstalledError:
+    except DiagramsNotInstalledError as e:
         raise HTTPException(
             status_code=503,
             detail="Python diagrams library not installed. Run: pip install diagrams"
-        )
+        ) from e
     except Exception as e:
-        logger.error(f"Error listing cloud icons: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to list icons")
+        logger.error(f"Error listing cloud icons: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Failed to list icons") from e
 
 
 @router.get(
@@ -348,8 +360,8 @@ async def list_cloud_templates(
             total=len(templates)
         )
     except Exception as e:
-        logger.error(f"Error listing cloud templates: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to list templates")
+        logger.error(f"Error listing cloud templates: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Failed to list templates") from e
 
 
 @router.get(
@@ -400,7 +412,7 @@ async def get_cloud_template(
                 logger.warning(f"Symlink rejected: {template_id}")
                 raise HTTPException(status_code=400, detail="Invalid template")
         except (ValueError, RuntimeError):
-            raise HTTPException(status_code=400, detail="Invalid template ID")
+            raise HTTPException(status_code=400, detail="Invalid template ID") from None
 
         # Read the template content
         content = resolved_path.read_text()
@@ -424,8 +436,8 @@ async def get_cloud_template(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting cloud template: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to get template")
+        logger.error(f"Error getting cloud template: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Failed to get template") from e
 
 
 @router.post(
@@ -473,8 +485,8 @@ async def generate_cloud_code(
 
     except CloudDiagramError as e:
         cleanup_files(input_path)
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         cleanup_files(input_path)
-        logger.error(f"Cloud code generation error: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred")
+        logger.error(f"Cloud code generation error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred") from e

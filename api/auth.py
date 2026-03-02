@@ -19,13 +19,13 @@ Provides API key-based authentication with support for:
 - Fail-fast validation on startup
 """
 
+import hashlib
+import logging
 import os
 import secrets
-import logging
-import hashlib
-from typing import Optional, List, Dict
+from typing import Optional
 
-from fastapi import HTTPException, Security, Request
+from fastapi import HTTPException, Request, Security
 from fastapi.security import APIKeyHeader
 
 logger = logging.getLogger("usecvislib.api.auth")
@@ -71,7 +71,7 @@ API_KEY_ENV = os.getenv("USECVISLIB_API_KEY", "")
 # Key Management
 # =============================================================================
 
-def get_configured_keys() -> List[str]:
+def get_configured_keys() -> list[str]:
     """Get list of configured API keys.
 
     Reads from both USECVISLIB_API_KEYS (comma-separated) and
@@ -119,11 +119,11 @@ def _hash_key(key: str) -> str:
 
 
 # Cache of hashed keys for efficient lookup (populated on first use)
-_hashed_keys_cache: Dict[str, int] = {}  # hash -> key index
+_hashed_keys_cache: dict[str, int] = {}  # hash -> key index
 _cache_initialized: bool = False
 
 
-def _get_hashed_keys() -> Dict[str, int]:
+def _get_hashed_keys() -> dict[str, int]:
     """Get dictionary mapping hashed keys to their indices.
 
     Lazily initializes the cache on first call.

@@ -51,18 +51,16 @@ Usage:
 """
 
 from .types import (
-    FieldType,
-    EdgeStyle,
     ArrowStyle,
-    FieldSchema,
-    NodeTypeSchema,
-    EdgeTypeSchema,
     ClusterSchema,
     DiagramSchema,
+    EdgeStyle,
+    EdgeTypeSchema,
+    FieldSchema,
+    FieldType,
+    NodeTypeSchema,
 )
-
 from .validator import SchemaValidator
-
 
 __all__ = [
     # Types

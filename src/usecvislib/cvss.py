@@ -19,10 +19,10 @@ allowing users to specify vulnerability severity using standard CVSS notation.
 Example vector: CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H
 """
 
+import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, Optional, Tuple, Any
-import re
+from typing import Any, Optional
 
 
 class CVSSVersion(str, Enum):
@@ -72,37 +72,37 @@ class Impact(str, Enum):
 
 
 # Metric value mappings for score calculation
-AV_VALUES: Dict[AttackVector, float] = {
+AV_VALUES: dict[AttackVector, float] = {
     AttackVector.NETWORK: 0.85,
     AttackVector.ADJACENT: 0.62,
     AttackVector.LOCAL: 0.55,
     AttackVector.PHYSICAL: 0.20,
 }
 
-AC_VALUES: Dict[AttackComplexity, float] = {
+AC_VALUES: dict[AttackComplexity, float] = {
     AttackComplexity.LOW: 0.77,
     AttackComplexity.HIGH: 0.44,
 }
 
 # PR values depend on Scope
-PR_VALUES_UNCHANGED: Dict[PrivilegesRequired, float] = {
+PR_VALUES_UNCHANGED: dict[PrivilegesRequired, float] = {
     PrivilegesRequired.NONE: 0.85,
     PrivilegesRequired.LOW: 0.62,
     PrivilegesRequired.HIGH: 0.27,
 }
 
-PR_VALUES_CHANGED: Dict[PrivilegesRequired, float] = {
+PR_VALUES_CHANGED: dict[PrivilegesRequired, float] = {
     PrivilegesRequired.NONE: 0.85,
     PrivilegesRequired.LOW: 0.68,
     PrivilegesRequired.HIGH: 0.50,
 }
 
-UI_VALUES: Dict[UserInteraction, float] = {
+UI_VALUES: dict[UserInteraction, float] = {
     UserInteraction.NONE: 0.85,
     UserInteraction.REQUIRED: 0.62,
 }
 
-IMPACT_VALUES: Dict[Impact, float] = {
+IMPACT_VALUES: dict[Impact, float] = {
     Impact.NONE: 0.00,
     Impact.LOW: 0.22,
     Impact.HIGH: 0.56,
@@ -188,7 +188,7 @@ class CVSSVector:
         import math
         return math.ceil(value * 10) / 10
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert vector to dictionary representation."""
         return {
             "version": self.version.value,
@@ -220,7 +220,7 @@ CVSS_VECTOR_PATTERN = re.compile(
 )
 
 
-def parse_cvss_vector(vector_string: str) -> Tuple[bool, Optional[CVSSVector], Optional[str]]:
+def parse_cvss_vector(vector_string: str) -> tuple[bool, Optional[CVSSVector], Optional[str]]:
     """Parse a CVSS 3.x vector string.
 
     Args:
@@ -270,7 +270,7 @@ def parse_cvss_vector(vector_string: str) -> Tuple[bool, Optional[CVSSVector], O
         return False, None, f"Invalid metric value in vector: {e}"
 
 
-def calculate_cvss_from_vector(vector_string: str) -> Tuple[bool, Optional[float], Optional[str]]:
+def calculate_cvss_from_vector(vector_string: str) -> tuple[bool, Optional[float], Optional[str]]:
     """Calculate CVSS score from a vector string.
 
     Convenience function that parses a vector and returns the score.
@@ -293,7 +293,7 @@ def calculate_cvss_from_vector(vector_string: str) -> Tuple[bool, Optional[float
     return True, vector.calculate_score(), None
 
 
-def validate_cvss_vector(vector_string: str) -> Tuple[bool, Optional[str]]:
+def validate_cvss_vector(vector_string: str) -> tuple[bool, Optional[str]]:
     """Validate a CVSS vector string without calculating score.
 
     Args:
@@ -306,7 +306,7 @@ def validate_cvss_vector(vector_string: str) -> Tuple[bool, Optional[str]]:
     return success, error
 
 
-def get_cvss_score(cvss_value: Any, cvss_vector: Optional[str] = None) -> Tuple[Optional[float], Optional[str]]:
+def get_cvss_score(cvss_value: Any, cvss_vector: Optional[str] = None) -> tuple[Optional[float], Optional[str]]:
     """Get CVSS score from either a numeric value or vector string.
 
     This is the main entry point for CVSS score resolution. It handles:

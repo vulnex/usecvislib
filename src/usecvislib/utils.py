@@ -19,24 +19,26 @@ configuration management, dictionary operations, and security utilities.
 Supports multiple configuration formats: TOML, JSON, and YAML.
 """
 
+import functools
+import hashlib
+import json
+import logging
 import os
 import re
 import sys
-import json
-import logging
-import functools
-import hashlib
+from collections.abc import Callable
 from pathlib import Path
-from typing import Dict, Any, Optional, List, TypeVar, Literal, Union, Callable
+from typing import Any, Literal, Optional, TypeVar, Union
 
 try:
     import tomllib  # Python 3.11+ standard library
 except ImportError:
     tomllib = None
 import atexit
+import tempfile
+
 import toml  # Fallback for older parsing
 import yaml
-import tempfile
 
 # Track temp files for cleanup on exit
 _temp_files_to_cleanup: list[str] = []
@@ -176,7 +178,7 @@ CONFIG_EXTENSIONS = ['.toml', '.tml', '.json', '.yaml', '.yml']
 
 def validate_input_path(
     path: str,
-    allowed_extensions: Optional[List[str]] = None,
+    allowed_extensions: Optional[list[str]] = None,
     max_size_bytes: Optional[int] = None
 ) -> Path:
     """Validate an input file path for security.
@@ -207,7 +209,7 @@ def validate_input_path(
 
     # Check for null bytes (path injection)
     if '\x00' in path:
-        logger.warning(f"Null byte detected in path: {repr(path)}")
+        logger.warning(f"Null byte detected in path: {path!r}")
         raise SecurityError("Null byte detected in path")
 
     # Check for symlinks before resolving (prevents symlink-based traversal)
@@ -220,7 +222,7 @@ def validate_input_path(
     try:
         resolved = Path(path).resolve()
     except (OSError, ValueError) as e:
-        raise SecurityError(f"Invalid path: {e}", path=path)
+        raise SecurityError(f"Invalid path: {e}", path=path) from e
 
     # Check for null bytes in resolved path
     if '\x00' in str(resolved):
@@ -252,7 +254,7 @@ def validate_input_path(
                     max_size=max_size_bytes
                 )
         except OSError as e:
-            raise FileError(f"Cannot check file size: {e}", path=path)
+            raise FileError(f"Cannot check file size: {e}", path=path) from e
 
     logger.debug(f"Validated input path: {resolved}")
     return resolved
@@ -288,14 +290,14 @@ def validate_output_path(
 
     # Check for null bytes
     if '\x00' in path:
-        logger.warning(f"Null byte detected in output path: {repr(path)}")
+        logger.warning(f"Null byte detected in output path: {path!r}")
         raise SecurityError("Null byte detected in path")
 
     # Resolve to absolute path
     try:
         resolved = Path(path).resolve()
     except (OSError, ValueError) as e:
-        raise SecurityError(f"Invalid path: {e}", path=path)
+        raise SecurityError(f"Invalid path: {e}", path=path) from e
 
     # Check for null bytes in resolved path
     if '\x00' in str(resolved):
@@ -311,7 +313,7 @@ def validate_output_path(
                 f"Output path must be within {allowed_directory}",
                 output_path=str(resolved),
                 allowed_directory=str(allowed)
-            )
+            ) from None
 
     # Prevent writing to sensitive system locations
     resolved_str = str(resolved)
@@ -327,7 +329,7 @@ def validate_output_path(
         try:
             resolved.parent.mkdir(parents=True, exist_ok=True)
         except (OSError, PermissionError) as e:
-            raise FileError(f"Cannot create output directory: {e}", path=str(resolved.parent))
+            raise FileError(f"Cannot create output directory: {e}", path=str(resolved.parent)) from e
 
     logger.debug(f"Validated output path: {resolved}")
     return resolved
@@ -456,10 +458,11 @@ def _convert_svg_to_png(svg_path: Path, size: int = 48) -> Optional[Path]:
         Path to the converted PNG file, or None on failure.
     """
     try:
-        import cairosvg
-        import tempfile
         import hashlib
         import stat
+        import tempfile
+
+        import cairosvg
 
         # Create a cache directory for converted icons
         cache_dir = Path(tempfile.gettempdir()) / "usecvislib_icon_cache"
@@ -665,7 +668,7 @@ def resolve_image_reference(image_ref: str) -> Optional[Path]:
 
 def validate_image_path(
     image_path: str,
-    allowed_extensions: Optional[List[str]] = None,
+    allowed_extensions: Optional[list[str]] = None,
     max_size_bytes: Optional[int] = None
 ) -> Path:
     """Validate an image path for security and existence.
@@ -736,11 +739,11 @@ def _escape_html(text: str) -> str:
 
 
 def process_node_image(
-    node_attrs: Dict[str, Any],
+    node_attrs: dict[str, Any],
     node_id: str,
     logger_instance: Optional[logging.Logger] = None,
     preserve_shape: bool = False
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Process and validate image attribute in node attributes.
 
     If the node has an 'image' attribute, resolves and validates the path.
@@ -798,7 +801,7 @@ def process_node_image(
 
         # Set Graphviz attributes for icon rendering
         # SECURITY: Escape the path to prevent DOT injection via special characters
-        escaped_path = _escape_html(str(resolved_path))
+        _escape_html(str(resolved_path))
 
         # Always render icons cleanly without background boxes
         # Clear ALL existing attributes to ensure clean rendering
@@ -983,7 +986,7 @@ def configure_logging(
     if format_string is None:
         format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 
-    handlers: List[logging.Handler] = [logging.StreamHandler()]
+    handlers: list[logging.Handler] = [logging.StreamHandler()]
 
     if log_file:
         try:
@@ -1011,7 +1014,7 @@ def get_logger(name: str) -> logging.Logger:
     return logging.getLogger(name)
 
 
-def ReadTomlFile(ifile: str) -> Dict[str, Any]:
+def ReadTomlFile(ifile: str) -> dict[str, Any]:
     """Read and parse a TOML file.
 
     Args:
@@ -1034,7 +1037,7 @@ def ReadTomlFile(ifile: str) -> Dict[str, Any]:
     try:
         return toml.load(ifile)
     except toml.TomlDecodeError as e:
-        raise ConfigError(f"Invalid TOML file {ifile}: {e}")
+        raise ConfigError(f"Invalid TOML file {ifile}: {e}") from e
 
 
 def detect_format(filepath: str) -> ConfigFormat:
@@ -1100,7 +1103,7 @@ def detect_format_from_content(content: str) -> ConfigFormat:
     raise ConfigError("Unable to detect configuration format from content")
 
 
-def parse_toml(content: str) -> Dict[str, Any]:
+def parse_toml(content: str) -> dict[str, Any]:
     """Parse TOML content string.
 
     Uses tomllib (Python 3.11+ standard library) as primary parser,
@@ -1120,16 +1123,16 @@ def parse_toml(content: str) -> Dict[str, Any]:
         try:
             return tomllib.loads(content)
         except tomllib.TOMLDecodeError as e:
-            raise ConfigError(f"Invalid TOML content: {e}")
+            raise ConfigError(f"Invalid TOML content: {e}") from e
 
     # Fallback to toml library
     try:
         return toml.loads(content)
     except toml.TomlDecodeError as e:
-        raise ConfigError(f"Invalid TOML content: {e}")
+        raise ConfigError(f"Invalid TOML content: {e}") from e
 
 
-def parse_json(content: str) -> Dict[str, Any]:
+def parse_json(content: str) -> dict[str, Any]:
     """Parse JSON content string.
 
     Args:
@@ -1148,17 +1151,17 @@ def parse_json(content: str) -> Dict[str, Any]:
         sys.setrecursionlimit(min(old_limit, 200))
         return json.loads(content)
     except json.JSONDecodeError as e:
-        raise ConfigError(f"Invalid JSON content: {e}")
+        raise ConfigError(f"Invalid JSON content: {e}") from e
     except RecursionError:
         raise ConfigError(
             "JSON content exceeds maximum nesting depth. "
             "This may indicate a malformed or malicious configuration."
-        )
+        ) from None
     finally:
         sys.setrecursionlimit(old_limit)
 
 
-def parse_yaml(content: str) -> Dict[str, Any]:
+def parse_yaml(content: str) -> dict[str, Any]:
     """Parse YAML content string.
 
     Args:
@@ -1182,7 +1185,7 @@ def parse_yaml(content: str) -> Dict[str, Any]:
             raise ConfigError("YAML content must be a mapping/dictionary at the root level")
         return result
     except yaml.YAMLError as e:
-        raise ConfigError(f"Invalid YAML content: {e}")
+        raise ConfigError(f"Invalid YAML content: {e}") from e
 
 
 MAX_CONFIG_SIZE = 10 * 1024 * 1024  # 10 MB
@@ -1212,7 +1215,7 @@ def _check_nesting_depth(data: Any, max_depth: int = MAX_NESTING_DEPTH, _current
             _check_nesting_depth(item, max_depth, _current + 1)
 
 
-def parse_content(content: str, format: ConfigFormat) -> Dict[str, Any]:
+def parse_content(content: str, format: ConfigFormat) -> dict[str, Any]:
     """Parse configuration content in the specified format.
 
     Args:
@@ -1245,7 +1248,7 @@ def parse_content(content: str, format: ConfigFormat) -> Dict[str, Any]:
     return result
 
 
-def ReadConfigFile(filepath: str, format: Optional[ConfigFormat] = None) -> Dict[str, Any]:
+def ReadConfigFile(filepath: str, format: Optional[ConfigFormat] = None) -> dict[str, Any]:
     """Read and parse a configuration file (TOML, JSON, or YAML).
 
     Args:
@@ -1267,15 +1270,15 @@ def ReadConfigFile(filepath: str, format: Optional[ConfigFormat] = None) -> Dict
         format = detect_format(filepath)
 
     try:
-        with open(filepath, 'r', encoding='utf-8') as f:
+        with open(filepath, encoding='utf-8') as f:
             content = f.read()
-    except IOError as e:
-        raise FileError(f"Failed to read file {filepath}: {e}")
+    except OSError as e:
+        raise FileError(f"Failed to read file {filepath}: {e}") from e
 
     return parse_content(content, format)
 
 
-def serialize_to_toml(data: Dict[str, Any]) -> str:
+def serialize_to_toml(data: dict[str, Any]) -> str:
     """Serialize dictionary to TOML string.
 
     Args:
@@ -1287,7 +1290,7 @@ def serialize_to_toml(data: Dict[str, Any]) -> str:
     return toml.dumps(data)
 
 
-def serialize_to_json(data: Dict[str, Any], pretty: bool = True) -> str:
+def serialize_to_json(data: dict[str, Any], pretty: bool = True) -> str:
     """Serialize dictionary to JSON string.
 
     Args:
@@ -1302,7 +1305,7 @@ def serialize_to_json(data: Dict[str, Any], pretty: bool = True) -> str:
     return json.dumps(data, default=str)
 
 
-def serialize_to_yaml(data: Dict[str, Any]) -> str:
+def serialize_to_yaml(data: dict[str, Any]) -> str:
     """Serialize dictionary to YAML string.
 
     Args:
@@ -1315,7 +1318,7 @@ def serialize_to_yaml(data: Dict[str, Any]) -> str:
     return yaml.dump(data, default_flow_style=False, allow_unicode=True, sort_keys=False, Dumper=yaml.SafeDumper)
 
 
-def serialize_to_mermaid(data: Dict[str, Any]) -> str:
+def serialize_to_mermaid(data: dict[str, Any]) -> str:
     """Serialize dictionary to Mermaid diagram syntax.
 
     Auto-detects the visualization type from the data structure
@@ -1335,7 +1338,7 @@ def serialize_to_mermaid(data: Dict[str, Any]) -> str:
     return mermaid_serialize(data)
 
 
-def serialize_content(data: Dict[str, Any], format: ConfigFormat) -> str:
+def serialize_content(data: dict[str, Any], format: ConfigFormat) -> str:
     """Serialize dictionary to the specified format.
 
     Args:
@@ -1433,7 +1436,7 @@ def _validate_path_component(component: str) -> None:
 
     # Check for null bytes
     if '\x00' in component:
-        raise SecurityError(f"Null byte detected in path component")
+        raise SecurityError("Null byte detected in path component")
 
 
 def JoinDirFile(directory: str, filename: str) -> str:
@@ -1475,7 +1478,7 @@ def JoinDirFileList(directory: str, *args: str) -> str:
     return os.path.join(directory, *args)
 
 
-def merge_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, Any]:
+def merge_dicts(dict1: dict[str, Any], dict2: dict[str, Any]) -> dict[str, Any]:
     """Merge two dictionaries, with dict2 values taking precedence.
 
     Args:
@@ -1490,7 +1493,7 @@ def merge_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, Any]:
     return merged
 
 
-def deep_merge_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, Any]:
+def deep_merge_dicts(dict1: dict[str, Any], dict2: dict[str, Any]) -> dict[str, Any]:
     """Deep merge two dictionaries recursively.
 
     Args:
@@ -1511,7 +1514,7 @@ def deep_merge_dicts(dict1: Dict[str, Any], dict2: Dict[str, Any]) -> Dict[str, 
     return result
 
 
-def stringify_dict(d: Dict[str, Any]) -> Dict[str, str]:
+def stringify_dict(d: dict[str, Any]) -> dict[str, str]:
     """Convert all dictionary values to strings.
 
     Args:
@@ -1589,7 +1592,7 @@ class ConfigModel:
         try:
             self.config = toml.load(config_path)
         except toml.TomlDecodeError as e:
-            raise ConfigError(f"Invalid TOML in {config_path}: {e}")
+            raise ConfigError(f"Invalid TOML in {config_path}: {e}") from e
 
     def get(self, key: str, default: Optional[T] = None) -> Any:
         """Get a configuration value by key.
@@ -1617,7 +1620,7 @@ class ConfigModel:
         """
         self.config[key] = value
 
-    def getallvalues(self, key: str) -> List[Any]:
+    def getallvalues(self, key: str) -> list[Any]:
         """Get all values from a configuration section.
 
         Args:
@@ -1642,7 +1645,7 @@ class ConfigModel:
         """
         return key in self.config
 
-    def keys(self) -> List[str]:
+    def keys(self) -> list[str]:
         """Get all top-level configuration keys.
 
         Returns:
@@ -1808,10 +1811,10 @@ class StyleManager:
         >>> StyleManager.clear_cache()  # Clear when styles are updated
     """
 
-    _cache: Dict[str, Dict[str, Any]] = {}
+    _cache: dict[str, dict[str, Any]] = {}
 
     @classmethod
-    def load(cls, style_file: str, style_id: str) -> Dict[str, Any]:
+    def load(cls, style_file: str, style_id: str) -> dict[str, Any]:
         """Load style configuration with caching.
 
         Args:
@@ -1845,7 +1848,7 @@ class StyleManager:
         logger.debug("Cleared style cache")
 
     @classmethod
-    def get_cached_styles(cls) -> List[str]:
+    def get_cached_styles(cls) -> list[str]:
         """Get list of currently cached style keys.
 
         Returns:

@@ -19,10 +19,10 @@ attack trees, threat models, and binary analysis diagrams.
 Supports TOML, JSON, and YAML input formats for attack trees and threat models.
 """
 
+import getopt
 import os
 import sys
-import getopt
-from typing import List, Optional, NoReturn
+from typing import NoReturn, Optional
 
 
 def Usage() -> None:
@@ -148,7 +148,7 @@ def error_exit(message: str, show_usage: bool = True) -> NoReturn:
     sys.exit(2)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: Optional[list[str]] = None) -> int:
     """Main entry point for the CLI.
 
     Args:
@@ -165,7 +165,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     format = 'png'
     mode = 0
     styleid = ""
-    stylefile = ""
     visualization = "all"
     configfile = ""  # Configuration file for binary visualization parameters
     generate_report = False
@@ -205,7 +204,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         elif opt in ("-s", "--styleid"):
             styleid = arg
         elif opt in ("-S", "--stylefile"):
-            stylefile = arg
+            pass
         elif opt in ("-v", "--visualization"):
             visualization = arg
         elif opt in ("-C", "--config"):
@@ -237,8 +236,8 @@ def main(argv: Optional[List[str]] = None) -> int:
             error_exit(f"Invalid convert format: {convert_format}. Must be one of: {', '.join(valid_convert_formats)}")
 
         try:
+            from .mermaid import detect_visualization_type, serialize_to_mermaid
             from .utils import convert_format as do_convert
-            from .mermaid import serialize_to_mermaid, detect_visualization_type
 
             # Determine input format from file extension
             input_ext = os.path.splitext(inputfile)[1].lower()
@@ -266,11 +265,12 @@ def main(argv: Optional[List[str]] = None) -> int:
             if convert_format == 'mermaid':
                 # Special handling for Mermaid - need to parse and convert
                 import json
-                import yaml as yaml_lib
+
                 import toml
+                import yaml as yaml_lib
 
                 # Parse input file
-                with open(inputfile, 'r', encoding='utf-8') as f:
+                with open(inputfile, encoding='utf-8') as f:
                     content = f.read()
 
                 if input_format == 'toml':
@@ -366,7 +366,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
             # Print file stats
             stats = bv.get_file_stats()
-            print(f"\nFile Statistics:")
+            print("\nFile Statistics:")
             print(f"  Size: {stats['file_size']:,} bytes")
             print(f"  Entropy: {stats['entropy']:.4f} bits")
             print(f"  Unique bytes: {stats['unique_bytes']}/256")
@@ -382,7 +382,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
             # Print graph statistics
             stats = ag.get_graph_stats()
-            print(f"\nGraph Statistics:")
+            print("\nGraph Statistics:")
             print(f"  Name: {stats['name']}")
             print(f"  Hosts: {stats['total_hosts']}")
             print(f"  Vulnerabilities: {stats['total_vulnerabilities']}")
@@ -418,7 +418,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             if analyze_critical:
                 critical = ag.analyze_critical_nodes(top_n=10)
                 if critical:
-                    print(f"\nTop Critical Nodes (by degree centrality):")
+                    print("\nTop Critical Nodes (by degree centrality):")
                     for i, node in enumerate(critical, 1):
                         print(f"  {i}. {node['label']} ({node['type']})")
                         print(f"     In-degree: {node['in_degree']}, Out-degree: {node['out_degree']}")
@@ -445,7 +445,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
             # Print diagram statistics
             stats = md.get_stats()
-            print(f"\nDiagram Statistics:")
+            print("\nDiagram Statistics:")
             print(f"  Type: {stats['diagram_type']}")
             print(f"  Lines: {stats['line_count']}")
             print(f"  Characters: {stats['char_count']}")
@@ -471,7 +471,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
             # Print diagram statistics
             stats = cd.get_stats()
-            print(f"\nDiagram Statistics:")
+            print("\nDiagram Statistics:")
             print(f"  Title: {stats['title']}")
             print(f"  Nodes: {stats['node_count']}")
             print(f"  Edges: {stats['edge_count']}")
@@ -488,7 +488,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
             # Print stats
             stats = pg.get_stats()
-            print(f"\nGradient Statistics:")
+            print("\nGradient Statistics:")
             print(f"  Name: {stats['name']}")
             print(f"  Zones: {stats['total_zones']}")
             print(f"  Components: {stats['total_components']}")
@@ -499,7 +499,7 @@ def main(argv: Optional[List[str]] = None) -> int:
 
             # Print inversions
             if stats['total_inversions'] > 0:
-                print(f"\nDetected Inversions:")
+                print("\nDetected Inversions:")
                 for inv in stats['inversions']:
                     print(f"  [{inv['severity'].upper()}] {inv['from']} ({inv['from_zone']}) "
                           f"-> {inv['to']} ({inv['to_zone']}) "
@@ -513,7 +513,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"Component diagram generated: {outputfile}.{format}")
 
             stats = cd.get_stats()
-            print(f"\nDiagram Statistics:")
+            print("\nDiagram Statistics:")
             print(f"  Title: {stats['title']}")
             print(f"  Layers: {stats['total_layers']}")
             print(f"  Components: {stats['total_components']}")
@@ -527,7 +527,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             print(f"Dependency graph generated: {outputfile}.{format}")
 
             stats = dg.get_stats()
-            print(f"\nGraph Statistics:")
+            print("\nGraph Statistics:")
             print(f"  Title: {stats['title']}")
             print(f"  Modules: {stats['total_modules']}")
             print(f"  Dependencies: {stats['total_dependencies']}")

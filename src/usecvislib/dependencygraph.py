@@ -19,7 +19,7 @@ SLOC-based sizing and circular dependency detection.
 Supports TOML, JSON, and YAML input formats.
 """
 
-from typing import Dict, Any, Optional, List
+from typing import Any, Optional
 
 from graphviz import Digraph
 
@@ -89,9 +89,9 @@ class DependencyGraph(VisualizationBase):
         )
 
         self.graph: Optional[Digraph] = None
-        self._modules: Dict[str, Dict[str, Any]] = {}
-        self._dependencies: List[Dict[str, Any]] = []
-        self._circular: List[List[str]] = []
+        self._modules: dict[str, dict[str, Any]] = {}
+        self._dependencies: list[dict[str, Any]] = []
+        self._circular: list[list[str]] = []
         self._circular_edges: set = set()
         self._temp_input: Optional[str] = None
 
@@ -104,7 +104,7 @@ class DependencyGraph(VisualizationBase):
             except Exception:
                 pass
 
-    def _default_style(self) -> Dict[str, Any]:
+    def _default_style(self) -> dict[str, Any]:
         return {
             "graph": {
                 "bgcolor": "white",
@@ -159,15 +159,15 @@ class DependencyGraph(VisualizationBase):
     def _get_metadata_root_key(self) -> str:
         return ""
 
-    def _load_impl(self) -> Dict[str, Any]:
+    def _load_impl(self) -> dict[str, Any]:
         try:
             data = utils.ReadConfigFile(self.inputfile)
         except (utils.FileError, utils.ConfigError) as e:
             self.logger.error(f"Failed to load dependency graph from {self.inputfile}: {e}")
-            raise DependencyGraphError(f"Failed to load dependency graph: {e}")
+            raise DependencyGraphError(f"Failed to load dependency graph: {e}") from e
         except FileNotFoundError as e:
             self.logger.error(f"Input file not found: {self.inputfile}")
-            raise DependencyGraphError(f"Input file not found: {e}")
+            raise DependencyGraphError(f"Input file not found: {e}") from e
 
         self.inputdata = data
         self._normalize_data()
@@ -295,8 +295,8 @@ class DependencyGraph(VisualizationBase):
 
         self.logger.debug(f"Rendered dependency graph with {len(self._modules)} modules")
 
-    def _add_module_node(self, graph: Digraph, mod_id: str, mod_data: Dict[str, Any],
-                         module_style: Dict[str, Any], external_style: Dict[str, Any]) -> None:
+    def _add_module_node(self, graph: Digraph, mod_id: str, mod_data: dict[str, Any],
+                         module_style: dict[str, Any], external_style: dict[str, Any]) -> None:
         """Add a module node to the graph."""
         mod_name = mod_data.get("name", mod_id)
         mod_type = mod_data.get("type", "internal")
@@ -340,10 +340,10 @@ class DependencyGraph(VisualizationBase):
             self.logger.debug("Successfully wrote dependency graph visualization")
         except Exception as e:
             self.logger.error(f"Failed to render graph to {outputfile}: {e}")
-            raise DependencyGraphError(f"Failed to render graph: {e}")
+            raise DependencyGraphError(f"Failed to render graph: {e}") from e
 
-    def _validate_impl(self) -> List[str]:
-        errors: List[str] = []
+    def _validate_impl(self) -> list[str]:
+        errors: list[str] = []
 
         if not self._modules:
             errors.append("No modules defined")
@@ -382,7 +382,7 @@ class DependencyGraph(VisualizationBase):
 
         return errors
 
-    def _get_stats_impl(self) -> Dict[str, Any]:
+    def _get_stats_impl(self) -> dict[str, Any]:
         title = self.inputdata.get("title", "Unknown")
 
         internal_count = sum(1 for m in self._modules.values() if m.get("type", "internal") == "internal")

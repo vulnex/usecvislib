@@ -17,10 +17,9 @@ This module provides abstract base classes that define the common interface
 and shared functionality for all visualization modules.
 """
 
-from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Dict, Any, List, Optional, TypeVar, Generic, TYPE_CHECKING
 import logging
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
 
 from . import utils
 
@@ -59,7 +58,7 @@ class VisualizationBase(ABC, Generic[T]):
     # Override in subclasses
     STYLE_FILE: str = ""
     DEFAULT_STYLE_ID: str = ""
-    ALLOWED_EXTENSIONS: List[str] = ['.toml', '.tml', '.json', '.yaml', '.yml']
+    ALLOWED_EXTENSIONS: list[str] = ['.toml', '.tml', '.json', '.yaml', '.yml']
     MAX_INPUT_SIZE: int = 10 * 1024 * 1024  # 10 MB
 
     def __init__(
@@ -107,8 +106,8 @@ class VisualizationBase(ABC, Generic[T]):
         self.styleid = styleid or self.DEFAULT_STYLE_ID
 
         # State
-        self.inputdata: Dict[str, Any] = {}
-        self.style: Dict[str, Any] = {}
+        self.inputdata: dict[str, Any] = {}
+        self.style: dict[str, Any] = {}
         self._loaded = False
         self._rendered = False
 
@@ -133,7 +132,7 @@ class VisualizationBase(ABC, Generic[T]):
             self.style = self._default_style()
 
     @abstractmethod
-    def _default_style(self) -> Dict[str, Any]:
+    def _default_style(self) -> dict[str, Any]:
         """Return default style configuration.
 
         Returns:
@@ -142,7 +141,7 @@ class VisualizationBase(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def _load_impl(self) -> Dict[str, Any]:
+    def _load_impl(self) -> dict[str, Any]:
         """Implementation of data loading.
 
         Returns:
@@ -176,7 +175,7 @@ class VisualizationBase(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def _validate_impl(self) -> List[str]:
+    def _validate_impl(self) -> list[str]:
         """Implementation of validation.
 
         Returns:
@@ -185,7 +184,7 @@ class VisualizationBase(ABC, Generic[T]):
         pass
 
     @abstractmethod
-    def _get_stats_impl(self) -> Dict[str, Any]:
+    def _get_stats_impl(self) -> dict[str, Any]:
         """Implementation of statistics collection.
 
         Returns:
@@ -267,7 +266,7 @@ class VisualizationBase(ABC, Generic[T]):
         self._draw_impl(output)
         return self
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate input data structure.
 
         Returns:
@@ -278,7 +277,7 @@ class VisualizationBase(ABC, Generic[T]):
 
         return self._validate_impl()
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get statistical summary.
 
         Returns:

@@ -20,21 +20,18 @@ This module provides visualization tools for binary file analysis including:
 - File structure visualization
 """
 
-import os
-import sys
 import logging
 import mmap
-from pathlib import Path
-from typing import Optional, Tuple, List, Dict, Any, Iterator
+import os
+from collections import Counter
+from collections.abc import Iterator
+from typing import Any, Optional
+
+import matplotlib.pyplot as plt
+import numpy as np
+from scipy.stats import entropy
 
 from . import utils
-
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.patches import Wedge
-from matplotlib.collections import PatchCollection
-from scipy.stats import entropy
-from collections import Counter
 
 # Module logger
 logger = logging.getLogger(__name__)
@@ -96,8 +93,8 @@ class BinVis:
         self.configfile = configfile
         self.format = format
         self.data: Optional[bytes] = None
-        self.style: Dict[str, Any] = {}
-        self.config: Dict[str, Any] = {}
+        self.style: dict[str, Any] = {}
+        self.config: dict[str, Any] = {}
         self._loaded = False
 
         # Memory-mapped file support for streaming
@@ -138,7 +135,7 @@ class BinVis:
         except (KeyError, FileNotFoundError):
             self.style = self._default_style()
 
-    def _default_style(self) -> Dict[str, Any]:
+    def _default_style(self) -> dict[str, Any]:
         """Return default style configuration."""
         return {
             "entropy": {
@@ -161,7 +158,7 @@ class BinVis:
             }
         }
 
-    def _default_config(self) -> Dict[str, Any]:
+    def _default_config(self) -> dict[str, Any]:
         """Return default visualization configuration parameters.
 
         Returns:
@@ -250,7 +247,7 @@ class BinVis:
         except Exception as e:
             logger.warning(f"Failed to load config file {config_path}: {e}, using defaults")
 
-    def _merge_config(self, user_config: Dict[str, Any]) -> None:
+    def _merge_config(self, user_config: dict[str, Any]) -> None:
         """Merge user configuration with defaults.
 
         Args:
@@ -305,7 +302,7 @@ class BinVis:
                 self.data = f.read()
             self._loaded = True
             logger.debug(f"Loaded {len(self.data)} bytes from binary file")
-        except IOError as e:
+        except OSError as e:
             logger.error(f"Failed to read binary file {self.inputfile}: {e}")
             raise
 
@@ -439,7 +436,7 @@ class BinVis:
         window_size: int = 256,
         step: int = 64,
         chunk_size: Optional[int] = None
-    ) -> Iterator[Tuple[int, float]]:
+    ) -> Iterator[tuple[int, float]]:
         """Generator for sliding window entropy without loading entire file.
 
         Yields (position, entropy) tuples one at a time, enabling
@@ -485,7 +482,7 @@ class BinVis:
             global_position += len(chunk)
             position = 0
 
-    def get_file_stats_streaming(self) -> Dict[str, Any]:
+    def get_file_stats_streaming(self) -> dict[str, Any]:
         """Get file statistics without loading entire file into memory.
 
         Uses streaming processing to calculate statistics for files
@@ -563,7 +560,7 @@ class BinVis:
         probabilities = [count / total for count in byte_counts.values()]
         return entropy(probabilities, base=base)
 
-    def sliding_entropy(self, window_size: int = 256, step: int = 64) -> Tuple[np.ndarray, np.ndarray]:
+    def sliding_entropy(self, window_size: int = 256, step: int = 64) -> tuple[np.ndarray, np.ndarray]:
         """Calculate entropy using a sliding window across the file.
 
         Args:
@@ -694,7 +691,7 @@ class BinVis:
         fig, ax = plt.subplots(figsize=style.get("figsize", [12, 6]))
 
         # Use config for bar parameters
-        bars = ax.bar(range(256), distribution,
+        ax.bar(range(256), distribution,
                       color=style.get("bar_color", "#3498db"),
                       alpha=config.get("bar_alpha", 0.7),
                       width=config.get("bar_width", 1.0))
@@ -855,7 +852,7 @@ class BinVis:
 
         logger.info(f"Saved heatmap visualization to {output}")
 
-    def visualize_all(self, output_prefix: Optional[str] = None) -> List[str]:
+    def visualize_all(self, output_prefix: Optional[str] = None) -> list[str]:
         """Generate all visualization types.
 
         Args:
@@ -894,7 +891,7 @@ class BinVis:
         logger.info(f"Generated {len(outputs)} visualizations")
         return outputs
 
-    def get_file_stats(self) -> Dict[str, Any]:
+    def get_file_stats(self) -> dict[str, Any]:
         """Get statistical summary of the binary file.
 
         Returns:
@@ -939,7 +936,7 @@ class BinVis:
 
     # Common interface methods for API consistency
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get statistical summary of the binary file.
 
         Alias for get_file_stats() for API consistency with other modules.
@@ -949,7 +946,7 @@ class BinVis:
         """
         return self.get_file_stats()
 
-    def validate(self) -> List[str]:
+    def validate(self) -> list[str]:
         """Validate the binary file.
 
         Returns:

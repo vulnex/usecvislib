@@ -12,14 +12,14 @@
 REST API for generating security visualizations from uploaded files.
 """
 
-import os
-import sys
-import shutil
 import asyncio
 import logging
+import os
+import shutil
+import sys
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from slowapi import _rate_limit_exceeded_handler
@@ -30,37 +30,36 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 from usecvislib import __version__ as lib_version
 
+from .auth import API_KEY_HEADER_NAME, AUTH_ENABLED, validate_auth_config, verify_api_key
 from .config import (
-    LOG_LEVEL,
     ALLOWED_ORIGINS,
-    IMAGE_UPLOAD_DIR,
     IMAGE_CLEANUP_AGE,
+    IMAGE_UPLOAD_DIR,
+    LOG_LEVEL,
+    RATE_LIMIT_ANALYZE,
     RATE_LIMIT_DEFAULT,
     RATE_LIMIT_VISUALIZE,
-    RATE_LIMIT_ANALYZE,
     TEMP_DIR,
     limiter,
 )
-from .middleware import SecurityHeadersMiddleware, RequestLoggingMiddleware
 from .helpers import cleanup_old_images
-from .auth import validate_auth_config, verify_api_key, AUTH_ENABLED, API_KEY_HEADER_NAME
-from .schemas import ErrorResponse
-
+from .middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
 from .routers import (
-    attack_trees,
-    attack_graphs,
-    threat_models,
-    binary,
-    custom_diagrams,
-    mermaid,
-    cloud,
-    images,
-    icons,
-    settings,
-    utilities,
-    privilege_gradient,
     architecture,
+    attack_graphs,
+    attack_trees,
+    binary,
+    cloud,
+    custom_diagrams,
+    icons,
+    images,
+    mermaid,
+    privilege_gradient,
+    settings,
+    threat_models,
+    utilities,
 )
+from .schemas import ErrorResponse
 
 logger = logging.getLogger("usecvislib.api")
 

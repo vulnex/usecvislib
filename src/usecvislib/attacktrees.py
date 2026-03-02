@@ -18,14 +18,21 @@ directed acyclic graphs (DAGs). Attack trees represent security threats
 as hierarchical structures showing how an attacker might achieve goals.
 """
 
-from typing import Dict, Any, Optional, List
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from .clouddiagrams import CloudDiagrams
+    from .mermaiddiagrams import MermaidDiagrams
 
 from graphviz import Digraph
 
 from . import utils
 from .base import VisualizationBase
 from .constants import cvss_to_color, cvss_to_severity_label, validate_cvss_score
-from .cvss_unified import get_cvss_score_unified as get_cvss_score, validate_vector as validate_cvss_vector
+from .cvss_unified import get_cvss_score_unified as get_cvss_score
+from .cvss_unified import validate_vector as validate_cvss_vector
 from .settings import is_cvss_enabled
 
 
@@ -126,7 +133,7 @@ class AttackTrees(VisualizationBase):
             except Exception:
                 pass  # Best effort cleanup
 
-    def _default_style(self) -> Dict[str, Any]:
+    def _default_style(self) -> dict[str, Any]:
         """Return default style configuration for attack trees.
 
         Returns:
@@ -153,7 +160,7 @@ class AttackTrees(VisualizationBase):
             }
         }
 
-    def _strip_style_attrs(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+    def _strip_style_attrs(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """Strip style-related attributes from node data when a style is selected.
 
         When a non-default style is explicitly selected, template-defined colors
@@ -180,7 +187,7 @@ class AttackTrees(VisualizationBase):
         """
         return "tree"
 
-    def _load_impl(self) -> Dict[str, Any]:
+    def _load_impl(self) -> dict[str, Any]:
         """Load attack tree data from configuration file.
 
         Returns:
@@ -195,10 +202,10 @@ class AttackTrees(VisualizationBase):
             return data
         except (utils.FileError, utils.ConfigError) as e:
             self.logger.error(f"Failed to load attack tree from {self.inputfile}: {e}")
-            raise AttackTreeError(f"Failed to load attack tree: {e}")
+            raise AttackTreeError(f"Failed to load attack tree: {e}") from e
         except FileNotFoundError as e:
             self.logger.error(f"Input file not found: {self.inputfile}")
-            raise AttackTreeError(f"Input file not found: {e}")
+            raise AttackTreeError(f"Input file not found: {e}") from e
 
     def _render_impl(self) -> None:
         """Build the attack tree graph from loaded data.
@@ -381,9 +388,9 @@ class AttackTrees(VisualizationBase):
             self.logger.debug("Successfully wrote attack tree visualization")
         except Exception as e:
             self.logger.error(f"Failed to render graph to {outputfile}: {e}")
-            raise AttackTreeError(f"Failed to render graph: {e}")
+            raise AttackTreeError(f"Failed to render graph: {e}") from e
 
-    def _validate_impl(self) -> List[str]:
+    def _validate_impl(self) -> list[str]:
         """Validate the attack tree structure.
 
         Returns:
@@ -446,7 +453,7 @@ class AttackTrees(VisualizationBase):
 
         return errors
 
-    def _get_stats_impl(self) -> Dict[str, Any]:
+    def _get_stats_impl(self) -> dict[str, Any]:
         """Get statistical summary of the attack tree.
 
         Returns:
@@ -500,7 +507,7 @@ class AttackTrees(VisualizationBase):
 
     # Backward compatibility methods
 
-    def get_tree_stats(self) -> Dict[str, Any]:
+    def get_tree_stats(self) -> dict[str, Any]:
         """Get statistical summary of the attack tree.
 
         Deprecated: Use get_stats() instead.
@@ -526,7 +533,7 @@ class AttackTrees(VisualizationBase):
     # Export/Conversion Methods
     # =========================================================================
 
-    def to_mermaid_diagram(self) -> "MermaidDiagrams":
+    def to_mermaid_diagram(self) -> MermaidDiagrams:
         """Convert to MermaidDiagrams format.
 
         Returns:
@@ -540,7 +547,7 @@ class AttackTrees(VisualizationBase):
         from .mermaiddiagrams import MermaidDiagrams
         return MermaidDiagrams.from_attack_tree(self.inputfile)
 
-    def to_cloud_diagram(self) -> "CloudDiagrams":
+    def to_cloud_diagram(self) -> CloudDiagrams:
         """Convert to CloudDiagrams format.
 
         Returns:

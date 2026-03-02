@@ -7,28 +7,35 @@
 # Copyright (c) 2025 VULNEX. All rights reserved.
 #
 
+import logging
 import os
 import uuid
-import logging
-from typing import Optional
 from datetime import datetime
+from typing import Optional
 
-from fastapi import APIRouter, File, UploadFile, Request, HTTPException, Depends
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 
 from ..auth import verify_api_key
 from ..config import (
-    limiter, RATE_LIMIT_DEFAULT,
-    IMAGE_UPLOAD_DIR, IMAGE_MAX_SIZE, IMAGE_ALLOWED_TYPES,
+    IMAGE_ALLOWED_TYPES,
+    IMAGE_MAX_SIZE,
+    RATE_LIMIT_DEFAULT,
+    limiter,
 )
 from ..helpers import (
-    is_valid_image, get_image_content_type,
-    get_user_namespace, get_user_image_dir, resolve_image_id,
+    get_image_content_type,
+    get_user_image_dir,
+    get_user_namespace,
+    is_valid_image,
+    resolve_image_id,
     sanitize_filename_for_log,
 )
 from ..schemas import (
-    ImageUploadResponse, ImageInfoResponse,
-    ImageDeleteResponse, ImageListResponse,
+    ImageDeleteResponse,
+    ImageInfoResponse,
+    ImageListResponse,
+    ImageUploadResponse,
 )
 
 logger = logging.getLogger("usecvislib.api")
@@ -135,7 +142,7 @@ async def get_image_info(
     try:
         filepath = resolve_image_id(image_id, api_key)
     except ValueError:
-        raise HTTPException(status_code=404, detail="Image not found")
+        raise HTTPException(status_code=404, detail="Image not found") from None
 
     stat = os.stat(filepath)
 
@@ -168,7 +175,7 @@ async def download_image(
     try:
         filepath = resolve_image_id(image_id, api_key)
     except ValueError:
-        raise HTTPException(status_code=404, detail="Image not found")
+        raise HTTPException(status_code=404, detail="Image not found") from None
 
     content_type = get_image_content_type(filepath)
 
@@ -200,7 +207,7 @@ async def delete_image(
     try:
         filepath = resolve_image_id(image_id, api_key)
     except ValueError:
-        raise HTTPException(status_code=404, detail="Image not found")
+        raise HTTPException(status_code=404, detail="Image not found") from None
 
     os.unlink(filepath)
 

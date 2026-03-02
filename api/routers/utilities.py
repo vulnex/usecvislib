@@ -8,55 +8,77 @@
 # Copyright (c) 2025 VULNEX. All rights reserved.
 #
 
-import os
-import shutil
-import uuid
-import json
 import asyncio
 import base64
+import json
 import logging
+import os
+import shutil
 import time
-from typing import Optional, List
+import uuid
 from pathlib import Path
+from typing import Optional
 
-from fastapi import APIRouter, File, UploadFile, Query, BackgroundTasks, Request, HTTPException
+from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import StreamingResponse
 
-from usecvislib import AttackTrees, AttackGraphs, ThreatModeling, CustomDiagrams, __version__ as lib_version
-from usecvislib.utils import detect_format, convert_format as utils_convert_format, ReadConfigFile, FileError, ConfigError
-from usecvislib.batch import BatchProcessor, BatchResult
+from usecvislib import AttackGraphs, AttackTrees, CustomDiagrams, ThreatModeling
+from usecvislib import __version__ as lib_version
+from usecvislib.diff import VisualizationDiff
 from usecvislib.exporters import Exporter
-from usecvislib.diff import VisualizationDiff, ChangeType as LibChangeType
 from usecvislib.threatmodeling import PyTMWrapper
+from usecvislib.utils import ConfigError, FileError, ReadConfigFile, detect_format
+from usecvislib.utils import convert_format as utils_convert_format
 
 from ..config import (
-    limiter, RATE_LIMIT_DEFAULT, RATE_LIMIT_VISUALIZE, RATE_LIMIT_ANALYZE,
-    ENABLE_TRACEBACK_LOGGING, TEMP_DIR,
+    ENABLE_TRACEBACK_LOGGING,
+    FORMAT_EXTENSIONS,
+    RATE_LIMIT_ANALYZE,
+    RATE_LIMIT_DEFAULT,
+    RATE_LIMIT_VISUALIZE,
     REQUEST_TIMEOUT_VISUALIZE,
-    TEMPLATES_DIR, TEMPLATE_EXTENSIONS,
-    FORMAT_EXTENSIONS, REPORT_EXTENSIONS,
+    TEMP_DIR,
+    TEMPLATE_EXTENSIONS,
+    TEMPLATES_DIR,
+    limiter,
 )
 from ..helpers import (
-    save_upload_file, cleanup_files, get_content_type,
-    validate_config_file_extension, run_sync_with_timeout,
-    sanitize_filename_for_log, validate_path_component,
+    cleanup_files,
+    clear_progress,
+    get_progress,
     get_template_format,
-    update_progress, get_progress, clear_progress,
-    _cleanup_old_progress_entries,
+    run_sync_with_timeout,
+    sanitize_filename_for_log,
+    save_upload_file,
+    update_progress,
+    validate_config_file_extension,
+    validate_path_component,
 )
 from ..schemas import (
-    OutputFormat, AttackTreeStyle, AttackGraphStyle,
-    ThreatModelStyle, ThreatModelEngine,
+    AttackGraphStyle,
+    AttackTreeStyle,
+    BatchItemResult,
+    BatchResponse,
+    BinVisStyle,
+    ChangeItem,
+    ChangeType,
+    ConfigFormat,
+    ConvertResponse,
     CustomDiagramStyle,
-    BinVisStyle, PrivilegeGradientStyle,
-    ConfigFormat, ReportFormat,
-    HealthResponse, ConvertResponse, ReportResponse,
-    ThreatLibraryResponse, ThreatLibraryItem,
+    DiffResponse,
+    DiffSummary,
+    ExportFormat,
+    ExportResponse,
+    HealthResponse,
+    OutputFormat,
+    PrivilegeGradientStyle,
+    ReportFormat,
+    ReportResponse,
+    ThreatLibraryItem,
+    ThreatLibraryResponse,
+    ThreatModelEngine,
+    ThreatModelStyle,
     VisualizationMode,
-    BatchItemResult, BatchResponse,
-    ExportFormat, ExportResponse,
-    ChangeType, ChangeItem, DiffSummary, DiffResponse,
-    TemplateMetadata,
 )
 
 logger = logging.getLogger("usecvislib.api")
@@ -228,7 +250,7 @@ async def convert_config_format(
         source_format = detect_format(file.filename)
 
         # Read file content
-        with open(input_path, 'r', encoding='utf-8') as f:
+        with open(input_path, encoding='utf-8') as f:
             content = f.read()
 
         # Convert format
@@ -249,11 +271,11 @@ async def convert_config_format(
 
     except (FileError, ConfigError) as e:
         logger.warning(f"Conversion failed: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Conversion error: {e}")
-        logger.error(f"Conversion failed: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Conversion failed")
+        logger.error(f"Conversion failed: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Conversion failed") from e
     finally:
         cleanup_files(input_path)
 
@@ -317,11 +339,11 @@ async def generate_threat_model_report(
 
     except (FileError, ConfigError) as e:
         logger.warning(f"Report generation failed: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Report generation error: {e}")
-        logger.error(f"Report generation failed: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Report generation failed")
+        logger.error(f"Report generation failed: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Report generation failed") from e
     finally:
         cleanup_files(input_path)
 
@@ -397,8 +419,8 @@ async def get_threat_library(
 
     except Exception as e:
         logger.error(f"Threat library error: {e}")
-        logger.error(f"Failed to access threat library: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to access threat library")
+        logger.error(f"Failed to access threat library: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Failed to access threat library") from e
 
 
 @router.get(
@@ -439,7 +461,7 @@ async def get_threat_element_types(request: Request):
 async def batch_visualize(
     request: Request,
     background_tasks: BackgroundTasks,
-    files: List[UploadFile] = File(..., description="Multiple configuration files to process"),
+    files: list[UploadFile] = File(..., description="Multiple configuration files to process"),
     mode: VisualizationMode = Query(..., description="Visualization mode"),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     style: Optional[str] = Query(default=None, description="Style preset"),
@@ -598,8 +620,8 @@ async def batch_visualize(
         # Cleanup on error
         for _, path in input_paths:
             cleanup_files(path)
-        logger.error(f"Batch processing failed: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Batch processing failed")
+        logger.error(f"Batch processing failed: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Batch processing failed") from e
 
 
 # =============================================================================
@@ -711,7 +733,7 @@ async def export_data(
             # Write to temp file and read back
             temp_csv = os.path.join(TEMP_DIR, f"export_{os.urandom(4).hex()}.csv")
             rows = Exporter.to_csv(csv_data, temp_csv)
-            with open(temp_csv, 'r') as f:
+            with open(temp_csv) as f:
                 content = f.read()
             cleanup_files(temp_csv)
             filename = f"{base_name}{section_suffix}.csv"
@@ -734,7 +756,7 @@ async def export_data(
             filename = f"{base_name}{section_suffix}.md"
         elif format == ExportFormat.MERMAID:
             # Mermaid export - convert data to Mermaid diagram syntax
-            from usecvislib.mermaid import serialize_to_mermaid, detect_visualization_type
+            from usecvislib.mermaid import detect_visualization_type, serialize_to_mermaid
             vis_type = detect_visualization_type(data)
             content = serialize_to_mermaid(data, diagram_type=vis_type)
             filename = f"{base_name}{section_suffix}.mmd"
@@ -754,8 +776,8 @@ async def export_data(
         raise
     except Exception as e:
         logger.error(f"Export error: {e}")
-        logger.error(f"Export failed: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Export failed")
+        logger.error(f"Export failed: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Export failed") from e
     finally:
         cleanup_files(input_path)
 
@@ -911,8 +933,8 @@ async def compare_configs(
         raise
     except Exception as e:
         logger.error(f"Comparison error: {e}")
-        logger.error(f"Comparison failed: {str(e)}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Comparison failed")
+        logger.error(f"Comparison failed: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="Comparison failed") from e
     finally:
         cleanup_files(old_path, new_path)
 
@@ -1014,7 +1036,7 @@ async def get_attack_tree_template(template_id: str):
         logger.warning(f"Template not found: {template_id}")
         raise HTTPException(status_code=404, detail=f"Template '{template_id}' not found")
 
-    with open(template_path, 'r') as f:
+    with open(template_path) as f:
         content = f.read()
 
     filename = os.path.basename(template_path)
@@ -1041,7 +1063,7 @@ async def get_threat_model_template(template_id: str):
         logger.warning(f"Template not found: {template_id}")
         raise HTTPException(status_code=404, detail=f"Template '{template_id}' not found")
 
-    with open(template_path, 'r') as f:
+    with open(template_path) as f:
         content = f.read()
 
     filename = os.path.basename(template_path)

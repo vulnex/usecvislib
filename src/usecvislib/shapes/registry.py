@@ -23,12 +23,11 @@ for the shape gallery system. It supports:
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Any
+from typing import Any, Optional
 
 import toml
 
 from .base import Shape, ShapeCategory
-
 
 logger = logging.getLogger(__name__)
 
@@ -63,8 +62,8 @@ class ShapeRegistry:
 
     def __init__(self):
         """Initialize empty shape registry."""
-        self._shapes: Dict[str, Shape] = {}
-        self._categories: Dict[ShapeCategory, Set[str]] = {}
+        self._shapes: dict[str, Shape] = {}
+        self._categories: dict[ShapeCategory, set[str]] = {}
         self._loaded = False
         self._gallery_path = Path(__file__).parent / "gallery"
 
@@ -224,7 +223,7 @@ class ShapeRegistry:
         """
         return shape_id in self._shapes
 
-    def list_shapes(self, category: Optional[ShapeCategory] = None) -> List[Shape]:
+    def list_shapes(self, category: Optional[ShapeCategory] = None) -> list[Shape]:
         """List all shapes, optionally filtered by category.
 
         Args:
@@ -238,7 +237,7 @@ class ShapeRegistry:
             return [self._shapes[sid] for sid in sorted(shape_ids)]
         return sorted(self._shapes.values(), key=lambda s: (s.category.value, s.name))
 
-    def list_categories(self) -> List[ShapeCategory]:
+    def list_categories(self) -> list[ShapeCategory]:
         """List all available categories that have shapes.
 
         Returns:
@@ -262,7 +261,7 @@ class ShapeRegistry:
             return len(self._categories.get(category, set()))
         return len(self._shapes)
 
-    def search_shapes(self, query: str) -> List[Shape]:
+    def search_shapes(self, query: str) -> list[Shape]:
         """Search shapes by name, description, or tags.
 
         Args:
@@ -296,7 +295,7 @@ class ShapeRegistry:
 
         return sorted(results, key=lambda s: s.name)
 
-    def get_shapes_by_tag(self, tag: str) -> List[Shape]:
+    def get_shapes_by_tag(self, tag: str) -> list[Shape]:
         """Get all shapes with a specific tag.
 
         Args:
@@ -314,8 +313,8 @@ class ShapeRegistry:
     def get_graphviz_attrs(
         self,
         shape_id: str,
-        style_overrides: Optional[Dict[str, str]] = None
-    ) -> Dict[str, str]:
+        style_overrides: Optional[dict[str, str]] = None
+    ) -> dict[str, str]:
         """Get Graphviz attributes for rendering a shape.
 
         Merges the shape's graphviz attributes with default_style,
@@ -337,7 +336,7 @@ class ShapeRegistry:
 
         return shape.get_all_graphviz_attrs(style_overrides)
 
-    def get_shape_info(self, shape_id: str) -> Dict[str, Any]:
+    def get_shape_info(self, shape_id: str) -> dict[str, Any]:
         """Get shape information as a dictionary.
 
         Useful for API responses and serialization.
@@ -357,7 +356,7 @@ class ShapeRegistry:
 
         return shape.to_dict()
 
-    def get_gallery_info(self) -> Dict[str, Any]:
+    def get_gallery_info(self) -> dict[str, Any]:
         """Get summary information about the shape gallery.
 
         Returns:
@@ -377,7 +376,7 @@ class ShapeRegistry:
             "loaded": self._loaded
         }
 
-    def export_gallery(self) -> Dict[str, List[Dict[str, Any]]]:
+    def export_gallery(self) -> dict[str, list[dict[str, Any]]]:
         """Export entire gallery as a dictionary.
 
         Useful for API responses that need full gallery data.

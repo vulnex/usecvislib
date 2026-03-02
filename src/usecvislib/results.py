@@ -19,9 +19,10 @@ including validation, analysis, path finding, and threat modeling.
 These classes provide a consistent API for accessing operation results.
 """
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import List, Dict, Any, Optional, Iterator
 from enum import Enum
+from typing import Any, Optional
 
 
 class Severity(str, Enum):
@@ -62,7 +63,7 @@ class TemplateMetadata:
     email: str = ""
     url: str = ""
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert metadata to dictionary.
 
         Returns:
@@ -82,7 +83,7 @@ class TemplateMetadata:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any], root_key: str = "") -> 'TemplateMetadata':
+    def from_dict(cls, data: dict[str, Any], root_key: str = "") -> 'TemplateMetadata':
         """Create TemplateMetadata from a dictionary.
 
         Args:
@@ -166,25 +167,25 @@ class ValidationResult:
         issues: List of validation issues found.
     """
     is_valid: bool
-    issues: List[ValidationIssue] = field(default_factory=list)
+    issues: list[ValidationIssue] = field(default_factory=list)
 
     @property
-    def errors(self) -> List[ValidationIssue]:
+    def errors(self) -> list[ValidationIssue]:
         """Get all error-level issues."""
         return [i for i in self.issues if i.severity in (Severity.ERROR, Severity.CRITICAL)]
 
     @property
-    def warnings(self) -> List[ValidationIssue]:
+    def warnings(self) -> list[ValidationIssue]:
         """Get all warning-level issues."""
         return [i for i in self.issues if i.severity == Severity.WARNING]
 
     @property
-    def info(self) -> List[ValidationIssue]:
+    def info(self) -> list[ValidationIssue]:
         """Get all info-level issues."""
         return [i for i in self.issues if i.severity == Severity.INFO]
 
     @property
-    def critical(self) -> List[ValidationIssue]:
+    def critical(self) -> list[ValidationIssue]:
         """Get all critical-level issues."""
         return [i for i in self.issues if i.severity == Severity.CRITICAL]
 
@@ -225,7 +226,7 @@ class ValidationResult:
             self.is_valid = False
         return self
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "is_valid": self.is_valid,
@@ -253,10 +254,10 @@ class AnalysisResult:
         risk_score: Optional overall risk score (0-10).
         metadata: Additional metadata about the analysis.
     """
-    stats: Dict[str, Any]
-    recommendations: List[str] = field(default_factory=list)
+    stats: dict[str, Any]
+    recommendations: list[str] = field(default_factory=list)
     risk_score: Optional[float] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def risk_level(self) -> str:
@@ -285,7 +286,7 @@ class AnalysisResult:
         self.recommendations.append(recommendation)
         return self
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "stats": self.stats,
@@ -310,8 +311,8 @@ class PathResult:
     """
     source: str
     target: str
-    paths: List[List[str]] = field(default_factory=list)
-    shortest_path: Optional[List[str]] = None
+    paths: list[list[str]] = field(default_factory=list)
+    shortest_path: Optional[list[str]] = None
     shortest_length: Optional[int] = None
     total_cost: Optional[float] = None
 
@@ -338,7 +339,7 @@ class PathResult:
             return None
         return max(len(p) for p in self.paths)
 
-    def paths_by_length(self, length: int) -> List[List[str]]:
+    def paths_by_length(self, length: int) -> list[list[str]]:
         """Get all paths of a specific length.
 
         Args:
@@ -349,11 +350,11 @@ class PathResult:
         """
         return [p for p in self.paths if len(p) == length]
 
-    def __iter__(self) -> Iterator[List[str]]:
+    def __iter__(self) -> Iterator[list[str]]:
         """Iterate over all paths."""
         return iter(self.paths)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "source": self.source,
@@ -386,14 +387,14 @@ class CriticalNode:
     in_degree: int = 0
     out_degree: int = 0
     criticality_score: float = 0.0
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def total_degree(self) -> int:
         """Get total degree (in + out)."""
         return self.in_degree + self.out_degree
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "id": self.node_id,
@@ -416,11 +417,11 @@ class CriticalNodeResult:
         analysis_method: Method used for analysis.
         metadata: Additional analysis metadata.
     """
-    nodes: List[CriticalNode] = field(default_factory=list)
+    nodes: list[CriticalNode] = field(default_factory=list)
     analysis_method: str = "degree_centrality"
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def top(self, n: int = 5) -> List[CriticalNode]:
+    def top(self, n: int = 5) -> list[CriticalNode]:
         """Get top N most critical nodes.
 
         Args:
@@ -431,7 +432,7 @@ class CriticalNodeResult:
         """
         return self.nodes[:n]
 
-    def by_type(self, node_type: str) -> List[CriticalNode]:
+    def by_type(self, node_type: str) -> list[CriticalNode]:
         """Get critical nodes of a specific type.
 
         Args:
@@ -442,7 +443,7 @@ class CriticalNodeResult:
         """
         return [n for n in self.nodes if n.node_type == node_type]
 
-    def above_threshold(self, threshold: float) -> List[CriticalNode]:
+    def above_threshold(self, threshold: float) -> list[CriticalNode]:
         """Get nodes above a criticality threshold.
 
         Args:
@@ -461,7 +462,7 @@ class CriticalNodeResult:
         """Get number of critical nodes."""
         return len(self.nodes)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "analysis_method": self.analysis_method,
@@ -490,7 +491,7 @@ class STRIDEThreat:
     severity: str = "medium"
     confidence: float = 1.0
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "category": self.category,
@@ -510,8 +511,8 @@ class STRIDEResult:
         threats: Dictionary mapping categories to threat lists.
         metadata: Additional analysis metadata.
     """
-    threats: Dict[str, List[STRIDEThreat]] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    threats: dict[str, list[STRIDEThreat]] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def total_count(self) -> int:
@@ -519,11 +520,11 @@ class STRIDEResult:
         return sum(len(t) for t in self.threats.values())
 
     @property
-    def categories(self) -> List[str]:
+    def categories(self) -> list[str]:
         """Get list of threat categories with threats."""
         return list(self.threats.keys())
 
-    def by_severity(self, severity: str) -> List[STRIDEThreat]:
+    def by_severity(self, severity: str) -> list[STRIDEThreat]:
         """Get all threats of a specific severity.
 
         Args:
@@ -537,7 +538,7 @@ class STRIDEResult:
             result.extend(t for t in category_threats if t.severity == severity)
         return result
 
-    def for_element(self, element: str) -> List[STRIDEThreat]:
+    def for_element(self, element: str) -> list[STRIDEThreat]:
         """Get all threats for a specific element.
 
         Args:
@@ -551,7 +552,7 @@ class STRIDEResult:
             result.extend(t for t in category_threats if t.element == element)
         return result
 
-    def for_category(self, category: str) -> List[STRIDEThreat]:
+    def for_category(self, category: str) -> list[STRIDEThreat]:
         """Get all threats in a specific STRIDE category.
 
         Args:
@@ -576,7 +577,7 @@ class STRIDEResult:
         self.threats[threat.category].append(threat)
         return self
 
-    def summary(self) -> Dict[str, int]:
+    def summary(self) -> dict[str, int]:
         """Get summary of threats by category.
 
         Returns:
@@ -584,7 +585,7 @@ class STRIDEResult:
         """
         return {cat: len(threats) for cat, threats in self.threats.items()}
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "total_count": self.total_count,
@@ -612,9 +613,9 @@ class BinaryAnalysisResult:
     file_path: str
     file_size: int
     entropy: float
-    stats: Dict[str, Any] = field(default_factory=dict)
-    sections: List[Dict[str, Any]] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    stats: dict[str, Any] = field(default_factory=dict)
+    sections: list[dict[str, Any]] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def is_likely_encrypted(self) -> bool:
@@ -639,7 +640,7 @@ class BinaryAnalysisResult:
             return "low"
         return "very_low"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "file_path": self.file_path,
@@ -670,10 +671,10 @@ class RenderResult:
     output_path: Optional[str] = None
     format: Optional[str] = None
     duration_ms: Optional[float] = None
-    warnings: List[str] = field(default_factory=list)
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
             "success": self.success,

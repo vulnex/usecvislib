@@ -24,22 +24,24 @@ Example:
     >>> vector_40 = parse_vector("CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N")
 """
 
-from typing import Union, Optional, Tuple, Any
-import re
+from typing import Any, Optional, Union
 
 from .cvss import (
     CVSSVector,
     parse_cvss_vector,
+)
+from .cvss import (
     calculate_cvss_from_vector as calculate_cvss31_from_vector,
+)
+from .cvss import (
     validate_cvss_vector as validate_cvss31_vector,
 )
 from .cvss4 import (
     CVSSVector4,
-    parse_cvss4_vector,
     calculate_cvss4_from_vector,
+    parse_cvss4_vector,
     validate_cvss4_vector,
 )
-
 
 # Type alias for any CVSS vector
 CVSSVectorType = Union[CVSSVector, CVSSVector4]
@@ -69,7 +71,7 @@ def detect_cvss_version(vector_string: str) -> Optional[str]:
     return None
 
 
-def parse_vector(vector_string: str) -> Tuple[bool, Optional[CVSSVectorType], Optional[str]]:
+def parse_vector(vector_string: str) -> tuple[bool, Optional[CVSSVectorType], Optional[str]]:
     """Parse a CVSS vector string (auto-detects version).
 
     This function automatically detects whether the vector is CVSS 3.x or 4.0
@@ -114,7 +116,7 @@ def calculate_score(vector: CVSSVectorType) -> float:
     return vector.calculate_score()
 
 
-def calculate_score_from_vector(vector_string: str) -> Tuple[bool, Optional[float], Optional[str]]:
+def calculate_score_from_vector(vector_string: str) -> tuple[bool, Optional[float], Optional[str]]:
     """Calculate CVSS score from a vector string (auto-detects version).
 
     Args:
@@ -142,7 +144,7 @@ def calculate_score_from_vector(vector_string: str) -> Tuple[bool, Optional[floa
         return False, None, f"Unrecognized CVSS version in vector: {vector_string}"
 
 
-def validate_vector(vector_string: str) -> Tuple[bool, Optional[str]]:
+def validate_vector(vector_string: str) -> tuple[bool, Optional[str]]:
     """Validate a CVSS vector string (auto-detects version).
 
     Args:
@@ -167,7 +169,7 @@ def validate_vector(vector_string: str) -> Tuple[bool, Optional[str]]:
 def get_cvss_score_unified(
     cvss_value: Any,
     cvss_vector: Optional[str] = None
-) -> Tuple[Optional[float], Optional[str]]:
+) -> tuple[Optional[float], Optional[str]]:
     """Get CVSS score from either a numeric value or vector string (any version).
 
     This is the main entry point for CVSS score resolution. It handles:

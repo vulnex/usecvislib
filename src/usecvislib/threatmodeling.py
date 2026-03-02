@@ -28,12 +28,15 @@ Elements supported:
 - Trust Boundaries: Security perimeters
 """
 
-import os
-import sys
-import tempfile
+from __future__ import annotations
+
 import html as html_module
 from enum import Enum
-from typing import Optional, List, Dict, Any, Tuple
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from .clouddiagrams import CloudDiagrams
+    from .mermaiddiagrams import MermaidDiagrams
 
 import graphviz as gv
 
@@ -57,7 +60,7 @@ class PyTMWrapper:
     generates visualizations and threat reports using PyTM's engine.
     """
 
-    def __init__(self, inputdata: Dict[str, Any], outputfile: str, format: str = "png"):
+    def __init__(self, inputdata: dict[str, Any], outputfile: str, format: str = "png"):
         """Initialize PyTM wrapper.
 
         Args:
@@ -69,7 +72,7 @@ class PyTMWrapper:
         self.outputfile = outputfile
         self.format = format
         self.tm = None
-        self.elements: Dict[str, Any] = {}
+        self.elements: dict[str, Any] = {}
         self._pytm_available = self._check_pytm()
 
     def _check_pytm(self) -> bool:
@@ -85,7 +88,7 @@ class PyTMWrapper:
         if not self._pytm_available:
             raise ImportError("pytm is not installed. Install it with: pip install pytm")
 
-        from pytm import TM, Server, Process, Datastore, ExternalEntity, Dataflow, Boundary, Actor, Lambda
+        from pytm import TM, Actor, Boundary, Dataflow, Datastore, ExternalEntity, Lambda, Process, Server
 
         model_data = self.inputdata.get("model", {})
         processes = self.inputdata.get("processes", {})
@@ -103,7 +106,7 @@ class PyTMWrapper:
         self.tm.isOrdered = True
 
         # Create boundaries first
-        boundary_objects: Dict[str, Boundary] = {}
+        boundary_objects: dict[str, Boundary] = {}
         for boundary_id, boundary_data in boundaries.items():
             boundary_objects[boundary_id] = Boundary(boundary_data.get("label", boundary_id))
 
@@ -390,7 +393,7 @@ class PyTMWrapper:
         externals = self.inputdata.get("externals", {})
         dataflows = self.inputdata.get("dataflows", {})
 
-        elements_in_boundaries: Dict[str, str] = {}
+        elements_in_boundaries: dict[str, str] = {}
         for b_id, b_data in boundaries.items():
             for elem in b_data.get("elements", []):
                 elements_in_boundaries[self._sanitize_node_id(elem)] = self._sanitize_node_id(b_id)
@@ -444,7 +447,7 @@ class PyTMWrapper:
         lines.append('}')
         return '\n'.join(lines)
 
-    def get_threats(self) -> List[Dict[str, Any]]:
+    def get_threats(self) -> list[dict[str, Any]]:
         """Get threats identified by PyTM."""
         if not self._pytm_available:
             return []
@@ -727,7 +730,7 @@ class ThreatModeling(VisualizationBase):
             except Exception:
                 pass  # Best effort cleanup
 
-    def _default_style(self) -> Dict[str, Any]:
+    def _default_style(self) -> dict[str, Any]:
         """Return default style configuration for threat models."""
         return {
             "graph": {
@@ -770,7 +773,7 @@ class ThreatModeling(VisualizationBase):
             }
         }
 
-    def _strip_style_attrs(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+    def _strip_style_attrs(self, attrs: dict[str, Any]) -> dict[str, Any]:
         """Strip style-related attributes from node data when a style is selected.
 
         When a non-default style is explicitly selected, template-defined colors
@@ -797,7 +800,7 @@ class ThreatModeling(VisualizationBase):
         """
         return "model"
 
-    def _load_impl(self) -> Dict[str, Any]:
+    def _load_impl(self) -> dict[str, Any]:
         """Load threat model data from configuration file."""
         try:
             data = utils.ReadConfigFile(self.inputfile)
@@ -834,13 +837,13 @@ class ThreatModeling(VisualizationBase):
         self.graph.attr(**graph_attrs)
 
         # Track which elements are in boundaries
-        elements_in_boundaries: Dict[str, str] = {}
+        elements_in_boundaries: dict[str, str] = {}
         for boundary_id, boundary_data in boundaries.items():
             for element_id in boundary_data.get("elements", []):
                 elements_in_boundaries[element_id] = boundary_id
 
         # Create boundary subgraphs
-        boundary_subgraphs: Dict[str, gv.Digraph] = {}
+        boundary_subgraphs: dict[str, gv.Digraph] = {}
         for boundary_id, boundary_data in boundaries.items():
             boundary_subgraphs[boundary_id] = self._create_subgraph_for_boundary(
                 boundary_id, boundary_data, {}
@@ -966,7 +969,7 @@ class ThreatModeling(VisualizationBase):
             self.logger.error(f"Failed to render graph to {outputfile}: {e}")
             raise
 
-    def _validate_impl(self) -> List[str]:
+    def _validate_impl(self) -> list[str]:
         """Validate the threat model structure."""
         errors = []
 
@@ -1000,7 +1003,7 @@ class ThreatModeling(VisualizationBase):
 
         return errors
 
-    def _get_stats_impl(self) -> Dict[str, Any]:
+    def _get_stats_impl(self) -> dict[str, Any]:
         """Get statistical summary of the threat model including STRIDE analysis."""
         processes = self.inputdata.get("processes", {})
         datastores = self.inputdata.get("datastores", {})
@@ -1055,8 +1058,8 @@ class ThreatModeling(VisualizationBase):
             "high_threats": high_threats,
         }
 
-    def _create_subgraph_for_boundary(self, boundary_id: str, boundary_data: Dict[str, Any],
-                                       elements: Dict[str, Dict[str, Any]]) -> gv.Digraph:
+    def _create_subgraph_for_boundary(self, boundary_id: str, boundary_data: dict[str, Any],
+                                       elements: dict[str, dict[str, Any]]) -> gv.Digraph:
         """Create a subgraph for a trust boundary."""
         boundary_style = self.style.get("trustboundary", self._default_style()["trustboundary"])
 
@@ -1074,7 +1077,7 @@ class ThreatModeling(VisualizationBase):
 
     # Threat modeling specific methods
 
-    def analyze_stride(self) -> Dict[str, List[Dict[str, Any]]]:
+    def analyze_stride(self) -> dict[str, list[dict[str, Any]]]:
         """Analyze the threat model using STRIDE methodology.
 
         Returns threats with estimated CVSS scores based on severity.
@@ -1087,7 +1090,7 @@ class ThreatModeling(VisualizationBase):
         if not self._loaded:
             self.load()
 
-        threats: Dict[str, List[Dict[str, Any]]] = {
+        threats: dict[str, list[dict[str, Any]]] = {
             "Spoofing": [],
             "Tampering": [],
             "Repudiation": [],
@@ -1121,7 +1124,7 @@ class ThreatModeling(VisualizationBase):
                 })
 
         # Build boundary membership map
-        element_boundaries: Dict[str, Optional[str]] = {}
+        element_boundaries: dict[str, Optional[str]] = {}
         for b_id, b_data in boundaries.items():
             for elem in b_data.get("elements", []):
                 element_boundaries[elem] = b_id
@@ -1259,7 +1262,7 @@ class ThreatModeling(VisualizationBase):
         total_threats = sum(len(tl) for tl in threats.values())
 
         report_lines = [
-            f"# STRIDE Threat Analysis Report",
+            "# STRIDE Threat Analysis Report",
             f"## Model: {model_name}",
             "",
             "## Risk Summary",
@@ -1333,7 +1336,7 @@ class ThreatModeling(VisualizationBase):
         """Deprecated: Use render() instead."""
         self.render()
 
-    def get_model_stats(self) -> Dict[str, Any]:
+    def get_model_stats(self) -> dict[str, Any]:
         """Deprecated: Use get_stats() instead."""
         return self.get_stats()
 
@@ -1355,7 +1358,7 @@ class ThreatModeling(VisualizationBase):
             self.render()
             self.draw()
 
-    def get_pytm_threats(self) -> List[Dict[str, Any]]:
+    def get_pytm_threats(self) -> list[dict[str, Any]]:
         """Get threats identified by PyTM engine."""
         if self.engine != ThreatModelEngine.PYTM:
             return []
@@ -1372,7 +1375,7 @@ class ThreatModeling(VisualizationBase):
         return self._pytm_wrapper.get_threats()
 
     @staticmethod
-    def get_available_engines() -> List[str]:
+    def get_available_engines() -> list[str]:
         """Get list of available threat modeling engines."""
         return [e.value for e in ThreatModelEngine]
 
@@ -1389,7 +1392,7 @@ class ThreatModeling(VisualizationBase):
     # Export/Conversion Methods
     # =========================================================================
 
-    def to_mermaid_diagram(self) -> "MermaidDiagrams":
+    def to_mermaid_diagram(self) -> MermaidDiagrams:
         """Convert to MermaidDiagrams format.
 
         Returns:
@@ -1403,7 +1406,7 @@ class ThreatModeling(VisualizationBase):
         from .mermaiddiagrams import MermaidDiagrams
         return MermaidDiagrams.from_threat_model(self.inputfile)
 
-    def to_cloud_diagram(self) -> "CloudDiagrams":
+    def to_cloud_diagram(self) -> CloudDiagrams:
         """Convert to CloudDiagrams format.
 
         Returns:

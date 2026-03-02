@@ -26,10 +26,10 @@ Supports TOML, JSON, and YAML input formats.
 """
 
 from collections import deque
-from typing import Dict, Any, Optional, List, Set, Tuple
+from typing import Any, Optional
 
-from graphviz import Digraph
 import networkx as nx
+from graphviz import Digraph
 
 from . import utils
 from .base import VisualizationBase
@@ -110,13 +110,13 @@ class PrivilegeGradient(VisualizationBase):
         )
 
         self.graph: Optional[Digraph] = None
-        self._zones: Dict[str, Dict] = {}
-        self._components: Dict[str, Dict] = {}
-        self._influence_types: Dict[str, Dict] = {}
-        self._influences: List[Dict] = []
-        self._inversions: List[Dict] = []
-        self._adjacency: Dict[str, List[str]] = {}
-        self._reverse_adjacency: Dict[str, List[str]] = {}
+        self._zones: dict[str, dict] = {}
+        self._components: dict[str, dict] = {}
+        self._influence_types: dict[str, dict] = {}
+        self._influences: list[dict] = []
+        self._inversions: list[dict] = []
+        self._adjacency: dict[str, list[str]] = {}
+        self._reverse_adjacency: dict[str, list[str]] = {}
         self._nx_graph: Optional[nx.DiGraph] = None
         self._temp_input: Optional[str] = None
 
@@ -129,7 +129,7 @@ class PrivilegeGradient(VisualizationBase):
             except Exception:
                 pass
 
-    def _default_style(self) -> Dict[str, Any]:
+    def _default_style(self) -> dict[str, Any]:
         return {
             "graph": {
                 "rankdir": "LR",
@@ -207,15 +207,15 @@ class PrivilegeGradient(VisualizationBase):
     def _get_metadata_root_key(self) -> str:
         return "gradient"
 
-    def _load_impl(self) -> Dict[str, Any]:
+    def _load_impl(self) -> dict[str, Any]:
         try:
             data = utils.ReadConfigFile(self.inputfile)
         except (utils.FileError, utils.ConfigError) as e:
             self.logger.error(f"Failed to load privilege gradient from {self.inputfile}: {e}")
-            raise PrivilegeGradientError(f"Failed to load privilege gradient: {e}")
+            raise PrivilegeGradientError(f"Failed to load privilege gradient: {e}") from e
         except FileNotFoundError as e:
             self.logger.error(f"Input file not found: {self.inputfile}")
-            raise PrivilegeGradientError(f"Input file not found: {e}")
+            raise PrivilegeGradientError(f"Input file not found: {e}") from e
 
         self.inputdata = data
         self._normalize_data()
@@ -589,9 +589,9 @@ class PrivilegeGradient(VisualizationBase):
             self.logger.debug("Successfully wrote privilege gradient visualization")
         except Exception as e:
             self.logger.error(f"Failed to render graph to {outputfile}: {e}")
-            raise PrivilegeGradientError(f"Failed to render graph: {e}")
+            raise PrivilegeGradientError(f"Failed to render graph: {e}") from e
 
-    def _validate_impl(self) -> List[str]:
+    def _validate_impl(self) -> list[str]:
         errors = []
 
         if "gradient" not in self.inputdata:
@@ -640,10 +640,10 @@ class PrivilegeGradient(VisualizationBase):
 
         return errors
 
-    def _get_stats_impl(self) -> Dict[str, Any]:
+    def _get_stats_impl(self) -> dict[str, Any]:
         graph_meta = self.inputdata.get("gradient", {})
 
-        components_per_zone: Dict[str, int] = {}
+        components_per_zone: dict[str, int] = {}
         for comp_data in self._components.values():
             zone = comp_data.get("zone", "unknown")
             components_per_zone[zone] = components_per_zone.get(zone, 0) + 1
@@ -667,13 +667,13 @@ class PrivilegeGradient(VisualizationBase):
 
     # Public analysis methods
 
-    def detect_inversions(self) -> List[Dict]:
+    def detect_inversions(self) -> list[dict]:
         """Return the list of detected privilege gradient inversions."""
         if not self._loaded:
             self.load()
         return self._inversions
 
-    def get_inversion_summary(self) -> Dict[str, Any]:
+    def get_inversion_summary(self) -> dict[str, Any]:
         """Get inversion counts by severity."""
         if not self._loaded:
             self.load()
@@ -689,13 +689,13 @@ class PrivilegeGradient(VisualizationBase):
             "by_severity": counts,
         }
 
-    def get_zone_influence_matrix(self) -> Dict[str, Dict[str, int]]:
+    def get_zone_influence_matrix(self) -> dict[str, dict[str, int]]:
         """Get matrix of influence counts between zones."""
         if not self._loaded:
             self.load()
 
         zone_ids = list(self._zones.keys())
-        matrix: Dict[str, Dict[str, int]] = {}
+        matrix: dict[str, dict[str, int]] = {}
         for z in zone_ids:
             matrix[z] = {z2: 0 for z2 in zone_ids}
 
@@ -717,7 +717,7 @@ class PrivilegeGradient(VisualizationBase):
 
     def find_influence_paths(
         self, source: str, target: str, max_paths: int = 10
-    ) -> List[List[str]]:
+    ) -> list[list[str]]:
         """Find influence paths between two components using BFS."""
         if not self._loaded:
             self.load()
@@ -725,9 +725,9 @@ class PrivilegeGradient(VisualizationBase):
         if source not in self._adjacency or target not in self._adjacency:
             return []
 
-        paths: List[List[str]] = []
+        paths: list[list[str]] = []
         queue: deque = deque([(source, [source])])
-        visited_paths: Set[Tuple[str, ...]] = set()
+        visited_paths: set[tuple[str, ...]] = set()
 
         while queue and len(paths) < max_paths:
             current, path = queue.popleft()
@@ -748,7 +748,7 @@ class PrivilegeGradient(VisualizationBase):
 
         return paths
 
-    def analyze_critical_components(self, top_n: int = 10) -> List[Dict[str, Any]]:
+    def analyze_critical_components(self, top_n: int = 10) -> list[dict[str, Any]]:
         """Analyze components by degree centrality."""
         if not self._loaded:
             self.load()

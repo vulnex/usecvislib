@@ -32,10 +32,19 @@ Example:
     ... )
 """
 
-from typing import Dict, Any, List, Optional
-import tempfile
+from __future__ import annotations
+
 import json
-import os
+import tempfile
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from .attackgraphs import AttackGraphs
+    from .attacktrees import AttackTrees
+    from .componentdiagram import ComponentDiagram
+    from .dependencygraph import DependencyGraph
+    from .privilegegradient import PrivilegeGradient
+    from .threatmodeling import ThreatModeling
 
 
 class AttackTreeBuilder:
@@ -60,7 +69,7 @@ class AttackTreeBuilder:
             root: Root node ID.
             description: Optional description.
         """
-        self._data: Dict[str, Any] = {
+        self._data: dict[str, Any] = {
             "tree": {
                 "name": name,
                 "root": root,
@@ -79,7 +88,7 @@ class AttackTreeBuilder:
         shape: str = "box",
         fontcolor: str = "white",
         **attrs
-    ) -> 'AttackTreeBuilder':
+    ) -> AttackTreeBuilder:
         """Add a node to the tree.
 
         Args:
@@ -110,7 +119,7 @@ class AttackTreeBuilder:
         label: Optional[str] = None,
         fillcolor: str = "#e74c3c",
         **attrs
-    ) -> 'AttackTreeBuilder':
+    ) -> AttackTreeBuilder:
         """Add an AND node (all children must be completed).
 
         Args:
@@ -136,7 +145,7 @@ class AttackTreeBuilder:
         label: Optional[str] = None,
         fillcolor: str = "#2ecc71",
         **attrs
-    ) -> 'AttackTreeBuilder':
+    ) -> AttackTreeBuilder:
         """Add an OR node (any child can complete it).
 
         Args:
@@ -162,7 +171,7 @@ class AttackTreeBuilder:
         label: Optional[str] = None,
         fillcolor: str = "#9b59b6",
         **attrs
-    ) -> 'AttackTreeBuilder':
+    ) -> AttackTreeBuilder:
         """Add a leaf node (basic attack step).
 
         Args:
@@ -190,7 +199,7 @@ class AttackTreeBuilder:
         style: str = "solid",
         color: str = "black",
         **attrs
-    ) -> 'AttackTreeBuilder':
+    ) -> AttackTreeBuilder:
         """Add an edge between nodes.
 
         Args:
@@ -221,7 +230,7 @@ class AttackTreeBuilder:
         from_node: str,
         to_node: str,
         **attrs
-    ) -> 'AttackTreeBuilder':
+    ) -> AttackTreeBuilder:
         """Add an AND edge (required path).
 
         Args:
@@ -239,7 +248,7 @@ class AttackTreeBuilder:
         from_node: str,
         to_node: str,
         **attrs
-    ) -> 'AttackTreeBuilder':
+    ) -> AttackTreeBuilder:
         """Add an OR edge (alternative path).
 
         Args:
@@ -252,7 +261,7 @@ class AttackTreeBuilder:
         """
         return self.add_edge(from_node, to_node, label="OR", style="dashed", **attrs)
 
-    def set_tree_attribute(self, key: str, value: Any) -> 'AttackTreeBuilder':
+    def set_tree_attribute(self, key: str, value: Any) -> AttackTreeBuilder:
         """Set a tree-level attribute.
 
         Args:
@@ -265,7 +274,7 @@ class AttackTreeBuilder:
         self._data["tree"][key] = value
         return self
 
-    def build(self) -> Dict[str, Any]:
+    def build(self) -> dict[str, Any]:
         """Build and return the tree data as a dictionary.
 
         Returns:
@@ -291,7 +300,7 @@ class AttackTreeBuilder:
         outputfile: str,
         format: str = "png",
         styleid: str = "at_default"
-    ) -> 'AttackTrees':
+    ) -> AttackTrees:
         """Create AttackTrees instance from builder data.
 
         Args:
@@ -340,7 +349,7 @@ class AttackGraphBuilder:
             name: Name of the attack graph.
             description: Optional description.
         """
-        self._data: Dict[str, Any] = {
+        self._data: dict[str, Any] = {
             "graph": {
                 "name": name,
                 "description": description
@@ -360,7 +369,7 @@ class AttackGraphBuilder:
         ip: Optional[str] = None,
         zone: str = "internal",
         **attrs
-    ) -> 'AttackGraphBuilder':
+    ) -> AttackGraphBuilder:
         """Add a host to the graph.
 
         Args:
@@ -392,7 +401,7 @@ class AttackGraphBuilder:
         affected_host: str,
         cve: Optional[str] = None,
         **attrs
-    ) -> 'AttackGraphBuilder':
+    ) -> AttackGraphBuilder:
         """Add a vulnerability to the graph.
 
         Args:
@@ -425,7 +434,7 @@ class AttackGraphBuilder:
         host: str,
         level: str = "user",
         **attrs
-    ) -> 'AttackGraphBuilder':
+    ) -> AttackGraphBuilder:
         """Add a privilege level to the graph.
 
         Args:
@@ -455,7 +464,7 @@ class AttackGraphBuilder:
         port: int,
         protocol: str = "tcp",
         **attrs
-    ) -> 'AttackGraphBuilder':
+    ) -> AttackGraphBuilder:
         """Add a service to the graph.
 
         Args:
@@ -487,7 +496,7 @@ class AttackGraphBuilder:
         precondition: str,
         postcondition: str,
         **attrs
-    ) -> 'AttackGraphBuilder':
+    ) -> AttackGraphBuilder:
         """Add an exploit to the graph.
 
         Args:
@@ -517,7 +526,7 @@ class AttackGraphBuilder:
         to_host: str,
         label: str = "",
         **attrs
-    ) -> 'AttackGraphBuilder':
+    ) -> AttackGraphBuilder:
         """Add a network connection between hosts.
 
         Args:
@@ -539,7 +548,7 @@ class AttackGraphBuilder:
         self._data["network_edges"].append(edge)
         return self
 
-    def set_graph_attribute(self, key: str, value: Any) -> 'AttackGraphBuilder':
+    def set_graph_attribute(self, key: str, value: Any) -> AttackGraphBuilder:
         """Set a graph-level attribute.
 
         Args:
@@ -552,7 +561,7 @@ class AttackGraphBuilder:
         self._data["graph"][key] = value
         return self
 
-    def build(self) -> Dict[str, Any]:
+    def build(self) -> dict[str, Any]:
         """Build and return the graph data as a dictionary.
 
         Returns:
@@ -578,7 +587,7 @@ class AttackGraphBuilder:
         outputfile: str,
         format: str = "png",
         styleid: str = "ag_default"
-    ) -> 'AttackGraphs':
+    ) -> AttackGraphs:
         """Create AttackGraphs instance from builder data.
 
         Args:
@@ -629,7 +638,7 @@ class ThreatModelBuilder:
             system_id: System identifier.
             description: Optional description.
         """
-        self._data: Dict[str, Any] = {
+        self._data: dict[str, Any] = {
             "dfd": {
                 "name": name,
                 "id": system_id,
@@ -648,7 +657,7 @@ class ThreatModelBuilder:
         label: str,
         trust_level: str = "internal",
         **attrs
-    ) -> 'ThreatModelBuilder':
+    ) -> ThreatModelBuilder:
         """Add a process to the diagram.
 
         Args:
@@ -675,7 +684,7 @@ class ThreatModelBuilder:
         store_type: str = "database",
         encrypted: bool = False,
         **attrs
-    ) -> 'ThreatModelBuilder':
+    ) -> ThreatModelBuilder:
         """Add a data store to the diagram.
 
         Args:
@@ -703,7 +712,7 @@ class ThreatModelBuilder:
         label: str,
         entity_type: str = "user",
         **attrs
-    ) -> 'ThreatModelBuilder':
+    ) -> ThreatModelBuilder:
         """Add an external entity to the diagram.
 
         Args:
@@ -732,7 +741,7 @@ class ThreatModelBuilder:
         encrypted: bool = False,
         authenticated: bool = False,
         **attrs
-    ) -> 'ThreatModelBuilder':
+    ) -> ThreatModelBuilder:
         """Add a data flow between elements.
 
         Args:
@@ -765,9 +774,9 @@ class ThreatModelBuilder:
         self,
         boundary_id: str,
         label: str,
-        elements: List[str],
+        elements: list[str],
         **attrs
-    ) -> 'ThreatModelBuilder':
+    ) -> ThreatModelBuilder:
         """Add a trust boundary containing elements.
 
         Args:
@@ -787,7 +796,7 @@ class ThreatModelBuilder:
         })
         return self
 
-    def set_dfd_attribute(self, key: str, value: Any) -> 'ThreatModelBuilder':
+    def set_dfd_attribute(self, key: str, value: Any) -> ThreatModelBuilder:
         """Set a DFD-level attribute.
 
         Args:
@@ -800,7 +809,7 @@ class ThreatModelBuilder:
         self._data["dfd"][key] = value
         return self
 
-    def build(self) -> Dict[str, Any]:
+    def build(self) -> dict[str, Any]:
         """Build and return the threat model data as a dictionary.
 
         Returns:
@@ -826,7 +835,7 @@ class ThreatModelBuilder:
         outputfile: str,
         format: str = "png",
         styleid: str = "tm_default"
-    ) -> 'ThreatModeling':
+    ) -> ThreatModeling:
         """Create ThreatModeling instance from builder data.
 
         Args:
@@ -906,7 +915,7 @@ class PrivilegeGradientBuilder:
             use_default_zones: Whether to include default trust zones.
             use_default_influence_types: Whether to include default influence types.
         """
-        self._data: Dict[str, Any] = {
+        self._data: dict[str, Any] = {
             "gradient": {
                 "name": name,
                 "description": description,
@@ -936,7 +945,7 @@ class PrivilegeGradientBuilder:
         border_color: str = "#999999",
         font_color: str = "#333333",
         **attrs
-    ) -> 'PrivilegeGradientBuilder':
+    ) -> PrivilegeGradientBuilder:
         """Add a trust zone.
 
         Args:
@@ -968,7 +977,7 @@ class PrivilegeGradientBuilder:
         label: str,
         zone: str,
         **attrs
-    ) -> 'PrivilegeGradientBuilder':
+    ) -> PrivilegeGradientBuilder:
         """Add a component to a zone.
 
         Args:
@@ -997,7 +1006,7 @@ class PrivilegeGradientBuilder:
         arrowhead: str = "vee",
         penwidth: str = "1.5",
         **attrs
-    ) -> 'PrivilegeGradientBuilder':
+    ) -> PrivilegeGradientBuilder:
         """Add an influence type definition.
 
         Args:
@@ -1031,7 +1040,7 @@ class PrivilegeGradientBuilder:
         label: str = "",
         influence_id: Optional[str] = None,
         **attrs
-    ) -> 'PrivilegeGradientBuilder':
+    ) -> PrivilegeGradientBuilder:
         """Add an influence edge between components.
 
         Args:
@@ -1063,29 +1072,29 @@ class PrivilegeGradientBuilder:
 
     def add_data_influence(
         self, from_comp: str, to_comp: str, label: str = "", **attrs
-    ) -> 'PrivilegeGradientBuilder':
+    ) -> PrivilegeGradientBuilder:
         """Add a data flow influence."""
         return self.add_influence(from_comp, to_comp, "data", label, **attrs)
 
     def add_feedback_influence(
         self, from_comp: str, to_comp: str, label: str = "", **attrs
-    ) -> 'PrivilegeGradientBuilder':
+    ) -> PrivilegeGradientBuilder:
         """Add a feedback influence."""
         return self.add_influence(from_comp, to_comp, "feedback", label, **attrs)
 
     def add_resource_influence(
         self, from_comp: str, to_comp: str, label: str = "", **attrs
-    ) -> 'PrivilegeGradientBuilder':
+    ) -> PrivilegeGradientBuilder:
         """Add a resource dependency influence."""
         return self.add_influence(from_comp, to_comp, "resource", label, **attrs)
 
     def add_control_influence(
         self, from_comp: str, to_comp: str, label: str = "", **attrs
-    ) -> 'PrivilegeGradientBuilder':
+    ) -> PrivilegeGradientBuilder:
         """Add a control flow influence."""
         return self.add_influence(from_comp, to_comp, "control", label, **attrs)
 
-    def set_gradient_attribute(self, key: str, value: Any) -> 'PrivilegeGradientBuilder':
+    def set_gradient_attribute(self, key: str, value: Any) -> PrivilegeGradientBuilder:
         """Set a gradient-level attribute.
 
         Args:
@@ -1098,7 +1107,7 @@ class PrivilegeGradientBuilder:
         self._data["gradient"][key] = value
         return self
 
-    def build(self) -> Dict[str, Any]:
+    def build(self) -> dict[str, Any]:
         """Build and return the data as a dictionary.
 
         Returns:
@@ -1124,7 +1133,7 @@ class PrivilegeGradientBuilder:
         outputfile: str,
         format: str = "png",
         styleid: str = "pg_default"
-    ) -> 'PrivilegeGradient':
+    ) -> PrivilegeGradient:
         """Create PrivilegeGradient instance from builder data.
 
         Args:
@@ -1165,19 +1174,19 @@ class ComponentDiagramBuilder:
     """
 
     def __init__(self, title: str, description: str = ""):
-        self._data: Dict[str, Any] = {
+        self._data: dict[str, Any] = {
             "title": title,
             "description": description,
             "layers": [],
             "connections": [],
         }
-        self._layer_map: Dict[str, Dict] = {}
+        self._layer_map: dict[str, dict] = {}
 
     def add_layer(
         self,
         name: str,
         position: str = "middle",
-    ) -> 'ComponentDiagramBuilder':
+    ) -> ComponentDiagramBuilder:
         """Add a layer to the diagram.
 
         Args:
@@ -1204,7 +1213,7 @@ class ComponentDiagramBuilder:
         comp_type: str = "service",
         tech: str = "",
         **attrs
-    ) -> 'ComponentDiagramBuilder':
+    ) -> ComponentDiagramBuilder:
         """Add a component to a layer.
 
         Args:
@@ -1240,7 +1249,7 @@ class ComponentDiagramBuilder:
         label: str = "",
         style: str = "sync",
         **attrs
-    ) -> 'ComponentDiagramBuilder':
+    ) -> ComponentDiagramBuilder:
         """Add a connection between components.
 
         Args:
@@ -1264,7 +1273,7 @@ class ComponentDiagramBuilder:
         self._data["connections"].append(conn)
         return self
 
-    def build(self) -> Dict[str, Any]:
+    def build(self) -> dict[str, Any]:
         return self._data.copy()
 
     def to_json(self, pretty: bool = True) -> str:
@@ -1277,7 +1286,7 @@ class ComponentDiagramBuilder:
         outputfile: str,
         format: str = "png",
         styleid: str = "cd_default"
-    ) -> 'ComponentDiagram':
+    ) -> ComponentDiagram:
         """Create ComponentDiagram instance from builder data."""
         from .componentdiagram import ComponentDiagram
 
@@ -1307,7 +1316,7 @@ class DependencyGraphBuilder:
     """
 
     def __init__(self, title: str, description: str = ""):
-        self._data: Dict[str, Any] = {
+        self._data: dict[str, Any] = {
             "title": title,
             "description": description,
             "modules": [],
@@ -1325,7 +1334,7 @@ class DependencyGraphBuilder:
         group: str = "",
         version: str = "",
         **attrs
-    ) -> 'DependencyGraphBuilder':
+    ) -> DependencyGraphBuilder:
         """Add a module to the graph.
 
         Args:
@@ -1365,7 +1374,7 @@ class DependencyGraphBuilder:
         dep_type: str = "import",
         weight: str = "medium",
         **attrs
-    ) -> 'DependencyGraphBuilder':
+    ) -> DependencyGraphBuilder:
         """Add a dependency between modules.
 
         Args:
@@ -1387,7 +1396,7 @@ class DependencyGraphBuilder:
         })
         return self
 
-    def mark_circular(self, cycle: List[str]) -> 'DependencyGraphBuilder':
+    def mark_circular(self, cycle: list[str]) -> DependencyGraphBuilder:
         """Mark a circular dependency.
 
         Args:
@@ -1399,7 +1408,7 @@ class DependencyGraphBuilder:
         self._data["circular"].append(cycle)
         return self
 
-    def build(self) -> Dict[str, Any]:
+    def build(self) -> dict[str, Any]:
         return self._data.copy()
 
     def to_json(self, pretty: bool = True) -> str:
@@ -1412,7 +1421,7 @@ class DependencyGraphBuilder:
         outputfile: str,
         format: str = "png",
         styleid: str = "dg_default"
-    ) -> 'DependencyGraph':
+    ) -> DependencyGraph:
         """Create DependencyGraph instance from builder data."""
         from .dependencygraph import DependencyGraph
 

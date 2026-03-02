@@ -21,12 +21,10 @@ Reference: https://www.first.org/cvss/v4.0/specification-document
 Example vector: CVSS:4.0/AV:N/AC:L/AT:N/PR:N/UI:N/VC:H/VI:H/VA:H/SC:N/SI:N/SA:N
 """
 
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import Dict, Optional, Tuple, Any, List
 import re
-import math
-
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any, Optional
 
 # =============================================================================
 # CVSS 4.0 Enumerations
@@ -151,7 +149,7 @@ class ModifiedImpact(str, Enum):
 
 # Complete lookup table from FIRST reference implementation
 # Keys are 6-digit strings representing EQ1-EQ6 levels
-MACROVECTOR_LOOKUP: Dict[str, float] = {
+MACROVECTOR_LOOKUP: dict[str, float] = {
     "000000": 10.0, "000001": 9.9, "000010": 9.8, "000011": 9.5,
     "000020": 9.5, "000021": 9.2, "000100": 10.0, "000101": 9.6,
     "000110": 9.3, "000111": 8.7, "000120": 9.1, "000121": 8.1,
@@ -224,7 +222,7 @@ MACROVECTOR_LOOKUP: Dict[str, float] = {
 
 # Maximum severity vectors for each MacroVector (highest severity in each class)
 # Used for interpolation depth calculation
-MAX_SEVERITY: Dict[str, Dict[str, List[str]]] = {
+MAX_SEVERITY: dict[str, dict[str, list[str]]] = {
     "eq1": {
         "0": ["AV:N/PR:N/UI:N"],
         "1": ["AV:A/PR:N/UI:N", "AV:N/PR:L/UI:N", "AV:N/PR:N/UI:P"],
@@ -545,7 +543,7 @@ class CVSSVector4:
 
         return min(adjustment, 1.0)  # Cap adjustment
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert vector to dictionary representation."""
         return {
             "version": "4.0",
@@ -666,7 +664,7 @@ MSI_PATTERN = re.compile(r'/MSI:(?P<msi>[XSHLN])', re.IGNORECASE)
 MSA_PATTERN = re.compile(r'/MSA:(?P<msa>[XSHLN])', re.IGNORECASE)
 
 
-def parse_cvss4_vector(vector_string: str) -> Tuple[bool, Optional[CVSSVector4], Optional[str]]:
+def parse_cvss4_vector(vector_string: str) -> tuple[bool, Optional[CVSSVector4], Optional[str]]:
     """Parse a CVSS 4.0 vector string.
 
     Args:
@@ -777,7 +775,7 @@ def parse_cvss4_vector(vector_string: str) -> Tuple[bool, Optional[CVSSVector4],
         return False, None, f"Invalid metric value in vector: {e}"
 
 
-def calculate_cvss4_from_vector(vector_string: str) -> Tuple[bool, Optional[float], Optional[str]]:
+def calculate_cvss4_from_vector(vector_string: str) -> tuple[bool, Optional[float], Optional[str]]:
     """Calculate CVSS 4.0 score from a vector string.
 
     Args:
@@ -793,7 +791,7 @@ def calculate_cvss4_from_vector(vector_string: str) -> Tuple[bool, Optional[floa
     return True, vector.calculate_score(), None
 
 
-def validate_cvss4_vector(vector_string: str) -> Tuple[bool, Optional[str]]:
+def validate_cvss4_vector(vector_string: str) -> tuple[bool, Optional[str]]:
     """Validate a CVSS 4.0 vector string without calculating score.
 
     Args:

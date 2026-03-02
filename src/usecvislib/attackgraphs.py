@@ -28,17 +28,25 @@ Attack graphs represent:
 Supports TOML, JSON, and YAML input formats.
 """
 
+from __future__ import annotations
+
 from collections import deque
-from typing import Dict, Any, Optional, List, Set, Iterator, Tuple
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from .clouddiagrams import CloudDiagrams
+    from .mermaiddiagrams import MermaidDiagrams
 import heapq
 
-from graphviz import Digraph
 import networkx as nx
+from graphviz import Digraph
 
 from . import utils
 from .base import VisualizationBase
 from .constants import cvss_to_color, cvss_to_severity_label, validate_cvss_score
-from .cvss_unified import get_cvss_score_unified as get_cvss_score, validate_vector as validate_cvss_vector
+from .cvss_unified import get_cvss_score_unified as get_cvss_score
+from .cvss_unified import validate_vector as validate_cvss_vector
 from .settings import is_cvss_enabled
 
 
@@ -121,9 +129,9 @@ class AttackGraphs(VisualizationBase):
         self.graph: Optional[Digraph] = None
 
         # Internal graph representation for analysis
-        self._adjacency: Dict[str, Set[str]] = {}
-        self._reverse_adjacency: Dict[str, Set[str]] = {}
-        self._node_types: Dict[str, str] = {}
+        self._adjacency: dict[str, set[str]] = {}
+        self._reverse_adjacency: dict[str, set[str]] = {}
+        self._node_types: dict[str, str] = {}
 
         # NetworkX graph for advanced analysis
         self._nx_graph: Optional[nx.DiGraph] = None
@@ -148,7 +156,7 @@ class AttackGraphs(VisualizationBase):
             except Exception:
                 pass  # Best effort cleanup
 
-    def _default_style(self) -> Dict[str, Any]:
+    def _default_style(self) -> dict[str, Any]:
         """Return default style configuration for attack graphs.
 
         Returns:
@@ -214,7 +222,7 @@ class AttackGraphs(VisualizationBase):
         """
         return "graph"
 
-    def _load_impl(self) -> Dict[str, Any]:
+    def _load_impl(self) -> dict[str, Any]:
         """Load attack graph data from configuration file.
 
         Returns:
@@ -227,10 +235,10 @@ class AttackGraphs(VisualizationBase):
             data = utils.ReadConfigFile(self.inputfile)
         except (utils.FileError, utils.ConfigError) as e:
             self.logger.error(f"Failed to load attack graph from {self.inputfile}: {e}")
-            raise AttackGraphError(f"Failed to load attack graph: {e}")
+            raise AttackGraphError(f"Failed to load attack graph: {e}") from e
         except FileNotFoundError as e:
             self.logger.error(f"Input file not found: {self.inputfile}")
-            raise AttackGraphError(f"Input file not found: {e}")
+            raise AttackGraphError(f"Input file not found: {e}") from e
 
         # Store data and build internal graph representation
         self.inputdata = data
@@ -675,9 +683,9 @@ class AttackGraphs(VisualizationBase):
             self.logger.debug("Successfully wrote attack graph visualization")
         except Exception as e:
             self.logger.error(f"Failed to render graph to {outputfile}: {e}")
-            raise AttackGraphError(f"Failed to render graph: {e}")
+            raise AttackGraphError(f"Failed to render graph: {e}") from e
 
-    def _validate_impl(self) -> List[str]:
+    def _validate_impl(self) -> list[str]:
         """Validate the attack graph structure.
 
         Returns:
@@ -778,7 +786,7 @@ class AttackGraphs(VisualizationBase):
 
         return errors
 
-    def _get_stats_impl(self) -> Dict[str, Any]:
+    def _get_stats_impl(self) -> dict[str, Any]:
         """Get statistical summary of the attack graph.
 
         Returns:
@@ -848,7 +856,7 @@ class AttackGraphs(VisualizationBase):
         target: str,
         max_paths: int = 10,
         max_depth: int = 20
-    ) -> List[List[str]]:
+    ) -> list[list[str]]:
         """Find all attack paths from source to target using optimized iterative DFS.
 
         Uses an iterative approach with explicit stack for better performance
@@ -874,11 +882,11 @@ class AttackGraphs(VisualizationBase):
         if source not in self._adjacency and source not in self._node_types:
             raise ValueError(f"Source node '{source}' not found in graph")
 
-        paths: List[List[str]] = []
+        paths: list[list[str]] = []
 
         # Use iterative approach with explicit stack
         # Stack entries: (current_node, path_so_far, visited_set)
-        stack: List[Tuple[str, List[str], Set[str]]] = [(source, [source], {source})]
+        stack: list[tuple[str, list[str], set[str]]] = [(source, [source], {source})]
 
         while stack and len(paths) < max_paths:
             current, path, visited = stack.pop()
@@ -907,7 +915,7 @@ class AttackGraphs(VisualizationBase):
         source: str,
         target: str,
         max_depth: int = 20
-    ) -> Iterator[List[str]]:
+    ) -> Iterator[list[str]]:
         """Generator version for memory-efficient path enumeration.
 
         Yields paths one at a time without storing all in memory.
@@ -935,7 +943,7 @@ class AttackGraphs(VisualizationBase):
         if source not in self._adjacency and source not in self._node_types:
             return
 
-        stack: List[Tuple[str, List[str], Set[str]]] = [(source, [source], {source})]
+        stack: list[tuple[str, list[str], set[str]]] = [(source, [source], {source})]
 
         while stack:
             current, path, visited = stack.pop()
@@ -955,7 +963,7 @@ class AttackGraphs(VisualizationBase):
                         visited | {neighbor}
                     ))
 
-    def shortest_path(self, source: str, target: str) -> List[str]:
+    def shortest_path(self, source: str, target: str) -> list[str]:
         """Find shortest attack path using optimized BFS with parent pointers.
 
         Uses parent pointer reconstruction instead of storing full paths
@@ -980,8 +988,8 @@ class AttackGraphs(VisualizationBase):
             return [source]
 
         # BFS with parent pointers (more memory efficient)
-        visited: Set[str] = {source}
-        parent: Dict[str, Optional[str]] = {source: None}
+        visited: set[str] = {source}
+        parent: dict[str, Optional[str]] = {source: None}
         queue: deque = deque([source])
 
         while queue:
@@ -994,7 +1002,7 @@ class AttackGraphs(VisualizationBase):
 
                     if neighbor == target:
                         # Reconstruct path from parent pointers
-                        path: List[str] = []
+                        path: list[str] = []
                         node: Optional[str] = target
                         while node is not None:
                             path.append(node)
@@ -1010,7 +1018,7 @@ class AttackGraphs(VisualizationBase):
         source: str,
         target: str,
         weight_func: Optional[callable] = None
-    ) -> Tuple[List[str], float]:
+    ) -> tuple[list[str], float]:
         """Find shortest path with weights using Dijkstra's algorithm.
 
         Can use CVSS scores as weights for risk-based path finding.
@@ -1042,10 +1050,10 @@ class AttackGraphs(VisualizationBase):
             return [], float('inf')
 
         # Dijkstra's algorithm with heapq
-        distances: Dict[str, float] = {source: 0}
-        parent: Dict[str, Optional[str]] = {source: None}
-        heap: List[Tuple[float, str]] = [(0, source)]
-        visited: Set[str] = set()
+        distances: dict[str, float] = {source: 0}
+        parent: dict[str, Optional[str]] = {source: None}
+        heap: list[tuple[float, str]] = [(0, source)]
+        visited: set[str] = set()
 
         while heap:
             dist, current = heapq.heappop(heap)
@@ -1056,7 +1064,7 @@ class AttackGraphs(VisualizationBase):
 
             if current == target:
                 # Reconstruct path
-                path: List[str] = []
+                path: list[str] = []
                 node: Optional[str] = target
                 while node is not None:
                     path.append(node)
@@ -1102,7 +1110,7 @@ class AttackGraphs(VisualizationBase):
 
         return 1.0  # Default weight for non-vulnerability nodes
 
-    def analyze_critical_nodes(self, top_n: int = 10) -> List[Dict[str, Any]]:
+    def analyze_critical_nodes(self, top_n: int = 10) -> list[dict[str, Any]]:
         """Identify critical nodes based on connectivity.
 
         Calculates degree centrality (in-degree + out-degree) to find
@@ -1119,7 +1127,7 @@ class AttackGraphs(VisualizationBase):
                 self.load()
             self._build_adjacency()
 
-        node_scores: List[Dict[str, Any]] = []
+        node_scores: list[dict[str, Any]] = []
 
         for node_id in self._adjacency:
             out_degree = len(self._adjacency.get(node_id, set()))
@@ -1150,7 +1158,7 @@ class AttackGraphs(VisualizationBase):
 
     # Backward compatibility methods
 
-    def get_graph_stats(self) -> Dict[str, Any]:
+    def get_graph_stats(self) -> dict[str, Any]:
         """Get statistical summary of the attack graph.
 
         Deprecated: Use get_stats() instead.
@@ -1181,7 +1189,7 @@ class AttackGraphs(VisualizationBase):
                 return self.inputdata[section][node_id].get("label", node_id)
         return node_id
 
-    def betweenness_centrality(self, top_n: int = 10) -> List[Dict[str, Any]]:
+    def betweenness_centrality(self, top_n: int = 10) -> list[dict[str, Any]]:
         """Calculate betweenness centrality for all nodes.
 
         Betweenness centrality measures how often a node lies on the shortest
@@ -1209,7 +1217,7 @@ class AttackGraphs(VisualizationBase):
         results.sort(key=lambda x: x["betweenness_centrality"], reverse=True)
         return results[:top_n]
 
-    def closeness_centrality(self, top_n: int = 10) -> List[Dict[str, Any]]:
+    def closeness_centrality(self, top_n: int = 10) -> list[dict[str, Any]]:
         """Calculate closeness centrality for all nodes.
 
         Closeness centrality measures how close a node is to all other nodes.
@@ -1237,7 +1245,7 @@ class AttackGraphs(VisualizationBase):
         results.sort(key=lambda x: x["closeness_centrality"], reverse=True)
         return results[:top_n]
 
-    def pagerank(self, top_n: int = 10, alpha: float = 0.85) -> List[Dict[str, Any]]:
+    def pagerank(self, top_n: int = 10, alpha: float = 0.85) -> list[dict[str, Any]]:
         """Calculate PageRank for all nodes.
 
         PageRank measures node importance based on incoming links from
@@ -1275,7 +1283,7 @@ class AttackGraphs(VisualizationBase):
         source: str,
         target: str,
         k: int = 5
-    ) -> List[List[str]]:
+    ) -> list[list[str]]:
         """Find k shortest simple paths between source and target.
 
         Uses NetworkX's shortest_simple_paths for efficient enumeration.
@@ -1304,7 +1312,7 @@ class AttackGraphs(VisualizationBase):
         source: str,
         target: str,
         cutoff: int = 10
-    ) -> Iterator[List[str]]:
+    ) -> Iterator[list[str]]:
         """Generator for all simple paths between source and target.
 
         Memory-efficient iteration over all paths up to a cutoff depth.
@@ -1324,7 +1332,7 @@ class AttackGraphs(VisualizationBase):
 
         yield from nx.all_simple_paths(self._nx_graph, source, target, cutoff=cutoff)
 
-    def find_cycles(self) -> List[List[str]]:
+    def find_cycles(self) -> list[list[str]]:
         """Find all simple cycles in the attack graph.
 
         Cycles may indicate feedback loops or circular dependencies
@@ -1341,7 +1349,7 @@ class AttackGraphs(VisualizationBase):
         except Exception:
             return []
 
-    def strongly_connected_components(self) -> List[Set[str]]:
+    def strongly_connected_components(self) -> list[set[str]]:
         """Find strongly connected components in the graph.
 
         Nodes in the same SCC can all reach each other. Useful for
@@ -1397,7 +1405,7 @@ class AttackGraphs(VisualizationBase):
         except Exception:
             return None
 
-    def find_chokepoints(self, top_n: int = 10) -> List[Dict[str, Any]]:
+    def find_chokepoints(self, top_n: int = 10) -> list[dict[str, Any]]:
         """Identify network chokepoints based on betweenness centrality.
 
         Chokepoints are nodes that many attack paths must traverse.
@@ -1432,7 +1440,7 @@ class AttackGraphs(VisualizationBase):
         results.sort(key=lambda x: x["betweenness_score"], reverse=True)
         return results[:top_n]
 
-    def find_attack_surfaces(self) -> List[Dict[str, Any]]:
+    def find_attack_surfaces(self) -> list[dict[str, Any]]:
         """Identify attack surface entry points.
 
         Entry points are nodes with no incoming edges (sources) or
@@ -1468,7 +1476,7 @@ class AttackGraphs(VisualizationBase):
         entry_points.sort(key=lambda x: x["reachable_nodes"], reverse=True)
         return entry_points
 
-    def vulnerability_impact_score(self, vuln_id: str) -> Dict[str, Any]:
+    def vulnerability_impact_score(self, vuln_id: str) -> dict[str, Any]:
         """Calculate impact score for a vulnerability based on reachability.
 
         Combines CVSS score with graph position to estimate real impact.
@@ -1516,7 +1524,7 @@ class AttackGraphs(VisualizationBase):
             "impact_score": round(min(impact_score, 10.0), 2)
         }
 
-    def get_graph_metrics(self) -> Dict[str, Any]:
+    def get_graph_metrics(self) -> dict[str, Any]:
         """Get comprehensive graph metrics using NetworkX.
 
         Returns:
@@ -1558,7 +1566,7 @@ class AttackGraphs(VisualizationBase):
     # Export/Conversion Methods
     # =========================================================================
 
-    def to_mermaid_diagram(self) -> "MermaidDiagrams":
+    def to_mermaid_diagram(self) -> MermaidDiagrams:
         """Convert to MermaidDiagrams format.
 
         Returns:
@@ -1572,7 +1580,7 @@ class AttackGraphs(VisualizationBase):
         from .mermaiddiagrams import MermaidDiagrams
         return MermaidDiagrams.from_attack_graph(self.inputfile)
 
-    def to_cloud_diagram(self) -> "CloudDiagrams":
+    def to_cloud_diagram(self) -> CloudDiagrams:
         """Convert to CloudDiagrams format.
 
         Returns:

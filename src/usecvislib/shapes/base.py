@@ -21,7 +21,7 @@ This module defines the foundational data structures for shapes:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Any, Optional
 
 
 class ShapeCategory(Enum):
@@ -83,16 +83,16 @@ class Shape:
     name: str
     category: ShapeCategory
     description: str
-    graphviz: Dict[str, str]
-    default_style: Dict[str, str] = field(default_factory=dict)
+    graphviz: dict[str, str]
+    default_style: dict[str, str] = field(default_factory=dict)
     icon: str = ""
-    ports: List[str] = field(default_factory=lambda: ["n", "s", "e", "w"])
-    tags: List[str] = field(default_factory=list)
+    ports: list[str] = field(default_factory=lambda: ["n", "s", "e", "w"])
+    tags: list[str] = field(default_factory=list)
     custom: bool = False
     svg_data: Optional[str] = None
     dot_definition: Optional[str] = None
 
-    def get_all_graphviz_attrs(self, style_overrides: Optional[Dict[str, str]] = None) -> Dict[str, str]:
+    def get_all_graphviz_attrs(self, style_overrides: Optional[dict[str, str]] = None) -> dict[str, str]:
         """Get merged Graphviz attributes with optional overrides.
 
         Merges the base graphviz attributes with default_style, then applies
@@ -120,7 +120,7 @@ class Shape:
         """
         return port in self.ports
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert shape to dictionary representation.
 
         Useful for JSON serialization in API responses.
@@ -142,7 +142,7 @@ class Shape:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "Shape":
+    def from_dict(cls, data: dict[str, Any]) -> "Shape":
         """Create a Shape from a dictionary.
 
         Args:
@@ -208,6 +208,5 @@ GRAPHVIZ_SHAPES = {
     "point", "none", "plaintext", "plain",
 
     # Arrow shapes (for edge decorations)
-    "normal", "vee", "dot", "diamond",
-    "tee", "crow", "inv",
+    "normal", "vee", "dot", "tee", "crow", "inv",
 }
