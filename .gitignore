@@ -4,6 +4,8 @@
 
 # Development notes (private)
 devnotes/
+input/
+output/
 
 # Python
 __pycache__/
