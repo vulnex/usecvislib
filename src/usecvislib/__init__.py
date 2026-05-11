@@ -140,6 +140,19 @@ from .cvss_unified import (
     validate_vector as validate_cvss_vector_unified,
 )
 from .dependencygraph import DependencyGraph, DependencyGraphError
+from .maestro import (
+    Agent as MaestroAgent,
+    ArchitecturePattern,
+    Asset as MaestroAsset,
+    AutonomyLevel,
+    CrossLayerThreat,
+    MaestroError,
+    MaestroLayer,
+    MaestroThreatModel,
+    Mitigation as MaestroMitigation,
+    Threat as MaestroThreat,
+    ThreatStatus,
+)
 from .diff import (
     Change,
     ChangeType,
@@ -240,6 +253,17 @@ __all__ = [
     "PrivilegeGradient",
     "ComponentDiagram",
     "DependencyGraph",
+    "MaestroThreatModel",
+    # MAESTRO support classes
+    "MaestroAgent",
+    "MaestroAsset",
+    "MaestroThreat",
+    "MaestroMitigation",
+    "CrossLayerThreat",
+    "MaestroLayer",
+    "AutonomyLevel",
+    "ArchitecturePattern",
+    "ThreatStatus",
     # Base class
     "VisualizationBase",
     # Builder Classes
@@ -290,6 +314,7 @@ __all__ = [
     "PrivilegeGradientError",
     "ComponentDiagramError",
     "DependencyGraphError",
+    "MaestroError",
     "ConfigError",
     "FileError",
     "SecurityError",

@@ -1,0 +1,71 @@
+#
+# MAESTRO Threat Model — Single Agent with RAG
+#
+# Minimal example: one LLM-backed agent answering questions from a vector store.
+# Touches Foundation Models (L1), Data Operations (L2), Agent Frameworks (L3),
+# and Agent Ecosystem (L7). Catalog auto-populates relevant threats for these
+# layers plus the declared architecture patterns.
+#
+
+[meta]
+name = "Single-Agent RAG Assistant"
+version = "1.0"
+owner = "Security Team"
+description = "Customer-facing knowledge agent backed by a vector store. STRIDE coverage via the crosswalk export."
+
+[architecture]
+patterns = ["single-agent", "task-oriented", "unconstrained-conversational"]
+
+[[agents]]
+id = "support_agent"
+name = "Support Agent"
+type = "task-oriented"
+autonomy = "reactive"
+goals = ["answer customer questions from knowledge base", "escalate ambiguous queries"]
+capabilities = ["llm-inference", "vector-search", "intent-classification"]
+tools = ["kb-retrieval", "ticket-creation"]
+layers = ["foundation-models", "data-operations", "agent-frameworks", "agent-ecosystem"]
+
+[[assets]]
+id = "kb_corpus"
+name = "Knowledge Base Corpus"
+layer = "data-operations"
+sensitivity = "medium"
+owner_agent = "support_agent"
+
+[[assets]]
+id = "customer_pii"
+name = "Customer PII"
+layer = "data-operations"
+sensitivity = "high"
+
+# User-defined overrides on catalog defaults
+[[threats]]
+id = "T-L2-002"          # Data Exfiltration
+target = "support_agent"
+severity = "critical"
+status = "in-progress"
+mitigations = ["M-access-control", "M-encryption-at-rest", "M-egress-monitoring"]
+
+[[threats]]
+id = "T-L2-005"          # Compromised RAG Pipeline
+target = "support_agent"
+status = "mitigated"
+mitigations = ["M-rag-content-filtering", "M-content-sanitization"]
+
+[[mitigations]]
+id = "M-rag-content-filtering"
+layer = "data-operations"
+name = "RAG content filtering at ingestion"
+type = "preventive"
+implemented = true
+
+[[mitigations]]
+id = "M-egress-monitoring"
+layer = "observability"
+name = "Egress monitoring on agent responses"
+type = "detective"
+implemented = false
+
+[catalog]
+mode = "auto"

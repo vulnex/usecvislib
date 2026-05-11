@@ -1,0 +1,68 @@
+#
+# Config MAESTRO Threat Modeling Styles
+#
+# Phase 1 ships ma_default only. Additional presets (ma_dark, ma_blueprint,
+# ma_severity, ma_compact) land in Phase 4.
+#
+
+# =============================================================================
+# Default - Light pastel bands, layered architecture view
+# =============================================================================
+[ma_default]
+[ma_default.graph]
+rankdir = "TB"
+bgcolor = "white"
+fontname = "Arial"
+splines = "ortho"
+nodesep = "0.6"
+ranksep = "0.8"
+pad = "0.5"
+compound = "true"
+
+[ma_default.layer]
+style = "filled,rounded"
+fillcolor = "#f5f5f5"
+color = "#cccccc"
+fontname = "Arial Bold"
+fontsize = "14"
+fontcolor = "#333333"
+penwidth = "1"
+
+[ma_default.agent]
+shape = "box"
+style = "filled,rounded"
+fontname = "Arial"
+fontsize = "11"
+fontcolor = "white"
+fillcolor = "#4a90d9"
+color = "#357abd"
+penwidth = "1.5"
+margin = "0.2,0.1"
+
+[ma_default.asset]
+shape = "cylinder"
+style = "filled"
+fontname = "Arial"
+fontsize = "10"
+fontcolor = "white"
+fillcolor = "#7e57c2"
+color = "#5e35b1"
+penwidth = "1.2"
+
+[ma_default.security_gutter]
+style = "filled,rounded"
+fillcolor = "#fff3e0"
+color = "#fb8c00"
+fontname = "Arial Bold"
+fontsize = "13"
+fontcolor = "#e65100"
+penwidth = "1.5"
+
+[ma_default.cross_layer_edge]
+style = "dashed"
+color = "#e53935"
+fontname = "Arial"
+fontsize = "9"
+fontcolor = "#c62828"
+penwidth = "1.5"
+arrowhead = "open"

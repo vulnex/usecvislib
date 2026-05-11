@@ -47,6 +47,7 @@ def Usage() -> None:
     print("                            6 - Privilege Gradient Graphs")
     print("                            7 - Component Diagrams")
     print("                            8 - Dependency Graphs")
+    print("                            12 - MAESTRO Agentic Threat Model")
     print("  -s, --styleid <id>      Style ID (per mode):")
     print("                          Attack Trees (mode 0):")
     print("                            at_default, at_corporate, at_neon, at_pastel,")
@@ -73,6 +74,8 @@ def Usage() -> None:
     print("                            cd_default, cd_blueprint, cd_minimal, cd_dark")
     print("                          Dependency Graphs (mode 8):")
     print("                            dg_default, dg_dark, dg_minimal, dg_coupling")
+    print("                          MAESTRO Threat Model (mode 12):")
+    print("                            ma_default")
     print("                          Binary Visualization (mode 2):")
     print("                            bv_default, bv_dark, bv_security, bv_ocean,")
     print("                            bv_forest, bv_sunset, bv_cyber, bv_minimal,")
@@ -131,7 +134,7 @@ def validate_mode(mode: int) -> bool:
     Returns:
         True if mode is valid, False otherwise.
     """
-    return mode in [0, 1, 2, 3, 4, 5, 6, 7, 8]
+    return mode in [0, 1, 2, 3, 4, 5, 6, 7, 8, 12]
 
 
 def error_exit(message: str, show_usage: bool = True) -> NoReturn:
@@ -200,7 +203,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             try:
                 mode = int(arg)
             except ValueError:
-                error_exit(f"Invalid mode: {arg}. Must be 0-8.")
+                error_exit(f"Invalid mode: {arg}. Must be 0-8 or 12.")
         elif opt in ("-s", "--styleid"):
             styleid = arg
         elif opt in ("-S", "--stylefile"):
@@ -317,7 +320,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     # Validate mode
     if not validate_mode(mode):
-        error_exit(f"Invalid mode: {mode}. Must be 0-8.")
+        error_exit(f"Invalid mode: {mode}. Must be 0-8 or 12.")
 
     # Execute based on mode
     try:
@@ -536,6 +539,33 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  External: {stats['external_count']}")
             if stats['groups']:
                 print(f"  Groups: {', '.join(stats['groups'])}")
+
+        elif mode == 12:
+            # MAESTRO Agentic Threat Model
+            from . import maestro
+            mm = maestro.MaestroThreatModel(inputfile, outputfile, format, styleid)
+            mm.build()
+            print(f"MAESTRO threat model generated: {outputfile}.{format}")
+
+            stats = mm.get_stats()
+            print("\nMAESTRO Statistics:")
+            print(f"  Name: {stats['name']}")
+            print(f"  Agents: {stats['total_agents']}")
+            print(f"  Assets: {stats['total_assets']}")
+            print(f"  Threats: {stats['total_threats']} ({stats['unmitigated_threats']} unmitigated)")
+            print(f"  Cross-layer threats: {stats['total_cross_layer_threats']}")
+            print(f"  Mitigations: {stats['total_mitigations']}")
+            if stats['patterns']:
+                print(f"  Patterns: {', '.join(stats['patterns'])}")
+            if stats['threats_by_severity']:
+                sev_summary = ", ".join(
+                    f"{k}={v}" for k, v in sorted(stats['threats_by_severity'].items())
+                )
+                print(f"  Severity breakdown: {sev_summary}")
+            if stats['warnings']:
+                print("\nWarnings:")
+                for w in stats['warnings']:
+                    print(f"  - {w}")
 
     except FileNotFoundError as e:
         error_exit(str(e), show_usage=False)
