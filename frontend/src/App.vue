@@ -95,7 +95,6 @@ import { ref, computed, onMounted, onUnmounted, provide } from 'vue'
 import { checkHealth, getStyles, getFormats, getEngines } from './services/api.js'
 import AttackTreePanel from './components/AttackTreePanel.vue'
 import AttackGraphPanel from './components/AttackGraphPanel.vue'
-import ThreatModelPanel from './components/ThreatModelPanel.vue'
 import BinaryVisPanel from './components/BinaryVisPanel.vue'
 import ConvertPanel from './components/ConvertPanel.vue'
 import BatchPanel from './components/BatchPanel.vue'
@@ -107,7 +106,7 @@ import MermaidDiagramPanel from './components/MermaidDiagramPanel.vue'
 import CloudDiagramPanel from './components/CloudDiagramPanel.vue'
 import PrivilegeGradientPanel from './components/PrivilegeGradientPanel.vue'
 import ArchitecturePanel from './components/ArchitecturePanel.vue'
-import MaestroPanel from './components/MaestroPanel.vue'
+import ThreatModelsPanel from './components/ThreatModelsPanel.vue'
 import DocumentationPanel from './components/DocumentationPanel.vue'
 import SettingsPanel from './components/SettingsPanel.vue'
 
@@ -147,7 +146,6 @@ const primaryTabs = [
   { id: 'cloud', name: 'Cloud', icon: '☁️' },
   { id: 'architecture', name: 'Architecture', icon: '🏗️' },
   { id: 'privilege-gradient', name: 'Privilege Gradient', icon: '🪜' },
-  { id: 'maestro', name: 'MAESTRO', icon: '🤖' },
   { id: 'binary', name: 'Binary Analysis', icon: '📊' }
 ]
 
@@ -189,13 +187,12 @@ function handleClickOutside(event) {
 const componentMap = {
   'attack-tree': AttackTreePanel,
   'attack-graph': AttackGraphPanel,
-  'threat-model': ThreatModelPanel,
+  'threat-model': ThreatModelsPanel,
   'custom-diagram': CustomDiagramPanel,
   'mermaid': MermaidDiagramPanel,
   'cloud': CloudDiagramPanel,
   'binary': BinaryVisPanel,
   'architecture': ArchitecturePanel,
-  'maestro': MaestroPanel,
   'privilege-gradient': PrivilegeGradientPanel,
   'cvss': CVSSCalculatorPanel,
   'convert': ConvertPanel,
@@ -269,11 +266,6 @@ const currentProps = computed(() => {
       return {
         ...baseProps,
         styles: styles.value.privilege_gradient || [],
-        formats: formats.value
-      }
-    case 'maestro':
-      return {
-        ...baseProps,
         formats: formats.value
       }
     case 'convert':
