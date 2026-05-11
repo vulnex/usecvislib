@@ -190,8 +190,11 @@ class MaestroThreatModel(VisualizationBase):
 
     CATALOG_FILE = "maestro_catalog.json"
 
+    SUPPORTED_VIEWS = ("layered", "heatmap")
+
     def __init__(self, inputfile: str, outputfile: str, format: str = "",
-                 styleid: str = "", validate_paths: bool = True) -> None:
+                 styleid: str = "", validate_paths: bool = True,
+                 view: str = "layered") -> None:
         if format == "":
             format = "png"
         if styleid == "":
@@ -206,6 +209,10 @@ class MaestroThreatModel(VisualizationBase):
         )
 
         self.graph: Optional[Digraph] = None
+        # Matplotlib figure for heatmap render. Held alongside `self.graph` so
+        # _draw_impl can dispatch to whichever renderer was used.
+        self._fig: Optional[Any] = None
+        self.view: str = view if view in self.SUPPORTED_VIEWS else "layered"
 
         # Parsed entities
         self.agents: dict[str, Agent] = {}
@@ -622,6 +629,20 @@ class MaestroThreatModel(VisualizationBase):
     # ----------------------------------------------------------------- render
 
     def _render_impl(self) -> None:
+        # Render config from the loaded file overrides the constructor-provided view
+        render_cfg = self.inputdata.get("render", {}) if isinstance(self.inputdata, dict) else {}
+        configured_view = render_cfg.get("view") if isinstance(render_cfg, dict) else None
+        view = configured_view or self.view
+        if view not in self.SUPPORTED_VIEWS:
+            view = "layered"
+        self.view = view
+
+        if view == "heatmap":
+            self._render_heatmap()
+            return
+        self._render_layered()
+
+    def _render_layered(self) -> None:
         title = self.inputdata.get("meta", {}).get("name", "MAESTRO Threat Model")
 
         graph_style = self.style.get("graph", self._default_style()["graph"])
@@ -876,7 +897,121 @@ class MaestroThreatModel(VisualizationBase):
             )
             label = ""  # Only label the first edge of the chain
 
+    def _render_heatmap(self) -> None:
+        """Render a Matplotlib heatmap: agents (rows) x layers (columns).
+
+        Each cell is colored by the max-severity unmitigated threat targeting
+        that agent on that layer, with a count badge. Designed for executive
+        reporting where the layered topology matters less than the risk
+        distribution.
+        """
+        # Local import — matplotlib is already a project dep (binvis) but we
+        # keep the import inside the method so the cheap layered path doesn't
+        # pay for the import.
+        import matplotlib
+        matplotlib.use("Agg")  # Non-interactive backend
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        # Severity rank used to color cells (max severity wins).
+        severity_to_rank = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+        # 5-stop colormap aligned with rank: 0 = none, 1 = low, ..., 4 = critical
+        colors = ["#eeeeee", "#4caf50", "#ffb300", "#fb8c00", "#e53935"]
+        from matplotlib.colors import ListedColormap, BoundaryNorm
+        cmap = ListedColormap(colors)
+        norm = BoundaryNorm([-0.5, 0.5, 1.5, 2.5, 3.5, 4.5], cmap.N)
+
+        agents = list(self.agents.values())
+        layers = [layer.value for layer in LAYER_DISPLAY_ORDER]
+
+        if not agents:
+            # Empty model -- emit a placeholder figure so build() still produces
+            # an output file rather than failing silently.
+            fig, ax = plt.subplots(figsize=(8, 2))
+            ax.text(0.5, 0.5, "No agents defined", ha="center", va="center", fontsize=14)
+            ax.axis("off")
+            self._fig = fig
+            return
+
+        # Build rank + count matrices: rows = agents, cols = layers
+        rank_matrix = np.zeros((len(agents), len(layers)), dtype=int)
+        count_matrix = np.zeros((len(agents), len(layers)), dtype=int)
+
+        for i, agent in enumerate(agents):
+            for j, layer in enumerate(layers):
+                relevant = [
+                    t for t in self.threats.values()
+                    if t.target_id == agent.id
+                    and t.layer == layer
+                    and t.status not in (
+                        ThreatStatus.MITIGATED.value,
+                        ThreatStatus.NOT_APPLICABLE.value,
+                    )
+                ]
+                if relevant:
+                    count_matrix[i, j] = len(relevant)
+                    rank_matrix[i, j] = max(
+                        severity_to_rank.get(t.severity, 0) for t in relevant
+                    )
+
+        fig_width = max(8, 1.2 * len(layers) + 4)
+        fig_height = max(3, 0.5 * len(agents) + 2)
+        fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+        im = ax.imshow(rank_matrix, cmap=cmap, norm=norm, aspect="auto")
+
+        # Axis labels
+        ax.set_xticks(np.arange(len(layers)))
+        ax.set_yticks(np.arange(len(agents)))
+        catalog_layers = self._load_catalog().get("layers", {})
+        layer_short = [
+            f"L{catalog_layers.get(layer, {}).get('id', '?')}\n{catalog_layers.get(layer, {}).get('name', layer).split('and')[0].strip()}"
+            for layer in layers
+        ]
+        ax.set_xticklabels(layer_short, rotation=30, ha="right", fontsize=9)
+        ax.set_yticklabels([f"{a.name} ({a.autonomy})" for a in agents], fontsize=9)
+
+        # Count badges
+        for i in range(len(agents)):
+            for j in range(len(layers)):
+                count = count_matrix[i, j]
+                if count > 0:
+                    color = "white" if rank_matrix[i, j] >= 3 else "#212121"
+                    ax.text(j, i, str(count), ha="center", va="center",
+                            color=color, fontsize=9, fontweight="bold")
+
+        # Colorbar with severity ticks
+        cbar = fig.colorbar(im, ax=ax, ticks=[0, 1, 2, 3, 4], shrink=0.8)
+        cbar.ax.set_yticklabels(["none", "low", "medium", "high", "critical"], fontsize=9)
+        cbar.set_label("Max unmitigated severity", fontsize=10)
+
+        title = self.inputdata.get("meta", {}).get("name", "MAESTRO Threat Heatmap")
+        ax.set_title(f"{title} -- Threats by Agent x Layer", fontsize=12, pad=12)
+        ax.set_xlabel("MAESTRO Layer", fontsize=10)
+        ax.set_ylabel("Agent", fontsize=10)
+        fig.tight_layout()
+
+        self._fig = fig
+        self.logger.debug(
+            f"Rendered heatmap: {len(agents)} agents x {len(layers)} layers"
+        )
+
     def _draw_impl(self, outputfile: str) -> None:
+        if self.view == "heatmap":
+            if self._fig is None:
+                raise MaestroError("Heatmap not rendered. Call render() first.")
+            output_path = f"{outputfile}.{self.format}"
+            try:
+                self._fig.savefig(output_path, format=self.format, dpi=150,
+                                  bbox_inches="tight")
+                # Close to free memory; subsequent draws would re-render.
+                import matplotlib.pyplot as plt
+                plt.close(self._fig)
+                self.logger.debug("Successfully wrote MAESTRO heatmap")
+            except Exception as e:
+                self.logger.error(f"Failed to write heatmap to {output_path}: {e}")
+                raise MaestroError(f"Failed to write heatmap: {e}") from e
+            return
+
         if self.graph is None:
             raise MaestroError("Graph not rendered. Call render() first.")
         try:

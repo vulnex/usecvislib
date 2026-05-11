@@ -83,6 +83,8 @@ def Usage() -> None:
     print("  -S, --stylefile <file>  Custom style file path")
     print("  -v, --visualization     Visualization type for binary mode:")
     print("                            all, entropy, distribution, windrose, heatmap")
+    print("                          MAESTRO view (mode 12):")
+    print("                            layered (default), heatmap")
     print("  -C, --config <file>     Configuration file for binary visualization parameters")
     print("                          (TOML format, controls entropy/distribution/windrose/heatmap settings)")
     print("  -r, --report            Generate STRIDE report (threat modeling only)")
@@ -543,7 +545,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         elif mode == 12:
             # MAESTRO Agentic Threat Model
             from . import maestro
-            mm = maestro.MaestroThreatModel(inputfile, outputfile, format, styleid)
+            # The -v flag is used by binvis for visualization type; reuse here
+            # for MAESTRO view selection. Valid: "layered" (default), "heatmap".
+            maestro_view = visualization if visualization in ("layered", "heatmap") else "layered"
+            mm = maestro.MaestroThreatModel(
+                inputfile, outputfile, format, styleid, view=maestro_view
+            )
             mm.build()
             print(f"MAESTRO threat model generated: {outputfile}.{format}")
 

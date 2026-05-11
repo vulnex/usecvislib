@@ -69,6 +69,17 @@
             <label>Style</label>
             <select v-model="style">
               <option value="ma_default">Default</option>
+              <option value="ma_dark">Dark</option>
+              <option value="ma_blueprint">Blueprint</option>
+              <option value="ma_severity">Severity</option>
+              <option value="ma_compact">Compact</option>
+            </select>
+          </div>
+          <div class="option-group">
+            <label>View</label>
+            <select v-model="view">
+              <option value="layered">Layered Architecture</option>
+              <option value="heatmap">Severity Heatmap</option>
             </select>
           </div>
         </div>
@@ -84,8 +95,11 @@
           <button class="btn btn-secondary" @click="validateModel" :disabled="!canGenerate || loading">
             Validate
           </button>
+          <button class="btn btn-secondary" @click="loadThreatList" :disabled="!canGenerate || loading">
+            Threat List
+          </button>
           <button class="btn btn-secondary" @click="toggleCatalog">
-            {{ catalogOpen ? 'Hide Catalog' : 'Browse Threat Catalog' }}
+            {{ catalogOpen ? 'Hide Catalog' : 'Browse Catalog' }}
           </button>
         </div>
       </div>
@@ -201,6 +215,62 @@
         </div>
       </div>
 
+      <!-- Threat List -->
+      <div v-if="threatList" class="threat-list-section">
+        <h3>Threat List</h3>
+        <p class="threat-list-meta">
+          {{ threatList.total }} threat{{ threatList.total === 1 ? '' : 's' }} (after filters)
+        </p>
+        <div class="threat-filters">
+          <select v-model="threatLayerFilter" @change="reloadThreatList">
+            <option value="">All layers</option>
+            <option v-for="l in threatList.layers" :key="l" :value="l">{{ l }}</option>
+          </select>
+          <select v-model="threatSeverityFilter" @change="reloadThreatList">
+            <option value="">All severities</option>
+            <option v-for="s in threatList.severities" :key="s" :value="s">{{ s }}</option>
+          </select>
+          <select v-model="threatStatusFilter" @change="reloadThreatList">
+            <option value="">All statuses</option>
+            <option v-for="st in threatList.statuses" :key="st" :value="st">{{ st }}</option>
+          </select>
+          <button class="btn btn-small btn-secondary" @click="clearThreatFilters">Clear</button>
+        </div>
+        <div class="threat-table-wrapper">
+          <table class="threat-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Layer</th>
+                <th>Threat</th>
+                <th>Target</th>
+                <th>Severity</th>
+                <th>Status</th>
+                <th>Mitigations</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="t in threatList.threats" :key="t.id">
+                <td class="mono">{{ t.id }}</td>
+                <td class="mono">{{ t.layer }}</td>
+                <td>{{ t.name }}</td>
+                <td class="mono">{{ t.target_id || '-' }}</td>
+                <td>
+                  <span :class="['threat-severity', `severity-${t.severity}`]">{{ t.severity }}</span>
+                </td>
+                <td>
+                  <span :class="['threat-status', `status-${t.status}`]">{{ t.status }}</span>
+                </td>
+                <td class="mitigations-cell">
+                  <span v-if="t.mitigations.length" class="mit-count">{{ t.mitigations.length }}</span>
+                  <span v-else class="mit-none">none</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Catalog browser -->
       <div v-if="catalogOpen" class="catalog-section">
         <h3>MAESTRO Threat Catalog</h3>
@@ -259,6 +329,7 @@ import {
   visualizeMaestroFromContent,
   analyzeMaestroFromContent,
   validateMaestroFromContent,
+  listMaestroThreatsFromContent,
   getMaestroCatalog,
   createImageUrl,
   getTimestamp,
@@ -282,6 +353,7 @@ const fileName = ref('')
 const fileFormat = ref('toml')
 const format = ref('png')
 const style = ref('ma_default')
+const view = ref('layered')
 const loading = ref(false)
 const error = ref(null)
 const imageUrl = ref(null)
@@ -295,6 +367,10 @@ const isConfigValid = ref(false)
 const catalogOpen = ref(false)
 const catalog = ref(null)
 const activeCatalogLayer = ref(null)
+const threatList = ref(null)
+const threatLayerFilter = ref('')
+const threatSeverityFilter = ref('')
+const threatStatusFilter = ref('')
 
 // Computed
 const canGenerate = computed(() => {
@@ -364,6 +440,7 @@ function clearResults() {
   imageBlob.value = null
   stats.value = null
   validation.value = null
+  threatList.value = null
 }
 
 function resetPanel() {
@@ -372,8 +449,12 @@ function resetPanel() {
   fileFormat.value = 'toml'
   format.value = 'png'
   style.value = 'ma_default'
+  view.value = 'layered'
   isConfigValid.value = false
   catalogOpen.value = false
+  threatLayerFilter.value = ''
+  threatSeverityFilter.value = ''
+  threatStatusFilter.value = ''
   clearResults()
 }
 
@@ -386,7 +467,7 @@ async function generateVisualization() {
 
   try {
     const blob = await visualizeMaestroFromContent(
-      editorContent.value, format.value, style.value, fileFormat.value
+      editorContent.value, format.value, style.value, fileFormat.value, view.value
     )
     imageBlob.value = blob
     imageUrl.value = createImageUrl(blob)
@@ -394,6 +475,41 @@ async function generateVisualization() {
     error.value = err.response?.data?.detail || err.message || 'Failed to generate visualization'
   } finally {
     loading.value = false
+  }
+}
+
+async function loadThreatList() {
+  if (!editorContent.value) return
+  loading.value = true
+  error.value = null
+  try {
+    const filters = {
+      layer: threatLayerFilter.value || undefined,
+      severity: threatSeverityFilter.value || undefined,
+      status: threatStatusFilter.value || undefined,
+    }
+    threatList.value = await listMaestroThreatsFromContent(
+      editorContent.value, filters, fileFormat.value
+    )
+  } catch (err) {
+    error.value = err.response?.data?.detail || err.message || 'Failed to load threat list'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function reloadThreatList() {
+  if (threatList.value) {
+    await loadThreatList()
+  }
+}
+
+function clearThreatFilters() {
+  threatLayerFilter.value = ''
+  threatSeverityFilter.value = ''
+  threatStatusFilter.value = ''
+  if (threatList.value) {
+    loadThreatList()
   }
 }
 
@@ -627,6 +743,109 @@ function saveTemplate() {
 .pdf-notice .pdf-hint {
   color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+/* Threat list */
+.threat-list-section {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.threat-list-meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0 0 0.5rem;
+}
+
+.threat-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.75rem 0;
+}
+
+.threat-filters select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.threat-table-wrapper {
+  max-height: 520px;
+  overflow: auto;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.threat-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.threat-table th {
+  background: var(--bg-secondary);
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.threat-table td {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.threat-table tbody tr:hover {
+  background: var(--bg-secondary);
+}
+
+.threat-table .mono {
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+
+.threat-status {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.threat-status.status-mitigated { background: #c8e6c9; color: #1b5e20; }
+.threat-status.status-in-progress { background: #fff3e0; color: #e65100; }
+.threat-status.status-accepted { background: #f3e5f5; color: #4a148c; }
+.threat-status.status-not-applicable { background: #eeeeee; color: #555; }
+.threat-status.status-identified { background: #ffe0b2; color: #bf360c; }
+
+.mitigations-cell {
+  text-align: center;
+}
+
+.mit-count {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.mit-none {
+  color: var(--text-tertiary);
+  font-size: 0.75rem;
 }
 
 /* Catalog browser */

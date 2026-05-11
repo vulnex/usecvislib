@@ -394,6 +394,71 @@ class TestStats:
                 os.unlink(f.name)
 
 
+class TestStylePresets:
+    """All 5 ma_* style presets must load (Phase 4)."""
+
+    PRESETS = ("ma_default", "ma_dark", "ma_blueprint", "ma_severity", "ma_compact")
+
+    def test_all_presets_loadable(self):
+        for sid in self.PRESETS:
+            m = MaestroThreatModel("dummy.toml", "out", styleid=sid, validate_paths=False)
+            style = m.style
+            assert "graph" in style
+            assert "agent" in style
+            assert "layer" in style
+            assert "cross_layer_edge" in style
+
+
+class TestHeatmapView:
+    """Matplotlib heatmap render view (Phase 4)."""
+
+    HEATMAP_CONFIG = '''
+[meta]
+name = "Heatmap Smoke Test"
+
+[architecture]
+patterns = ["single-agent", "task-oriented"]
+
+[[agents]]
+id = "alpha"
+type = "task-oriented"
+autonomy = "reactive"
+layers = ["foundation-models", "data-operations", "agent-ecosystem"]
+'''
+
+    def test_heatmap_renders_to_png(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = os.path.join(tmpdir, "model.toml")
+            with open(input_path, "w") as f:
+                f.write(self.HEATMAP_CONFIG)
+            output_base = os.path.join(tmpdir, "heatmap_out")
+            m = MaestroThreatModel(
+                input_path, output_base, format="png",
+                view="heatmap", validate_paths=False,
+            )
+            m.build()
+            assert os.path.exists(output_base + ".png")
+            assert os.path.getsize(output_base + ".png") > 1000
+
+    def test_view_falls_back_to_layered_on_invalid(self):
+        m = MaestroThreatModel("dummy.toml", "out", view="nonexistent", validate_paths=False)
+        assert m.view == "layered"
+
+    def test_heatmap_with_no_agents_does_not_crash(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = os.path.join(tmpdir, "empty.toml")
+            with open(input_path, "w") as f:
+                f.write('[meta]\nname = "Empty"\n')
+            output_base = os.path.join(tmpdir, "empty_out")
+            m = MaestroThreatModel(
+                input_path, output_base, format="png",
+                view="heatmap", validate_paths=False,
+            )
+            # Validation will report no agents but build should still produce a placeholder
+            m.load().render().draw()
+            assert os.path.exists(output_base + ".png")
+
+
 class TestExports:
     """Tests for the cross-reference export methods (Phase 3)."""
 

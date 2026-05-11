@@ -1871,6 +1871,16 @@ class CloudPythonCodeResponse(BaseModel):
 class MaestroStyle(str, Enum):
     """Available MAESTRO threat model styles."""
     DEFAULT = "ma_default"
+    DARK = "ma_dark"
+    BLUEPRINT = "ma_blueprint"
+    SEVERITY = "ma_severity"
+    COMPACT = "ma_compact"
+
+
+class MaestroView(str, Enum):
+    """MAESTRO render views."""
+    LAYERED = "layered"
+    HEATMAP = "heatmap"
 
 
 class MaestroStats(BaseModel):
@@ -1942,5 +1952,31 @@ class MaestroExportResponse(BaseModel):
     target_framework: str = Field(description="Target framework key (stride|attack-graph|privilege-gradient)")
     catalog_version: str = Field(description="Catalog version used for the export")
     payload: dict[str, Any] = Field(description="Exported configuration (consumable by the target module)")
+
+
+class MaestroThreatDetail(BaseModel):
+    """A single threat after auto-population and overrides applied."""
+    id: str
+    layer: str
+    name: str
+    description: str = ""
+    target_id: str = ""
+    severity: str
+    likelihood: str
+    status: str
+    mitigations: list[str] = Field(default=[])
+    stride_category: Optional[str] = None
+    stride_mapping: str = "informational"
+    mitre_attack: Optional[str] = None
+    from_catalog: bool
+
+
+class MaestroThreatsResponse(BaseModel):
+    """Filterable per-threat detail response."""
+    total: int
+    threats: list[MaestroThreatDetail] = Field(default=[])
+    layers: list[str] = Field(default=[])
+    severities: list[str] = Field(default=[])
+    statuses: list[str] = Field(default=[])
 
 

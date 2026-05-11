@@ -9,6 +9,7 @@
 
 import logging
 import os
+from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
@@ -39,7 +40,10 @@ from ..schemas import (
     MaestroLayerThreatsResponse,
     MaestroStats,
     MaestroStyle,
+    MaestroThreatDetail,
+    MaestroThreatsResponse,
     MaestroValidationResponse,
+    MaestroView,
     OutputFormat,
     TemplateMetadata,
 )
@@ -75,6 +79,7 @@ async def visualize_maestro(
     file: UploadFile = File(..., description="MAESTRO configuration file (TOML/JSON/YAML)"),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     style: MaestroStyle = Query(default=MaestroStyle.DEFAULT, description="Style preset"),
+    view: MaestroView = Query(default=MaestroView.LAYERED, description="Render view: layered or heatmap"),
 ):
     """
     Generate a MAESTRO threat model visualization from an uploaded configuration file.
@@ -84,7 +89,9 @@ async def visualize_maestro(
     and `mitigations[]` sections.
 
     Catalog threats are auto-attached based on the layers each agent touches
-    and the declared architecture patterns.
+    and the declared architecture patterns. The ``view`` query parameter
+    selects between the layered architecture diagram (default) and the
+    severity heatmap (agents x layers).
     """
     input_path = None
     output_path = None
@@ -94,7 +101,13 @@ async def visualize_maestro(
         input_path = save_upload_file(file)
         output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
 
-        mm = MaestroThreatModel(input_path, output_base, format=format.value, styleid=style.value)
+        mm = MaestroThreatModel(
+            input_path,
+            output_base,
+            format=format.value,
+            styleid=style.value,
+            view=view.value,
+        )
         await run_sync_with_timeout(
             mm.build,
             REQUEST_TIMEOUT_VISUALIZE,
@@ -173,6 +186,86 @@ async def analyze_maestro(
         )
 
         return MaestroStats(**stats)
+
+    except HTTPException:
+        raise
+    except MaestroError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred") from e
+    finally:
+        cleanup_files(input_path)
+
+
+# =============================================================================
+# Threats (filterable detail)
+# =============================================================================
+
+@router.post(
+    "/analyze/maestro/threats",
+    response_model=MaestroThreatsResponse,
+    summary="List MAESTRO threats with optional filtering",
+)
+@limiter.limit(RATE_LIMIT_ANALYZE)
+async def list_maestro_threats(
+    request: Request,
+    file: UploadFile = File(..., description="MAESTRO configuration file"),
+    layer: Optional[str] = Query(default=None, description="Filter by MAESTRO layer key"),
+    severity: Optional[str] = Query(default=None, description="Filter by severity (low/medium/high/critical)"),
+    status: Optional[str] = Query(default=None, description="Filter by status (identified/in-progress/mitigated/accepted/not-applicable)"),
+):
+    """
+    Return per-threat detail after auto-population and overrides are applied,
+    with optional filters on layer, severity, and status. Powers the Threat
+    List tab in the Vue panel.
+    """
+    input_path = None
+
+    try:
+        validate_config_file_extension(file.filename)
+        input_path = save_upload_file(file)
+        mm = MaestroThreatModel(input_path, "unused")
+        mm.load()
+
+        all_layers: set[str] = set()
+        all_severities: set[str] = set()
+        all_statuses: set[str] = set()
+
+        threats: list[MaestroThreatDetail] = []
+        for t in mm.threats.values():
+            all_layers.add(t.layer)
+            all_severities.add(t.severity)
+            all_statuses.add(t.status)
+            if layer and t.layer != layer:
+                continue
+            if severity and t.severity != severity:
+                continue
+            if status and t.status != status:
+                continue
+            threats.append(MaestroThreatDetail(
+                id=t.id,
+                layer=t.layer,
+                name=t.name,
+                description=t.description,
+                target_id=t.target_id,
+                severity=t.severity,
+                likelihood=t.likelihood,
+                status=t.status,
+                mitigations=list(t.mitigations),
+                stride_category=t.stride_category,
+                stride_mapping=t.stride_mapping,
+                mitre_attack=t.mitre_attack,
+                from_catalog=t.from_catalog,
+            ))
+
+        return MaestroThreatsResponse(
+            total=len(threats),
+            threats=threats,
+            layers=sorted(all_layers),
+            severities=sorted(all_severities),
+            statuses=sorted(all_statuses),
+        )
 
     except HTTPException:
         raise

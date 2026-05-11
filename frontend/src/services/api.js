@@ -1003,14 +1003,15 @@ export async function validateDependencyGraphFromContent(content, configFormat =
  * Generate MAESTRO threat model visualization
  * @param {File} file - MAESTRO configuration file
  * @param {string} format - Output format (png, svg, pdf)
- * @param {string} style - Style preset (ma_default)
+ * @param {string} style - Style preset (ma_default, ma_dark, ma_blueprint, ma_severity, ma_compact)
+ * @param {string} view - Render view: "layered" (default) or "heatmap"
  */
-export async function visualizeMaestro(file, format = 'png', style = 'ma_default') {
+export async function visualizeMaestro(file, format = 'png', style = 'ma_default', view = 'layered') {
   const formData = new FormData()
   formData.append('file', file)
 
   const response = await api.post(
-    `/visualize/maestro?format=${format}&style=${style}`,
+    `/visualize/maestro?format=${format}&style=${style}&view=${view}`,
     formData,
     {
       responseType: 'blob',
@@ -1023,9 +1024,9 @@ export async function visualizeMaestro(file, format = 'png', style = 'ma_default
 /**
  * Generate MAESTRO visualization from text content
  */
-export async function visualizeMaestroFromContent(content, outputFormat = 'png', style = 'ma_default', configFormat = 'toml') {
+export async function visualizeMaestroFromContent(content, outputFormat = 'png', style = 'ma_default', configFormat = 'toml', view = 'layered') {
   const file = createFileFromContent(content, 'maestro', configFormat)
-  return visualizeMaestro(file, outputFormat, style)
+  return visualizeMaestro(file, outputFormat, style, view)
 }
 
 /**
@@ -1087,6 +1088,56 @@ export async function getMaestroCatalog() {
 export async function getMaestroCatalogForLayer(layer) {
   const response = await api.get(`/maestro/catalog/${encodeURIComponent(layer)}`)
   return response.data
+}
+
+/**
+ * List MAESTRO threats with optional filters
+ * @param {File} file - MAESTRO configuration file
+ * @param {Object} filters - { layer, severity, status } - each optional
+ */
+export async function listMaestroThreats(file, filters = {}) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const params = new URLSearchParams()
+  if (filters.layer) params.append('layer', filters.layer)
+  if (filters.severity) params.append('severity', filters.severity)
+  if (filters.status) params.append('status', filters.status)
+  const qs = params.toString()
+
+  const response = await api.post(
+    `/analyze/maestro/threats${qs ? '?' + qs : ''}`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  )
+  return response.data
+}
+
+/**
+ * List MAESTRO threats from text content
+ */
+export async function listMaestroThreatsFromContent(content, filters = {}, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'maestro', configFormat)
+  return listMaestroThreats(file, filters)
+}
+
+/**
+ * Export MAESTRO model to a sibling framework (stride / attack-graph / privilege-gradient)
+ */
+export async function exportMaestro(file, target) {
+  const formData = new FormData()
+  formData.append('file', file)
+  const response = await api.post(
+    `/maestro/export/${encodeURIComponent(target)}`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  )
+  return response.data
+}
+
+export async function exportMaestroFromContent(content, target, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'maestro', configFormat)
+  return exportMaestro(file, target)
 }
 
 // =============================================================================
@@ -2002,4 +2053,8 @@ export default {
   validateMaestroFromContent,
   getMaestroCatalog,
   getMaestroCatalogForLayer,
+  listMaestroThreats,
+  listMaestroThreatsFromContent,
+  exportMaestro,
+  exportMaestroFromContent,
 }

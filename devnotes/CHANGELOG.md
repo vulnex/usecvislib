@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **MAESTRO Agentic AI Threat Modeling (CLI mode 12)**
+  - New `MaestroThreatModel` class implementing the Cloud Security Alliance MAESTRO framework (Multi-Agent Environment, Security, Threat, Risk, & Outcome) for agentic AI systems
+  - 7 architectural layers: Foundation Models, Data Operations, Agent Frameworks, Infrastructure, Observability, Security (vertical), Agent Ecosystem
+  - First-class entities: `Agent` (autonomy level, goals, capabilities, tools, layers_touched), `Asset`, `Threat`, `CrossLayerThreat`, `Mitigation`
+  - Built-in threat catalog (`models/maestro_catalog.json`, version `2026.2`): 50 layer threats, 5 cross-layer chains, 93 mitigations, 11 best-effort MITRE ATT&CK technique placeholders
+  - Architecture patterns: single-agent, multi-agent, hierarchical, distributed, human-in-the-loop, self-learning, unconstrained-conversational, task-oriented
+  - Auto-population of catalog threats from declared agent layers + architecture patterns; pattern × layer mismatches emit warnings rather than attaching phantom threats
+  - Two render views: layered architecture (Graphviz with vertical gutter for L6 Security) and severity heatmap (Matplotlib, agents × layers)
+  - Auto-clustering of agents within a layer when count exceeds `cluster_threshold` (default 8)
+  - 5 style presets: `ma_default`, `ma_dark`, `ma_blueprint`, `ma_severity`, `ma_compact`
+  - Cross-reference exports — each round-trips cleanly into the target module with zero validation errors:
+    - `to_stride()` — STRIDE / `ThreatModeling` shape with per-entry `mapping` label (exact / partial / informational) and unmapped-percentage in `_meta`
+    - `to_attack_graph()` — AttackGraph shape (hosts / vulnerabilities / edges from chain steps)
+    - `to_privilege_gradient()` — PrivilegeGradient shape with trust zones derived from agent autonomy levels
+  - API router with 8 endpoints: `POST /visualize|/analyze|/validate/maestro`, `POST /analyze/maestro/threats` (filterable detail), `POST /maestro/export/{stride|attack-graph|privilege-gradient}`, `GET /maestro/catalog`, `GET /maestro/catalog/{layer}`
+  - Vue 3 panel (`MaestroPanel.vue`) with config editor, generate / analyze / validate / threat-list / catalog-browser actions, severity heatmap stat grid, per-layer threat-count bars, warnings surface, and filterable threat list
+  - 4 templates: `single-agent-rag.toml`, `multi-agent-support.toml`, `autonomous-soc-agent.toml`, `agent-marketplace.toml`
+  - 43 unit + API tests (`test_maestro.py`, `test_api_maestro.py`)
+  - Design document: `devnotes/MAESTRO_DESIGN.md`
+
 - **MCP Server (`usecvislib-mcp` v0.4.0)**
   - Streamable-HTTP transport support via `USECVISLIB_MCP_TRANSPORT=streamable-http`
   - API key authentication for HTTP transports (`USECVISLIB_MCP_API_KEY`) using SHA-256 hashed constant-time comparison

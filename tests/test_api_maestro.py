@@ -318,3 +318,93 @@ class TestMaestroExport:
             files=[_upload(INVALID_TOML)],
         )
         assert response.status_code in (400, 500)
+
+
+# =============================================================================
+# Threat List (filterable detail) - Phase 4
+# =============================================================================
+
+class TestMaestroThreatsList:
+
+    def test_threats_returns_filter_metadata(self):
+        response = client.post(
+            "/analyze/maestro/threats",
+            files=[_upload(VALID_MAESTRO_TOML)],
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # Required fields
+        assert "total" in data
+        assert "threats" in data
+        assert "layers" in data
+        assert "severities" in data
+        assert "statuses" in data
+        # Filter buckets are non-empty (model has threats)
+        assert data["total"] > 0
+        assert len(data["layers"]) > 0
+        assert len(data["severities"]) > 0
+
+    def test_threats_filter_by_layer(self):
+        response = client.post(
+            "/analyze/maestro/threats?layer=foundation-models",
+            files=[_upload(VALID_MAESTRO_TOML)],
+        )
+        assert response.status_code == 200
+        data = response.json()
+        for t in data["threats"]:
+            assert t["layer"] == "foundation-models"
+
+    def test_threats_filter_by_severity(self):
+        response = client.post(
+            "/analyze/maestro/threats?severity=critical",
+            files=[_upload(VALID_MAESTRO_TOML)],
+        )
+        assert response.status_code == 200
+        data = response.json()
+        for t in data["threats"]:
+            assert t["severity"] == "critical"
+
+    def test_threats_combined_filters(self):
+        response = client.post(
+            "/analyze/maestro/threats?layer=data-operations&severity=high",
+            files=[_upload(VALID_MAESTRO_TOML)],
+        )
+        assert response.status_code == 200
+        data = response.json()
+        for t in data["threats"]:
+            assert t["layer"] == "data-operations"
+            assert t["severity"] == "high"
+
+
+# =============================================================================
+# Heatmap view via API (Phase 4)
+# =============================================================================
+
+class TestMaestroHeatmapView:
+
+    def test_visualize_view_heatmap(self):
+        response = client.post(
+            "/visualize/maestro?view=heatmap&format=png",
+            files=[_upload(VALID_MAESTRO_TOML)],
+        )
+        # 200 if matplotlib is installed; matplotlib is a project dep so this
+        # should reliably succeed.
+        assert response.status_code == 200
+        assert len(response.content) > 1000
+
+    def test_visualize_view_layered_default(self):
+        # Without view query: should default to layered (which needs graphviz).
+        response = client.post(
+            "/visualize/maestro?format=png",
+            files=[_upload(VALID_MAESTRO_TOML)],
+        )
+        # Layered uses Graphviz which may not be installed in this env.
+        assert response.status_code in (200, 400, 500)
+
+    def test_visualize_unknown_view(self):
+        response = client.post(
+            "/visualize/maestro?view=nonexistent",
+            files=[_upload(VALID_MAESTRO_TOML)],
+        )
+        # FastAPI 422 on unknown enum value
+        assert response.status_code == 422

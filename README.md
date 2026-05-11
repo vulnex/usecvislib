@@ -28,6 +28,7 @@ A comprehensive Python library and web application for creating security visuali
 | **Privilege Gradient** | Trust zone and privilege level visualization | Zone inversion detection, escalation pathways, 5 styles |
 | **Component Diagrams** | Software component architecture diagrams | Layered architecture, connection types (sync/async/event), 4 styles |
 | **Dependency Graphs** | Module/package dependency visualization | SLOC-based sizing, circular dependency detection, 4 styles |
+| **MAESTRO Agentic Threat Models** | Threat modeling for agentic AI systems | 7-layer MAESTRO framework, 50-threat catalog, layered + heatmap views, STRIDE / AttackGraph / PrivilegeGradient cross-references, 5 style presets |
 | **Binary Analysis** | Binary file pattern visualization | Entropy, byte distribution, wind rose, heatmap |
 
 ### Platform Features

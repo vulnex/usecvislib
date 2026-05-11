@@ -66,3 +66,253 @@ fontsize = "9"
 fontcolor = "#c62828"
 penwidth = "1.5"
 arrowhead = "open"
+
+# =============================================================================
+# Dark - High-contrast dark theme
+# =============================================================================
+[ma_dark]
+[ma_dark.graph]
+rankdir = "TB"
+bgcolor = "#1a1a2e"
+fontname = "Arial"
+splines = "ortho"
+nodesep = "0.6"
+ranksep = "0.8"
+pad = "0.5"
+compound = "true"
+fontcolor = "#e0e0e0"
+
+[ma_dark.layer]
+style = "filled,rounded"
+fillcolor = "#16213e"
+color = "#334466"
+fontname = "Arial Bold"
+fontsize = "14"
+fontcolor = "#b0b0cc"
+penwidth = "1"
+
+[ma_dark.agent]
+shape = "box"
+style = "filled,rounded"
+fontname = "Arial"
+fontsize = "11"
+fontcolor = "white"
+fillcolor = "#0f3460"
+color = "#2060a0"
+penwidth = "1.5"
+margin = "0.2,0.1"
+
+[ma_dark.asset]
+shape = "cylinder"
+style = "filled"
+fontname = "Arial"
+fontsize = "10"
+fontcolor = "white"
+fillcolor = "#4a148c"
+color = "#7b1fa2"
+penwidth = "1.2"
+
+[ma_dark.security_gutter]
+style = "filled,rounded"
+fillcolor = "#3d2817"
+color = "#fb8c00"
+fontname = "Arial Bold"
+fontsize = "13"
+fontcolor = "#ffb74d"
+penwidth = "1.5"
+
+[ma_dark.cross_layer_edge]
+style = "dashed"
+color = "#ff6b6b"
+fontname = "Arial"
+fontsize = "9"
+fontcolor = "#ff8a80"
+penwidth = "1.5"
+arrowhead = "open"
+
+# =============================================================================
+# Blueprint - Engineering-doc-friendly monochrome with grid feel
+# =============================================================================
+[ma_blueprint]
+[ma_blueprint.graph]
+rankdir = "TB"
+bgcolor = "#1a2744"
+fontname = "Courier New"
+splines = "ortho"
+nodesep = "0.6"
+ranksep = "0.8"
+pad = "0.5"
+compound = "true"
+fontcolor = "#c0d0e0"
+
+[ma_blueprint.layer]
+style = "filled,rounded"
+fillcolor = "#243656"
+color = "#4a6a8a"
+fontname = "Courier New"
+fontsize = "14"
+fontcolor = "#a0c0e0"
+penwidth = "1"
+
+[ma_blueprint.agent]
+shape = "box"
+style = "filled,rounded"
+fontname = "Courier New"
+fontsize = "11"
+fontcolor = "#1a2744"
+fillcolor = "#c0d8f0"
+color = "#8ab0d8"
+penwidth = "1.5"
+margin = "0.2,0.1"
+
+[ma_blueprint.asset]
+shape = "cylinder"
+style = "filled"
+fontname = "Courier New"
+fontsize = "10"
+fontcolor = "#1a2744"
+fillcolor = "#a0c8e8"
+color = "#6090c0"
+penwidth = "1.2"
+
+[ma_blueprint.security_gutter]
+style = "filled,rounded"
+fillcolor = "#2a4866"
+color = "#80b0d0"
+fontname = "Courier New"
+fontsize = "13"
+fontcolor = "#a0c8e8"
+penwidth = "1.5"
+
+[ma_blueprint.cross_layer_edge]
+style = "dashed"
+color = "#80b0d0"
+fontname = "Courier New"
+fontsize = "9"
+fontcolor = "#a0c8e8"
+penwidth = "1.5"
+arrowhead = "open"
+
+# =============================================================================
+# Severity - Heatmap-tuned palette emphasizing risk
+# =============================================================================
+[ma_severity]
+[ma_severity.graph]
+rankdir = "TB"
+bgcolor = "white"
+fontname = "Arial"
+splines = "ortho"
+nodesep = "0.5"
+ranksep = "0.7"
+pad = "0.5"
+compound = "true"
+
+[ma_severity.layer]
+style = "filled,rounded"
+fillcolor = "#fafafa"
+color = "#bdbdbd"
+fontname = "Arial Bold"
+fontsize = "14"
+fontcolor = "#212121"
+penwidth = "1"
+
+[ma_severity.agent]
+shape = "box"
+style = "filled,rounded"
+fontname = "Arial"
+fontsize = "11"
+fontcolor = "#212121"
+fillcolor = "#ffe0b2"
+color = "#e65100"
+penwidth = "1.5"
+margin = "0.2,0.1"
+
+[ma_severity.asset]
+shape = "cylinder"
+style = "filled"
+fontname = "Arial"
+fontsize = "10"
+fontcolor = "#b71c1c"
+fillcolor = "#ffcdd2"
+color = "#c62828"
+penwidth = "1.2"
+
+[ma_severity.security_gutter]
+style = "filled,rounded"
+fillcolor = "#fff3e0"
+color = "#e53935"
+fontname = "Arial Bold"
+fontsize = "13"
+fontcolor = "#b71c1c"
+penwidth = "1.5"
+
+[ma_severity.cross_layer_edge]
+style = "bold"
+color = "#b71c1c"
+fontname = "Arial Bold"
+fontsize = "10"
+fontcolor = "#b71c1c"
+penwidth = "2"
+arrowhead = "normal"
+
+# =============================================================================
+# Compact - Minimal spacing for dense models
+# =============================================================================
+[ma_compact]
+[ma_compact.graph]
+rankdir = "TB"
+bgcolor = "white"
+fontname = "Helvetica"
+splines = "ortho"
+nodesep = "0.3"
+ranksep = "0.4"
+pad = "0.25"
+compound = "true"
+
+[ma_compact.layer]
+style = "rounded"
+fillcolor = "white"
+color = "#e0e0e0"
+fontname = "Helvetica"
+fontsize = "11"
+fontcolor = "#555555"
+penwidth = "1"
+
+[ma_compact.agent]
+shape = "box"
+style = "filled,rounded"
+fontname = "Helvetica"
+fontsize = "9"
+fontcolor = "#333333"
+fillcolor = "white"
+color = "#999999"
+penwidth = "1"
+margin = "0.1,0.05"
+
+[ma_compact.asset]
+shape = "cylinder"
+style = "filled"
+fontname = "Helvetica"
+fontsize = "8"
+fontcolor = "#333333"
+fillcolor = "white"
+color = "#999999"
+penwidth = "1"
+
+[ma_compact.security_gutter]
+style = "rounded"
+fillcolor = "white"
+color = "#bbbbbb"
+fontname = "Helvetica"
+fontsize = "10"
+fontcolor = "#555555"
+penwidth = "1"
+
+[ma_compact.cross_layer_edge]
+style = "dashed"
+color = "#bbbbbb"
+fontname = "Helvetica"
+fontsize = "8"
+fontcolor = "#999999"
+penwidth = "1"
+arrowhead = "open"
