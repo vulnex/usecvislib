@@ -56,7 +56,7 @@ Example usage:
     >>> cloud.render("output", format="png")
 """
 
-__version__ = "0.3.4"
+__version__ = "0.4.0"
 __author__ = "VULNEX"
 
 from .async_support import (
