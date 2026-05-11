@@ -20,16 +20,17 @@
     </div>
 
     <div class="panel-body">
-      <!-- Sub-tab toggle -->
-      <div class="diagram-type-toggle">
+      <!-- Sub-tab toggle (matches the .sub-tabs / .sub-tab pattern used by
+           Custom Diagrams for a consistent sub-tab style across the app). -->
+      <div class="sub-tabs">
         <button
-          :class="['toggle-btn', { active: activeView === 'classical' }]"
+          :class="['sub-tab', { active: activeView === 'classical' }]"
           @click="activeView = 'classical'"
         >
           Classical (STRIDE / PyTM)
         </button>
         <button
-          :class="['toggle-btn', { active: activeView === 'maestro' }]"
+          :class="['sub-tab', { active: activeView === 'maestro' }]"
           @click="activeView = 'maestro'"
         >
           Agentic AI (MAESTRO)
@@ -93,39 +94,37 @@ const currentChildProps = computed(() => {
 </script>
 
 <style scoped>
-/* Toggle styling matches the ArchitecturePanel convention so users find a
-   consistent sub-tab pattern across the app. */
-.diagram-type-toggle {
+/* Sub-tab styling matches CustomDiagramPanel for a consistent
+   pill-segmented look across all panels that have sub-tabs. */
+.sub-tabs {
   display: flex;
-  gap: 0;
-  margin-bottom: 1.25rem;
-  border: 1px solid var(--border-color);
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: var(--bg-tertiary);
   border-radius: 8px;
-  overflow: hidden;
 }
 
-.toggle-btn {
+.sub-tab {
   flex: 1;
-  padding: 0.7rem 1rem;
+  padding: 10px 16px;
   border: none;
-  background: var(--bg-secondary);
+  background: transparent;
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  border-radius: 6px;
   transition: all 0.2s ease;
 }
 
-.toggle-btn:first-child {
-  border-right: 1px solid var(--border-color);
+.sub-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
 }
 
-.toggle-btn.active {
-  background: var(--accent-color);
+.sub-tab.active {
+  background: var(--primary);
   color: white;
-}
-
-.toggle-btn:hover:not(.active) {
-  background: var(--bg-tertiary, #e5e7eb);
 }
 </style>

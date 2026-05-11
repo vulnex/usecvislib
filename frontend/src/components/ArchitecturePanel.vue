@@ -14,16 +14,17 @@
 
     <div class="panel-body">
       <div class="form-section">
-        <!-- Diagram Type Toggle -->
-        <div class="diagram-type-toggle">
+        <!-- Diagram Type sub-tab toggle (.sub-tabs / .sub-tab pattern shared
+             with CustomDiagrams and ThreatModels for visual consistency). -->
+        <div class="sub-tabs">
           <button
-            :class="['toggle-btn', { active: diagramType === 'component-diagram' }]"
+            :class="['sub-tab', { active: diagramType === 'component-diagram' }]"
             @click="switchDiagramType('component-diagram')"
           >
             Component Diagram
           </button>
           <button
-            :class="['toggle-btn', { active: diagramType === 'dependency-graph' }]"
+            :class="['sub-tab', { active: diagramType === 'dependency-graph' }]"
             @click="switchDiagramType('dependency-graph')"
           >
             Dependency Graph
@@ -461,39 +462,37 @@ function saveTemplate() {
 </script>
 
 <style scoped>
-/* Diagram Type Toggle */
-.diagram-type-toggle {
+/* Sub-tab styling shared with CustomDiagrams and ThreatModels panels. */
+.sub-tabs {
   display: flex;
-  gap: 0;
-  margin-bottom: 1rem;
-  border: 1px solid var(--border-color);
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+  background: var(--bg-tertiary);
   border-radius: 8px;
-  overflow: hidden;
 }
 
-.toggle-btn {
+.sub-tab {
   flex: 1;
-  padding: 0.6rem 1rem;
+  padding: 10px 16px;
   border: none;
-  background: var(--bg-secondary);
+  background: transparent;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+  border-radius: 6px;
   transition: all 0.2s ease;
 }
 
-.toggle-btn:first-child {
-  border-right: 1px solid var(--border-color);
+.sub-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
 }
 
-.toggle-btn.active {
-  background: var(--accent-color);
+.sub-tab.active {
+  background: var(--primary);
   color: white;
-}
-
-.toggle-btn:hover:not(.active) {
-  background: var(--bg-tertiary, #e5e7eb);
 }
 
 .file-actions {
