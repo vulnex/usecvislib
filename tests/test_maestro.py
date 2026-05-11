@@ -575,7 +575,7 @@ class TestATTCKTagging:
     def test_catalog_version_bumped(self):
         m = MaestroThreatModel("dummy.toml", "out", validate_paths=False)
         catalog = m.get_catalog()
-        assert catalog["catalog_version"] == "2026.2"
+        assert catalog["catalog_version"] >= "2026.2"
 
     def test_known_threats_have_attack_tags(self):
         m = MaestroThreatModel("dummy.toml", "out", validate_paths=False)
@@ -590,6 +590,74 @@ class TestATTCKTagging:
         }
         for tid, expected_attack in expected.items():
             assert threats_by_id[tid]["mitre_attack"] == expected_attack
+
+
+class TestCrossFrameworkMappings:
+    """OWASP ASI + NIST AI RMF cross-framework tag coverage (catalog 2026.3)."""
+
+    def test_catalog_version_is_2026_3_or_newer(self):
+        m = MaestroThreatModel("dummy.toml", "out", validate_paths=False)
+        c = m.get_catalog()
+        assert c["catalog_version"] >= "2026.3"
+
+    def test_new_threats_present(self):
+        m = MaestroThreatModel("dummy.toml", "out", validate_paths=False)
+        ids = {t["id"] for t in m.get_catalog()["threats"]}
+        for new_id in ("T-L1-008", "T-L5-007", "T-L5-008", "T-L6-008", "T-L7-014"):
+            assert new_id in ids, f"missing new threat {new_id}"
+
+    def test_cascade_failure_cross_layer_present(self):
+        m = MaestroThreatModel("dummy.toml", "out", validate_paths=False)
+        clt_ids = {t["id"] for t in m.get_catalog()["cross_layer_threats"]}
+        assert "T-CL-006" in clt_ids
+
+    def test_owasp_asi_mappings(self):
+        m = MaestroThreatModel("dummy.toml", "out", validate_paths=False)
+        by_id = {t["id"]: t for t in m.get_catalog()["threats"]}
+        # T1 Memory Poisoning maps to operational/RAG data poisoning
+        assert by_id["T-L2-001"]["owasp_asi"] == "T1"
+        assert by_id["T-L2-005"]["owasp_asi"] == "T1"
+        # T2 Tool Misuse — direct match
+        assert by_id["T-L7-004"]["owasp_asi"] == "T2"
+        # T3 Privilege Compromise — orchestration, lateral movement
+        assert by_id["T-L4-002"]["owasp_asi"] == "T3"
+        assert by_id["T-L4-006"]["owasp_asi"] == "T3"
+
+    def test_nist_ai_rmf_tags_use_valid_functions(self):
+        m = MaestroThreatModel("dummy.toml", "out", validate_paths=False)
+        valid = {"Govern", "Map", "Measure", "Manage"}
+        for t in m.get_catalog()["threats"]:
+            val = t.get("nist_ai_rmf")
+            assert val is None or val in valid, (
+                f"{t['id']} has invalid nist_ai_rmf value {val!r}"
+            )
+
+    def test_auto_populate_carries_new_fields_to_threat(self):
+        """New catalog fields must flow through into per-agent Threat instances."""
+        import tempfile
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
+            f.write('''
+[meta]
+name = "Cross-framework field carry-through"
+
+[[agents]]
+id = "support"
+layers = ["data-operations", "agent-frameworks", "agent-ecosystem"]
+''')
+            f.flush()
+            try:
+                m = MaestroThreatModel(f.name, "out", validate_paths=False)
+                m.load()
+                # T-L2-001 is the catalog threat for data poisoning; pick the
+                # composite instance for our agent.
+                composite = next(
+                    t for t in m.threats.values()
+                    if t.id == "T-L2-001@support"
+                )
+                assert composite.owasp_asi == "T1"
+                assert composite.nist_ai_rmf == "Govern"
+            finally:
+                os.unlink(f.name)
 
 
 class TestTemplate:

@@ -145,6 +145,8 @@ class Threat:
     stride_category: Optional[str] = None
     stride_mapping: str = "informational"
     mitre_attack: Optional[str] = None
+    owasp_asi: Optional[str] = None
+    nist_ai_rmf: Optional[str] = None
     from_catalog: bool = False
 
 
@@ -589,6 +591,8 @@ class MaestroThreatModel(VisualizationBase):
             stride_category=catalog_threat.get("stride_category"),
             stride_mapping=catalog_threat.get("stride_mapping", "informational"),
             mitre_attack=catalog_threat.get("mitre_attack"),
+            owasp_asi=catalog_threat.get("owasp_asi"),
+            nist_ai_rmf=catalog_threat.get("nist_ai_rmf"),
             from_catalog=True,
         )
 
@@ -617,6 +621,8 @@ class MaestroThreatModel(VisualizationBase):
                     stride_category=raw.get("stride_category"),
                     stride_mapping=raw.get("stride_mapping", "informational"),
                     mitre_attack=raw.get("mitre_attack"),
+                    owasp_asi=raw.get("owasp_asi"),
+                    nist_ai_rmf=raw.get("nist_ai_rmf"),
                     from_catalog=False,
                 )
                 continue
@@ -627,8 +633,9 @@ class MaestroThreatModel(VisualizationBase):
                     setattr(existing, attr, raw[attr])
             if "mitigations" in raw and isinstance(raw["mitigations"], list):
                 existing.mitigations = list(raw["mitigations"])
-            if "mitre_attack" in raw and raw["mitre_attack"]:
-                existing.mitre_attack = raw["mitre_attack"]
+            for attr in ("mitre_attack", "owasp_asi", "nist_ai_rmf"):
+                if attr in raw and raw[attr]:
+                    setattr(existing, attr, raw[attr])
 
     # ----------------------------------------------------------------- render
 

@@ -1,8 +1,12 @@
 {
-  "catalog_version": "2026.2",
+  "catalog_version": "2026.3",
   "framework_version": "MAESTRO 1.0 (2025-02)",
   "framework_reference": "https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro",
-  "description": "Baseline threat catalog for the MAESTRO agentic AI threat modeling framework. Threat IDs are immutable across catalog versions; deprecated entries keep their ID with deprecated: true. ATT&CK mappings are best-effort placeholders subject to revision by a security expert.",
+  "description": "Baseline threat catalog for the MAESTRO agentic AI threat modeling framework. Threat IDs are immutable across catalog versions; deprecated entries keep their ID with deprecated: true. ATT&CK, OWASP ASI, and NIST AI RMF mappings are best-effort and subject to revision by a security expert.",
+  "additional_references": {
+    "owasp_asi": "OWASP Agentic Security Initiative threat taxonomy (T1 Memory Poisoning, T2 Tool Misuse, T3 Privilege Compromise)",
+    "nist_ai_rmf": "NIST AI Risk Management Framework functions: Govern, Map, Measure, Manage"
+  },
   "layers": {
     "foundation-models": {
       "id": 1,
@@ -52,7 +56,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "partial",
       "mitre_attack": "T1565.001",
-      "default_mitigations": ["M-adversarial-training", "M-input-validation"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-adversarial-training",
+        "M-input-validation"
+      ]
     },
     {
       "id": "T-L1-002",
@@ -64,7 +73,12 @@
       "stride_category": "Information Disclosure",
       "stride_mapping": "exact",
       "mitre_attack": "TA0010",
-      "default_mitigations": ["M-rate-limiting", "M-query-monitoring"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-rate-limiting",
+        "M-query-monitoring"
+      ]
     },
     {
       "id": "T-L1-003",
@@ -76,7 +90,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "partial",
       "mitre_attack": null,
-      "default_mitigations": ["M-model-provenance", "M-backdoor-scanning"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-model-provenance",
+        "M-backdoor-scanning"
+      ]
     },
     {
       "id": "T-L1-004",
@@ -88,7 +107,12 @@
       "stride_category": "Information Disclosure",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-differential-privacy", "M-output-perturbation"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-differential-privacy",
+        "M-output-perturbation"
+      ]
     },
     {
       "id": "T-L1-005",
@@ -100,7 +124,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "exact",
       "mitre_attack": "T1565.002",
-      "default_mitigations": ["M-data-provenance", "M-training-data-validation"]
+      "owasp_asi": "T1",
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-data-provenance",
+        "M-training-data-validation"
+      ]
     },
     {
       "id": "T-L1-006",
@@ -112,7 +141,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "partial",
       "mitre_attack": null,
-      "default_mitigations": ["M-input-validation", "M-task-scoping"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-input-validation",
+        "M-task-scoping"
+      ]
     },
     {
       "id": "T-L1-007",
@@ -124,7 +158,12 @@
       "stride_category": "Denial of Service",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-rate-limiting", "M-query-cost-limits"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-rate-limiting",
+        "M-query-cost-limits"
+      ]
     },
     {
       "id": "T-L2-001",
@@ -136,7 +175,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "exact",
       "mitre_attack": "T1565",
-      "default_mitigations": ["M-data-provenance", "M-content-filtering"]
+      "owasp_asi": "T1",
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-data-provenance",
+        "M-content-filtering"
+      ]
     },
     {
       "id": "T-L2-002",
@@ -148,7 +192,13 @@
       "stride_category": "Information Disclosure",
       "stride_mapping": "exact",
       "mitre_attack": "TA0010",
-      "default_mitigations": ["M-access-control", "M-encryption-at-rest", "M-egress-monitoring"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-access-control",
+        "M-encryption-at-rest",
+        "M-egress-monitoring"
+      ]
     },
     {
       "id": "T-L2-003",
@@ -160,7 +210,12 @@
       "stride_category": "Denial of Service",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-rate-limiting", "M-caching"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-rate-limiting",
+        "M-caching"
+      ]
     },
     {
       "id": "T-L2-004",
@@ -172,7 +227,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-encryption-in-transit", "M-integrity-checks"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-encryption-in-transit",
+        "M-integrity-checks"
+      ]
     },
     {
       "id": "T-L2-005",
@@ -184,7 +244,13 @@
       "stride_category": "Tampering",
       "stride_mapping": "partial",
       "mitre_attack": "T1195",
-      "default_mitigations": ["M-rag-content-filtering", "M-source-attribution", "M-content-sanitization"]
+      "owasp_asi": "T1",
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-rag-content-filtering",
+        "M-source-attribution",
+        "M-content-sanitization"
+      ]
     },
     {
       "id": "T-L3-001",
@@ -196,7 +262,13 @@
       "stride_category": "Tampering",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-dependency-pinning", "M-sbom", "M-vuln-scanning"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-dependency-pinning",
+        "M-sbom",
+        "M-vuln-scanning"
+      ]
     },
     {
       "id": "T-L3-002",
@@ -208,7 +280,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "partial",
       "mitre_attack": null,
-      "default_mitigations": ["M-framework-audit", "M-supply-chain-verification"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-framework-audit",
+        "M-supply-chain-verification"
+      ]
     },
     {
       "id": "T-L3-003",
@@ -220,7 +297,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-input-validation", "M-output-encoding"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-input-validation",
+        "M-output-encoding"
+      ]
     },
     {
       "id": "T-L3-004",
@@ -232,7 +314,13 @@
       "stride_category": "Tampering",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-dependency-pinning", "M-sbom", "M-signature-verification"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-dependency-pinning",
+        "M-sbom",
+        "M-signature-verification"
+      ]
     },
     {
       "id": "T-L3-005",
@@ -244,7 +332,12 @@
       "stride_category": "Denial of Service",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-rate-limiting", "M-circuit-breakers"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-rate-limiting",
+        "M-circuit-breakers"
+      ]
     },
     {
       "id": "T-L3-006",
@@ -256,7 +349,12 @@
       "stride_category": "Elevation of Privilege",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-framework-hardening", "M-defense-in-depth"]
+      "owasp_asi": "T3",
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-framework-hardening",
+        "M-defense-in-depth"
+      ]
     },
     {
       "id": "T-L4-001",
@@ -268,7 +366,13 @@
       "stride_category": "Tampering",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-image-signing", "M-image-scanning", "M-trusted-registry"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-image-signing",
+        "M-image-scanning",
+        "M-trusted-registry"
+      ]
     },
     {
       "id": "T-L4-002",
@@ -280,7 +384,13 @@
       "stride_category": "Elevation of Privilege",
       "stride_mapping": "exact",
       "mitre_attack": "T1611",
-      "default_mitigations": ["M-rbac", "M-network-policies", "M-admission-control"]
+      "owasp_asi": "T3",
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-rbac",
+        "M-network-policies",
+        "M-admission-control"
+      ]
     },
     {
       "id": "T-L4-003",
@@ -292,7 +402,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-iac-review", "M-iac-policy-as-code"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-iac-review",
+        "M-iac-policy-as-code"
+      ]
     },
     {
       "id": "T-L4-004",
@@ -304,7 +419,12 @@
       "stride_category": "Denial of Service",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-autoscaling", "M-resource-quotas"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-autoscaling",
+        "M-resource-quotas"
+      ]
     },
     {
       "id": "T-L4-005",
@@ -316,7 +436,12 @@
       "stride_category": "Elevation of Privilege",
       "stride_mapping": "partial",
       "mitre_attack": "T1496",
-      "default_mitigations": ["M-workload-policies", "M-resource-monitoring"]
+      "owasp_asi": "T3",
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-workload-policies",
+        "M-resource-monitoring"
+      ]
     },
     {
       "id": "T-L4-006",
@@ -328,7 +453,12 @@
       "stride_category": "Elevation of Privilege",
       "stride_mapping": "exact",
       "mitre_attack": "TA0008",
-      "default_mitigations": ["M-network-segmentation", "M-least-privilege"]
+      "owasp_asi": "T3",
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-network-segmentation",
+        "M-least-privilege"
+      ]
     },
     {
       "id": "T-L5-001",
@@ -340,7 +470,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "partial",
       "mitre_attack": null,
-      "default_mitigations": ["M-metric-validation", "M-eval-data-provenance"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Measure",
+      "default_mitigations": [
+        "M-metric-validation",
+        "M-eval-data-provenance"
+      ]
     },
     {
       "id": "T-L5-002",
@@ -352,7 +487,12 @@
       "stride_category": "Information Disclosure",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-observability-hardening", "M-telemetry-encryption"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Measure",
+      "default_mitigations": [
+        "M-observability-hardening",
+        "M-telemetry-encryption"
+      ]
     },
     {
       "id": "T-L5-003",
@@ -364,7 +504,12 @@
       "stride_category": "Denial of Service",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-rate-limiting", "M-redundant-monitoring"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Measure",
+      "default_mitigations": [
+        "M-rate-limiting",
+        "M-redundant-monitoring"
+      ]
     },
     {
       "id": "T-L5-004",
@@ -376,7 +521,12 @@
       "stride_category": "Repudiation",
       "stride_mapping": "partial",
       "mitre_attack": null,
-      "default_mitigations": ["M-behavioral-baselines", "M-anomaly-detection"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Measure",
+      "default_mitigations": [
+        "M-behavioral-baselines",
+        "M-anomaly-detection"
+      ]
     },
     {
       "id": "T-L5-005",
@@ -388,7 +538,12 @@
       "stride_category": "Information Disclosure",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-log-redaction", "M-access-control"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Measure",
+      "default_mitigations": [
+        "M-log-redaction",
+        "M-access-control"
+      ]
     },
     {
       "id": "T-L5-006",
@@ -400,7 +555,12 @@
       "stride_category": "Repudiation",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-telemetry-integrity", "M-log-signing"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Measure",
+      "default_mitigations": [
+        "M-telemetry-integrity",
+        "M-log-signing"
+      ]
     },
     {
       "id": "T-L6-001",
@@ -412,7 +572,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "partial",
       "mitre_attack": null,
-      "default_mitigations": ["M-security-agent-data-validation", "M-redundant-controls"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-security-agent-data-validation",
+        "M-redundant-controls"
+      ]
     },
     {
       "id": "T-L6-002",
@@ -424,7 +589,12 @@
       "stride_category": null,
       "stride_mapping": "informational",
       "mitre_attack": null,
-      "default_mitigations": ["M-adversarial-training", "M-defense-in-depth"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-adversarial-training",
+        "M-defense-in-depth"
+      ]
     },
     {
       "id": "T-L6-003",
@@ -436,7 +606,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-security-agent-attestation", "M-segregation-of-duties"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-security-agent-attestation",
+        "M-segregation-of-duties"
+      ]
     },
     {
       "id": "T-L6-004",
@@ -448,7 +623,12 @@
       "stride_category": null,
       "stride_mapping": "informational",
       "mitre_attack": null,
-      "default_mitigations": ["M-compliance-monitoring", "M-policy-as-code"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-compliance-monitoring",
+        "M-policy-as-code"
+      ]
     },
     {
       "id": "T-L6-005",
@@ -460,7 +640,12 @@
       "stride_category": null,
       "stride_mapping": "informational",
       "mitre_attack": null,
-      "default_mitigations": ["M-bias-audit", "M-diverse-training-data"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Map",
+      "default_mitigations": [
+        "M-bias-audit",
+        "M-diverse-training-data"
+      ]
     },
     {
       "id": "T-L6-006",
@@ -472,7 +657,12 @@
       "stride_category": null,
       "stride_mapping": "informational",
       "mitre_attack": null,
-      "default_mitigations": ["M-explainability-features", "M-decision-logging"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-explainability-features",
+        "M-decision-logging"
+      ]
     },
     {
       "id": "T-L6-007",
@@ -484,7 +674,12 @@
       "stride_category": "Information Disclosure",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-rate-limiting", "M-query-monitoring"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-rate-limiting",
+        "M-query-monitoring"
+      ]
     },
     {
       "id": "T-L7-001",
@@ -496,7 +691,12 @@
       "stride_category": "Spoofing",
       "stride_mapping": "partial",
       "mitre_attack": null,
-      "default_mitigations": ["M-agent-attestation", "M-marketplace-vetting"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-agent-attestation",
+        "M-marketplace-vetting"
+      ]
     },
     {
       "id": "T-L7-002",
@@ -508,7 +708,12 @@
       "stride_category": "Spoofing",
       "stride_mapping": "exact",
       "mitre_attack": "T1656",
-      "default_mitigations": ["M-agent-identity", "M-mutual-auth"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-agent-identity",
+        "M-mutual-auth"
+      ]
     },
     {
       "id": "T-L7-003",
@@ -520,7 +725,12 @@
       "stride_category": "Spoofing",
       "stride_mapping": "exact",
       "mitre_attack": "T1556",
-      "default_mitigations": ["M-secret-rotation", "M-mfa-for-agents"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-secret-rotation",
+        "M-mfa-for-agents"
+      ]
     },
     {
       "id": "T-L7-004",
@@ -532,7 +742,13 @@
       "stride_category": "Elevation of Privilege",
       "stride_mapping": "partial",
       "mitre_attack": null,
-      "default_mitigations": ["M-tool-allowlist", "M-tool-output-validation", "M-human-approval"]
+      "owasp_asi": "T2",
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-tool-allowlist",
+        "M-tool-output-validation",
+        "M-human-approval"
+      ]
     },
     {
       "id": "T-L7-005",
@@ -544,7 +760,12 @@
       "stride_category": null,
       "stride_mapping": "informational",
       "mitre_attack": null,
-      "default_mitigations": ["M-goal-constraints", "M-objective-monitoring"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Map",
+      "default_mitigations": [
+        "M-goal-constraints",
+        "M-objective-monitoring"
+      ]
     },
     {
       "id": "T-L7-006",
@@ -556,7 +777,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "partial",
       "mitre_attack": null,
-      "default_mitigations": ["M-review-verification", "M-anti-fraud-controls"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-review-verification",
+        "M-anti-fraud-controls"
+      ]
     },
     {
       "id": "T-L7-007",
@@ -568,7 +794,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "partial",
       "mitre_attack": null,
-      "default_mitigations": ["M-api-hardening", "M-sdk-version-pinning"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-api-hardening",
+        "M-sdk-version-pinning"
+      ]
     },
     {
       "id": "T-L7-008",
@@ -580,7 +811,12 @@
       "stride_category": null,
       "stride_mapping": "informational",
       "mitre_attack": null,
-      "default_mitigations": ["M-domain-specific-controls", "M-third-party-audit"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Map",
+      "default_mitigations": [
+        "M-domain-specific-controls",
+        "M-third-party-audit"
+      ]
     },
     {
       "id": "T-L7-009",
@@ -592,7 +828,12 @@
       "stride_category": "Repudiation",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-signed-actions", "M-audit-log-integrity"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-signed-actions",
+        "M-audit-log-integrity"
+      ]
     },
     {
       "id": "T-L7-010",
@@ -604,7 +845,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "exact",
       "mitre_attack": null,
-      "default_mitigations": ["M-registry-signing", "M-publisher-verification"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-registry-signing",
+        "M-publisher-verification"
+      ]
     },
     {
       "id": "T-L7-011",
@@ -616,7 +862,12 @@
       "stride_category": "Tampering",
       "stride_mapping": "partial",
       "mitre_attack": null,
-      "default_mitigations": ["M-search-integrity", "M-ranking-audit"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-search-integrity",
+        "M-ranking-audit"
+      ]
     },
     {
       "id": "T-L7-012",
@@ -628,7 +879,12 @@
       "stride_category": null,
       "stride_mapping": "informational",
       "mitre_attack": null,
-      "default_mitigations": ["M-cost-limits", "M-anomaly-billing-detection"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Manage",
+      "default_mitigations": [
+        "M-cost-limits",
+        "M-anomaly-billing-detection"
+      ]
     },
     {
       "id": "T-L7-013",
@@ -640,7 +896,100 @@
       "stride_category": null,
       "stride_mapping": "informational",
       "mitre_attack": null,
-      "default_mitigations": ["M-capability-attestation", "M-third-party-validation"]
+      "owasp_asi": null,
+      "nist_ai_rmf": "Map",
+      "default_mitigations": [
+        "M-capability-attestation",
+        "M-third-party-validation"
+      ]
+    },
+    {
+      "id": "T-L1-008",
+      "layer": "foundation-models",
+      "name": "Sleeper Agents",
+      "description": "Dormant malicious behavior planted in a model that activates only under specific trigger conditions (date, input pattern, deployment signal). Distinct from generic backdoors in that the trigger is operational rather than input-content-based.",
+      "default_severity": "critical",
+      "default_likelihood": "low",
+      "stride_category": "Tampering",
+      "stride_mapping": "partial",
+      "mitre_attack": null,
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-model-provenance",
+        "M-backdoor-scanning",
+        "M-behavioral-baselines"
+      ]
+    },
+    {
+      "id": "T-L5-007",
+      "layer": "observability",
+      "name": "Log Injection (Cover Tracks)",
+      "description": "Adversary injects forged log entries to mask malicious activity, distinct from generic log poisoning by intent: cover-tracks rather than corrupt-metrics.",
+      "default_severity": "high",
+      "default_likelihood": "medium",
+      "stride_category": "Repudiation",
+      "stride_mapping": "exact",
+      "mitre_attack": "T1070",
+      "owasp_asi": null,
+      "nist_ai_rmf": "Measure",
+      "default_mitigations": [
+        "M-log-signing",
+        "M-audit-log-integrity"
+      ]
+    },
+    {
+      "id": "T-L5-008",
+      "layer": "observability",
+      "name": "False-Positive Flooding",
+      "description": "Adversary generates a high volume of benign-but-suspicious activity to exhaust human reviewer attention, causing real attacks to be missed in the noise. Uniquely agentic DoS against HITL workflows.",
+      "default_severity": "high",
+      "default_likelihood": "medium",
+      "stride_category": "Denial of Service",
+      "stride_mapping": "partial",
+      "mitre_attack": null,
+      "owasp_asi": null,
+      "nist_ai_rmf": "Measure",
+      "default_mitigations": [
+        "M-anomaly-detection",
+        "M-rate-limiting"
+      ]
+    },
+    {
+      "id": "T-L6-008",
+      "layer": "security",
+      "name": "Compliance Bypass via Policy Interpretation",
+      "description": "Agent technically satisfies the letter of a policy while violating its intent, exploiting the gap between human-designed rules and agent interpretation. Particularly likely in deliberative or learning agents.",
+      "default_severity": "high",
+      "default_likelihood": "medium",
+      "stride_category": null,
+      "stride_mapping": "informational",
+      "mitre_attack": null,
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-policy-as-code",
+        "M-compliance-monitoring",
+        "M-explainability-features"
+      ]
+    },
+    {
+      "id": "T-L7-014",
+      "layer": "agent-ecosystem",
+      "name": "Reputation Manipulation",
+      "description": "Distinct from generic marketplace manipulation: targeted attack on the trust signals (ratings, audit scores, attestations) of a specific agent to inflate or deflate its standing.",
+      "default_severity": "medium",
+      "default_likelihood": "medium",
+      "stride_category": "Tampering",
+      "stride_mapping": "exact",
+      "mitre_attack": null,
+      "owasp_asi": null,
+      "nist_ai_rmf": "Govern",
+      "default_mitigations": [
+        "M-review-verification",
+        "M-anti-fraud-controls",
+        "M-publisher-verification"
+      ]
     }
   ],
   "cross_layer_threats": [
@@ -648,7 +997,11 @@
       "id": "T-CL-001",
       "name": "Supply Chain Attack Cascade",
       "description": "Compromised component at one layer propagates damage to downstream layers.",
-      "layers": ["agent-frameworks", "infrastructure", "agent-ecosystem"],
+      "layers": [
+        "agent-frameworks",
+        "infrastructure",
+        "agent-ecosystem"
+      ],
       "default_severity": "critical",
       "default_likelihood": "medium"
     },
@@ -656,7 +1009,11 @@
       "id": "T-CL-002",
       "name": "Lateral Movement",
       "description": "Access at one layer is used to breach others.",
-      "layers": ["infrastructure", "data-operations", "agent-ecosystem"],
+      "layers": [
+        "infrastructure",
+        "data-operations",
+        "agent-ecosystem"
+      ],
       "default_severity": "high",
       "default_likelihood": "medium"
     },
@@ -664,15 +1021,23 @@
       "id": "T-CL-003",
       "name": "Cross-Layer Privilege Escalation",
       "description": "Unauthorized escalation spanning layer boundaries.",
-      "layers": ["infrastructure", "agent-frameworks", "agent-ecosystem"],
+      "layers": [
+        "infrastructure",
+        "agent-frameworks",
+        "agent-ecosystem"
+      ],
       "default_severity": "critical",
       "default_likelihood": "low"
     },
     {
       "id": "T-CL-004",
       "name": "Cross-Layer Data Leakage",
-      "description": "Sensitive information exposed through layer interactions (e.g., prompt → log → external).",
-      "layers": ["agent-ecosystem", "data-operations", "observability"],
+      "description": "Sensitive information exposed through layer interactions (e.g., prompt \u2192 log \u2192 external).",
+      "layers": [
+        "agent-ecosystem",
+        "data-operations",
+        "observability"
+      ],
       "default_severity": "high",
       "default_likelihood": "high"
     },
@@ -680,114 +1045,621 @@
       "id": "T-CL-005",
       "name": "Goal Misalignment Cascade",
       "description": "Misaligned goal in one agent propagates through agent interactions.",
-      "layers": ["agent-ecosystem", "agent-frameworks"],
+      "layers": [
+        "agent-ecosystem",
+        "agent-frameworks"
+      ],
+      "default_severity": "high",
+      "default_likelihood": "medium"
+    },
+    {
+      "id": "T-CL-006",
+      "name": "Cascade Failure Propagation",
+      "description": "A failure or compromise in one agent propagates through downstream agents via shared state, tool dependencies, or message buses, amplifying impact beyond the initial compromise.",
+      "layers": [
+        "agent-frameworks",
+        "agent-ecosystem"
+      ],
       "default_severity": "high",
       "default_likelihood": "medium"
     }
   ],
   "pattern_threats": {
-    "single-agent": ["T-L7-005"],
-    "multi-agent": ["T-L7-002", "T-L7-003", "T-CL-005"],
-    "unconstrained-conversational": ["T-L1-006", "T-L3-003"],
-    "task-oriented": ["T-L1-007", "T-L3-005"],
-    "hierarchical": ["T-L7-001", "T-CL-003"],
-    "distributed": ["T-L7-001", "T-L7-002", "T-L7-010"],
-    "human-in-the-loop": ["T-L5-001", "T-L7-005"],
-    "self-learning": ["T-L1-003", "T-L1-005", "T-L2-001"]
+    "single-agent": [
+      "T-L7-005"
+    ],
+    "multi-agent": [
+      "T-L7-002",
+      "T-L7-003",
+      "T-CL-005"
+    ],
+    "unconstrained-conversational": [
+      "T-L1-006",
+      "T-L3-003"
+    ],
+    "task-oriented": [
+      "T-L1-007",
+      "T-L3-005"
+    ],
+    "hierarchical": [
+      "T-L7-001",
+      "T-CL-003",
+      "T-CL-006"
+    ],
+    "distributed": [
+      "T-L7-001",
+      "T-L7-002",
+      "T-L7-010",
+      "T-CL-006"
+    ],
+    "human-in-the-loop": [
+      "T-L5-001",
+      "T-L7-005"
+    ],
+    "self-learning": [
+      "T-L1-003",
+      "T-L1-005",
+      "T-L2-001"
+    ]
   },
   "mitigations": [
-    { "id": "M-adversarial-training", "layer": "foundation-models", "name": "Adversarial training", "type": "preventive" },
-    { "id": "M-input-validation", "layer": "agent-frameworks", "name": "Input validation at boundaries", "type": "preventive" },
-    { "id": "M-rate-limiting", "layer": "agent-frameworks", "name": "Rate limiting", "type": "preventive" },
-    { "id": "M-query-monitoring", "layer": "observability", "name": "Query pattern monitoring", "type": "detective" },
-    { "id": "M-model-provenance", "layer": "foundation-models", "name": "Model provenance tracking", "type": "preventive" },
-    { "id": "M-backdoor-scanning", "layer": "foundation-models", "name": "Backdoor scanning tools", "type": "detective" },
-    { "id": "M-differential-privacy", "layer": "foundation-models", "name": "Differential privacy", "type": "preventive" },
-    { "id": "M-output-perturbation", "layer": "foundation-models", "name": "Output perturbation", "type": "preventive" },
-    { "id": "M-data-provenance", "layer": "data-operations", "name": "Data provenance tracking", "type": "detective" },
-    { "id": "M-training-data-validation", "layer": "data-operations", "name": "Training data validation", "type": "preventive" },
-    { "id": "M-task-scoping", "layer": "agent-ecosystem", "name": "Task scope constraints", "type": "preventive" },
-    { "id": "M-query-cost-limits", "layer": "agent-frameworks", "name": "Per-query cost limits", "type": "preventive" },
-    { "id": "M-content-filtering", "layer": "data-operations", "name": "Content filtering", "type": "preventive" },
-    { "id": "M-access-control", "layer": "data-operations", "name": "Fine-grained access control", "type": "preventive" },
-    { "id": "M-encryption-at-rest", "layer": "data-operations", "name": "Encryption at rest", "type": "preventive" },
-    { "id": "M-egress-monitoring", "layer": "observability", "name": "Egress monitoring", "type": "detective" },
-    { "id": "M-caching", "layer": "data-operations", "name": "Result caching", "type": "preventive" },
-    { "id": "M-encryption-in-transit", "layer": "data-operations", "name": "Encryption in transit", "type": "preventive" },
-    { "id": "M-integrity-checks", "layer": "data-operations", "name": "Integrity checks (HMAC/signatures)", "type": "detective" },
-    { "id": "M-rag-content-filtering", "layer": "data-operations", "name": "RAG content filtering", "type": "preventive" },
-    { "id": "M-source-attribution", "layer": "data-operations", "name": "RAG source attribution", "type": "detective" },
-    { "id": "M-content-sanitization", "layer": "data-operations", "name": "Content sanitization", "type": "preventive" },
-    { "id": "M-dependency-pinning", "layer": "agent-frameworks", "name": "Dependency pinning", "type": "preventive" },
-    { "id": "M-sbom", "layer": "agent-frameworks", "name": "SBOM generation and verification", "type": "preventive" },
-    { "id": "M-vuln-scanning", "layer": "agent-frameworks", "name": "Vulnerability scanning", "type": "detective" },
-    { "id": "M-framework-audit", "layer": "agent-frameworks", "name": "Framework security audit", "type": "detective" },
-    { "id": "M-supply-chain-verification", "layer": "agent-frameworks", "name": "Supply chain verification", "type": "preventive" },
-    { "id": "M-output-encoding", "layer": "agent-frameworks", "name": "Output encoding", "type": "preventive" },
-    { "id": "M-signature-verification", "layer": "agent-frameworks", "name": "Package signature verification", "type": "preventive" },
-    { "id": "M-circuit-breakers", "layer": "agent-frameworks", "name": "Circuit breakers", "type": "responsive" },
-    { "id": "M-framework-hardening", "layer": "agent-frameworks", "name": "Framework hardening (sandbox, allowlist)", "type": "preventive" },
-    { "id": "M-defense-in-depth", "layer": "security", "name": "Defense in depth", "type": "preventive" },
-    { "id": "M-image-signing", "layer": "infrastructure", "name": "Container image signing", "type": "preventive" },
-    { "id": "M-image-scanning", "layer": "infrastructure", "name": "Container image scanning", "type": "detective" },
-    { "id": "M-trusted-registry", "layer": "infrastructure", "name": "Trusted image registry", "type": "preventive" },
-    { "id": "M-rbac", "layer": "infrastructure", "name": "RBAC", "type": "preventive" },
-    { "id": "M-network-policies", "layer": "infrastructure", "name": "Network policies", "type": "preventive" },
-    { "id": "M-admission-control", "layer": "infrastructure", "name": "Admission control", "type": "preventive" },
-    { "id": "M-iac-review", "layer": "infrastructure", "name": "IaC peer review", "type": "preventive" },
-    { "id": "M-iac-policy-as-code", "layer": "infrastructure", "name": "Policy-as-code for IaC", "type": "detective" },
-    { "id": "M-autoscaling", "layer": "infrastructure", "name": "Autoscaling", "type": "responsive" },
-    { "id": "M-resource-quotas", "layer": "infrastructure", "name": "Resource quotas", "type": "preventive" },
-    { "id": "M-workload-policies", "layer": "infrastructure", "name": "Workload identity policies", "type": "preventive" },
-    { "id": "M-resource-monitoring", "layer": "observability", "name": "Resource usage monitoring", "type": "detective" },
-    { "id": "M-network-segmentation", "layer": "infrastructure", "name": "Network segmentation", "type": "preventive" },
-    { "id": "M-least-privilege", "layer": "security", "name": "Principle of least privilege", "type": "preventive" },
-    { "id": "M-metric-validation", "layer": "observability", "name": "Metric validation", "type": "detective" },
-    { "id": "M-eval-data-provenance", "layer": "observability", "name": "Evaluation data provenance", "type": "preventive" },
-    { "id": "M-observability-hardening", "layer": "observability", "name": "Observability stack hardening", "type": "preventive" },
-    { "id": "M-telemetry-encryption", "layer": "observability", "name": "Telemetry encryption", "type": "preventive" },
-    { "id": "M-redundant-monitoring", "layer": "observability", "name": "Redundant monitoring paths", "type": "preventive" },
-    { "id": "M-behavioral-baselines", "layer": "observability", "name": "Behavioral baselines", "type": "detective" },
-    { "id": "M-anomaly-detection", "layer": "observability", "name": "Anomaly detection", "type": "detective" },
-    { "id": "M-log-redaction", "layer": "observability", "name": "Log redaction", "type": "preventive" },
-    { "id": "M-telemetry-integrity", "layer": "observability", "name": "Telemetry integrity checks", "type": "detective" },
-    { "id": "M-log-signing", "layer": "observability", "name": "Log signing", "type": "detective" },
-    { "id": "M-security-agent-data-validation", "layer": "security", "name": "Security agent data validation", "type": "preventive" },
-    { "id": "M-redundant-controls", "layer": "security", "name": "Redundant security controls", "type": "preventive" },
-    { "id": "M-security-agent-attestation", "layer": "security", "name": "Security agent attestation", "type": "detective" },
-    { "id": "M-segregation-of-duties", "layer": "security", "name": "Segregation of duties", "type": "preventive" },
-    { "id": "M-compliance-monitoring", "layer": "security", "name": "Compliance monitoring", "type": "detective" },
-    { "id": "M-policy-as-code", "layer": "security", "name": "Policy as code", "type": "preventive" },
-    { "id": "M-bias-audit", "layer": "security", "name": "Bias audit", "type": "detective" },
-    { "id": "M-diverse-training-data", "layer": "security", "name": "Diverse training data", "type": "preventive" },
-    { "id": "M-explainability-features", "layer": "security", "name": "Explainability features", "type": "preventive" },
-    { "id": "M-decision-logging", "layer": "security", "name": "Decision logging", "type": "detective" },
-    { "id": "M-agent-attestation", "layer": "agent-ecosystem", "name": "Agent attestation", "type": "preventive" },
-    { "id": "M-marketplace-vetting", "layer": "agent-ecosystem", "name": "Marketplace vetting", "type": "preventive" },
-    { "id": "M-agent-identity", "layer": "agent-ecosystem", "name": "Strong agent identity", "type": "preventive" },
-    { "id": "M-mutual-auth", "layer": "agent-ecosystem", "name": "Mutual authentication", "type": "preventive" },
-    { "id": "M-secret-rotation", "layer": "agent-ecosystem", "name": "Secret rotation", "type": "preventive" },
-    { "id": "M-mfa-for-agents", "layer": "agent-ecosystem", "name": "MFA for agent identity", "type": "preventive" },
-    { "id": "M-tool-allowlist", "layer": "agent-ecosystem", "name": "Tool allowlist", "type": "preventive" },
-    { "id": "M-tool-output-validation", "layer": "agent-ecosystem", "name": "Tool output validation", "type": "preventive" },
-    { "id": "M-human-approval", "layer": "agent-ecosystem", "name": "Human approval gate", "type": "preventive" },
-    { "id": "M-goal-constraints", "layer": "agent-ecosystem", "name": "Goal constraints / guardrails", "type": "preventive" },
-    { "id": "M-objective-monitoring", "layer": "observability", "name": "Objective drift monitoring", "type": "detective" },
-    { "id": "M-review-verification", "layer": "agent-ecosystem", "name": "Review and rating verification", "type": "preventive" },
-    { "id": "M-anti-fraud-controls", "layer": "agent-ecosystem", "name": "Anti-fraud controls", "type": "detective" },
-    { "id": "M-api-hardening", "layer": "agent-ecosystem", "name": "API hardening", "type": "preventive" },
-    { "id": "M-sdk-version-pinning", "layer": "agent-ecosystem", "name": "SDK version pinning", "type": "preventive" },
-    { "id": "M-domain-specific-controls", "layer": "agent-ecosystem", "name": "Domain-specific controls", "type": "preventive" },
-    { "id": "M-third-party-audit", "layer": "security", "name": "Third-party security audit", "type": "detective" },
-    { "id": "M-signed-actions", "layer": "agent-ecosystem", "name": "Cryptographically signed actions", "type": "preventive" },
-    { "id": "M-audit-log-integrity", "layer": "observability", "name": "Audit log integrity", "type": "detective" },
-    { "id": "M-registry-signing", "layer": "agent-ecosystem", "name": "Registry artifact signing", "type": "preventive" },
-    { "id": "M-publisher-verification", "layer": "agent-ecosystem", "name": "Publisher verification", "type": "preventive" },
-    { "id": "M-search-integrity", "layer": "agent-ecosystem", "name": "Search/ranking integrity", "type": "detective" },
-    { "id": "M-ranking-audit", "layer": "agent-ecosystem", "name": "Ranking audit", "type": "detective" },
-    { "id": "M-cost-limits", "layer": "agent-ecosystem", "name": "Cost limits / budgets", "type": "preventive" },
-    { "id": "M-anomaly-billing-detection", "layer": "observability", "name": "Anomaly billing detection", "type": "detective" },
-    { "id": "M-capability-attestation", "layer": "agent-ecosystem", "name": "Capability attestation", "type": "preventive" },
-    { "id": "M-third-party-validation", "layer": "agent-ecosystem", "name": "Third-party capability validation", "type": "detective" }
+    {
+      "id": "M-adversarial-training",
+      "layer": "foundation-models",
+      "name": "Adversarial training",
+      "type": "preventive"
+    },
+    {
+      "id": "M-input-validation",
+      "layer": "agent-frameworks",
+      "name": "Input validation at boundaries",
+      "type": "preventive"
+    },
+    {
+      "id": "M-rate-limiting",
+      "layer": "agent-frameworks",
+      "name": "Rate limiting",
+      "type": "preventive"
+    },
+    {
+      "id": "M-query-monitoring",
+      "layer": "observability",
+      "name": "Query pattern monitoring",
+      "type": "detective"
+    },
+    {
+      "id": "M-model-provenance",
+      "layer": "foundation-models",
+      "name": "Model provenance tracking",
+      "type": "preventive"
+    },
+    {
+      "id": "M-backdoor-scanning",
+      "layer": "foundation-models",
+      "name": "Backdoor scanning tools",
+      "type": "detective"
+    },
+    {
+      "id": "M-differential-privacy",
+      "layer": "foundation-models",
+      "name": "Differential privacy",
+      "type": "preventive"
+    },
+    {
+      "id": "M-output-perturbation",
+      "layer": "foundation-models",
+      "name": "Output perturbation",
+      "type": "preventive"
+    },
+    {
+      "id": "M-data-provenance",
+      "layer": "data-operations",
+      "name": "Data provenance tracking",
+      "type": "detective"
+    },
+    {
+      "id": "M-training-data-validation",
+      "layer": "data-operations",
+      "name": "Training data validation",
+      "type": "preventive"
+    },
+    {
+      "id": "M-task-scoping",
+      "layer": "agent-ecosystem",
+      "name": "Task scope constraints",
+      "type": "preventive"
+    },
+    {
+      "id": "M-query-cost-limits",
+      "layer": "agent-frameworks",
+      "name": "Per-query cost limits",
+      "type": "preventive"
+    },
+    {
+      "id": "M-content-filtering",
+      "layer": "data-operations",
+      "name": "Content filtering",
+      "type": "preventive"
+    },
+    {
+      "id": "M-access-control",
+      "layer": "data-operations",
+      "name": "Fine-grained access control",
+      "type": "preventive"
+    },
+    {
+      "id": "M-encryption-at-rest",
+      "layer": "data-operations",
+      "name": "Encryption at rest",
+      "type": "preventive"
+    },
+    {
+      "id": "M-egress-monitoring",
+      "layer": "observability",
+      "name": "Egress monitoring",
+      "type": "detective"
+    },
+    {
+      "id": "M-caching",
+      "layer": "data-operations",
+      "name": "Result caching",
+      "type": "preventive"
+    },
+    {
+      "id": "M-encryption-in-transit",
+      "layer": "data-operations",
+      "name": "Encryption in transit",
+      "type": "preventive"
+    },
+    {
+      "id": "M-integrity-checks",
+      "layer": "data-operations",
+      "name": "Integrity checks (HMAC/signatures)",
+      "type": "detective"
+    },
+    {
+      "id": "M-rag-content-filtering",
+      "layer": "data-operations",
+      "name": "RAG content filtering",
+      "type": "preventive"
+    },
+    {
+      "id": "M-source-attribution",
+      "layer": "data-operations",
+      "name": "RAG source attribution",
+      "type": "detective"
+    },
+    {
+      "id": "M-content-sanitization",
+      "layer": "data-operations",
+      "name": "Content sanitization",
+      "type": "preventive"
+    },
+    {
+      "id": "M-dependency-pinning",
+      "layer": "agent-frameworks",
+      "name": "Dependency pinning",
+      "type": "preventive"
+    },
+    {
+      "id": "M-sbom",
+      "layer": "agent-frameworks",
+      "name": "SBOM generation and verification",
+      "type": "preventive"
+    },
+    {
+      "id": "M-vuln-scanning",
+      "layer": "agent-frameworks",
+      "name": "Vulnerability scanning",
+      "type": "detective"
+    },
+    {
+      "id": "M-framework-audit",
+      "layer": "agent-frameworks",
+      "name": "Framework security audit",
+      "type": "detective"
+    },
+    {
+      "id": "M-supply-chain-verification",
+      "layer": "agent-frameworks",
+      "name": "Supply chain verification",
+      "type": "preventive"
+    },
+    {
+      "id": "M-output-encoding",
+      "layer": "agent-frameworks",
+      "name": "Output encoding",
+      "type": "preventive"
+    },
+    {
+      "id": "M-signature-verification",
+      "layer": "agent-frameworks",
+      "name": "Package signature verification",
+      "type": "preventive"
+    },
+    {
+      "id": "M-circuit-breakers",
+      "layer": "agent-frameworks",
+      "name": "Circuit breakers",
+      "type": "responsive"
+    },
+    {
+      "id": "M-framework-hardening",
+      "layer": "agent-frameworks",
+      "name": "Framework hardening (sandbox, allowlist)",
+      "type": "preventive"
+    },
+    {
+      "id": "M-defense-in-depth",
+      "layer": "security",
+      "name": "Defense in depth",
+      "type": "preventive"
+    },
+    {
+      "id": "M-image-signing",
+      "layer": "infrastructure",
+      "name": "Container image signing",
+      "type": "preventive"
+    },
+    {
+      "id": "M-image-scanning",
+      "layer": "infrastructure",
+      "name": "Container image scanning",
+      "type": "detective"
+    },
+    {
+      "id": "M-trusted-registry",
+      "layer": "infrastructure",
+      "name": "Trusted image registry",
+      "type": "preventive"
+    },
+    {
+      "id": "M-rbac",
+      "layer": "infrastructure",
+      "name": "RBAC",
+      "type": "preventive"
+    },
+    {
+      "id": "M-network-policies",
+      "layer": "infrastructure",
+      "name": "Network policies",
+      "type": "preventive"
+    },
+    {
+      "id": "M-admission-control",
+      "layer": "infrastructure",
+      "name": "Admission control",
+      "type": "preventive"
+    },
+    {
+      "id": "M-iac-review",
+      "layer": "infrastructure",
+      "name": "IaC peer review",
+      "type": "preventive"
+    },
+    {
+      "id": "M-iac-policy-as-code",
+      "layer": "infrastructure",
+      "name": "Policy-as-code for IaC",
+      "type": "detective"
+    },
+    {
+      "id": "M-autoscaling",
+      "layer": "infrastructure",
+      "name": "Autoscaling",
+      "type": "responsive"
+    },
+    {
+      "id": "M-resource-quotas",
+      "layer": "infrastructure",
+      "name": "Resource quotas",
+      "type": "preventive"
+    },
+    {
+      "id": "M-workload-policies",
+      "layer": "infrastructure",
+      "name": "Workload identity policies",
+      "type": "preventive"
+    },
+    {
+      "id": "M-resource-monitoring",
+      "layer": "observability",
+      "name": "Resource usage monitoring",
+      "type": "detective"
+    },
+    {
+      "id": "M-network-segmentation",
+      "layer": "infrastructure",
+      "name": "Network segmentation",
+      "type": "preventive"
+    },
+    {
+      "id": "M-least-privilege",
+      "layer": "security",
+      "name": "Principle of least privilege",
+      "type": "preventive"
+    },
+    {
+      "id": "M-metric-validation",
+      "layer": "observability",
+      "name": "Metric validation",
+      "type": "detective"
+    },
+    {
+      "id": "M-eval-data-provenance",
+      "layer": "observability",
+      "name": "Evaluation data provenance",
+      "type": "preventive"
+    },
+    {
+      "id": "M-observability-hardening",
+      "layer": "observability",
+      "name": "Observability stack hardening",
+      "type": "preventive"
+    },
+    {
+      "id": "M-telemetry-encryption",
+      "layer": "observability",
+      "name": "Telemetry encryption",
+      "type": "preventive"
+    },
+    {
+      "id": "M-redundant-monitoring",
+      "layer": "observability",
+      "name": "Redundant monitoring paths",
+      "type": "preventive"
+    },
+    {
+      "id": "M-behavioral-baselines",
+      "layer": "observability",
+      "name": "Behavioral baselines",
+      "type": "detective"
+    },
+    {
+      "id": "M-anomaly-detection",
+      "layer": "observability",
+      "name": "Anomaly detection",
+      "type": "detective"
+    },
+    {
+      "id": "M-log-redaction",
+      "layer": "observability",
+      "name": "Log redaction",
+      "type": "preventive"
+    },
+    {
+      "id": "M-telemetry-integrity",
+      "layer": "observability",
+      "name": "Telemetry integrity checks",
+      "type": "detective"
+    },
+    {
+      "id": "M-log-signing",
+      "layer": "observability",
+      "name": "Log signing",
+      "type": "detective"
+    },
+    {
+      "id": "M-security-agent-data-validation",
+      "layer": "security",
+      "name": "Security agent data validation",
+      "type": "preventive"
+    },
+    {
+      "id": "M-redundant-controls",
+      "layer": "security",
+      "name": "Redundant security controls",
+      "type": "preventive"
+    },
+    {
+      "id": "M-security-agent-attestation",
+      "layer": "security",
+      "name": "Security agent attestation",
+      "type": "detective"
+    },
+    {
+      "id": "M-segregation-of-duties",
+      "layer": "security",
+      "name": "Segregation of duties",
+      "type": "preventive"
+    },
+    {
+      "id": "M-compliance-monitoring",
+      "layer": "security",
+      "name": "Compliance monitoring",
+      "type": "detective"
+    },
+    {
+      "id": "M-policy-as-code",
+      "layer": "security",
+      "name": "Policy as code",
+      "type": "preventive"
+    },
+    {
+      "id": "M-bias-audit",
+      "layer": "security",
+      "name": "Bias audit",
+      "type": "detective"
+    },
+    {
+      "id": "M-diverse-training-data",
+      "layer": "security",
+      "name": "Diverse training data",
+      "type": "preventive"
+    },
+    {
+      "id": "M-explainability-features",
+      "layer": "security",
+      "name": "Explainability features",
+      "type": "preventive"
+    },
+    {
+      "id": "M-decision-logging",
+      "layer": "security",
+      "name": "Decision logging",
+      "type": "detective"
+    },
+    {
+      "id": "M-agent-attestation",
+      "layer": "agent-ecosystem",
+      "name": "Agent attestation",
+      "type": "preventive"
+    },
+    {
+      "id": "M-marketplace-vetting",
+      "layer": "agent-ecosystem",
+      "name": "Marketplace vetting",
+      "type": "preventive"
+    },
+    {
+      "id": "M-agent-identity",
+      "layer": "agent-ecosystem",
+      "name": "Strong agent identity",
+      "type": "preventive"
+    },
+    {
+      "id": "M-mutual-auth",
+      "layer": "agent-ecosystem",
+      "name": "Mutual authentication",
+      "type": "preventive"
+    },
+    {
+      "id": "M-secret-rotation",
+      "layer": "agent-ecosystem",
+      "name": "Secret rotation",
+      "type": "preventive"
+    },
+    {
+      "id": "M-mfa-for-agents",
+      "layer": "agent-ecosystem",
+      "name": "MFA for agent identity",
+      "type": "preventive"
+    },
+    {
+      "id": "M-tool-allowlist",
+      "layer": "agent-ecosystem",
+      "name": "Tool allowlist",
+      "type": "preventive"
+    },
+    {
+      "id": "M-tool-output-validation",
+      "layer": "agent-ecosystem",
+      "name": "Tool output validation",
+      "type": "preventive"
+    },
+    {
+      "id": "M-human-approval",
+      "layer": "agent-ecosystem",
+      "name": "Human approval gate",
+      "type": "preventive"
+    },
+    {
+      "id": "M-goal-constraints",
+      "layer": "agent-ecosystem",
+      "name": "Goal constraints / guardrails",
+      "type": "preventive"
+    },
+    {
+      "id": "M-objective-monitoring",
+      "layer": "observability",
+      "name": "Objective drift monitoring",
+      "type": "detective"
+    },
+    {
+      "id": "M-review-verification",
+      "layer": "agent-ecosystem",
+      "name": "Review and rating verification",
+      "type": "preventive"
+    },
+    {
+      "id": "M-anti-fraud-controls",
+      "layer": "agent-ecosystem",
+      "name": "Anti-fraud controls",
+      "type": "detective"
+    },
+    {
+      "id": "M-api-hardening",
+      "layer": "agent-ecosystem",
+      "name": "API hardening",
+      "type": "preventive"
+    },
+    {
+      "id": "M-sdk-version-pinning",
+      "layer": "agent-ecosystem",
+      "name": "SDK version pinning",
+      "type": "preventive"
+    },
+    {
+      "id": "M-domain-specific-controls",
+      "layer": "agent-ecosystem",
+      "name": "Domain-specific controls",
+      "type": "preventive"
+    },
+    {
+      "id": "M-third-party-audit",
+      "layer": "security",
+      "name": "Third-party security audit",
+      "type": "detective"
+    },
+    {
+      "id": "M-signed-actions",
+      "layer": "agent-ecosystem",
+      "name": "Cryptographically signed actions",
+      "type": "preventive"
+    },
+    {
+      "id": "M-audit-log-integrity",
+      "layer": "observability",
+      "name": "Audit log integrity",
+      "type": "detective"
+    },
+    {
+      "id": "M-registry-signing",
+      "layer": "agent-ecosystem",
+      "name": "Registry artifact signing",
+      "type": "preventive"
+    },
+    {
+      "id": "M-publisher-verification",
+      "layer": "agent-ecosystem",
+      "name": "Publisher verification",
+      "type": "preventive"
+    },
+    {
+      "id": "M-search-integrity",
+      "layer": "agent-ecosystem",
+      "name": "Search/ranking integrity",
+      "type": "detective"
+    },
+    {
+      "id": "M-ranking-audit",
+      "layer": "agent-ecosystem",
+      "name": "Ranking audit",
+      "type": "detective"
+    },
+    {
+      "id": "M-cost-limits",
+      "layer": "agent-ecosystem",
+      "name": "Cost limits / budgets",
+      "type": "preventive"
+    },
+    {
+      "id": "M-anomaly-billing-detection",
+      "layer": "observability",
+      "name": "Anomaly billing detection",
+      "type": "detective"
+    },
+    {
+      "id": "M-capability-attestation",
+      "layer": "agent-ecosystem",
+      "name": "Capability attestation",
+      "type": "preventive"
+    },
+    {
+      "id": "M-third-party-validation",
+      "layer": "agent-ecosystem",
+      "name": "Third-party capability validation",
+      "type": "detective"
+    }
   ]
 }

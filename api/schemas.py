@@ -1918,6 +1918,8 @@ class MaestroCatalogThreat(BaseModel):
     stride_category: Optional[str] = None
     stride_mapping: str = "informational"
     mitre_attack: Optional[str] = None
+    owasp_asi: Optional[str] = Field(default=None, description="OWASP Agentic Security Initiative tag (T1/T2/T3)")
+    nist_ai_rmf: Optional[str] = Field(default=None, description="NIST AI RMF primary function (Govern/Map/Measure/Manage)")
     default_mitigations: list[str] = Field(default=[])
 
 
@@ -1968,6 +1970,8 @@ class MaestroThreatDetail(BaseModel):
     stride_category: Optional[str] = None
     stride_mapping: str = "informational"
     mitre_attack: Optional[str] = None
+    owasp_asi: Optional[str] = None
+    nist_ai_rmf: Optional[str] = None
     from_catalog: bool
 
 

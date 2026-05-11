@@ -256,6 +256,8 @@ async def list_maestro_threats(
                 stride_category=t.stride_category,
                 stride_mapping=t.stride_mapping,
                 mitre_attack=t.mitre_attack,
+                owasp_asi=t.owasp_asi,
+                nist_ai_rmf=t.nist_ai_rmf,
                 from_catalog=t.from_catalog,
             ))
 

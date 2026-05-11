@@ -375,6 +375,23 @@ class TestMaestroThreatsList:
             assert t["layer"] == "data-operations"
             assert t["severity"] == "high"
 
+    def test_threats_payload_surfaces_cross_framework_fields(self):
+        response = client.post(
+            "/analyze/maestro/threats",
+            files=[_upload(VALID_MAESTRO_TOML)],
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # Schema-level: every returned threat carries the new fields
+        # (value may be null but the keys must be present).
+        for t in data["threats"]:
+            assert "owasp_asi" in t
+            assert "nist_ai_rmf" in t
+        # At least one threat in the response carries an ASI tag (data-poisoning
+        # threats are auto-attached when L2 is declared, and they are ASI T1).
+        asi_tagged = [t for t in data["threats"] if t.get("owasp_asi")]
+        assert len(asi_tagged) > 0
+
 
 # =============================================================================
 # Heatmap view via API (Phase 4)

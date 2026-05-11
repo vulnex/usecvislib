@@ -361,7 +361,7 @@ Select via `-s <preset_id>` on the CLI, `style=` query param on the API, or the 
 
 USecVisLib ships a versioned threat catalog at `src/usecvislib/models/maestro_catalog.json`.
 
-**Current version:** `2026.2` — 50 layer threats, 5 cross-layer threats, 93 mitigations, 11 best-effort MITRE ATT&CK technique placeholders.
+**Current version:** `2026.3` — 55 layer threats, 6 cross-layer threats, 93 mitigations, plus best-effort cross-framework tags (11 MITRE ATT&CK, 8 OWASP ASI, 55 NIST AI RMF).
 
 **Threat IDs are immutable.** Once a threat ID ships, its meaning is frozen for the life of the project. Deprecated entries keep their ID with a `deprecated: true` flag. You can safely reference `T-L2-002` in a config and expect it to mean the same thing across catalog versions.
 
@@ -377,9 +377,19 @@ GET /maestro/catalog/foundation-models
 
 Or via the **Browse Catalog** button in the Vue panel.
 
-### MITRE ATT&CK tags
+### Cross-framework mappings
 
-11 threats carry best-effort ATT&CK placeholders (e.g., `T-L2-002 Data Exfiltration → TA0010`, `T-L4-006 Lateral Movement → TA0008`). These are starting points, not authoritative mappings — a human security expert pass is planned for a future catalog version. Treat them as hints when correlating with ATT&CK-based reporting tools.
+Each catalog threat optionally carries tags for three external frameworks. All are **best-effort starting points**, not authoritative mappings — treat them as hints when correlating with framework-specific reporting tools.
+
+| Field | Framework | Values | Coverage in 2026.3 |
+|---|---|---|---|
+| `mitre_attack` | MITRE ATT&CK | technique / tactic ID (e.g., `T1565.001`, `TA0010`) | 11 / 55 threats |
+| `owasp_asi` | OWASP Agentic Security Initiative | `T1` (Memory Poisoning), `T2` (Tool Misuse), `T3` (Privilege Compromise) | 8 / 55 threats |
+| `nist_ai_rmf` | NIST AI Risk Management Framework | `Govern`, `Map`, `Measure`, `Manage` (primary function affected) | 55 / 55 threats |
+
+A full human-expert tagging pass for ATT&CK and ASI is planned for a future catalog version. NIST AI RMF is fully tagged because every threat naturally maps to at least one RMF function.
+
+Programmatic access: each `Threat` returned by `MaestroThreatModel.threats` carries these as attributes, and the `POST /analyze/maestro/threats` endpoint surfaces them in the response payload.
 
 ---
 
@@ -435,6 +445,24 @@ All endpoints require the `X-API-Key` header when `USECVISLIB_AUTH_ENABLED=true`
 | POST | `/maestro/export/{target}` | Cross-reference export. `{target}` is `stride`, `attack-graph`, or `privilege-gradient`. |
 
 The OpenAPI schema is auto-generated; visit `http://localhost:8003/docs` for an interactive playground.
+
+---
+
+## What MAESTRO Doesn't Cover
+
+MAESTRO is purpose-built for **agentic AI threat identification**. It is **not** a complete security program. Be deliberate about complementing it with frameworks that cover what it leaves out:
+
+| Gap | What MAESTRO doesn't do | Complementary framework |
+|---|---|---|
+| **Policy / governance roles** | Identifies risks but doesn't assign accountability or write policies | NIST AI RMF (Govern function), CoSAI secure-by-design principles |
+| **Cost / ROI of mitigations** | No economic impact modeling; severity / likelihood are qualitative | FAIR (Factor Analysis of Information Risk), enterprise risk registers |
+| **Hardware / physical-layer threats** | Focuses on software and ML layers (L1-L7) | TEE / confidential-computing frameworks, supply-chain hardware audits |
+| **Jurisdiction-specific compliance** | Provides audit trails but no jurisdictional rules (EU AI Act, US executive orders, etc.) | Local regulatory mappings, GRC platforms |
+| **Formal verification at scale** | Risk is modeled qualitatively; no proof-based assurance | Formal methods toolchains (TLA+, Coq) for specific high-assurance components |
+| **Cross-tool interoperability** | No unified API for piping MAESTRO output across tooling | The cross-reference exports (`to_stride()`, `to_attack_graph()`, `to_privilege_gradient()`) cover three sibling formats; broader integration is per-deployment |
+| **Continuous runtime detection** | Static model identifies risks; doesn't watch live systems | Runtime guardrail tools (CrewAI guardrails, Lakera, Protect AI), SIEM-side anomaly detection |
+
+In practice: use MAESTRO to *find and prioritize* risks, then plug the gaps with the frameworks above. The cross-framework tags on each threat (`nist_ai_rmf`, `owasp_asi`, `mitre_attack`) are designed to make those handoffs cheaper.
 
 ---
 
