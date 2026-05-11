@@ -511,7 +511,7 @@ Graphviz isn't installed on the host. The layered view needs it; the heatmap vie
 
 ## Example Templates
 
-Four shipping templates under `templates/maestro/` exercise different MAESTRO archetypes:
+Five shipping templates under `templates/maestro/` exercise different MAESTRO archetypes:
 
 | File | Pattern | Notable for |
 |---|---|---|
@@ -519,8 +519,15 @@ Four shipping templates under `templates/maestro/` exercise different MAESTRO ar
 | `multi-agent-support.toml` | multi-agent + hierarchical + HITL | 5 agents (router, billing/technical/account specialists, human queue). Demonstrates per-agent severity overrides and cross-layer chains. |
 | `autonomous-soc-agent.toml` | self-learning + HITL | High-autonomy SOC agent. The SOC agent spans **all 7 layers**, producing the cleanest possible layered render. Shows L1/L6 self-attack threats (poisoning the security AI itself). |
 | `agent-marketplace.toml` | distributed + multi-agent | 5 agents in a registry-based ecosystem. L7-heavy threat surface (sybil, registry compromise, capability misrepresentation). |
+| `financial-trading-chain.toml` | all 5 main patterns | Algorithmic trading system with 5 agents, 5 assets, and **three cross-layer chains** illustrating full L1→L7 vertical attack propagation. Uses 2026.3 threats (sleeper agents, log injection, compliance bypass, cascade failure). The primary trading agent spans all 7 layers, so the layered render is the cleanest of any template. Best reference for authoring cross-layer chains. |
 
-Copy and adapt these to your model. The `autonomous-soc-agent.toml` template is the recommended starting point for any agent system with serious autonomy.
+Copy and adapt these to your model. For minimum-friction starting points:
+
+- **Just one agent, simple use case:** `single-agent-rag.toml`
+- **Several specialist agents collaborating:** `multi-agent-support.toml`
+- **High-autonomy or learning agent:** `autonomous-soc-agent.toml`
+- **Marketplace, third-party agents, distributed ecosystem:** `agent-marketplace.toml`
+- **Learning how to write cross-layer chains, regulated environment, or want the most realistic example:** `financial-trading-chain.toml`
 
 ---
 

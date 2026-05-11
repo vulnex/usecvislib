@@ -1,0 +1,388 @@
+#
+# MAESTRO Threat Model — Algorithmic Trading System (vertical L1→L7 chain)
+#
+# Reference model showing how an attack can propagate across all 7 MAESTRO
+# layers, from foundation-model adversarial inputs all the way through
+# infrastructure, observability, security policy, and the agent ecosystem.
+#
+# The primary trading agent declares all 7 layers so the layered render
+# produces a clean vertical spine with no cluster drift — this template is
+# also a good demo of the layered view at its best. Three cross-layer
+# chains illustrate distinct attack propagation patterns:
+#
+#   CL-vertical-full      L1 -> L2 -> L4 -> L5 -> L7  (deep multi-stage)
+#   CL-poison-and-pivot   L1 -> L4                    (model bug enables infra hop)
+#   CL-prompt-to-leak     L7 -> L2                    (prompt -> data exfil)
+#
+# Catalog 2026.3 introduces several threats that are particularly relevant
+# to financial trading systems and are used here: T-L1-008 (Sleeper Agents),
+# T-L5-007 (Log Injection / Cover Tracks), T-L6-008 (Compliance Bypass via
+# Policy Interpretation), T-CL-006 (Cascade Failure Propagation).
+#
+
+[meta]
+name = "Algorithmic Trading System"
+version = "1.0"
+owner = "Quantitative Trading Security"
+description = "Self-learning trading agent with HITL portfolio-manager escalation and a compliance agent overseeing trades. Demonstrates a full L1->L7 vertical attack chain."
+
+[architecture]
+patterns = [
+    "self-learning",
+    "multi-agent",
+    "hierarchical",
+    "human-in-the-loop",
+    "task-oriented",
+]
+
+# =============================================================================
+# Agents
+# =============================================================================
+
+# Primary trading agent. Self-modifying autonomy + spans all 7 layers.
+[[agents]]
+id = "trading_agent"
+name = "Algo Trading Agent"
+type = "task-oriented"
+autonomy = "self-modifying"
+goals = [
+    "execute trades within risk envelope",
+    "adapt strategy from realised P&L",
+    "respect position and exposure limits",
+]
+capabilities = [
+    "llm-inference",
+    "online-learning",
+    "tool-use",
+    "policy-evaluation",
+    "vector-search",
+]
+tools = [
+    "market-data-feed",
+    "order-execution-api",
+    "risk-calc",
+    "strategy-update",
+]
+layers = [
+    "foundation-models",
+    "data-operations",
+    "agent-frameworks",
+    "infrastructure",
+    "observability",
+    "security",
+    "agent-ecosystem",
+]
+
+# Independent risk-monitoring agent. Reads positions, vetoes oversized trades.
+[[agents]]
+id = "risk_oversight"
+name = "Risk Oversight Agent"
+type = "task-oriented"
+autonomy = "deliberative"
+goals = ["monitor real-time exposure", "veto trades exceeding limits"]
+capabilities = ["llm-inference", "tool-use", "policy-evaluation"]
+tools = ["position-query", "trade-veto"]
+layers = [
+    "foundation-models",
+    "data-operations",
+    "agent-frameworks",
+    "observability",
+    "security",
+    "agent-ecosystem",
+]
+
+# Compliance agent — interprets regulatory policy, escalates ambiguity to humans.
+[[agents]]
+id = "compliance_agent"
+name = "Compliance Agent"
+type = "task-oriented"
+autonomy = "deliberative"
+goals = ["enforce regulatory policy", "produce audit-ready logs"]
+capabilities = ["llm-inference", "policy-evaluation", "tool-use"]
+tools = ["policy-lookup", "audit-write"]
+layers = [
+    "foundation-models",
+    "agent-frameworks",
+    "observability",
+    "security",
+    "agent-ecosystem",
+]
+
+# Order execution router — task-oriented, low autonomy, mostly mechanical.
+[[agents]]
+id = "execution_router"
+name = "Order Execution Router"
+type = "task-oriented"
+autonomy = "reactive"
+goals = ["route orders to venues", "minimise slippage"]
+capabilities = ["tool-use"]
+tools = ["venue-router", "fix-protocol-adapter"]
+layers = [
+    "agent-frameworks",
+    "infrastructure",
+    "observability",
+    "agent-ecosystem",
+]
+
+# Human portfolio manager — HITL surface for ambiguous escalations.
+[[agents]]
+id = "human_pm"
+name = "Portfolio Manager (Human)"
+type = "human-in-the-loop"
+autonomy = "reactive"
+goals = ["approve high-impact trades", "investigate flagged anomalies"]
+capabilities = ["human-judgment"]
+tools = ["approval-ui", "investigation-console"]
+layers = [
+    "observability",
+    "agent-ecosystem",
+]
+
+# =============================================================================
+# Assets
+# =============================================================================
+
+[[assets]]
+id = "trading_model"
+name = "Proprietary Trading Model"
+layer = "foundation-models"
+sensitivity = "critical"
+owner_agent = "trading_agent"
+
+[[assets]]
+id = "market_data"
+name = "Live Market Data Feed"
+layer = "data-operations"
+sensitivity = "high"
+
+[[assets]]
+id = "order_credentials"
+name = "Order Execution API Credentials"
+layer = "data-operations"
+sensitivity = "critical"
+
+[[assets]]
+id = "audit_log"
+name = "Trade Audit Log"
+layer = "observability"
+sensitivity = "critical"
+owner_agent = "compliance_agent"
+
+[[assets]]
+id = "risk_policy"
+name = "Position and Exposure Policy"
+layer = "security"
+sensitivity = "high"
+owner_agent = "compliance_agent"
+
+# =============================================================================
+# Threat overrides — bump severity / set status on the threats that matter
+# most for this domain. Catalog auto-population fills in the rest.
+# =============================================================================
+
+# L1 — model itself is the highest-value asset
+[[threats]]
+id = "T-L1-005"             # Training Data Poisoning
+target = "trading_agent"
+severity = "critical"
+likelihood = "medium"
+status = "in-progress"
+mitigations = ["M-training-data-validation", "M-data-provenance", "M-backdoor-scanning"]
+
+[[threats]]
+id = "T-L1-008"             # Sleeper Agents (NEW in 2026.3)
+target = "trading_agent"
+severity = "critical"
+likelihood = "low"
+status = "identified"
+mitigations = ["M-model-provenance", "M-backdoor-scanning", "M-behavioral-baselines"]
+
+[[threats]]
+id = "T-L1-002"             # Model Stealing / Extraction
+target = "trading_agent"
+severity = "critical"
+mitigations = ["M-rate-limiting", "M-query-monitoring"]
+
+# L2 — market data and credentials
+[[threats]]
+id = "T-L2-002"             # Data Exfiltration (order credentials, positions)
+target = "trading_agent"
+severity = "critical"
+status = "in-progress"
+mitigations = ["M-access-control", "M-encryption-at-rest", "M-egress-monitoring"]
+
+[[threats]]
+id = "T-L2-001"             # Operational Data Poisoning (market data feed tamper)
+target = "trading_agent"
+severity = "critical"
+mitigations = ["M-data-provenance", "M-content-filtering", "M-integrity-checks"]
+
+# L4 — execution infrastructure
+[[threats]]
+id = "T-L4-002"             # Orchestration Attacks (K8s on trading infra)
+target = "trading_agent"
+severity = "critical"
+mitigations = ["M-rbac", "M-network-policies", "M-admission-control"]
+
+[[threats]]
+id = "T-L4-006"             # Lateral Movement (post-compromise pivot)
+target = "trading_agent"
+severity = "critical"
+mitigations = ["M-network-segmentation", "M-least-privilege"]
+
+# L5 — audit trail integrity is regulatory critical
+[[threats]]
+id = "T-L5-006"             # Observability Poisoning
+target = "compliance_agent"
+severity = "critical"
+mitigations = ["M-telemetry-integrity", "M-log-signing"]
+
+[[threats]]
+id = "T-L5-007"             # Log Injection / Cover Tracks (NEW in 2026.3)
+target = "compliance_agent"
+severity = "critical"
+status = "in-progress"
+mitigations = ["M-log-signing", "M-audit-log-integrity"]
+
+[[threats]]
+id = "T-L5-008"             # False-Positive Flooding (NEW in 2026.3)
+target = "human_pm"
+severity = "high"
+likelihood = "medium"
+mitigations = ["M-anomaly-detection", "M-rate-limiting"]
+
+# L6 — regulatory compliance
+[[threats]]
+id = "T-L6-008"             # Compliance Bypass via Policy Interpretation (NEW in 2026.3)
+target = "compliance_agent"
+severity = "high"
+status = "in-progress"
+mitigations = ["M-policy-as-code", "M-compliance-monitoring", "M-explainability-features"]
+
+[[threats]]
+id = "T-L6-004"             # Regulatory Non-Compliance
+target = "compliance_agent"
+severity = "critical"
+mitigations = ["M-compliance-monitoring", "M-policy-as-code"]
+
+# L7 — agent ecosystem and tool misuse
+[[threats]]
+id = "T-L7-004"             # Agent Tool Misuse (order-execution-api blast radius)
+target = "trading_agent"
+severity = "critical"
+status = "in-progress"
+mitigations = ["M-tool-allowlist", "M-human-approval", "M-tool-output-validation"]
+
+[[threats]]
+id = "T-L7-005"             # Agent Goal Manipulation
+target = "trading_agent"
+severity = "critical"
+mitigations = ["M-goal-constraints", "M-objective-monitoring"]
+
+[[threats]]
+id = "T-L7-014"             # Reputation Manipulation (NEW in 2026.3)
+target = "trading_agent"
+severity = "medium"
+mitigations = ["M-publisher-verification", "M-anti-fraud-controls"]
+
+# =============================================================================
+# Cross-layer attack chains — each demonstrates vertical propagation through
+# multiple MAESTRO layers, illustrating WHY agentic threat modeling needs to
+# reason across layers and not just within a single one.
+# =============================================================================
+
+# The headline chain: a single-stage L1 compromise cascading all the way to
+# the agent ecosystem. This is the kind of attack the MAESTRO framework is
+# designed to surface — STRIDE would catch the individual links but miss
+# the propagation pattern.
+[[cross_layer_threats]]
+id = "CL-vertical-full"
+name = "Adversarial input -> poisoned model -> data exfil -> infra pivot -> log cover -> impersonation"
+description = "Full L1->L7 vertical attack chain: adversarial example triggers an L1 model misbehaviour that exposes an L2 data leak; the attacker uses the leaked credentials for an L4 infrastructure pivot, then injects L5 log entries to mask their tracks, ultimately impersonating the trading agent at L7."
+layers = ["foundation-models", "data-operations", "infrastructure", "observability", "agent-ecosystem"]
+attack_chain = [
+    "T-L1-001",     # adversarial example (foundation models)
+    "T-L2-002",     # data exfiltration (order credentials)
+    "T-L4-006",     # lateral movement
+    "T-L5-007",     # log injection / cover tracks (2026.3)
+    "T-L7-002",     # agent impersonation
+]
+severity = "critical"
+likelihood = "low"
+
+# A shorter chain showing how a sleeper-style L1 issue can escalate to
+# resource hijacking on the execution infrastructure.
+[[cross_layer_threats]]
+id = "CL-poison-and-pivot"
+name = "Sleeper-agent activation -> orchestration compromise"
+description = "An L1 sleeper agent activates on a calendar trigger, causing the trading agent to call infrastructure-control tools in ways that escalate to orchestration-layer compromise (T3 in OWASP ASI)."
+layers = ["foundation-models", "infrastructure"]
+attack_chain = [
+    "T-L1-008",     # sleeper agent (2026.3)
+    "T-L4-002",     # orchestration attacks
+]
+severity = "critical"
+likelihood = "low"
+
+# An ecosystem-side chain: prompt-injection through the portfolio manager UI
+# causes goal drift in the trading agent, leading to credential exfil.
+[[cross_layer_threats]]
+id = "CL-prompt-to-leak"
+name = "PM prompt-injection -> trading-agent goal drift -> credential exfil"
+description = "Adversary feeds crafted text through the portfolio-manager-facing UI; the trading agent (which reads PM-approved trade rationale as context) drifts toward a goal that includes exposing order credentials."
+layers = ["agent-ecosystem", "data-operations"]
+attack_chain = [
+    "T-L7-005",     # goal manipulation
+    "T-L2-002",     # data exfiltration
+]
+severity = "high"
+likelihood = "medium"
+
+# =============================================================================
+# Mitigations — implementation status of the controls referenced above.
+# =============================================================================
+
+[[mitigations]]
+id = "M-human-approval"
+layer = "agent-ecosystem"
+name = "PM approval gate for trades above notional threshold"
+type = "preventive"
+implemented = true
+
+[[mitigations]]
+id = "M-tool-allowlist"
+layer = "agent-ecosystem"
+name = "Allowlist of permitted venues and order types"
+type = "preventive"
+implemented = true
+
+[[mitigations]]
+id = "M-egress-monitoring"
+layer = "observability"
+name = "Egress DLP on outbound order/credential payloads"
+type = "detective"
+implemented = false
+
+[[mitigations]]
+id = "M-log-signing"
+layer = "observability"
+name = "Cryptographically signed append-only audit log"
+type = "detective"
+implemented = false
+
+[[mitigations]]
+id = "M-policy-as-code"
+layer = "security"
+name = "Position-limit and trade-policy enforcement encoded as policy-as-code"
+type = "preventive"
+implemented = true
+
+[[mitigations]]
+id = "M-objective-monitoring"
+layer = "observability"
+name = "Real-time monitoring for trading-objective drift"
+type = "detective"
+implemented = false
+
+[catalog]
+mode = "auto"

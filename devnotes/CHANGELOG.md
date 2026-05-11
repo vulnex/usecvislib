@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `to_privilege_gradient()` — PrivilegeGradient shape with trust zones derived from agent autonomy levels
   - API router with 8 endpoints: `POST /visualize|/analyze|/validate/maestro`, `POST /analyze/maestro/threats` (filterable detail), `POST /maestro/export/{stride|attack-graph|privilege-gradient}`, `GET /maestro/catalog`, `GET /maestro/catalog/{layer}`
   - Vue 3 panel (`MaestroPanel.vue`) with config editor, generate / analyze / validate / threat-list / catalog-browser actions, severity heatmap stat grid, per-layer threat-count bars, warnings surface, and filterable threat list
-  - 4 templates: `single-agent-rag.toml`, `multi-agent-support.toml`, `autonomous-soc-agent.toml`, `agent-marketplace.toml`
+  - 5 templates: `single-agent-rag.toml`, `multi-agent-support.toml`, `autonomous-soc-agent.toml`, `agent-marketplace.toml`, `financial-trading-chain.toml` (the last demonstrates full L1->L7 vertical attack chain propagation across 5 agents and 3 cross-layer chains; uses 2026.3 threats including Sleeper Agents, Log Injection, Compliance Bypass, Cascade Failure)
   - 54 unit + API tests (`test_maestro.py`, `test_api_maestro.py`)
   - Design document: `devnotes/MAESTRO_DESIGN.md`
   - User guide: `docs/MAESTRO_GUIDE.md` — covers configuration, render views, style presets, authoring tips, cross-reference exports, and troubleshooting
