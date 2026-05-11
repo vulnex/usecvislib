@@ -996,6 +996,100 @@ export async function validateDependencyGraphFromContent(content, configFormat =
 }
 
 // =============================================================================
+// MAESTRO Agentic Threat Model Functions
+// =============================================================================
+
+/**
+ * Generate MAESTRO threat model visualization
+ * @param {File} file - MAESTRO configuration file
+ * @param {string} format - Output format (png, svg, pdf)
+ * @param {string} style - Style preset (ma_default)
+ */
+export async function visualizeMaestro(file, format = 'png', style = 'ma_default') {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post(
+    `/visualize/maestro?format=${format}&style=${style}`,
+    formData,
+    {
+      responseType: 'blob',
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }
+  )
+  return response.data
+}
+
+/**
+ * Generate MAESTRO visualization from text content
+ */
+export async function visualizeMaestroFromContent(content, outputFormat = 'png', style = 'ma_default', configFormat = 'toml') {
+  const file = createFileFromContent(content, 'maestro', configFormat)
+  return visualizeMaestro(file, outputFormat, style)
+}
+
+/**
+ * Analyze MAESTRO threat model
+ * @param {File} file - MAESTRO configuration file
+ */
+export async function analyzeMaestro(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/analyze/maestro', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Analyze MAESTRO model from text content
+ */
+export async function analyzeMaestroFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'maestro', configFormat)
+  return analyzeMaestro(file)
+}
+
+/**
+ * Validate MAESTRO threat model configuration
+ * @param {File} file - MAESTRO configuration file
+ */
+export async function validateMaestro(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/validate/maestro', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Validate MAESTRO model from text content
+ */
+export async function validateMaestroFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'maestro', configFormat)
+  return validateMaestro(file)
+}
+
+/**
+ * Get the full MAESTRO threat catalog
+ */
+export async function getMaestroCatalog() {
+  const response = await api.get('/maestro/catalog')
+  return response.data
+}
+
+/**
+ * Get MAESTRO catalog threats scoped to a single layer
+ * @param {string} layer - Layer key (e.g., "foundation-models")
+ */
+export async function getMaestroCatalogForLayer(layer) {
+  const response = await api.get(`/maestro/catalog/${encodeURIComponent(layer)}`)
+  return response.data
+}
+
+// =============================================================================
 // Batch Processing Functions
 // =============================================================================
 
@@ -1900,4 +1994,12 @@ export default {
   analyzeDependencyGraphFromContent,
   validateDependencyGraph,
   validateDependencyGraphFromContent,
+  visualizeMaestro,
+  visualizeMaestroFromContent,
+  analyzeMaestro,
+  analyzeMaestroFromContent,
+  validateMaestro,
+  validateMaestroFromContent,
+  getMaestroCatalog,
+  getMaestroCatalogForLayer,
 }

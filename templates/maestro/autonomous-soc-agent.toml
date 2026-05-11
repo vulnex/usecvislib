@@ -1,0 +1,149 @@
+#
+# MAESTRO Threat Model — Autonomous SOC Agent
+#
+# Self-learning agent operating inside a SOC. It triages alerts, queries logs,
+# proposes containment actions, and updates its detection models from analyst
+# feedback. High autonomy means stronger attack surface — adversarial ML,
+# objective drift, log tampering. Note the security-as-target overlay (L6):
+# this IS a security AI agent, so L6 threats apply to its own integrity.
+#
+
+[meta]
+name = "Autonomous SOC Triage Agent"
+version = "1.0"
+owner = "Detection Engineering"
+description = "Self-learning SOC agent for alert triage with online learning from analyst feedback. High autonomy, high blast radius."
+
+[architecture]
+patterns = ["single-agent", "self-learning", "human-in-the-loop"]
+
+[[agents]]
+id = "soc_agent"
+name = "SOC Triage Agent"
+type = "task-oriented"
+autonomy = "self-modifying"
+goals = [
+    "triage incoming security alerts",
+    "propose containment actions",
+    "update detection models from analyst feedback"
+]
+capabilities = [
+    "llm-inference",
+    "online-learning",
+    "vector-search",
+    "tool-use",
+    "policy-evaluation"
+]
+tools = [
+    "siem-query",
+    "edr-isolate",
+    "ticket-create",
+    "model-update"
+]
+layers = [
+    "foundation-models",
+    "data-operations",
+    "agent-frameworks",
+    "infrastructure",
+    "observability",
+    "security",
+    "agent-ecosystem"
+]
+
+[[agents]]
+id = "analyst_feedback"
+name = "Analyst Feedback Loop"
+type = "human-in-the-loop"
+autonomy = "reactive"
+goals = ["validate agent decisions", "provide training signal"]
+capabilities = ["human-judgment"]
+tools = ["feedback-ui"]
+layers = ["observability", "agent-ecosystem"]
+
+[[assets]]
+id = "siem_logs"
+name = "SIEM Log Store"
+layer = "data-operations"
+sensitivity = "critical"
+
+[[assets]]
+id = "detection_models"
+name = "Detection Models (online-updated)"
+layer = "foundation-models"
+sensitivity = "critical"
+owner_agent = "soc_agent"
+
+[[assets]]
+id = "edr_control"
+name = "EDR Containment API"
+layer = "infrastructure"
+sensitivity = "critical"
+
+# Critical overrides — self-learning is the highest-risk pattern
+[[threats]]
+id = "T-L1-005"          # Training data poisoning via feedback
+target = "soc_agent"
+severity = "critical"
+likelihood = "high"
+status = "in-progress"
+mitigations = ["M-training-data-validation", "M-data-provenance"]
+
+[[threats]]
+id = "T-L1-003"          # Backdoor via poisoned feedback batch
+target = "soc_agent"
+severity = "critical"
+mitigations = ["M-backdoor-scanning", "M-model-provenance"]
+
+[[threats]]
+id = "T-L6-002"          # Adversarial evasion of detection agent
+target = "soc_agent"
+severity = "critical"
+mitigations = ["M-adversarial-training", "M-defense-in-depth"]
+
+[[threats]]
+id = "T-L6-007"          # Model extraction of detection logic
+target = "soc_agent"
+severity = "high"
+mitigations = ["M-query-monitoring", "M-rate-limiting"]
+
+[[threats]]
+id = "T-L7-004"          # Tool misuse — EDR isolate as DoS
+target = "soc_agent"
+severity = "critical"
+likelihood = "medium"
+status = "in-progress"
+mitigations = ["M-human-approval", "M-tool-allowlist"]
+
+# Goal manipulation chain
+[[cross_layer_threats]]
+id = "CL-goal-drift"
+name = "Adversarial feedback drifts objective toward false-negative bias"
+layers = ["agent-ecosystem", "foundation-models", "observability"]
+attack_chain = ["T-L1-005", "T-L7-005"]
+severity = "critical"
+likelihood = "medium"
+
+[[cross_layer_threats]]
+id = "CL-evade-and-pivot"
+name = "Evade detection then pivot via misused EDR API"
+layers = ["security", "agent-ecosystem"]
+attack_chain = ["T-L6-002", "T-L7-004"]
+severity = "critical"
+likelihood = "medium"
+
+[[mitigations]]
+id = "M-feedback-rate-limit"
+layer = "agent-frameworks"
+name = "Rate-limit per-analyst feedback signal"
+type = "preventive"
+implemented = false
+
+[[mitigations]]
+id = "M-edr-action-quorum"
+layer = "agent-ecosystem"
+name = "Require quorum (agent + analyst) for EDR containment"
+type = "preventive"
+implemented = true
+
+[catalog]
+mode = "auto"

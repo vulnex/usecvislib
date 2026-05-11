@@ -1,0 +1,152 @@
+#
+# MAESTRO Threat Model — Distributed Agent Marketplace
+#
+# An agent marketplace where third-party agents are discovered, integrated,
+# and orchestrated. Distributed pattern surfaces L7 ecosystem-specific
+# threats: registry compromise, sybil attacks, fake reviews, pricing
+# exploitation. Cross-layer chains span discovery → integration → execution.
+#
+
+[meta]
+name = "Distributed Agent Marketplace"
+version = "1.0"
+owner = "Marketplace Platform Team"
+description = "Open agent marketplace with third-party publishers, discovery, and orchestration. L7-heavy threat surface."
+
+[architecture]
+patterns = ["distributed", "multi-agent", "task-oriented"]
+
+[[agents]]
+id = "orchestrator"
+name = "Marketplace Orchestrator"
+type = "task-oriented"
+autonomy = "reactive"
+goals = ["compose workflows from marketplace agents", "validate agent contracts"]
+capabilities = ["llm-inference", "workflow-orchestration", "policy-evaluation"]
+tools = ["registry-query", "agent-invoke", "contract-verify"]
+layers = ["foundation-models", "agent-frameworks", "infrastructure", "agent-ecosystem"]
+
+[[agents]]
+id = "registry"
+name = "Agent Registry Service"
+type = "task-oriented"
+autonomy = "reactive"
+goals = ["catalog published agents", "serve discovery queries"]
+capabilities = ["search", "ranking"]
+tools = ["registry-db"]
+layers = ["data-operations", "agent-frameworks", "infrastructure", "agent-ecosystem"]
+
+[[agents]]
+id = "publisher_agent_a"
+name = "3rd Party Publisher Agent A"
+type = "task-oriented"
+autonomy = "deliberative"
+goals = ["fulfill domain-specific task X"]
+capabilities = ["llm-inference", "tool-use"]
+tools = ["domain-api-x"]
+layers = ["foundation-models", "agent-frameworks", "agent-ecosystem"]
+
+[[agents]]
+id = "publisher_agent_b"
+name = "3rd Party Publisher Agent B"
+type = "task-oriented"
+autonomy = "deliberative"
+goals = ["fulfill domain-specific task Y"]
+capabilities = ["llm-inference", "tool-use"]
+tools = ["domain-api-y"]
+layers = ["foundation-models", "agent-frameworks", "agent-ecosystem"]
+
+[[agents]]
+id = "billing_meter"
+name = "Marketplace Billing Meter"
+type = "task-oriented"
+autonomy = "reactive"
+goals = ["meter agent invocations", "enforce cost limits"]
+capabilities = ["metering"]
+tools = ["billing-ledger"]
+layers = ["data-operations", "observability", "agent-ecosystem"]
+
+[[assets]]
+id = "registry_data"
+name = "Agent Registry Catalog"
+layer = "data-operations"
+sensitivity = "high"
+owner_agent = "registry"
+
+[[assets]]
+id = "user_credentials"
+name = "User API Credentials"
+layer = "data-operations"
+sensitivity = "critical"
+
+# L7 ecosystem-heavy overrides
+[[threats]]
+id = "T-L7-001"          # Compromised agent in ecosystem
+target = "publisher_agent_a"
+severity = "critical"
+status = "in-progress"
+mitigations = ["M-agent-attestation", "M-marketplace-vetting"]
+
+[[threats]]
+id = "T-L7-002"          # Sybil / impersonation
+target = "publisher_agent_b"
+severity = "high"
+mitigations = ["M-publisher-verification", "M-agent-identity"]
+
+[[threats]]
+id = "T-L7-006"          # Marketplace manipulation (fake reviews)
+target = "registry"
+severity = "medium"
+mitigations = ["M-review-verification", "M-anti-fraud-controls"]
+
+[[threats]]
+id = "T-L7-010"          # Compromised registry
+target = "registry"
+severity = "critical"
+mitigations = ["M-registry-signing", "M-publisher-verification"]
+
+[[threats]]
+id = "T-L7-011"          # Discovery manipulation
+target = "orchestrator"
+severity = "high"
+mitigations = ["M-search-integrity", "M-ranking-audit"]
+
+[[threats]]
+id = "T-L7-012"          # Pricing exploitation
+target = "billing_meter"
+severity = "high"
+likelihood = "high"
+mitigations = ["M-cost-limits", "M-anomaly-billing-detection"]
+
+[[threats]]
+id = "T-L7-013"          # Inaccurate capability descriptions
+target = "publisher_agent_a"
+severity = "medium"
+mitigations = ["M-capability-attestation", "M-third-party-validation"]
+
+# Cross-layer chains characteristic of distributed marketplaces
+[[cross_layer_threats]]
+id = "CL-registry-supply"
+name = "Registry compromise -> malicious agent installed -> data exfiltration"
+layers = ["agent-ecosystem", "data-operations", "agent-frameworks"]
+attack_chain = ["T-L7-010", "T-L7-001", "T-L2-002"]
+severity = "critical"
+likelihood = "low"
+
+[[cross_layer_threats]]
+id = "CL-sybil-discovery"
+name = "Sybil publishers gaming discovery rank then exfiltrating user data"
+layers = ["agent-ecosystem", "data-operations"]
+attack_chain = ["T-L7-002", "T-L7-011", "T-L2-002"]
+severity = "high"
+likelihood = "medium"
+
+[[mitigations]]
+id = "M-publisher-attestation"
+layer = "agent-ecosystem"
+name = "Cryptographic publisher attestation for new listings"
+type = "preventive"
+implemented = false
+
+[catalog]
+mode = "auto"

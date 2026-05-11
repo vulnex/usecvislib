@@ -1862,3 +1862,70 @@ class CloudPythonCodeResponse(BaseModel):
                 "filename": "cloud_diagram.py"
             }
         })
+
+
+# =============================================================================
+# MAESTRO Agentic Threat Model Schemas
+# =============================================================================
+
+class MaestroStyle(str, Enum):
+    """Available MAESTRO threat model styles."""
+    DEFAULT = "ma_default"
+
+
+class MaestroStats(BaseModel):
+    """MAESTRO threat model statistics response."""
+    name: str
+    total_agents: int
+    total_assets: int
+    total_threats: int
+    total_cross_layer_threats: int
+    total_mitigations: int
+    unmitigated_threats: int
+    patterns: list[str] = Field(default=[])
+    threats_by_layer: dict[str, int] = Field(default={})
+    threats_by_severity: dict[str, int] = Field(default={})
+    threats_by_status: dict[str, int] = Field(default={})
+    warnings: list[str] = Field(default=[])
+    metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
+
+
+class MaestroValidationResponse(BaseModel):
+    """Response for MAESTRO config validation."""
+    valid: bool
+    errors: list[str] = Field(default=[])
+    warnings: list[str] = Field(default=[])
+
+
+class MaestroCatalogThreat(BaseModel):
+    """A threat entry in the MAESTRO catalog."""
+    id: str
+    layer: str
+    name: str
+    description: str = ""
+    default_severity: str
+    default_likelihood: str
+    stride_category: Optional[str] = None
+    stride_mapping: str = "informational"
+    mitre_attack: Optional[str] = None
+    default_mitigations: list[str] = Field(default=[])
+
+
+class MaestroCatalogResponse(BaseModel):
+    """Response for the MAESTRO catalog endpoint."""
+    catalog_version: str
+    framework_version: str
+    framework_reference: str
+    layers: dict[str, dict[str, Any]] = Field(default={})
+    threats: list[MaestroCatalogThreat] = Field(default=[])
+    cross_layer_threats: list[dict[str, Any]] = Field(default=[])
+    pattern_threats: dict[str, list[str]] = Field(default={})
+    mitigations: list[dict[str, Any]] = Field(default=[])
+
+
+class MaestroLayerThreatsResponse(BaseModel):
+    """Threats for a single MAESTRO layer."""
+    layer: str
+    layer_name: str
+    threats: list[MaestroCatalogThreat] = Field(default=[])
+

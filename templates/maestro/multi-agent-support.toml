@@ -1,0 +1,133 @@
+#
+# MAESTRO Threat Model — Multi-Agent Customer Support System
+#
+# Hierarchical agent system: a router triages incoming queries and delegates
+# to specialist agents (billing, technical, account). Human-in-the-loop
+# escalation for ambiguous cases. Touches all 7 layers including the agent
+# ecosystem (marketplace, integrations).
+#
+
+[meta]
+name = "Multi-Agent Customer Support"
+version = "1.0"
+owner = "Platform Security"
+description = "Hierarchical multi-agent system with HITL escalation for customer-facing support."
+
+[architecture]
+patterns = ["multi-agent", "hierarchical", "human-in-the-loop", "task-oriented"]
+
+[[agents]]
+id = "router"
+name = "Triage Router"
+type = "task-oriented"
+autonomy = "reactive"
+goals = ["classify incoming customer query", "route to specialist agent"]
+capabilities = ["llm-inference", "intent-classification"]
+tools = ["intent-classifier"]
+layers = ["foundation-models", "agent-frameworks", "agent-ecosystem"]
+
+[[agents]]
+id = "billing"
+name = "Billing Specialist"
+type = "task-oriented"
+autonomy = "deliberative"
+goals = ["resolve billing inquiries", "process refunds within policy"]
+capabilities = ["llm-inference", "tool-use"]
+tools = ["billing-db-query", "refund-api", "invoice-fetch"]
+layers = ["foundation-models", "data-operations", "agent-frameworks", "agent-ecosystem"]
+
+[[agents]]
+id = "technical"
+name = "Technical Support Specialist"
+type = "task-oriented"
+autonomy = "deliberative"
+goals = ["diagnose technical issues", "create support tickets"]
+capabilities = ["llm-inference", "vector-search", "tool-use"]
+tools = ["kb-search", "ticket-create", "log-fetch"]
+layers = ["foundation-models", "data-operations", "agent-frameworks", "agent-ecosystem"]
+
+[[agents]]
+id = "account"
+name = "Account Management Agent"
+type = "task-oriented"
+autonomy = "reactive"
+goals = ["handle account changes", "verify identity"]
+capabilities = ["llm-inference", "tool-use"]
+tools = ["account-update", "identity-verify"]
+layers = ["foundation-models", "data-operations", "agent-frameworks", "agent-ecosystem"]
+
+[[agents]]
+id = "human_escalation"
+name = "Human Agent Queue"
+type = "human-in-the-loop"
+autonomy = "reactive"
+goals = ["handle ambiguous escalations", "supervise high-impact actions"]
+capabilities = ["human-judgment"]
+tools = ["escalation-queue"]
+layers = ["agent-ecosystem", "observability"]
+
+[[assets]]
+id = "customer_pii"
+name = "Customer PII"
+layer = "data-operations"
+sensitivity = "high"
+
+[[assets]]
+id = "billing_db"
+name = "Billing Database"
+layer = "data-operations"
+sensitivity = "high"
+owner_agent = "billing"
+
+[[assets]]
+id = "kb_corpus"
+name = "Technical Knowledge Base"
+layer = "data-operations"
+sensitivity = "medium"
+owner_agent = "technical"
+
+# Critical overrides
+[[threats]]
+id = "T-L7-002"          # Agent impersonation between agents
+target = "router"
+severity = "critical"
+status = "in-progress"
+mitigations = ["M-agent-identity", "M-mutual-auth"]
+
+[[threats]]
+id = "T-L7-004"          # Tool misuse — refund API
+target = "billing"
+severity = "critical"
+mitigations = ["M-tool-allowlist", "M-tool-output-validation", "M-human-approval"]
+
+[[threats]]
+id = "T-L2-002"          # Data exfiltration via tool calls
+target = "billing"
+severity = "high"
+mitigations = ["M-access-control", "M-egress-monitoring"]
+
+# Cross-layer chain: router prompt injection → escalation pivot
+[[cross_layer_threats]]
+id = "CL-route-pivot"
+name = "Router prompt injection escalates to billing tool misuse"
+layers = ["agent-ecosystem", "agent-frameworks"]
+attack_chain = ["T-L7-005", "T-L7-004"]
+severity = "critical"
+likelihood = "medium"
+
+[[mitigations]]
+id = "M-mutual-auth"
+layer = "agent-ecosystem"
+name = "Mutual authentication between agents (mTLS / signed tokens)"
+type = "preventive"
+implemented = false
+
+[[mitigations]]
+id = "M-human-approval"
+layer = "agent-ecosystem"
+name = "Human approval for high-impact actions (refunds > $X)"
+type = "preventive"
+implemented = true
+
+[catalog]
+mode = "auto"
