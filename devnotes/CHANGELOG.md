@@ -26,8 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - API router with 8 endpoints: `POST /visualize|/analyze|/validate/maestro`, `POST /analyze/maestro/threats` (filterable detail), `POST /maestro/export/{stride|attack-graph|privilege-gradient}`, `GET /maestro/catalog`, `GET /maestro/catalog/{layer}`
   - Vue 3 panel (`MaestroPanel.vue`) with config editor, generate / analyze / validate / threat-list / catalog-browser actions, severity heatmap stat grid, per-layer threat-count bars, warnings surface, and filterable threat list
   - 4 templates: `single-agent-rag.toml`, `multi-agent-support.toml`, `autonomous-soc-agent.toml`, `agent-marketplace.toml`
-  - 43 unit + API tests (`test_maestro.py`, `test_api_maestro.py`)
+  - 54 unit + API tests (`test_maestro.py`, `test_api_maestro.py`)
   - Design document: `devnotes/MAESTRO_DESIGN.md`
+  - User guide: `docs/MAESTRO_GUIDE.md` — covers configuration, render views, style presets, authoring tips, cross-reference exports, and troubleshooting
 
 - **MCP Server (`usecvislib-mcp` v0.4.0)**
   - Streamable-HTTP transport support via `USECVISLIB_MCP_TRANSPORT=streamable-http`

@@ -147,7 +147,7 @@ const primaryTabs = [
   { id: 'cloud', name: 'Cloud', icon: '☁️' },
   { id: 'architecture', name: 'Architecture', icon: '🏗️' },
   { id: 'privilege-gradient', name: 'Privilege Gradient', icon: '🪜' },
-  { id: 'maestro', name: 'MAESTRO (Agentic AI)', icon: '🤖' },
+  { id: 'maestro', name: 'MAESTRO', icon: '🤖' },
   { id: 'binary', name: 'Binary Analysis', icon: '📊' }
 ]
 

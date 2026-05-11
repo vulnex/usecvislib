@@ -53,7 +53,10 @@ class MaestroLayer(Enum):
 
 
 # Display order for the layered render (top to bottom).
-# L6 (Security) is the vertical gutter — not rendered as a band.
+# L6 (Security) was originally intended as a vertical gutter cutting across
+# all bands, but a true sidebar doesn't translate cleanly to Graphviz' TB
+# layout. We render it as a regular band styled distinctly to flag its
+# "cross-cutting" nature, and keep a small summary note alongside.
 LAYER_DISPLAY_ORDER = [
     MaestroLayer.AGENT_ECOSYSTEM,
     MaestroLayer.AGENT_FRAMEWORKS,
@@ -61,6 +64,7 @@ LAYER_DISPLAY_ORDER = [
     MaestroLayer.DATA_OPERATIONS,
     MaestroLayer.INFRASTRUCTURE,
     MaestroLayer.OBSERVABILITY,
+    MaestroLayer.SECURITY,
 ]
 
 
@@ -268,7 +272,7 @@ class MaestroThreatModel(VisualizationBase):
                 "rankdir": "TB",
                 "bgcolor": "white",
                 "fontname": "Arial",
-                "splines": "ortho",
+                "splines": "polyline",
                 "nodesep": "0.6",
                 "ranksep": "0.8",
                 "pad": "0.5",
@@ -649,7 +653,6 @@ class MaestroThreatModel(VisualizationBase):
         layer_style = self.style.get("layer", self._default_style()["layer"])
         agent_style = self.style.get("agent", self._default_style()["agent"])
         asset_style = self.style.get("asset", self._default_style()["asset"])
-        security_style = self.style.get("security_gutter", self._default_style()["security_gutter"])
         cross_style = self.style.get("cross_layer_edge", self._default_style()["cross_layer_edge"])
 
         self.graph = Digraph(name=title, format=self.format)
@@ -664,18 +667,18 @@ class MaestroThreatModel(VisualizationBase):
             MaestroLayer.DATA_OPERATIONS.value: "#fff3e0",
             MaestroLayer.INFRASTRUCTURE.value: "#fce4ec",
             MaestroLayer.OBSERVABILITY.value: "#e0f7fa",
+            MaestroLayer.SECURITY.value: "#fff8e1",
         }
 
-        previous_anchor: Optional[str] = None
+        previous_layer_key: Optional[str] = None
 
         for layer in LAYER_DISPLAY_ORDER:
             layer_key = layer.value
             display_name = self._layer_display_name(layer_key)
-            anchor_id = utils.sanitize_node_id(f"anchor_{layer_key}")
 
             with self.graph.subgraph(name=f"cluster_{layer_key}") as sub:
                 sub_attrs = utils.stringify_dict(layer_style.copy())
-                fill = sub_attrs.pop("fillcolor", layer_colors[layer_key])
+                fill = sub_attrs.pop("fillcolor", layer_colors.get(layer_key, "#f5f5f5"))
                 border = sub_attrs.pop("color", "#cccccc")
                 sub.attr(
                     label=display_name,
@@ -684,37 +687,44 @@ class MaestroThreatModel(VisualizationBase):
                     **{k: v for k, v in sub_attrs.items() if k != "label"},
                 )
 
-                # Invisible anchor for vertical ordering between layers
-                sub.node(anchor_id, "", shape="point", style="invis", width="0", height="0")
+                if layer == MaestroLayer.SECURITY:
+                    # Inline summary inside the L6 band (cross-cutting layer).
+                    sub.node(
+                        utils.sanitize_node_id("security_summary"),
+                        self._security_gutter_label(),
+                        shape="note",
+                        fillcolor="#ffe0b2",
+                        fontname="Arial",
+                        fontsize="10",
+                        fontcolor="#bf360c",
+                        style="filled",
+                    )
 
                 self._render_layer_contents(sub, layer_key, agent_style, asset_style)
 
-            # Force top-to-bottom order between layers
-            if previous_anchor is not None:
-                self.graph.edge(previous_anchor, anchor_id, style="invis")
-            previous_anchor = anchor_id
+            # Vertical ordering: prefer an agent that touches both adjacent
+            # bands — an invisible edge between the agent's per-band copies
+            # both forces the bands to stack AND aligns them horizontally on
+            # that agent's column. Falls back to a per-cluster anchor pair
+            # when no agent spans the boundary.
+            if previous_layer_key is not None:
+                spine_agent = next(
+                    (a for a in self.agents.values()
+                     if previous_layer_key in a.layers and layer_key in a.layers),
+                    None,
+                )
+                if spine_agent is not None:
+                    self.graph.edge(
+                        self._agent_node_id(spine_agent.id, previous_layer_key),
+                        self._agent_node_id(spine_agent.id, layer_key),
+                        style="invis",
+                        weight="10",
+                    )
+                else:
+                    # No shared agent; fall back to assets or per-band anchors.
+                    self._add_fallback_band_order(previous_layer_key, layer_key)
 
-        # Security vertical gutter — drawn as a sidebar cluster
-        with self.graph.subgraph(name="cluster_security_gutter") as gut:
-            sub_attrs = utils.stringify_dict(security_style.copy())
-            fill = sub_attrs.pop("fillcolor", "#fff3e0")
-            border = sub_attrs.pop("color", "#fb8c00")
-            gut.attr(
-                label="L6 Security (vertical)",
-                fillcolor=fill,
-                color=border,
-                **{k: v for k, v in sub_attrs.items() if k != "label"},
-            )
-            gut.node(
-                utils.sanitize_node_id("security_gutter_anchor"),
-                self._security_gutter_label(),
-                shape="note",
-                fillcolor="#ffe0b2",
-                fontname="Arial",
-                fontsize="10",
-                fontcolor="#bf360c",
-                style="filled",
-            )
+            previous_layer_key = layer_key
 
         # Cross-layer threats — dashed edges between agents in their layers
         for clt in self.cross_layer_threats.values():
@@ -734,6 +744,38 @@ class MaestroThreatModel(VisualizationBase):
         name = entry.get("name", layer_key)
         return f"L{layer_id} — {name}"
 
+    def _add_fallback_band_order(self, prev_layer: str, next_layer: str) -> None:
+        """If no agent spans two adjacent bands, place a tiny invisible anchor
+        in each and edge them so Graphviz still stacks the bands vertically.
+        Picks an asset in each band when available to avoid adding pure-noise
+        nodes; falls back to fresh anchor points otherwise.
+        """
+        def pick_node(layer_key: str) -> str:
+            asset = next((a for a in self.assets.values() if a.layer == layer_key), None)
+            if asset is not None:
+                return utils.sanitize_node_id(f"asset_{asset.id}")
+            anchor = utils.sanitize_node_id(f"anchor_{layer_key}")
+            with self.graph.subgraph(name=f"cluster_{layer_key}") as sub:
+                sub.node(anchor, "", shape="point", style="invis",
+                         width="0", height="0")
+            return anchor
+
+        self.graph.edge(
+            pick_node(prev_layer),
+            pick_node(next_layer),
+            style="invis",
+            weight="10",
+        )
+
+    def _agent_node_id(self, agent_id: str, layer_key: str) -> str:
+        """Composite Graphviz node id for an agent within a specific layer band.
+
+        Graphviz dedupes by node id, so rendering an agent in multiple layer
+        clusters (which is the natural MAESTRO model — agents span layers)
+        requires a distinct id per (agent, layer) pair.
+        """
+        return utils.sanitize_node_id(f"{agent_id}__{layer_key}")
+
     def _render_layer_contents(
         self,
         sub: Any,
@@ -741,7 +783,11 @@ class MaestroThreatModel(VisualizationBase):
         agent_style: dict[str, Any],
         asset_style: dict[str, Any],
     ) -> None:
-        """Render agents and assets within a single layer band."""
+        """Render agents and assets within a single layer band.
+
+        Agents declaring this layer get a layer-scoped node (`agent.id__layer`)
+        so the same agent can appear in every layer it touches.
+        """
         agents_in_layer = [a for a in self.agents.values() if layer_key in a.layers]
         assets_in_layer = [a for a in self.assets.values() if a.layer == layer_key]
 
@@ -756,8 +802,9 @@ class MaestroThreatModel(VisualizationBase):
             self._render_clustered_agents(sub, layer_key, agents_in_layer, agent_attrs)
         else:
             for agent in agents_in_layer:
-                label = self._agent_label(agent)
-                sub.node(utils.sanitize_node_id(agent.id), label, **agent_attrs)
+                node_id = self._agent_node_id(agent.id, layer_key)
+                label = self._agent_label_for_layer(agent, layer_key)
+                sub.node(node_id, label, **agent_attrs)
 
         for asset in assets_in_layer:
             label = self._asset_label(asset)
@@ -778,7 +825,7 @@ class MaestroThreatModel(VisualizationBase):
         for agent_type, members in by_type.items():
             cluster_name = f"cluster_{layer_key}_{utils.sanitize_node_id(agent_type)}"
             severities = [
-                self._max_severity_for_agent(a.id) for a in members
+                self._max_severity_for_agent_in_layer(a.id, layer_key) for a in members
             ]
             worst = max(
                 severities,
@@ -796,10 +843,13 @@ class MaestroThreatModel(VisualizationBase):
                     fontsize="10",
                 )
                 for agent in members:
-                    label = self._agent_label(agent)
-                    cluster.node(utils.sanitize_node_id(agent.id), label, **agent_attrs)
+                    node_id = self._agent_node_id(agent.id, layer_key)
+                    label = self._agent_label_for_layer(agent, layer_key)
+                    cluster.node(node_id, label, **agent_attrs)
 
     def _agent_label(self, agent: Agent) -> str:
+        """Aggregate label (all layers) — kept for callers that want the
+        whole-agent view; the layered renderer uses _agent_label_for_layer."""
         worst = self._max_severity_for_agent(agent.id)
         threat_count = sum(
             1 for t in self.threats.values()
@@ -820,6 +870,54 @@ class MaestroThreatModel(VisualizationBase):
             f"<BR/><FONT POINT-SIZE='9'><I>{utils.escape_dot_label(agent.type)} "
             f"| {utils.escape_dot_label(agent.autonomy)}</I></FONT>"
             f"{severity_label}>"
+        )
+
+    def _agent_label_for_layer(self, agent: Agent, layer_key: str) -> str:
+        """Layer-scoped agent label: badge shows threats targeting the agent
+        ON THIS LAYER only, so each band's view of the agent reflects its own
+        risk surface."""
+        layer_threats = [
+            t for t in self.threats.values()
+            if t.target_id == agent.id
+            and t.layer == layer_key
+            and t.status not in (
+                ThreatStatus.MITIGATED.value,
+                ThreatStatus.NOT_APPLICABLE.value,
+            )
+        ]
+        severity_label = ""
+        if layer_threats:
+            worst = max(
+                (t.severity for t in layer_threats),
+                key=lambda s: SEVERITY_RANK.get(s, 0),
+            )
+            color = SEVERITY_COLORS.get(worst, "#9e9e9e")
+            severity_label = (
+                f"<BR/><FONT POINT-SIZE='9' COLOR='{color}'>"
+                f"{len(layer_threats)} open ({worst})</FONT>"
+            )
+        return (
+            f"<<B>{utils.escape_dot_label(agent.name)}</B>"
+            f"<BR/><FONT POINT-SIZE='9'><I>{utils.escape_dot_label(agent.type)} "
+            f"| {utils.escape_dot_label(agent.autonomy)}</I></FONT>"
+            f"{severity_label}>"
+        )
+
+    def _max_severity_for_agent_in_layer(self, agent_id: str, layer_key: str) -> str:
+        layer_threats = [
+            t for t in self.threats.values()
+            if t.target_id == agent_id
+            and t.layer == layer_key
+            and t.status not in (
+                ThreatStatus.MITIGATED.value,
+                ThreatStatus.NOT_APPLICABLE.value,
+            )
+        ]
+        if not layer_threats:
+            return "unknown"
+        return max(
+            (t.severity for t in layer_threats),
+            key=lambda s: SEVERITY_RANK.get(s, 0),
         )
 
     def _asset_label(self, asset: Asset) -> str:
@@ -859,42 +957,38 @@ class MaestroThreatModel(VisualizationBase):
         )
 
     def _render_cross_layer(self, clt: CrossLayerThreat, cross_style: dict[str, Any]) -> None:
-        """Render a cross-layer threat as a dashed chain of edges."""
+        """Render a cross-layer threat as a dashed chain of edges between the
+        layer-scoped agent nodes corresponding to each chain step."""
         edge_attrs = utils.stringify_dict(cross_style)
 
-        # If the chain references concrete threats, walk them in order
-        chain_targets: list[str] = []
+        # Resolve each attack_chain step to a (target_agent, layer) pair so we
+        # can connect the agent's node IN THAT LAYER -- which is the visual
+        # whole point of "cross-layer" threats.
+        chain_node_ids: list[str] = []
         for threat_ref in clt.attack_chain:
-            # attack_chain entries can be composite ids or just threat catalog ids
-            matched = None
             for tid, threat in self.threats.items():
-                if tid == threat_ref or threat.id.startswith(f"{threat_ref}@"):
-                    matched = threat.target_id or tid
+                if (tid == threat_ref or threat.id.startswith(f"{threat_ref}@")) and threat.target_id:
+                    chain_node_ids.append(
+                        self._agent_node_id(threat.target_id, threat.layer)
+                    )
                     break
-            if matched:
-                chain_targets.append(matched)
 
-        # Fallback: pick one agent per layer the chain spans
-        if not chain_targets:
-            for layer in clt.layers:
+        # Fallback: pick one agent per layer the chain spans.
+        if not chain_node_ids:
+            for layer_value in clt.layers:
                 agent = next(
-                    (a for a in self.agents.values() if layer in a.layers),
+                    (a for a in self.agents.values() if layer_value in a.layers),
                     None,
                 )
                 if agent:
-                    chain_targets.append(agent.id)
+                    chain_node_ids.append(self._agent_node_id(agent.id, layer_value))
 
-        if len(chain_targets) < 2:
+        if len(chain_node_ids) < 2:
             return
 
         label = f" {clt.id}: {clt.name}"
-        for src, tgt in zip(chain_targets, chain_targets[1:]):
-            self.graph.edge(
-                utils.sanitize_node_id(src),
-                utils.sanitize_node_id(tgt),
-                label=label,
-                **edge_attrs,
-            )
+        for src, tgt in zip(chain_node_ids, chain_node_ids[1:]):
+            self.graph.edge(src, tgt, label=label, **edge_attrs)
             label = ""  # Only label the first edge of the chain
 
     def _render_heatmap(self) -> None:
