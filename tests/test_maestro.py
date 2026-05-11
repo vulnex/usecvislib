@@ -121,7 +121,7 @@ class TestCatalog:
     def test_catalog_loads(self):
         m = MaestroThreatModel("dummy.toml", "out", validate_paths=False)
         catalog = m.get_catalog()
-        assert catalog["catalog_version"] == "2026.1"
+        assert catalog["catalog_version"].startswith("2026.")
         assert "threats" in catalog
         assert "cross_layer_threats" in catalog
         assert "pattern_threats" in catalog
@@ -392,6 +392,139 @@ class TestStats:
                 assert stats["total_threats"] > 0
             finally:
                 os.unlink(f.name)
+
+
+class TestExports:
+    """Tests for the cross-reference export methods (Phase 3)."""
+
+    EXPORT_CONFIG = '''
+[meta]
+name = "Export Test"
+
+[architecture]
+patterns = ["multi-agent", "hierarchical"]
+
+[[agents]]
+id = "router"
+name = "Router"
+type = "task-oriented"
+autonomy = "reactive"
+layers = ["foundation-models", "agent-frameworks", "agent-ecosystem"]
+
+[[agents]]
+id = "billing"
+name = "Billing"
+type = "task-oriented"
+autonomy = "deliberative"
+layers = ["foundation-models", "data-operations", "agent-ecosystem"]
+
+[[assets]]
+id = "kb"
+name = "Knowledge Base"
+layer = "data-operations"
+sensitivity = "high"
+
+[[cross_layer_threats]]
+id = "CL-test"
+name = "Test chain"
+layers = ["agent-ecosystem", "data-operations"]
+attack_chain = ["T-L7-005", "T-L2-002"]
+severity = "critical"
+'''
+
+    def _build(self):
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
+            f.write(self.EXPORT_CONFIG)
+            f.flush()
+            m = MaestroThreatModel(f.name, "out", validate_paths=False)
+            m.load()
+            try:
+                return m
+            finally:
+                os.unlink(f.name)
+
+    def test_to_stride_shape(self):
+        m = self._build()
+        s = m.to_stride()
+        assert s["_meta"]["source_framework"] == "MAESTRO"
+        assert s["_meta"]["target_framework"] == "STRIDE"
+        assert "exact" in s["_meta"]["mapping_counts"]
+        assert "partial" in s["_meta"]["mapping_counts"]
+        assert "informational" in s["_meta"]["mapping_counts"]
+        # Sum of counts equals total threats
+        total = sum(s["_meta"]["mapping_counts"].values())
+        assert total == s["_meta"]["total_threats"]
+        # Required STRIDE structural sections present
+        for key in ("model", "externals", "processes", "datastores", "dataflows", "threats"):
+            assert key in s
+        # Each threat carries a mapping label
+        for t in s["threats"].values():
+            assert t["mapping"] in ("exact", "partial", "informational")
+
+    def test_to_stride_unmapped_pct_is_proportional(self):
+        m = self._build()
+        s = m.to_stride()
+        counts = s["_meta"]["mapping_counts"]
+        if s["_meta"]["total_threats"] > 0:
+            expected = counts["informational"] / s["_meta"]["total_threats"] * 100
+            assert abs(s["_meta"]["unmapped_pct"] - expected) < 0.001
+
+    def test_to_attack_graph_shape(self):
+        m = self._build()
+        ag = m.to_attack_graph()
+        assert ag["_meta"]["target_framework"] == "AttackGraph"
+        # 2 agents -> 2 hosts
+        assert len(ag["hosts"]) == 2
+        host_ids = {h["id"] for h in ag["hosts"]}
+        assert "router" in host_ids
+        assert "billing" in host_ids
+        # Chain produced edges
+        assert len(ag["edges"]) >= 1
+        for edge in ag["edges"]:
+            assert "from" in edge and "to" in edge
+
+    def test_to_privilege_gradient_zones_from_autonomy(self):
+        m = self._build()
+        pg = m.to_privilege_gradient()
+        assert pg["_meta"]["target_framework"] == "PrivilegeGradient"
+        # 5 zones (Z0..Z4)
+        assert len(pg["zones"]) == 5
+        # router has reactive autonomy -> Z1
+        # billing has deliberative autonomy -> Z2
+        comp_zones = {c["id"]: c["zone"] for c in pg["components"]}
+        assert comp_zones["router"] == "Z1"
+        assert comp_zones["billing"] == "Z2"
+
+    def test_attack_chain_edges_match_targets(self):
+        m = self._build()
+        ag = m.to_attack_graph()
+        # The chain T-L7-005@router -> T-L2-002@billing should produce
+        # an edge from "router" to "billing".
+        edge_pairs = {(e["from"], e["to"]) for e in ag["edges"]}
+        assert ("router", "billing") in edge_pairs
+
+
+class TestATTCKTagging:
+    """Catalog should expose ATT&CK placeholders for selected threats (Phase 3)."""
+
+    def test_catalog_version_bumped(self):
+        m = MaestroThreatModel("dummy.toml", "out", validate_paths=False)
+        catalog = m.get_catalog()
+        assert catalog["catalog_version"] == "2026.2"
+
+    def test_known_threats_have_attack_tags(self):
+        m = MaestroThreatModel("dummy.toml", "out", validate_paths=False)
+        catalog = m.get_catalog()
+        threats_by_id = {t["id"]: t for t in catalog["threats"]}
+        # A handful of obvious mappings — keep deliberately small;
+        # full tagging is a deferred human pass.
+        expected = {
+            "T-L2-002": "TA0010",     # Data Exfiltration
+            "T-L4-006": "TA0008",     # Lateral Movement
+            "T-L7-002": "T1656",      # Agent Impersonation
+        }
+        for tid, expected_attack in expected.items():
+            assert threats_by_id[tid]["mitre_attack"] == expected_attack
 
 
 class TestTemplate:

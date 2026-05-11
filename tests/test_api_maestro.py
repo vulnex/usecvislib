@@ -204,7 +204,7 @@ class TestMaestroCatalog:
         response = client.get("/maestro/catalog")
         assert response.status_code == 200
         data = response.json()
-        assert data["catalog_version"] == "2026.1"
+        assert data["catalog_version"].startswith("2026.")
         assert len(data["threats"]) >= 50
         assert len(data["cross_layer_threats"]) >= 5
         assert len(data["mitigations"]) >= 80
@@ -231,3 +231,90 @@ class TestMaestroCatalog:
     def test_catalog_for_unknown_layer(self):
         response = client.get("/maestro/catalog/nonexistent-layer")
         assert response.status_code == 400
+
+
+# =============================================================================
+# Cross-Reference Exports (Phase 3)
+# =============================================================================
+
+EXPORT_CONFIG_TOML = b"""
+[meta]
+name = "API Export Test"
+
+[architecture]
+patterns = ["multi-agent"]
+
+[[agents]]
+id = "router"
+type = "task-oriented"
+autonomy = "reactive"
+layers = ["foundation-models", "agent-frameworks", "agent-ecosystem"]
+
+[[agents]]
+id = "billing"
+type = "task-oriented"
+autonomy = "deliberative"
+layers = ["foundation-models", "data-operations", "agent-ecosystem"]
+
+[[cross_layer_threats]]
+id = "CL-api-test"
+name = "Test chain"
+layers = ["agent-ecosystem", "data-operations"]
+attack_chain = ["T-L7-005", "T-L2-002"]
+"""
+
+
+class TestMaestroExport:
+
+    def test_export_stride(self):
+        response = client.post(
+            "/maestro/export/stride",
+            files=[_upload(EXPORT_CONFIG_TOML)],
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["target_framework"] == "stride"
+        assert "catalog_version" in data
+        payload = data["payload"]
+        assert payload["_meta"]["target_framework"] == "STRIDE"
+        for key in ("model", "externals", "processes", "datastores", "threats"):
+            assert key in payload
+
+    def test_export_attack_graph(self):
+        response = client.post(
+            "/maestro/export/attack-graph",
+            files=[_upload(EXPORT_CONFIG_TOML)],
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["target_framework"] == "attack-graph"
+        payload = data["payload"]
+        assert "hosts" in payload and len(payload["hosts"]) == 2
+        assert "edges" in payload and len(payload["edges"]) >= 1
+
+    def test_export_privilege_gradient(self):
+        response = client.post(
+            "/maestro/export/privilege-gradient",
+            files=[_upload(EXPORT_CONFIG_TOML)],
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["target_framework"] == "privilege-gradient"
+        payload = data["payload"]
+        assert len(payload["zones"]) == 5
+        assert len(payload["components"]) == 2
+
+    def test_export_unknown_target(self):
+        response = client.post(
+            "/maestro/export/nonexistent",
+            files=[_upload(EXPORT_CONFIG_TOML)],
+        )
+        # FastAPI rejects unknown enum value at parse time
+        assert response.status_code == 422
+
+    def test_export_malformed_config(self):
+        response = client.post(
+            "/maestro/export/stride",
+            files=[_upload(INVALID_TOML)],
+        )
+        assert response.status_code in (400, 500)

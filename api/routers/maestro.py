@@ -34,6 +34,8 @@ from ..helpers import (
 )
 from ..schemas import (
     MaestroCatalogResponse,
+    MaestroExportFormat,
+    MaestroExportResponse,
     MaestroLayerThreatsResponse,
     MaestroStats,
     MaestroStyle,
@@ -277,3 +279,66 @@ async def get_maestro_catalog_for_layer(request: Request, layer: str):
     except Exception as e:
         logger.error(f"Failed to load catalog layer: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="Failed to load catalog layer") from e
+
+
+# =============================================================================
+# Cross-Reference Exports (Phase 3)
+# =============================================================================
+
+@router.post(
+    "/maestro/export/{target}",
+    response_model=MaestroExportResponse,
+    summary="Export MAESTRO model to a sibling framework",
+)
+@limiter.limit(RATE_LIMIT_ANALYZE)
+async def export_maestro(
+    request: Request,
+    target: MaestroExportFormat,
+    file: UploadFile = File(..., description="MAESTRO configuration file"),
+):
+    """
+    Export a MAESTRO model to a sibling framework consumable by other USecVisLib modules:
+
+    - ``stride``: STRIDE / threat-modeling shape (model / processes / datastores /
+      threats), with explicit per-entry ``mapping`` label (``exact``/``partial``/
+      ``informational``) and a ``_meta`` block summarising mapping coverage.
+    - ``attack-graph``: AttackGraph shape (hosts / vulnerabilities / edges),
+      materialising cross-layer attack chains.
+    - ``privilege-gradient``: PrivilegeGradient shape with trust zones derived
+      from agent autonomy levels.
+    """
+    input_path = None
+
+    try:
+        validate_config_file_extension(file.filename)
+        input_path = save_upload_file(file)
+        mm = MaestroThreatModel(input_path, "unused")
+        mm.load()
+
+        catalog = mm.get_catalog()
+        catalog_version = catalog.get("catalog_version", "unknown")
+
+        if target == MaestroExportFormat.STRIDE:
+            payload = mm.to_stride()
+        elif target == MaestroExportFormat.ATTACK_GRAPH:
+            payload = mm.to_attack_graph()
+        elif target == MaestroExportFormat.PRIVILEGE_GRADIENT:
+            payload = mm.to_privilege_gradient()
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported target: {target}")
+
+        return MaestroExportResponse(
+            target_framework=target.value,
+            catalog_version=catalog_version,
+            payload=payload,
+        )
+
+    except HTTPException:
+        raise
+    except MaestroError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail="An internal error occurred") from e
+    finally:
+        cleanup_files(input_path)

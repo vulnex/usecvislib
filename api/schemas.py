@@ -1929,3 +1929,18 @@ class MaestroLayerThreatsResponse(BaseModel):
     layer_name: str
     threats: list[MaestroCatalogThreat] = Field(default=[])
 
+
+class MaestroExportFormat(str, Enum):
+    """Cross-reference export targets for MAESTRO models."""
+    STRIDE = "stride"
+    ATTACK_GRAPH = "attack-graph"
+    PRIVILEGE_GRADIENT = "privilege-gradient"
+
+
+class MaestroExportResponse(BaseModel):
+    """Wrapper for an exported MAESTRO cross-reference payload."""
+    target_framework: str = Field(description="Target framework key (stride|attack-graph|privilege-gradient)")
+    catalog_version: str = Field(description="Catalog version used for the export")
+    payload: dict[str, Any] = Field(description="Exported configuration (consumable by the target module)")
+
+

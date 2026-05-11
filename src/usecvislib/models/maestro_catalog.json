@@ -1,8 +1,8 @@
 {
-  "catalog_version": "2026.1",
+  "catalog_version": "2026.2",
   "framework_version": "MAESTRO 1.0 (2025-02)",
   "framework_reference": "https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro",
-  "description": "Baseline threat catalog for the MAESTRO agentic AI threat modeling framework. Threat IDs are immutable across catalog versions; deprecated entries keep their ID with deprecated: true.",
+  "description": "Baseline threat catalog for the MAESTRO agentic AI threat modeling framework. Threat IDs are immutable across catalog versions; deprecated entries keep their ID with deprecated: true. ATT&CK mappings are best-effort placeholders subject to revision by a security expert.",
   "layers": {
     "foundation-models": {
       "id": 1,
@@ -51,7 +51,7 @@
       "default_likelihood": "medium",
       "stride_category": "Tampering",
       "stride_mapping": "partial",
-      "mitre_attack": null,
+      "mitre_attack": "T1565.001",
       "default_mitigations": ["M-adversarial-training", "M-input-validation"]
     },
     {
@@ -63,7 +63,7 @@
       "default_likelihood": "medium",
       "stride_category": "Information Disclosure",
       "stride_mapping": "exact",
-      "mitre_attack": null,
+      "mitre_attack": "TA0010",
       "default_mitigations": ["M-rate-limiting", "M-query-monitoring"]
     },
     {
@@ -99,7 +99,7 @@
       "default_likelihood": "medium",
       "stride_category": "Tampering",
       "stride_mapping": "exact",
-      "mitre_attack": null,
+      "mitre_attack": "T1565.002",
       "default_mitigations": ["M-data-provenance", "M-training-data-validation"]
     },
     {
@@ -135,7 +135,7 @@
       "default_likelihood": "medium",
       "stride_category": "Tampering",
       "stride_mapping": "exact",
-      "mitre_attack": null,
+      "mitre_attack": "T1565",
       "default_mitigations": ["M-data-provenance", "M-content-filtering"]
     },
     {
@@ -147,7 +147,7 @@
       "default_likelihood": "medium",
       "stride_category": "Information Disclosure",
       "stride_mapping": "exact",
-      "mitre_attack": null,
+      "mitre_attack": "TA0010",
       "default_mitigations": ["M-access-control", "M-encryption-at-rest", "M-egress-monitoring"]
     },
     {
@@ -183,7 +183,7 @@
       "default_likelihood": "medium",
       "stride_category": "Tampering",
       "stride_mapping": "partial",
-      "mitre_attack": null,
+      "mitre_attack": "T1195",
       "default_mitigations": ["M-rag-content-filtering", "M-source-attribution", "M-content-sanitization"]
     },
     {
@@ -279,7 +279,7 @@
       "default_likelihood": "medium",
       "stride_category": "Elevation of Privilege",
       "stride_mapping": "exact",
-      "mitre_attack": null,
+      "mitre_attack": "T1611",
       "default_mitigations": ["M-rbac", "M-network-policies", "M-admission-control"]
     },
     {
@@ -315,7 +315,7 @@
       "default_likelihood": "medium",
       "stride_category": "Elevation of Privilege",
       "stride_mapping": "partial",
-      "mitre_attack": null,
+      "mitre_attack": "T1496",
       "default_mitigations": ["M-workload-policies", "M-resource-monitoring"]
     },
     {
@@ -327,7 +327,7 @@
       "default_likelihood": "medium",
       "stride_category": "Elevation of Privilege",
       "stride_mapping": "exact",
-      "mitre_attack": null,
+      "mitre_attack": "TA0008",
       "default_mitigations": ["M-network-segmentation", "M-least-privilege"]
     },
     {
@@ -507,7 +507,7 @@
       "default_likelihood": "medium",
       "stride_category": "Spoofing",
       "stride_mapping": "exact",
-      "mitre_attack": null,
+      "mitre_attack": "T1656",
       "default_mitigations": ["M-agent-identity", "M-mutual-auth"]
     },
     {
@@ -519,7 +519,7 @@
       "default_likelihood": "medium",
       "stride_category": "Spoofing",
       "stride_mapping": "exact",
-      "mitre_attack": null,
+      "mitre_attack": "T1556",
       "default_mitigations": ["M-secret-rotation", "M-mfa-for-agents"]
     },
     {

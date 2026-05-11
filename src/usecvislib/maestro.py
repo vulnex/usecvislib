@@ -958,3 +958,291 @@ class MaestroThreatModel(VisualizationBase):
             "threats_by_status": threats_by_status,
             "warnings": list(self.warnings),
         }
+
+    # ----------------------------------------------------------- cross-references
+
+    # Mapping from MAESTRO layer to a STRIDE-friendly element kind.
+    # L1/L3/L5/L6/L7 agents land in `processes`; L2/L4 assets land in `datastores`.
+    _STRIDE_ELEMENT_KIND = {
+        MaestroLayer.FOUNDATION_MODELS.value: "process",
+        MaestroLayer.DATA_OPERATIONS.value: "datastore",
+        MaestroLayer.AGENT_FRAMEWORKS.value: "process",
+        MaestroLayer.INFRASTRUCTURE.value: "datastore",
+        MaestroLayer.OBSERVABILITY.value: "process",
+        MaestroLayer.SECURITY.value: "process",
+        MaestroLayer.AGENT_ECOSYSTEM.value: "process",
+    }
+
+    def to_stride(self) -> dict[str, Any]:
+        """Export the model in a STRIDE / threat-modeling-compatible shape.
+
+        Each MAESTRO threat is emitted with an explicit ``mapping`` label
+        (``exact`` / ``partial`` / ``informational``) so consumers can tell
+        which entries are clean STRIDE matches and which carry over for
+        completeness only.
+
+        The returned dict matches the structure consumed by
+        :class:`usecvislib.threatmodeling.ThreatModeling` (model / externals /
+        processes / datastores / dataflows / threats), with an additional
+        ``_meta`` block summarising mapping coverage.
+        """
+        if not self._loaded:
+            self.load()
+
+        meta = self.inputdata.get("meta", {}) if isinstance(self.inputdata, dict) else {}
+        processes: dict[str, dict[str, Any]] = {}
+        datastores: dict[str, dict[str, Any]] = {}
+
+        for agent in self.agents.values():
+            primary_layer = agent.layers[0] if agent.layers else MaestroLayer.AGENT_FRAMEWORKS.value
+            kind = self._STRIDE_ELEMENT_KIND.get(primary_layer, "process")
+            target_dict = processes if kind == "process" else datastores
+            target_dict[utils.sanitize_node_id(agent.id)] = {
+                "label": agent.name,
+                "description": f"{agent.type} agent ({agent.autonomy}); layers: {', '.join(agent.layers)}",
+                "isServer": True,
+            }
+
+        for asset in self.assets.values():
+            datastores[utils.sanitize_node_id(f"asset_{asset.id}")] = {
+                "label": asset.name,
+                "description": f"Asset on layer {asset.layer}",
+                "isEncrypted": False,
+                "storesPII": asset.sensitivity in ("high", "critical"),
+            }
+
+        stride_threats: dict[str, dict[str, Any]] = {}
+        counts = {"exact": 0, "partial": 0, "informational": 0}
+
+        # User-defined cross_layer_threats and pattern-implied ones are
+        # informational-only in STRIDE (no direct equivalent).
+        for threat in self.threats.values():
+            mapping = threat.stride_mapping or "informational"
+            category = threat.stride_category or "Informational"
+            counts[mapping] = counts.get(mapping, 0) + 1
+
+            tid = utils.sanitize_node_id(threat.id)
+            target = (
+                utils.sanitize_node_id(threat.target_id)
+                if threat.target_id
+                else next(iter(processes.keys()), "system")
+            )
+            stride_threats[tid] = {
+                "target": target,
+                "category": category,
+                "description": threat.description or threat.name,
+                "likelihood": threat.likelihood,
+                "impact": threat.severity,
+                "mitigation": ", ".join(threat.mitigations) or "See MAESTRO catalog.",
+                "mapping": mapping,
+                "maestro_id": threat.id.split("@")[0],
+            }
+
+        total = sum(counts.values())
+        return {
+            "_meta": {
+                "source_framework": "MAESTRO",
+                "target_framework": "STRIDE",
+                "total_threats": total,
+                "mapping_counts": counts,
+                "unmapped_pct": (counts.get("informational", 0) / total * 100) if total else 0.0,
+                "note": (
+                    "Threats tagged mapping='informational' have no clean STRIDE "
+                    "equivalent (adversarial ML, prompt injection, autonomy-specific). "
+                    "The STRIDE view is therefore lossy."
+                ),
+            },
+            "model": {
+                "name": meta.get("name", "MAESTRO -> STRIDE Export"),
+                "description": meta.get("description", ""),
+                "version": meta.get("version", "1.0"),
+                "type": "Threat Model",
+            },
+            "externals": {
+                "user": {
+                    "label": "End User / External Caller",
+                    "description": "Synthesized external entity for MAESTRO export.",
+                    "isTrusted": False,
+                }
+            },
+            "processes": processes,
+            "datastores": datastores,
+            "dataflows": {},
+            "threats": stride_threats,
+        }
+
+    def to_attack_graph(self) -> dict[str, Any]:
+        """Export declared cross-layer threats as an AttackGraph configuration.
+
+        Each agent becomes a host (zone = primary MAESTRO layer). Each threat
+        referenced by an attack chain becomes a vulnerability on the targeted
+        agent. Chain steps materialise as exploit edges.
+
+        The returned dict matches the structure consumed by
+        :class:`usecvislib.attackgraphs.AttackGraphs`.
+        """
+        if not self._loaded:
+            self.load()
+
+        meta = self.inputdata.get("meta", {}) if isinstance(self.inputdata, dict) else {}
+
+        hosts: list[dict[str, Any]] = []
+        for agent in self.agents.values():
+            zone = agent.layers[0] if agent.layers else "agent-frameworks"
+            hosts.append({
+                "id": utils.sanitize_node_id(agent.id),
+                "label": agent.name,
+                "description": f"{agent.type} / autonomy={agent.autonomy}",
+                "zone": zone,
+            })
+
+        # Collect threats that appear in any chain (uniqued)
+        chain_threat_ids: set[str] = set()
+        for clt in self.cross_layer_threats.values():
+            for step in clt.attack_chain:
+                chain_threat_ids.add(step)
+
+        vulnerabilities: list[dict[str, Any]] = []
+        for raw_id in sorted(chain_threat_ids):
+            # Find the first matching threat (either composite or bare id)
+            match = None
+            for threat in self.threats.values():
+                if threat.id == raw_id or threat.id.startswith(f"{raw_id}@"):
+                    match = threat
+                    break
+            if match is None:
+                continue
+            vulnerabilities.append({
+                "id": utils.sanitize_node_id(f"vuln_{match.id}"),
+                "label": match.name,
+                "description": match.description or match.name,
+                "affected_host": utils.sanitize_node_id(match.target_id or "system"),
+                "severity": match.severity,
+            })
+
+        edges: list[dict[str, Any]] = []
+        for clt in self.cross_layer_threats.values():
+            host_chain: list[str] = []
+            for step in clt.attack_chain:
+                for threat in self.threats.values():
+                    if (threat.id == step or threat.id.startswith(f"{step}@")) and threat.target_id:
+                        host_chain.append(utils.sanitize_node_id(threat.target_id))
+                        break
+            # Fall back to one agent per layer the chain spans
+            if not host_chain:
+                for layer in clt.layers:
+                    agent = next((a for a in self.agents.values() if layer in a.layers), None)
+                    if agent:
+                        host_chain.append(utils.sanitize_node_id(agent.id))
+
+            for src, tgt in zip(host_chain, host_chain[1:]):
+                edges.append({
+                    "from": src,
+                    "to": tgt,
+                    "label": clt.name,
+                    "chain_id": clt.id,
+                })
+
+        return {
+            "_meta": {
+                "source_framework": "MAESTRO",
+                "target_framework": "AttackGraph",
+                "chain_count": len(self.cross_layer_threats),
+            },
+            "graph": {
+                "name": meta.get("name", "MAESTRO -> AttackGraph Export"),
+                "description": meta.get("description", ""),
+                "type": "Attack Graph",
+            },
+            "hosts": hosts,
+            "vulnerabilities": vulnerabilities,
+            "privileges": [],
+            "edges": edges,
+        }
+
+    # Trust level per autonomy class. Higher autonomy = higher blast radius,
+    # so it warrants higher protection — i.e., higher trust zone.
+    _AUTONOMY_TRUST = {
+        AutonomyLevel.REACTIVE.value: 1,
+        AutonomyLevel.DELIBERATIVE.value: 2,
+        AutonomyLevel.LEARNING.value: 3,
+        AutonomyLevel.SELF_MODIFYING.value: 4,
+    }
+
+    def to_privilege_gradient(self) -> dict[str, Any]:
+        """Export agents as a privilege-gradient configuration.
+
+        Trust zones are derived from agent autonomy level (reactive/deliberative/
+        learning/self-modifying maps to Z1..Z4). Cross-layer attack chains
+        become influence edges; the existing privilege-gradient inversion
+        detector will then flag low-trust -> high-trust hops automatically.
+        """
+        if not self._loaded:
+            self.load()
+
+        meta = self.inputdata.get("meta", {}) if isinstance(self.inputdata, dict) else {}
+
+        zones = [
+            {"id": "Z0", "label": "External / Untrusted", "trust_level": 0, "color": "#ffcccc"},
+            {"id": "Z1", "label": "Reactive Agent",       "trust_level": 1, "color": "#ffe0b2"},
+            {"id": "Z2", "label": "Deliberative Agent",   "trust_level": 2, "color": "#fff9c4"},
+            {"id": "Z3", "label": "Learning Agent",       "trust_level": 3, "color": "#c8e6c9"},
+            {"id": "Z4", "label": "Self-Modifying / Core", "trust_level": 4, "color": "#bbdefb"},
+        ]
+
+        components: list[dict[str, Any]] = []
+        for agent in self.agents.values():
+            trust = self._AUTONOMY_TRUST.get(agent.autonomy, 1)
+            components.append({
+                "id": utils.sanitize_node_id(agent.id),
+                "label": agent.name,
+                "zone": f"Z{trust}",
+            })
+
+        influence_types = [
+            {"id": "data",     "label": "Data Flow", "color": "#3498db", "style": "solid"},
+            {"id": "control",  "label": "Control",   "color": "#8e44ad", "style": "bold"},
+            {"id": "feedback", "label": "Feedback",  "color": "#e67e22", "style": "dashed"},
+        ]
+
+        influences: list[dict[str, Any]] = []
+        inf_idx = 0
+        for clt in self.cross_layer_threats.values():
+            chain_agents: list[str] = []
+            for step in clt.attack_chain:
+                for threat in self.threats.values():
+                    if (threat.id == step or threat.id.startswith(f"{step}@")) and threat.target_id:
+                        chain_agents.append(utils.sanitize_node_id(threat.target_id))
+                        break
+            if not chain_agents:
+                for layer in clt.layers:
+                    agent = next((a for a in self.agents.values() if layer in a.layers), None)
+                    if agent:
+                        chain_agents.append(utils.sanitize_node_id(agent.id))
+
+            for src, tgt in zip(chain_agents, chain_agents[1:]):
+                inf_idx += 1
+                influences.append({
+                    "id": f"inf_{inf_idx}",
+                    "from": src,
+                    "to": tgt,
+                    "type": "control",
+                    "label": clt.id,
+                })
+
+        return {
+            "_meta": {
+                "source_framework": "MAESTRO",
+                "target_framework": "PrivilegeGradient",
+                "zone_derivation": "autonomy",
+            },
+            "gradient": {
+                "name": meta.get("name", "MAESTRO -> Privilege Gradient Export"),
+                "description": meta.get("description", ""),
+                "type": "Privilege Gradient Graph",
+            },
+            "zones": zones,
+            "components": components,
+            "influence_types": influence_types,
+            "influences": influences,
+        }
