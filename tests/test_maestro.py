@@ -459,6 +459,116 @@ layers = ["foundation-models", "data-operations", "agent-ecosystem"]
             assert os.path.exists(output_base + ".png")
 
 
+class TestGraphView:
+    """Agent-centric graph render view (View 2)."""
+
+    GRAPH_CONFIG = '''
+[meta]
+name = "Graph Smoke Test"
+
+[architecture]
+patterns = ["multi-agent", "hierarchical"]
+
+[[agents]]
+id = "router"
+name = "Router Agent"
+type = "task-oriented"
+autonomy = "reactive"
+layers = ["agent-frameworks", "foundation-models"]
+
+[[agents]]
+id = "worker_alpha"
+name = "Worker Alpha"
+type = "task-oriented"
+autonomy = "deliberative"
+layers = ["foundation-models", "data-operations"]
+
+[[agents]]
+id = "worker_beta"
+name = "Worker Beta"
+type = "task-oriented"
+autonomy = "deliberative"
+layers = ["data-operations", "infrastructure"]
+
+[[cross_layer_threats]]
+id = "CL-test-chain"
+name = "Test propagation"
+layers = ["foundation-models", "data-operations", "infrastructure"]
+attack_chain = ["T-L1-001", "T-L2-002", "T-L4-006"]
+'''
+
+    def test_graph_view_load_produces_supported_view(self):
+        # Smoke: constructor accepts "graph" without falling back to layered.
+        m = MaestroThreatModel("dummy.toml", "out", view="graph", validate_paths=False)
+        assert m.view == "graph"
+
+    def test_graph_view_renders_dot_with_agents_and_clusters(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = os.path.join(tmpdir, "model.toml")
+            with open(input_path, "w") as f:
+                f.write(self.GRAPH_CONFIG)
+            output_base = os.path.join(tmpdir, "graph_out")
+            m = MaestroThreatModel(
+                input_path, output_base, format="dot",
+                view="graph", validate_paths=False,
+            )
+            m.load().render()
+            # Inspect the underlying DOT source rather than the rendered file
+            # so the test runs even without Graphviz binaries installed.
+            dot_source = m.graph.source
+
+            # Each agent appears as a graph-view node id.
+            assert "graph_agent_router" in dot_source
+            assert "graph_agent_worker_alpha" in dot_source
+            assert "graph_agent_worker_beta" in dot_source
+
+            # Direction is LR by default for V2.
+            assert "rankdir=LR" in dot_source
+
+            # Primary-layer clusters exist for the layers each agent declares first.
+            # router -> agent-frameworks; worker_alpha -> foundation-models;
+            # worker_beta -> data-operations.
+            assert "cluster_graph_agent-frameworks" in dot_source
+            assert "cluster_graph_foundation-models" in dot_source
+            assert "cluster_graph_data-operations" in dot_source
+
+    def test_graph_view_emits_chain_edges_between_targeted_agents(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = os.path.join(tmpdir, "model.toml")
+            with open(input_path, "w") as f:
+                f.write(self.GRAPH_CONFIG)
+            output_base = os.path.join(tmpdir, "graph_out")
+            m = MaestroThreatModel(
+                input_path, output_base, format="dot",
+                view="graph", validate_paths=False,
+            )
+            m.load().render()
+            dot_source = m.graph.source
+
+            # The cross-layer chain references catalog threats targeting
+            # specific agents. We expect at least one labelled chain edge
+            # carrying the chain id.
+            assert "CL-test-chain" in dot_source
+
+    def test_graph_view_render_config_override(self):
+        # `[render] view = "graph"` in the config file should win over the
+        # constructor argument (matching existing layered/heatmap semantics).
+        config_with_view = self.GRAPH_CONFIG + '\n[render]\nview = "graph"\ngraph_direction = "TB"\n'
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = os.path.join(tmpdir, "model.toml")
+            with open(input_path, "w") as f:
+                f.write(config_with_view)
+            output_base = os.path.join(tmpdir, "graph_out")
+            # Constructor says heatmap but config overrides to graph.
+            m = MaestroThreatModel(
+                input_path, output_base, format="dot",
+                view="heatmap", validate_paths=False,
+            )
+            m.load().render()
+            assert m.view == "graph"
+            assert "rankdir=TB" in m.graph.source
+
+
 class TestExports:
     """Tests for the cross-reference export methods (Phase 3)."""
 

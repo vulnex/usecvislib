@@ -196,7 +196,7 @@ class MaestroThreatModel(VisualizationBase):
 
     CATALOG_FILE = "maestro_catalog.json"
 
-    SUPPORTED_VIEWS = ("layered", "heatmap")
+    SUPPORTED_VIEWS = ("layered", "graph", "heatmap")
 
     def __init__(self, inputfile: str, outputfile: str, format: str = "",
                  styleid: str = "", validate_paths: bool = True,
@@ -651,6 +651,9 @@ class MaestroThreatModel(VisualizationBase):
         if view == "heatmap":
             self._render_heatmap()
             return
+        if view == "graph":
+            self._render_graph()
+            return
         self._render_layered()
 
     def _render_layered(self) -> None:
@@ -997,6 +1000,352 @@ class MaestroThreatModel(VisualizationBase):
         for src, tgt in zip(chain_node_ids, chain_node_ids[1:]):
             self.graph.edge(src, tgt, label=label, **edge_attrs)
             label = ""  # Only label the first edge of the chain
+
+    # 8-color palette for chain edges. Hashing the chain id into this list
+    # keeps colors stable across re-renders of the same model. Picked to be
+    # legible against light AND dark style preset backgrounds.
+    _CHAIN_PALETTE = (
+        "#1976d2",  # blue
+        "#d32f2f",  # red
+        "#388e3c",  # green
+        "#f57c00",  # orange
+        "#7b1fa2",  # purple
+        "#0097a7",  # teal
+        "#c2185b",  # pink
+        "#5d4037",  # brown
+    )
+
+    def _chain_color(self, chain_id: str) -> str:
+        """Deterministic color for a cross-layer chain, hashed from its id."""
+        idx = abs(hash(chain_id)) % len(self._CHAIN_PALETTE)
+        return self._CHAIN_PALETTE[idx]
+
+    def _primary_layer(self, agent: Agent) -> str:
+        """The primary layer used to place an agent in graph-view clusters."""
+        return agent.layers[0] if agent.layers else MaestroLayer.AGENT_FRAMEWORKS.value
+
+    def _agent_graph_label(self, agent: Agent) -> str:
+        """Graph-view node label: name + type/autonomy + severity counts row.
+
+        Aggregates threats across all layers (the graph view collapses layer
+        information into the cluster placement, so the badge sums everything
+        targeting the agent).
+        """
+        counts = {"low": 0, "medium": 0, "high": 0, "critical": 0}
+        for t in self.threats.values():
+            if t.target_id != agent.id:
+                continue
+            if t.status in (
+                ThreatStatus.MITIGATED.value,
+                ThreatStatus.NOT_APPLICABLE.value,
+            ):
+                continue
+            if t.severity in counts:
+                counts[t.severity] += 1
+
+        sev_row = ""
+        if any(counts.values()):
+            parts = []
+            for sev, n in (("critical", counts["critical"]),
+                           ("high", counts["high"]),
+                           ("medium", counts["medium"]),
+                           ("low", counts["low"])):
+                if n > 0:
+                    color = SEVERITY_COLORS.get(sev, "#9e9e9e")
+                    parts.append(
+                        f"<FONT COLOR='{color}'>{sev[0].upper()}:{n}</FONT>"
+                    )
+            sev_row = f"<BR/><FONT POINT-SIZE='9'>{' '.join(parts)}</FONT>"
+
+        return (
+            f"<<B>{utils.escape_dot_label(agent.name)}</B>"
+            f"<BR/><FONT POINT-SIZE='9'><I>{utils.escape_dot_label(agent.type)} "
+            f"| {utils.escape_dot_label(agent.autonomy)}</I></FONT>"
+            f"{sev_row}>"
+        )
+
+    def _render_graph(self) -> None:
+        """Render the agent-centric graph view.
+
+        Agents become nodes, clustered into Graphviz subgraphs by their primary
+        MAESTRO layer (`agent.layers[0]`). Cross-layer threats with a non-trivial
+        attack chain materialise as directed edges between the targeted agents,
+        colored deterministically per chain id; single-hop cross-layer threats
+        render as dashed gray edges. L6 (Security) is a floating note rather
+        than a peer cluster, mirroring V1's treatment of the cross-cutting layer.
+
+        Distinct from `to_attack_graph()`: that exports a config dict consumed
+        by the AttackGraphs module; this paints MAESTRO's own picture in
+        MAESTRO terminology.
+        """
+        title = self.inputdata.get("meta", {}).get("name", "MAESTRO Threat Model")
+
+        graph_style = self.style.get("graph", self._default_style()["graph"])
+        layer_style = self.style.get("layer", self._default_style()["layer"])
+        agent_style = self.style.get("agent", self._default_style()["agent"])
+        cross_style = self.style.get("cross_layer_edge", self._default_style()["cross_layer_edge"])
+
+        # Direction: LR by default (chains read left-to-right). Allow opt-in to TB.
+        render_cfg = self.inputdata.get("render", {}) if isinstance(self.inputdata, dict) else {}
+        direction = str(render_cfg.get("graph_direction", "LR")).upper() if isinstance(render_cfg, dict) else "LR"
+        if direction not in ("LR", "TB"):
+            self.warnings.append(
+                f"Unknown graph_direction '{direction}', falling back to LR"
+            )
+            direction = "LR"
+
+        # First-hop-only chain labels by default to keep dense models readable.
+        chain_labels_mode = "first"
+        if isinstance(render_cfg, dict):
+            requested = render_cfg.get("chain_labels", "first")
+            if requested in ("all", "first", "off"):
+                chain_labels_mode = requested
+
+        # Background layer palette — reused from the layered view so users
+        # recognise layer colors across views.
+        layer_colors = {
+            MaestroLayer.AGENT_ECOSYSTEM.value: "#e3f2fd",
+            MaestroLayer.AGENT_FRAMEWORKS.value: "#f3e5f5",
+            MaestroLayer.FOUNDATION_MODELS.value: "#e8f5e9",
+            MaestroLayer.DATA_OPERATIONS.value: "#fff3e0",
+            MaestroLayer.INFRASTRUCTURE.value: "#fce4ec",
+            MaestroLayer.OBSERVABILITY.value: "#e0f7fa",
+            MaestroLayer.SECURITY.value: "#fff8e1",
+        }
+
+        self.graph = Digraph(name=title, format=self.format)
+        graph_attrs = utils.stringify_dict(graph_style.copy())
+        # Override layout direction for this view regardless of preset's value.
+        graph_attrs["rankdir"] = direction
+        self.graph.attr(**graph_attrs)
+        self.graph.attr(label=title, labelloc="t", fontsize="16")
+
+        # Group agents by primary layer (only layers that actually have agents
+        # get clusters — keeps the canvas compact unlike V1 which always shows
+        # all 7 bands).
+        by_primary_layer: dict[str, list[Agent]] = {}
+        for agent in self.agents.values():
+            key = self._primary_layer(agent)
+            # Security (L6) is rendered as a floating note, not a cluster, to
+            # respect its cross-cutting semantics.
+            if key == MaestroLayer.SECURITY.value:
+                continue
+            by_primary_layer.setdefault(key, []).append(agent)
+
+        agent_attrs = utils.stringify_dict(agent_style)
+        # Drop the preset's fillcolor — we override per-node with the agent's
+        # primary-layer color so the visual links agent to layer at a glance.
+        agent_attrs.pop("fillcolor", None)
+
+        # Render one cluster per layer in canonical display order, but skip
+        # empty layers.
+        for layer in LAYER_DISPLAY_ORDER:
+            layer_key = layer.value
+            members = by_primary_layer.get(layer_key, [])
+            if not members:
+                continue
+
+            display_name = self._layer_display_name(layer_key)
+            cluster_fill = layer_colors.get(layer_key, "#f5f5f5")
+
+            with self.graph.subgraph(name=f"cluster_graph_{layer_key}") as sub:
+                sub_attrs = utils.stringify_dict(layer_style.copy())
+                # Pop conflict keys then override.
+                sub_attrs.pop("fillcolor", None)
+                sub_attrs.pop("color", None)
+                sub.attr(
+                    label=display_name,
+                    style="filled,rounded",
+                    fillcolor=cluster_fill,
+                    color="#bdbdbd",
+                    **{k: v for k, v in sub_attrs.items() if k not in ("label", "style")},
+                )
+
+                # Auto-cluster crowded layers (re-use V1 threshold semantics).
+                if (
+                    self.clustering_enabled
+                    and len(members) > self.cluster_threshold
+                ):
+                    self._render_graph_clustered_agents(sub, layer_key, members, agent_attrs)
+                else:
+                    for agent in members:
+                        self._render_graph_agent_node(sub, agent, agent_attrs, layer_key)
+
+        # L6 (Security): floating note summarising detective vs preventive
+        # mitigation coverage. Placed outside any cluster.
+        if self.mitigations:
+            self.graph.node(
+                utils.sanitize_node_id("security_summary_graph"),
+                self._security_gutter_label(),
+                shape="note",
+                fillcolor="#ffe0b2",
+                fontname="Arial",
+                fontsize="10",
+                fontcolor="#bf360c",
+                style="filled",
+            )
+
+        # Cross-layer threats: chain edges (colored per chain) or single dashed.
+        self._render_graph_chain_edges(cross_style, chain_labels_mode)
+
+        self.logger.debug(
+            f"Rendered MAESTRO graph view: {len(self.agents)} agents, "
+            f"{sum(1 for cs in by_primary_layer.values())} clusters, "
+            f"{len(self.cross_layer_threats)} chains"
+        )
+
+    def _render_graph_agent_node(
+        self,
+        sub: Any,
+        agent: Agent,
+        agent_attrs: dict[str, str],
+        layer_key: str,
+    ) -> None:
+        """Place a single agent node inside its primary-layer cluster."""
+        node_id = utils.sanitize_node_id(f"graph_agent_{agent.id}")
+        label = self._agent_graph_label(agent)
+        # Per-agent fill from primary layer color (darker variant of the
+        # cluster fill for contrast).
+        node_fill = {
+            MaestroLayer.AGENT_ECOSYSTEM.value: "#90caf9",
+            MaestroLayer.AGENT_FRAMEWORKS.value: "#ce93d8",
+            MaestroLayer.FOUNDATION_MODELS.value: "#a5d6a7",
+            MaestroLayer.DATA_OPERATIONS.value: "#ffcc80",
+            MaestroLayer.INFRASTRUCTURE.value: "#f48fb1",
+            MaestroLayer.OBSERVABILITY.value: "#80deea",
+            MaestroLayer.SECURITY.value: "#ffe082",
+        }.get(layer_key, "#90caf9")
+        # Border severity-driven: red & thicker if agent owns any critical
+        # unmitigated threat.
+        worst = self._max_severity_for_agent(agent.id)
+        border_color = SEVERITY_COLORS.get(worst, "#616161") if worst == "critical" else "#616161"
+        penwidth = "2" if worst == "critical" else "1.2"
+        sub.node(
+            node_id,
+            label,
+            fillcolor=node_fill,
+            color=border_color,
+            penwidth=penwidth,
+            **{k: v for k, v in agent_attrs.items()
+               if k not in ("fillcolor", "color", "penwidth")},
+        )
+
+    def _render_graph_clustered_agents(
+        self,
+        sub: Any,
+        layer_key: str,
+        members: list[Agent],
+        agent_attrs: dict[str, str],
+    ) -> None:
+        """Group agents by type into subclusters when a primary layer is crowded."""
+        by_type: dict[str, list[Agent]] = {}
+        for agent in members:
+            by_type.setdefault(agent.type, []).append(agent)
+
+        for agent_type, type_members in by_type.items():
+            cluster_name = f"cluster_graph_{layer_key}_{utils.sanitize_node_id(agent_type)}"
+            severities = [self._max_severity_for_agent(a.id) for a in type_members]
+            worst = max(
+                severities,
+                key=lambda s: SEVERITY_RANK.get(s, 0),
+                default="unknown",
+            )
+            badge = f"{len(type_members)} agents | worst: {worst}"
+
+            with sub.subgraph(name=cluster_name) as cluster:
+                cluster.attr(
+                    label=f"{agent_type}\\n{badge}",
+                    style="dashed",
+                    color=SEVERITY_COLORS.get(worst, "#9e9e9e"),
+                    fontname="Arial",
+                    fontsize="10",
+                )
+                for agent in type_members:
+                    self._render_graph_agent_node(cluster, agent, agent_attrs, layer_key)
+
+    def _render_graph_chain_edges(
+        self,
+        cross_style: dict[str, Any],
+        chain_labels_mode: str,
+    ) -> None:
+        """Render cross-layer threats as directed edges between agent nodes.
+
+        The chain backbone is `clt.layers` (the declared layer trajectory). For
+        each layer in that sequence we pick the most representative agent:
+        first an agent whose PRIMARY layer matches (so the chain visits the
+        cluster the agent actually lives in), then any agent that touches the
+        layer. Consecutive duplicate node ids collapse — chains running through
+        a single agent that spans multiple layers render as a labeled
+        self-loop rather than vanishing.
+        """
+        def pick_agent_for_layer(layer_value: str) -> Optional[Agent]:
+            primary = next(
+                (a for a in self.agents.values()
+                 if a.layers and a.layers[0] == layer_value),
+                None,
+            )
+            if primary is not None:
+                return primary
+            return next(
+                (a for a in self.agents.values() if layer_value in a.layers),
+                None,
+            )
+
+        for clt in self.cross_layer_threats.values():
+            node_ids: list[str] = []
+            for layer_value in clt.layers:
+                agent = pick_agent_for_layer(layer_value)
+                if agent is not None:
+                    node_ids.append(utils.sanitize_node_id(f"graph_agent_{agent.id}"))
+
+            # Dedupe consecutive duplicates — a single agent appearing twice
+            # back-to-back doesn't add visual information.
+            cleaned: list[str] = []
+            for node_id in node_ids:
+                if not cleaned or cleaned[-1] != node_id:
+                    cleaned.append(node_id)
+
+            if not cleaned:
+                continue  # Chain didn't resolve to any agent — nothing to draw.
+
+            color = self._chain_color(clt.id)
+            chain_label = f" {clt.id}: {clt.name}"
+
+            if len(cleaned) == 1:
+                # Entire chain runs through a single agent that spans the
+                # declared layers. Draw a self-loop so the chain still
+                # surfaces visually rather than being silently dropped.
+                self.graph.edge(
+                    cleaned[0], cleaned[0],
+                    label=f" {clt.id} ({len(clt.layers)} layers)",
+                    color=color,
+                    fontcolor=color,
+                    fontname="Arial",
+                    fontsize="9",
+                    penwidth="1.5",
+                    arrowhead="vee",
+                    style="dashed",
+                )
+                continue
+
+            # Multi-agent chain: solid colored edges per hop.
+            for i, (src, tgt) in enumerate(zip(cleaned, cleaned[1:])):
+                if chain_labels_mode == "off":
+                    edge_label = ""
+                elif chain_labels_mode == "first":
+                    edge_label = chain_label if i == 0 else ""
+                else:  # "all"
+                    edge_label = chain_label if i == 0 else f" {clt.id}"
+                self.graph.edge(
+                    src, tgt,
+                    label=edge_label,
+                    color=color,
+                    fontcolor=color,
+                    fontname="Arial",
+                    fontsize="9",
+                    penwidth="1.5",
+                    arrowhead="vee",
+                )
 
     def _render_heatmap(self) -> None:
         """Render a Matplotlib heatmap: agents (rows) x layers (columns).

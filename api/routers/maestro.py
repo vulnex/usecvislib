@@ -79,7 +79,7 @@ async def visualize_maestro(
     file: UploadFile = File(..., description="MAESTRO configuration file (TOML/JSON/YAML)"),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     style: MaestroStyle = Query(default=MaestroStyle.DEFAULT, description="Style preset"),
-    view: MaestroView = Query(default=MaestroView.LAYERED, description="Render view: layered or heatmap"),
+    view: MaestroView = Query(default=MaestroView.LAYERED, description="Render view: layered, graph, or heatmap"),
 ):
     """
     Generate a MAESTRO threat model visualization from an uploaded configuration file.
@@ -90,8 +90,9 @@ async def visualize_maestro(
 
     Catalog threats are auto-attached based on the layers each agent touches
     and the declared architecture patterns. The ``view`` query parameter
-    selects between the layered architecture diagram (default) and the
-    severity heatmap (agents x layers).
+    selects between the layered architecture diagram (default), the agent-centric
+    graph (clusters by primary layer with attack chains as directed edges),
+    and the severity heatmap (agents x layers).
     """
     input_path = None
     output_path = None

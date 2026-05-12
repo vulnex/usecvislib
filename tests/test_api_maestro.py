@@ -425,3 +425,16 @@ class TestMaestroHeatmapView:
         )
         # FastAPI 422 on unknown enum value
         assert response.status_code == 422
+
+    def test_visualize_view_graph_accepted(self):
+        # Graph view uses Graphviz; succeeds with 200 when `dot` is available,
+        # otherwise fails on the render call with 400/500. The point of the
+        # test is that the schema accepts "graph" (no 422).
+        response = client.post(
+            "/visualize/maestro?view=graph&format=png",
+            files=[_upload(VALID_MAESTRO_TOML)],
+        )
+        assert response.status_code in (200, 400, 500)
+        # If we got 200, the body should be non-empty image bytes.
+        if response.status_code == 200:
+            assert len(response.content) > 1000

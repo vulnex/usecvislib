@@ -79,6 +79,7 @@
             <label>View</label>
             <select v-model="view">
               <option value="layered">Layered Architecture</option>
+              <option value="graph">Agent Graph</option>
               <option value="heatmap">Severity Heatmap</option>
             </select>
           </div>

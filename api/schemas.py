@@ -1880,6 +1880,7 @@ class MaestroStyle(str, Enum):
 class MaestroView(str, Enum):
     """MAESTRO render views."""
     LAYERED = "layered"
+    GRAPH = "graph"
     HEATMAP = "heatmap"
 
 

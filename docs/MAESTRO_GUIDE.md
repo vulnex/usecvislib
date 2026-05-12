@@ -47,6 +47,9 @@ Use the existing **Threat Modeling** module (mode 1) for classical applications 
 # Render the default layered view
 usecvis -i templates/maestro/single-agent-rag.toml -o my_model -m 12
 
+# Render the agent-centric graph (clusters by primary layer, chains as edges)
+usecvis -i templates/maestro/financial-trading-chain.toml -o my_model -m 12 -v graph
+
 # Render the severity heatmap
 usecvis -i templates/maestro/multi-agent-support.toml -o my_model -m 12 -v heatmap
 
@@ -301,6 +304,29 @@ Seven horizontal bands stacked top-to-bottom (L7 → L3 → L1 → L2 → L4 →
 
 **Best for:** architecture analysis, security review, walkthroughs.
 
+### Agent Graph (`view = "graph"`)
+
+Graphviz-rendered diagram where each agent is a single node, clustered by its **primary layer** (`agent.layers[0]`). Cross-layer attack chains become directed edges between the targeted agents, colored deterministically per chain id so multiple chains stay visually distinguishable. Single-hop cross-layer threats render as dashed gray edges. Default layout is left-to-right (chains read like a causal sequence); switch to top-down via `[render] graph_direction = "TB"`.
+
+Unlike the layered view, only layers that actually have agents get clusters — the canvas stays compact. L6 (Security) renders as a floating note rather than a peer cluster, respecting its cross-cutting role.
+
+The node label shows the agent name, type/autonomy, and a one-line severity breakdown (`C:1 H:3 M:5 L:2`) aggregated across all layers. Agents owning at least one unmitigated critical threat get a red, thicker border.
+
+**Best for:** incident analysis, walking through how a chain propagates, communicating threat narrative to non-architects.
+
+This view is distinct from the `to_attack_graph()` export, which produces a config dict consumed by the separate `AttackGraphs` module — same source data, different audiences.
+
+Optional render config:
+
+```toml
+[render]
+view = "graph"
+graph_direction = "LR"     # or "TB"
+chain_labels = "first"     # "all" | "first" | "off" — first hop label by default
+clustering = "auto"        # same semantics as layered view
+cluster_threshold = 8      # auto-subcluster by type when a layer is crowded
+```
+
 ### Severity Heatmap (`view = "heatmap"`)
 
 Matplotlib-rendered matrix of agents (rows) × layers (columns). Each cell is colored by the **max severity of unmitigated threats** targeting that agent on that layer, with a count badge. Mitigated and "not applicable" threats are excluded.
@@ -311,11 +337,11 @@ Matplotlib-rendered matrix of agents (rows) × layers (columns). Each cell is co
 
 | Surface | How |
 |---|---|
-| CLI | `usecvis -m 12 -i model.toml -o out -v heatmap` |
-| REST API | `POST /visualize/maestro?view=heatmap` |
+| CLI | `usecvis -m 12 -i model.toml -o out -v graph` (or `heatmap`) |
+| REST API | `POST /visualize/maestro?view=graph` |
 | Frontend | View selector dropdown in the MAESTRO panel |
-| Python | `MaestroThreatModel(..., view="heatmap")` |
-| Config file | Add `[render] view = "heatmap"` (overrides the constructor) |
+| Python | `MaestroThreatModel(..., view="graph")` |
+| Config file | Add `[render] view = "graph"` (overrides the constructor) |
 
 ---
 
@@ -345,6 +371,17 @@ Select via `-s <preset_id>` on the CLI, `style=` query param on the API, or the 
 | **Tiny red text under agent name** | Per-layer open-threat count and worst severity: `13 open (critical)` means 13 unmitigated threats target this agent on this layer, with at least one critical. |
 | **Dashed red arrow with label** | A cross-layer attack chain. The label is `CL-id: description`. Arrows route between the agent's per-layer copies that the chain references. |
 | **Orange note in L6** | The security-mitigation summary: `1 preventive | 0 detective` counts implemented mitigations by type. |
+
+### Graph view legend
+
+| Element | What it means |
+|---|---|
+| **Cluster (rounded rectangle)** | One MAESTRO layer that hosts at least one agent's primary layer. Empty layers are omitted to keep the canvas compact. |
+| **Colored agent node** | One agent, placed in its primary layer's cluster. Fill color matches the layer; the label shows name, type/autonomy, and a severity breakdown row (`C:n H:n M:n L:n`). |
+| **Red, thicker border on an agent** | The agent owns at least one unmitigated **critical** threat. |
+| **Solid colored arrow** | A multi-step cross-layer attack chain. Color is hashed from the chain id (stable across renders) so multiple chains stay distinguishable. The first hop carries the label `CL-id: description`; later hops are unlabeled by default. |
+| **Dashed gray arrow** | A single-hop cross-layer threat that didn't resolve into a multi-step chain. |
+| **Orange floating note** | The L6 security-mitigation summary (preventive vs. detective counts). Floats outside any cluster because L6 is cross-cutting. |
 
 ### Heatmap view legend
 
@@ -436,7 +473,7 @@ All endpoints require the `X-API-Key` header when `USECVISLIB_AUTH_ENABLED=true`
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/visualize/maestro` | Render the model. Query: `format` (png/svg/pdf), `style` (ma_*), `view` (layered/heatmap). |
+| POST | `/visualize/maestro` | Render the model. Query: `format` (png/svg/pdf), `style` (ma_*), `view` (layered/graph/heatmap). |
 | POST | `/analyze/maestro` | Stats: counts by layer / severity / status, patterns, warnings. |
 | POST | `/validate/maestro` | Validation: errors + auto-populate warnings. |
 | POST | `/analyze/maestro/threats` | Per-threat detail with filters. Query: `layer`, `severity`, `status` (any combination). |
