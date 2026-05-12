@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-05-12
+
+### Added
+
+- **MAESTRO Agent-Centric Graph view (View 2)** — third render view for MAESTRO threat models, completing the three-view set originally specified in `devnotes/MAESTRO_DESIGN.md`
+  - Native Graphviz render: agents become nodes clustered by their primary MAESTRO layer (`agent.layers[0]`); only layers actually in use get clusters (canvas stays compact, unlike View 1 which always shows all 7 bands)
+  - Cross-layer attack chains render as directed edges. Multi-agent chains use a per-chain color hashed deterministically from the chain id so re-renders stay stable. Chains that run entirely through a single agent (because that agent spans the declared layers) fall back to a labeled self-loop with the layer count, rather than being silently dropped
+  - L6 Security rendered as a floating mitigation-summary `note` rather than a peer cluster, matching View 1's treatment of the cross-cutting layer
+  - Auto-clustering by `agent.type` when a primary-layer cluster exceeds `cluster_threshold` (default 8)
+  - Selectable via `usecvis -m 12 -v graph` (CLI), `POST /visualize/maestro?view=graph` (API), the "Agent Graph" option in the MaestroPanel view dropdown (Vue), or `[render] view = "graph"` (config file)
+  - Optional render config: `[render] graph_direction = "LR"` (default) | `"TB"`, `[render] chain_labels = "first"` (default) | `"all"` | `"off"`
+  - Distinct from `to_attack_graph()`: that exports an AttackGraph config dict consumed by the AttackGraphs module; this paints MAESTRO's own picture in MAESTRO terminology
+- 4 new graph-view unit tests in `tests/test_maestro.py` and 1 new API test in `tests/test_api_maestro.py`
+- New `MaestroView.GRAPH = "graph"` enum value in `api/schemas.py`
+- Graph view subsection + legend table in `docs/MAESTRO_GUIDE.md`
+
+### Changed
+
+- Moved `CHANGELOG.md` from `devnotes/` to the repository root for visibility
+- Per-file version strings synced to 0.4.0 across source headers, Dockerfile LABEL, frontend version readouts, and documentation footers (the 0.4.0 release commit only bumped `pyproject.toml`; this aligns everything else)
+
 ## [0.4.0] - 2026-05-11
 
 ### Added

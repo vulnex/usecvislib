@@ -5,7 +5,7 @@
 # Author: Simon Roses Femerling
 # Created: 2025-01-01
 # Last Modified: 2025-12-25
-# Version: 0.4.0
+# Version: 0.4.1
 # License: Apache-2.0
 # Copyright (c) 2025 VULNEX. All rights reserved.
 # https://www.vulnex.com
@@ -56,7 +56,7 @@ Example usage:
     >>> cloud.render("output", format="png")
 """
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 __author__ = "VULNEX"
 
 from .async_support import (

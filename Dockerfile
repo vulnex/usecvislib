@@ -8,7 +8,7 @@ FROM python:3.12-slim
 # Labels
 LABEL maintainer="VULNEX"
 LABEL description="Universal Security Visualization Library - API and CLI"
-LABEL version="0.4.0"
+LABEL version="0.4.1"
 
 # Environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \

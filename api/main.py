@@ -155,7 +155,7 @@ To disable authentication for local development:
 export USECVISLIB_AUTH_ENABLED=false
 ```
     """,
-    version="0.4.0",
+    version="0.4.1",
     lifespan=lifespan,
     root_path=API_ROOT_PATH,
     dependencies=[Depends(verify_api_key)],
