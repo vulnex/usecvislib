@@ -772,4 +772,4 @@ Projects and articles that use or mention USecVisLib:
 
 ---
 
-**VULNEX** - Universal Security Visualization Library v0.3.4
+**VULNEX** - Universal Security Visualization Library v0.4.0

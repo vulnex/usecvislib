@@ -5,7 +5,7 @@
 # Author: Simon Roses Femerling
 # Created: 2025-01-01
 # Last Modified: 2025-12-25
-# Version: 0.3.4
+# Version: 0.4.0
 # License: Apache-2.0
 # Copyright (c) 2025 VULNEX. All rights reserved.
 # https://www.vulnex.com
