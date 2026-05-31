@@ -120,6 +120,13 @@ async def visualize_binary(
     try:
         # Save uploaded binary file (with larger size limit)
         input_path = save_upload_file(file, ".bin", max_size=MAX_BINARY_FILE_SIZE)
+
+        # Reject empty uploads: an empty file cannot be memory-mapped/analyzed
+        # (behavior otherwise diverges across platforms). Cleanup is handled by
+        # the except HTTPException block below.
+        if os.path.getsize(input_path) == 0:
+            raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
         output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
 
         bv = BinVis(input_path, output_base, format=format.value, styleid=style.value)
@@ -171,6 +178,9 @@ async def visualize_binary(
     except RenderError as e:
         cleanup_files(input_path, output_path)
         raise HTTPException(status_code=400, detail=str(e)) from e
+    except HTTPException:
+        cleanup_files(input_path, output_path)
+        raise
     except Exception as e:
         cleanup_files(input_path, output_path)
         logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)

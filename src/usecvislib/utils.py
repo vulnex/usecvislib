@@ -332,11 +332,16 @@ def validate_output_path(
                 allowed_directory=str(allowed),
             ) from None
 
-    # Prevent writing to sensitive system locations
+    # Prevent writing to sensitive system locations.
+    # Check BOTH the symlink-resolved path and the lexical absolute path: on Linux
+    # some sensitive dirs are symlinks (e.g. /var/run -> /run), so resolving alone
+    # would let a sensitive *name* slip past the prefix check.
     resolved_str = str(resolved)
+    lexical_str = os.path.normpath(os.path.abspath(path))
     for sensitive in SENSITIVE_PATHS:
-        if resolved_str.startswith(sensitive + "/") or resolved_str == sensitive:
-            raise SecurityError(f"Cannot write to sensitive location: {sensitive}", path=resolved_str)
+        for candidate in (resolved_str, lexical_str):
+            if candidate == sensitive or candidate.startswith(sensitive + "/"):
+                raise SecurityError(f"Cannot write to sensitive location: {sensitive}", path=candidate)
 
     # Create parent directories if needed
     if create_parents:
