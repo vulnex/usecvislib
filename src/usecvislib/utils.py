@@ -33,7 +33,7 @@ from typing import Any, Literal, Optional, TypeVar, Union
 try:
     import tomllib  # Python 3.11+ standard library
 except ImportError:
-    tomllib = None
+    import tomli as tomllib  # Python 3.10: spec-compliant backport (the legacy `toml` package mis-parses arrays of tables)
 import atexit
 import contextlib
 import tempfile
