@@ -40,6 +40,7 @@ logger = logging.getLogger(__name__)
 
 class ChangeType(Enum):
     """Type of change detected between two versions."""
+
     ADDED = "added"
     REMOVED = "removed"
     MODIFIED = "modified"
@@ -57,6 +58,7 @@ class Change:
         new_value: New value (None for removals).
         description: Optional human-readable description.
     """
+
     change_type: ChangeType
     path: str
     old_value: Any = None
@@ -69,10 +71,7 @@ class Change:
         elif self.change_type == ChangeType.REMOVED:
             return f"- {self.path}: {self._format_value(self.old_value)}"
         elif self.change_type == ChangeType.MODIFIED:
-            return (
-                f"~ {self.path}: {self._format_value(self.old_value)} "
-                f"-> {self._format_value(self.new_value)}"
-            )
+            return f"~ {self.path}: {self._format_value(self.old_value)} -> {self._format_value(self.new_value)}"
         return f"  {self.path}"
 
     def _format_value(self, value: Any) -> str:
@@ -94,7 +93,7 @@ class Change:
             "path": self.path,
             "old_value": self.old_value,
             "new_value": self.new_value,
-            "description": self.description
+            "description": self.description,
         }
 
 
@@ -108,6 +107,7 @@ class DiffResult:
         new_source: Source path of new visualization.
         metadata: Additional metadata about the comparison.
     """
+
     changes: list[Change] = field(default_factory=list)
     old_source: Optional[str] = None
     new_source: Optional[str] = None
@@ -120,7 +120,7 @@ class DiffResult:
             "added": len(self.added()),
             "removed": len(self.removed()),
             "modified": len(self.modified()),
-            "total": len([c for c in self.changes if c.change_type != ChangeType.UNCHANGED])
+            "total": len([c for c in self.changes if c.change_type != ChangeType.UNCHANGED]),
         }
 
     @property
@@ -159,7 +159,7 @@ class DiffResult:
             "old_source": self.old_source,
             "new_source": self.new_source,
             "changes": [c.to_dict() for c in self.changes],
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
 
@@ -189,9 +189,9 @@ class VisualizationDiff:
         self.new = new_instance
 
         # Ensure both are loaded
-        if not getattr(self.old, '_loaded', False):
+        if not getattr(self.old, "_loaded", False):
             self.old.load()
-        if not getattr(self.new, '_loaded', False):
+        if not getattr(self.new, "_loaded", False):
             self.new.load()
 
     def compare(self, ignore_paths: Optional[list[str]] = None) -> DiffResult:
@@ -207,34 +207,23 @@ class VisualizationDiff:
         ignore_paths = ignore_paths or []
 
         # Compare based on inputdata
-        old_data = getattr(self.old, 'inputdata', {})
-        new_data = getattr(self.new, 'inputdata', {})
+        old_data = getattr(self.old, "inputdata", {})
+        new_data = getattr(self.new, "inputdata", {})
 
         changes = self._compare_dicts(old_data, new_data, path="")
 
         # Filter ignored paths
         if ignore_paths:
-            changes = [
-                c for c in changes
-                if not any(c.path.startswith(p) for p in ignore_paths)
-            ]
+            changes = [c for c in changes if not any(c.path.startswith(p) for p in ignore_paths)]
 
         return DiffResult(
             changes=changes,
-            old_source=getattr(self.old, 'inputfile', None),
-            new_source=getattr(self.new, 'inputfile', None),
-            metadata={
-                "old_type": type(self.old).__name__,
-                "new_type": type(self.new).__name__
-            }
+            old_source=getattr(self.old, "inputfile", None),
+            new_source=getattr(self.new, "inputfile", None),
+            metadata={"old_type": type(self.old).__name__, "new_type": type(self.new).__name__},
         )
 
-    def _compare_dicts(
-        self,
-        old: dict,
-        new: dict,
-        path: str
-    ) -> list[Change]:
+    def _compare_dicts(self, old: dict, new: dict, path: str) -> list[Change]:
         """Recursively compare two dictionaries.
 
         Args:
@@ -254,47 +243,30 @@ class VisualizationDiff:
 
             if key not in old:
                 # Added
-                changes.append(Change(
-                    ChangeType.ADDED,
-                    key_path,
-                    new_value=new[key],
-                    description=f"Added {key}"
-                ))
+                changes.append(Change(ChangeType.ADDED, key_path, new_value=new[key], description=f"Added {key}"))
             elif key not in new:
                 # Removed
-                changes.append(Change(
-                    ChangeType.REMOVED,
-                    key_path,
-                    old_value=old[key],
-                    description=f"Removed {key}"
-                ))
+                changes.append(Change(ChangeType.REMOVED, key_path, old_value=old[key], description=f"Removed {key}"))
             elif old[key] != new[key]:
                 # Modified - check if we can recurse
                 if isinstance(old[key], dict) and isinstance(new[key], dict):
-                    changes.extend(self._compare_dicts(
-                        old[key], new[key], key_path
-                    ))
+                    changes.extend(self._compare_dicts(old[key], new[key], key_path))
                 elif isinstance(old[key], list) and isinstance(new[key], list):
-                    changes.extend(self._compare_lists(
-                        old[key], new[key], key_path
-                    ))
+                    changes.extend(self._compare_lists(old[key], new[key], key_path))
                 else:
-                    changes.append(Change(
-                        ChangeType.MODIFIED,
-                        key_path,
-                        old_value=old[key],
-                        new_value=new[key],
-                        description=f"Changed {key}"
-                    ))
+                    changes.append(
+                        Change(
+                            ChangeType.MODIFIED,
+                            key_path,
+                            old_value=old[key],
+                            new_value=new[key],
+                            description=f"Changed {key}",
+                        )
+                    )
 
         return changes
 
-    def _compare_lists(
-        self,
-        old: list,
-        new: list,
-        path: str
-    ) -> list[Change]:
+    def _compare_lists(self, old: list, new: list, path: str) -> list[Change]:
         """Compare two lists.
 
         For lists of dicts with 'id' fields, compares by ID.
@@ -311,13 +283,13 @@ class VisualizationDiff:
         changes = []
 
         # Check if items have 'id' field for better comparison
-        old_has_ids = all(isinstance(x, dict) and 'id' in x for x in old)
-        new_has_ids = all(isinstance(x, dict) and 'id' in x for x in new)
+        old_has_ids = all(isinstance(x, dict) and "id" in x for x in old)
+        new_has_ids = all(isinstance(x, dict) and "id" in x for x in new)
 
         if old_has_ids and new_has_ids:
             # Compare by ID
-            old_by_id = {x['id']: x for x in old}
-            new_by_id = {x['id']: x for x in new}
+            old_by_id = {x["id"]: x for x in old}
+            new_by_id = {x["id"]: x for x in new}
 
             all_ids = set(old_by_id.keys()) | set(new_by_id.keys())
 
@@ -325,25 +297,25 @@ class VisualizationDiff:
                 item_path = f"{path}[id={item_id}]"
 
                 if item_id not in old_by_id:
-                    changes.append(Change(
-                        ChangeType.ADDED,
-                        item_path,
-                        new_value=new_by_id[item_id],
-                        description=f"Added item {item_id}"
-                    ))
+                    changes.append(
+                        Change(
+                            ChangeType.ADDED,
+                            item_path,
+                            new_value=new_by_id[item_id],
+                            description=f"Added item {item_id}",
+                        )
+                    )
                 elif item_id not in new_by_id:
-                    changes.append(Change(
-                        ChangeType.REMOVED,
-                        item_path,
-                        old_value=old_by_id[item_id],
-                        description=f"Removed item {item_id}"
-                    ))
+                    changes.append(
+                        Change(
+                            ChangeType.REMOVED,
+                            item_path,
+                            old_value=old_by_id[item_id],
+                            description=f"Removed item {item_id}",
+                        )
+                    )
                 elif old_by_id[item_id] != new_by_id[item_id]:
-                    changes.extend(self._compare_dicts(
-                        old_by_id[item_id],
-                        new_by_id[item_id],
-                        item_path
-                    ))
+                    changes.extend(self._compare_dicts(old_by_id[item_id], new_by_id[item_id], item_path))
         else:
             # Compare by index
             max_len = max(len(old), len(new))
@@ -351,32 +323,28 @@ class VisualizationDiff:
                 item_path = f"{path}[{i}]"
 
                 if i >= len(old):
-                    changes.append(Change(
-                        ChangeType.ADDED,
-                        item_path,
-                        new_value=new[i],
-                        description=f"Added item at index {i}"
-                    ))
+                    changes.append(
+                        Change(ChangeType.ADDED, item_path, new_value=new[i], description=f"Added item at index {i}")
+                    )
                 elif i >= len(new):
-                    changes.append(Change(
-                        ChangeType.REMOVED,
-                        item_path,
-                        old_value=old[i],
-                        description=f"Removed item at index {i}"
-                    ))
+                    changes.append(
+                        Change(
+                            ChangeType.REMOVED, item_path, old_value=old[i], description=f"Removed item at index {i}"
+                        )
+                    )
                 elif old[i] != new[i]:
                     if isinstance(old[i], dict) and isinstance(new[i], dict):
-                        changes.extend(self._compare_dicts(
-                            old[i], new[i], item_path
-                        ))
+                        changes.extend(self._compare_dicts(old[i], new[i], item_path))
                     else:
-                        changes.append(Change(
-                            ChangeType.MODIFIED,
-                            item_path,
-                            old_value=old[i],
-                            new_value=new[i],
-                            description=f"Modified item at index {i}"
-                        ))
+                        changes.append(
+                            Change(
+                                ChangeType.MODIFIED,
+                                item_path,
+                                old_value=old[i],
+                                new_value=new[i],
+                                description=f"Modified item at index {i}",
+                            )
+                        )
 
         return changes
 
@@ -442,14 +410,9 @@ class VisualizationDiff:
         """Truncate string for display."""
         if len(s) <= max_len:
             return s
-        return s[:max_len - 3] + "..."
+        return s[: max_len - 3] + "..."
 
-    def save_report(
-        self,
-        output: str,
-        format: str = "md",
-        include_details: bool = True
-    ) -> None:
+    def save_report(self, output: str, format: str = "md", include_details: bool = True) -> None:
         """Save diff report to file.
 
         Args:
@@ -462,22 +425,19 @@ class VisualizationDiff:
 
         if format == "json":
             import json
+
             diff = self.compare()
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(diff.to_dict(), f, indent=2, default=str)
         else:
             report = self.summary_report(include_details=include_details)
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 f.write(report)
 
         logger.info(f"Saved diff report to: {output}")
 
 
-def compare_files(
-    old_file: str,
-    new_file: str,
-    visualization_type: str
-) -> DiffResult:
+def compare_files(old_file: str, new_file: str, visualization_type: str) -> DiffResult:
     """Convenience function to compare two files.
 
     Args:

@@ -38,6 +38,8 @@ if TYPE_CHECKING:
     from .clouddiagrams import CloudDiagrams
     from .mermaiddiagrams import MermaidDiagrams
 
+import contextlib
+
 import graphviz as gv
 
 from . import utils
@@ -49,6 +51,7 @@ from .settings import is_cvss_enabled
 
 class ThreatModelEngine(str, Enum):
     """Available threat modeling engines."""
+
     USECVISLIB = "usecvislib"
     PYTM = "pytm"
 
@@ -78,7 +81,8 @@ class PyTMWrapper:
     def _check_pytm(self) -> bool:
         """Check if PyTM is available."""
         try:
-            import pytm
+            import pytm  # noqa: F401  (import is the availability probe)
+
             return True
         except ImportError:
             return False
@@ -121,10 +125,8 @@ class PyTMWrapper:
         def set_attr_safe(obj: Any, attr: str, value: Any) -> None:
             """Set attribute on object if it exists."""
             if hasattr(obj, attr):
-                try:
+                with contextlib.suppress(Exception):
                     setattr(obj, attr, value)
-                except Exception:
-                    pass
 
         # Create external entities (as Actors in PyTM)
         for ext_id, ext_data in externals.items():
@@ -133,10 +135,7 @@ class PyTMWrapper:
 
             use_actor = ext_data.get("isHuman", True) or ext_data.get("isAdmin", False)
 
-            if use_actor:
-                element = Actor(label)
-            else:
-                element = ExternalEntity(label)
+            element = Actor(label) if use_actor else ExternalEntity(label)
 
             if boundary:
                 element.inBoundary = boundary
@@ -154,7 +153,7 @@ class PyTMWrapper:
             }
 
             if ext_data.get("description"):
-                set_attr_safe(element, 'description', ext_data.get("description"))
+                set_attr_safe(element, "description", ext_data.get("description"))
 
             for our_prop, pytm_prop in ext_property_mappings.items():
                 if ext_data.get(our_prop) is not None:
@@ -178,7 +177,7 @@ class PyTMWrapper:
                 element.inBoundary = boundary
 
             if proc_data.get("description"):
-                set_attr_safe(element, 'description', proc_data.get("description"))
+                set_attr_safe(element, "description", proc_data.get("description"))
 
             property_mappings = {
                 "authenticatesSource": "authenticatesSource",
@@ -232,7 +231,7 @@ class PyTMWrapper:
                 datastore.inBoundary = boundary
 
             if ds_data.get("description"):
-                set_attr_safe(datastore, 'description', ds_data.get("description"))
+                set_attr_safe(datastore, "description", ds_data.get("description"))
 
             ds_property_mappings = {
                 "isSQL": "isSQL",
@@ -275,7 +274,7 @@ class PyTMWrapper:
                 flow = Dataflow(source, target, label)
 
                 if flow_data.get("protocol"):
-                    set_attr_safe(flow, 'protocol', flow_data.get("protocol"))
+                    set_attr_safe(flow, "protocol", flow_data.get("protocol"))
 
                 flow_property_mappings = {
                     "isEncrypted": "isEncrypted",
@@ -306,10 +305,10 @@ class PyTMWrapper:
 
                 data_class = flow_data.get("data")
                 if data_class:
-                    set_attr_safe(flow, 'data', data_class)
+                    set_attr_safe(flow, "data", data_class)
 
                 if flow_data.get("note"):
-                    set_attr_safe(flow, 'note', flow_data.get("note"))
+                    set_attr_safe(flow, "note", flow_data.get("note"))
 
     def render(self) -> str:
         """Render the threat model visualization."""
@@ -317,15 +316,13 @@ class PyTMWrapper:
             self.build_model()
         return self._render_with_graphviz(None)
 
-    def _render_with_graphviz(self, tmpdir: str = None) -> str:
+    def _render_with_graphviz(self, tmpdir: str | None = None) -> str:
         """Render using graphviz directly."""
         dot_content = None
 
         if self._pytm_available and self.tm:
-            try:
+            with contextlib.suppress(Exception):
                 dot_content = self.tm.dfd()
-            except Exception:
-                pass
 
         if not dot_content:
             dot_content = self._generate_dot()
@@ -345,47 +342,48 @@ class PyTMWrapper:
         if not isinstance(s, str):
             s = str(s)
         # SECURITY: Escape backslash first to avoid double-escaping
-        s = s.replace('\\', '\\\\')
+        s = s.replace("\\", "\\\\")
         # Escape quotes
         s = s.replace('"', '\\"')
         # Escape control characters
-        s = s.replace('\n', '\\n')
-        s = s.replace('\r', '\\r')
-        s = s.replace('\t', '\\t')
+        s = s.replace("\n", "\\n")
+        s = s.replace("\r", "\\r")
+        s = s.replace("\t", "\\t")
         # SECURITY: Escape HTML-like characters for HTML labels
-        s = s.replace('<', '&lt;')
-        s = s.replace('>', '&gt;')
-        s = s.replace('&', '&amp;')
+        s = s.replace("<", "&lt;")
+        s = s.replace(">", "&gt;")
+        s = s.replace("&", "&amp;")
         # SECURITY: Escape DOT record/HTML label special characters
-        s = s.replace('{', '\\{')
-        s = s.replace('}', '\\}')
-        s = s.replace('|', '\\|')
+        s = s.replace("{", "\\{")
+        s = s.replace("}", "\\}")
+        s = s.replace("|", "\\|")
         # SECURITY: Escape semicolon to prevent statement injection
-        s = s.replace(';', '\\;')
+        s = s.replace(";", "\\;")
         return s
 
     @staticmethod
     def _sanitize_node_id(node_id: str) -> str:
         """Sanitize a node ID for safe use in DOT graphs."""
         import re
+
         if not isinstance(node_id, str):
             node_id = str(node_id)
-        sanitized = re.sub(r'[^a-zA-Z0-9_-]', '_', node_id)
+        sanitized = re.sub(r"[^a-zA-Z0-9_-]", "_", node_id)
         if sanitized and sanitized[0].isdigit():
-            sanitized = 'n_' + sanitized
-        return sanitized or 'unnamed'
+            sanitized = "n_" + sanitized
+        return sanitized or "unnamed"
 
     def _generate_dot(self) -> str:
         """Generate DOT representation of the threat model."""
-        lines = ['digraph ThreatModel {']
-        lines.append('    rankdir=LR;')
+        lines = ["digraph ThreatModel {"]
+        lines.append("    rankdir=LR;")
         lines.append('    node [fontname="Arial"];')
         lines.append('    edge [fontname="Arial"];')
 
         model_data = self.inputdata.get("model", {})
         model_name = self._escape_dot_string(model_data.get("name", "Threat Model"))
         lines.append(f'    label="{model_name}";')
-        lines.append('    labelloc=t;')
+        lines.append("    labelloc=t;")
 
         boundaries = self.inputdata.get("boundaries", {})
         processes = self.inputdata.get("processes", {})
@@ -401,24 +399,30 @@ class PyTMWrapper:
         for b_id, b_data in boundaries.items():
             safe_b_id = self._sanitize_node_id(b_id)
             safe_label = self._escape_dot_string(b_data.get("label", b_id))
-            lines.append(f'    subgraph cluster_{safe_b_id} {{')
+            lines.append(f"    subgraph cluster_{safe_b_id} {{")
             lines.append(f'        label="{safe_label}";')
-            lines.append('        style=dashed;')
-            lines.append('        color=red;')
+            lines.append("        style=dashed;")
+            lines.append("        color=red;")
 
             for elem_id in b_data.get("elements", []):
                 safe_elem_id = self._sanitize_node_id(elem_id)
                 if elem_id in processes:
                     label = self._escape_dot_string(processes[elem_id].get("label", elem_id))
-                    lines.append(f'        {safe_elem_id} [label="{label}", shape=box, style=filled, fillcolor="#4da6ff"];')
+                    lines.append(
+                        f'        {safe_elem_id} [label="{label}", shape=box, style=filled, fillcolor="#4da6ff"];'
+                    )
                 elif elem_id in datastores:
                     label = self._escape_dot_string(datastores[elem_id].get("label", elem_id))
-                    lines.append(f'        {safe_elem_id} [label="{label}", shape=cylinder, style=filled, fillcolor="#90EE90"];')
+                    lines.append(
+                        f'        {safe_elem_id} [label="{label}", shape=cylinder, style=filled, fillcolor="#90EE90"];'
+                    )
                 elif elem_id in externals:
                     label = self._escape_dot_string(externals[elem_id].get("label", elem_id))
-                    lines.append(f'        {safe_elem_id} [label="{label}", shape=box, style="filled,dashed", fillcolor="#D3D3D3"];')
+                    lines.append(
+                        f'        {safe_elem_id} [label="{label}", shape=box, style="filled,dashed", fillcolor="#D3D3D3"];'
+                    )
 
-            lines.append('    }')
+            lines.append("    }")
 
         for proc_id, proc_data in processes.items():
             safe_proc_id = self._sanitize_node_id(proc_id)
@@ -436,16 +440,18 @@ class PyTMWrapper:
             safe_ext_id = self._sanitize_node_id(ext_id)
             if safe_ext_id not in elements_in_boundaries:
                 label = self._escape_dot_string(ext_data.get("label", ext_id))
-                lines.append(f'    {safe_ext_id} [label="{label}", shape=box, style="filled,dashed", fillcolor="#D3D3D3"];')
+                lines.append(
+                    f'    {safe_ext_id} [label="{label}", shape=box, style="filled,dashed", fillcolor="#D3D3D3"];'
+                )
 
-        for flow_id, flow_data in dataflows.items():
+        for _flow_id, flow_data in dataflows.items():
             source = self._sanitize_node_id(flow_data.get("from", ""))
             target = self._sanitize_node_id(flow_data.get("to", ""))
             label = self._escape_dot_string(flow_data.get("label", ""))
             lines.append(f'    {source} -> {target} [label="{label}"];')
 
-        lines.append('}')
-        return '\n'.join(lines)
+        lines.append("}")
+        return "\n".join(lines)
 
     def get_threats(self) -> list[dict[str, Any]]:
         """Get threats identified by PyTM."""
@@ -458,13 +464,15 @@ class PyTMWrapper:
         threats = []
         try:
             for finding in self.tm.findings:
-                threats.append({
-                    "id": finding.id if hasattr(finding, 'id') else "",
-                    "threat": finding.description if hasattr(finding, 'description') else str(finding),
-                    "severity": finding.severity if hasattr(finding, 'severity') else "Unknown",
-                    "element": finding.target.name if hasattr(finding, 'target') else "",
-                    "mitigation": finding.mitigations if hasattr(finding, 'mitigations') else ""
-                })
+                threats.append(
+                    {
+                        "id": finding.id if hasattr(finding, "id") else "",
+                        "threat": finding.description if hasattr(finding, "description") else str(finding),
+                        "severity": finding.severity if hasattr(finding, "severity") else "Unknown",
+                        "element": finding.target.name if hasattr(finding, "target") else "",
+                        "mitigation": finding.mitigations if hasattr(finding, "mitigations") else "",
+                    }
+                )
         except Exception:
             pass
 
@@ -505,11 +513,11 @@ class PyTMWrapper:
             for i, threat in enumerate(threats, 1):
                 lines.append(f"### {i}. {threat.get('threat', 'Unknown Threat')}")
                 lines.append("")
-                if threat.get('element'):
+                if threat.get("element"):
                     lines.append(f"- **Element:** {threat['element']}")
-                if threat.get('severity'):
+                if threat.get("severity"):
                     lines.append(f"- **Severity:** {threat['severity']}")
-                if threat.get('mitigation'):
+                if threat.get("mitigation"):
                     lines.append(f"- **Mitigation:** {threat['mitigation']}")
                 lines.append("")
         else:
@@ -570,23 +578,23 @@ class PyTMWrapper:
         <h2>Model Overview</h2>
         <div class="overview">
             <div class="stat">
-                <div class="stat-value">{len(self.inputdata.get('processes', {}))}</div>
+                <div class="stat-value">{len(self.inputdata.get("processes", {}))}</div>
                 <div class="stat-label">Processes</div>
             </div>
             <div class="stat">
-                <div class="stat-value">{len(self.inputdata.get('datastores', {}))}</div>
+                <div class="stat-value">{len(self.inputdata.get("datastores", {}))}</div>
                 <div class="stat-label">Data Stores</div>
             </div>
             <div class="stat">
-                <div class="stat-value">{len(self.inputdata.get('externals', {}))}</div>
+                <div class="stat-value">{len(self.inputdata.get("externals", {}))}</div>
                 <div class="stat-label">External Entities</div>
             </div>
             <div class="stat">
-                <div class="stat-value">{len(self.inputdata.get('dataflows', {}))}</div>
+                <div class="stat-value">{len(self.inputdata.get("dataflows", {}))}</div>
                 <div class="stat-label">Data Flows</div>
             </div>
             <div class="stat">
-                <div class="stat-value">{len(self.inputdata.get('boundaries', {}))}</div>
+                <div class="stat-value">{len(self.inputdata.get("boundaries", {}))}</div>
                 <div class="stat-label">Trust Boundaries</div>
             </div>
         </div>
@@ -597,10 +605,12 @@ class PyTMWrapper:
         if threats:
             for i, threat in enumerate(threats, 1):
                 # SECURITY: HTML-escape all user-provided threat data
-                threat_name = html_module.escape(str(threat.get('threat', 'Unknown Threat')))
-                threat_element = html_module.escape(str(threat.get('element', ''))) if threat.get('element') else ''
-                threat_severity = html_module.escape(str(threat.get('severity', ''))) if threat.get('severity') else ''
-                threat_mitigation = html_module.escape(str(threat.get('mitigation', ''))) if threat.get('mitigation') else ''
+                threat_name = html_module.escape(str(threat.get("threat", "Unknown Threat")))
+                threat_element = html_module.escape(str(threat.get("element", ""))) if threat.get("element") else ""
+                threat_severity = html_module.escape(str(threat.get("severity", ""))) if threat.get("severity") else ""
+                threat_mitigation = (
+                    html_module.escape(str(threat.get("mitigation", ""))) if threat.get("mitigation") else ""
+                )
 
                 html += f"""
         <div class="threat">
@@ -654,15 +664,22 @@ class ThreatModeling(VisualizationBase):
     # Configuration for base class
     STYLE_FILE = "config_threatmodeling.tml"
     DEFAULT_STYLE_ID = "tm_default"
-    ALLOWED_EXTENSIONS = ['.toml', '.tml', '.json', '.yaml', '.yml']
+    ALLOWED_EXTENSIONS = [".toml", ".tml", ".json", ".yaml", ".yml"]
     MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10 MB
 
     # Style-related attributes that should be overridden by selected style
     # When a non-default style is selected, these attributes from template nodes
     # are stripped so the style's values take precedence
     STYLE_OVERRIDE_ATTRS = {
-        'fillcolor', 'fontcolor', 'color', 'style', 'shape',
-        'fontname', 'fontsize', 'penwidth', 'margin'
+        "fillcolor",
+        "fontcolor",
+        "color",
+        "style",
+        "shape",
+        "fontname",
+        "fontsize",
+        "penwidth",
+        "margin",
     }
 
     def __init__(
@@ -672,7 +689,7 @@ class ThreatModeling(VisualizationBase):
         format: str = "",
         styleid: str = "",
         engine: str = "usecvislib",
-        validate_paths: bool = True
+        validate_paths: bool = True,
     ) -> None:
         """Initialize ThreatModeling with input/output paths and styling options.
 
@@ -699,11 +716,7 @@ class ThreatModeling(VisualizationBase):
 
         # Initialize base class
         super().__init__(
-            inputfile=inputfile,
-            outputfile=outputfile,
-            format=format,
-            styleid=styleid,
-            validate_paths=validate_paths
+            inputfile=inputfile, outputfile=outputfile, format=format, styleid=styleid, validate_paths=validate_paths
         )
 
         # Threat modeling specific state
@@ -722,9 +735,10 @@ class ThreatModeling(VisualizationBase):
         This ensures temp files created by ThreatModelBuilder are properly
         cleaned up even if an exception occurs during processing.
         """
-        if hasattr(self, '_temp_input') and self._temp_input:
+        if hasattr(self, "_temp_input") and self._temp_input:
             try:
                 import os
+
                 if os.path.exists(self._temp_input):
                     os.remove(self._temp_input)
             except Exception:
@@ -733,44 +747,30 @@ class ThreatModeling(VisualizationBase):
     def _default_style(self) -> dict[str, Any]:
         """Return default style configuration for threat models."""
         return {
-            "graph": {
-                "rankdir": "LR",
-                "bgcolor": "white",
-                "fontname": "Arial"
-            },
+            "graph": {"rankdir": "LR", "bgcolor": "white", "fontname": "Arial"},
             "process": {
                 "shape": "rectangle",
                 "style": "filled",
                 "fillcolor": "#3498db",
                 "fontcolor": "white",
-                "fontname": "Arial"
+                "fontname": "Arial",
             },
             "datastore": {
                 "shape": "cylinder",
                 "style": "filled",
                 "fillcolor": "#2ecc71",
                 "fontcolor": "white",
-                "fontname": "Arial"
+                "fontname": "Arial",
             },
             "external": {
                 "shape": "rectangle",
                 "style": "filled,dashed",
                 "fillcolor": "#95a5a6",
                 "fontcolor": "white",
-                "fontname": "Arial"
-            },
-            "dataflow": {
-                "color": "#34495e",
-                "style": "solid",
                 "fontname": "Arial",
-                "fontsize": "10"
             },
-            "trustboundary": {
-                "color": "#e74c3c",
-                "style": "dashed",
-                "penwidth": "2",
-                "fontname": "Arial"
-            }
+            "dataflow": {"color": "#34495e", "style": "solid", "fontname": "Arial", "fontsize": "10"},
+            "trustboundary": {"color": "#e74c3c", "style": "dashed", "penwidth": "2", "fontname": "Arial"},
         }
 
     def _strip_style_attrs(self, attrs: dict[str, Any]) -> dict[str, Any]:
@@ -827,10 +827,7 @@ class ThreatModeling(VisualizationBase):
         dataflow_style = self.style.get("dataflow", self._default_style()["dataflow"])
 
         # Create main graph
-        self.graph = gv.Digraph(
-            name=model.get("name", "Threat Model"),
-            format=self.format
-        )
+        self.graph = gv.Digraph(name=model.get("name", "Threat Model"), format=self.format)
 
         # Apply graph attributes
         graph_attrs = utils.stringify_dict(graph_style)
@@ -845,20 +842,18 @@ class ThreatModeling(VisualizationBase):
         # Create boundary subgraphs
         boundary_subgraphs: dict[str, gv.Digraph] = {}
         for boundary_id, boundary_data in boundaries.items():
-            boundary_subgraphs[boundary_id] = self._create_subgraph_for_boundary(
-                boundary_id, boundary_data, {}
-            )
+            boundary_subgraphs[boundary_id] = self._create_subgraph_for_boundary(boundary_id, boundary_data, {})
 
         # Add processes
         for proc_id, proc_data in processes.items():
             node_attrs = proc_data.copy() if isinstance(proc_data, dict) else {}
             # Check if node has an image and if user wants a styled background
-            has_image = 'image' in node_attrs and node_attrs['image']
-            proc_user_shape = proc_data.get('shape', '') if isinstance(proc_data, dict) else ''
-            proc_user_style = proc_data.get('style', '') if isinstance(proc_data, dict) else ''
-            proc_user_fillcolor = proc_data.get('fillcolor', '') if isinstance(proc_data, dict) else ''
-            proc_wants_no_bg = proc_user_shape in ('none', 'plaintext', 'point')
-            proc_wants_bg = ('filled' in str(proc_user_style).lower()) or bool(proc_user_fillcolor)
+            has_image = "image" in node_attrs and node_attrs["image"]
+            proc_user_shape = proc_data.get("shape", "") if isinstance(proc_data, dict) else ""
+            proc_user_style = proc_data.get("style", "") if isinstance(proc_data, dict) else ""
+            proc_user_fillcolor = proc_data.get("fillcolor", "") if isinstance(proc_data, dict) else ""
+            proc_wants_no_bg = proc_user_shape in ("none", "plaintext", "point")
+            proc_wants_bg = ("filled" in str(proc_user_style).lower()) or bool(proc_user_fillcolor)
             proc_has_visible_shape = bool(proc_user_shape) and not proc_wants_no_bg
             user_set_shape = (proc_has_visible_shape or proc_wants_bg) and not proc_wants_no_bg
             # Strip style attributes when a non-default style is selected
@@ -883,12 +878,12 @@ class ThreatModeling(VisualizationBase):
         for ds_id, ds_data in datastores.items():
             node_attrs = ds_data.copy() if isinstance(ds_data, dict) else {}
             # Check if node has an image and if user wants a styled background
-            has_image = 'image' in node_attrs and node_attrs['image']
-            ds_user_shape = ds_data.get('shape', '') if isinstance(ds_data, dict) else ''
-            ds_user_style = ds_data.get('style', '') if isinstance(ds_data, dict) else ''
-            ds_user_fillcolor = ds_data.get('fillcolor', '') if isinstance(ds_data, dict) else ''
-            ds_wants_no_bg = ds_user_shape in ('none', 'plaintext', 'point')
-            ds_wants_bg = ('filled' in str(ds_user_style).lower()) or bool(ds_user_fillcolor)
+            has_image = "image" in node_attrs and node_attrs["image"]
+            ds_user_shape = ds_data.get("shape", "") if isinstance(ds_data, dict) else ""
+            ds_user_style = ds_data.get("style", "") if isinstance(ds_data, dict) else ""
+            ds_user_fillcolor = ds_data.get("fillcolor", "") if isinstance(ds_data, dict) else ""
+            ds_wants_no_bg = ds_user_shape in ("none", "plaintext", "point")
+            ds_wants_bg = ("filled" in str(ds_user_style).lower()) or bool(ds_user_fillcolor)
             ds_has_visible_shape = bool(ds_user_shape) and not ds_wants_no_bg
             user_set_shape = (ds_has_visible_shape or ds_wants_bg) and not ds_wants_no_bg
             # Strip style attributes when a non-default style is selected
@@ -913,12 +908,12 @@ class ThreatModeling(VisualizationBase):
         for ext_id, ext_data in externals.items():
             node_attrs = ext_data.copy() if isinstance(ext_data, dict) else {}
             # Check if node has an image and if user wants a styled background
-            has_image = 'image' in node_attrs and node_attrs['image']
-            ext_user_shape = ext_data.get('shape', '') if isinstance(ext_data, dict) else ''
-            ext_user_style = ext_data.get('style', '') if isinstance(ext_data, dict) else ''
-            ext_user_fillcolor = ext_data.get('fillcolor', '') if isinstance(ext_data, dict) else ''
-            ext_wants_no_bg = ext_user_shape in ('none', 'plaintext', 'point')
-            ext_wants_bg = ('filled' in str(ext_user_style).lower()) or bool(ext_user_fillcolor)
+            has_image = "image" in node_attrs and node_attrs["image"]
+            ext_user_shape = ext_data.get("shape", "") if isinstance(ext_data, dict) else ""
+            ext_user_style = ext_data.get("style", "") if isinstance(ext_data, dict) else ""
+            ext_user_fillcolor = ext_data.get("fillcolor", "") if isinstance(ext_data, dict) else ""
+            ext_wants_no_bg = ext_user_shape in ("none", "plaintext", "point")
+            ext_wants_bg = ("filled" in str(ext_user_style).lower()) or bool(ext_user_fillcolor)
             ext_has_visible_shape = bool(ext_user_shape) and not ext_wants_no_bg
             user_set_shape = (ext_has_visible_shape or ext_wants_bg) and not ext_wants_no_bg
             # Strip style attributes when a non-default style is selected
@@ -944,7 +939,7 @@ class ThreatModeling(VisualizationBase):
             self.graph.subgraph(subgraph)
 
         # Add data flows (edges)
-        for flow_id, flow_data in dataflows.items():
+        for _flow_id, flow_data in dataflows.items():
             source = flow_data.get("from", "")
             target = flow_data.get("to", "")
             label = flow_data.get("label", "")
@@ -1058,8 +1053,9 @@ class ThreatModeling(VisualizationBase):
             "high_threats": high_threats,
         }
 
-    def _create_subgraph_for_boundary(self, boundary_id: str, boundary_data: dict[str, Any],
-                                       elements: dict[str, dict[str, Any]]) -> gv.Digraph:
+    def _create_subgraph_for_boundary(
+        self, boundary_id: str, boundary_data: dict[str, Any], elements: dict[str, dict[str, Any]]
+    ) -> gv.Digraph:
         """Create a subgraph for a trust boundary."""
         boundary_style = self.style.get("trustboundary", self._default_style()["trustboundary"])
 
@@ -1070,7 +1066,7 @@ class ThreatModeling(VisualizationBase):
             style=boundary_style.get("style", "dashed"),
             color=boundary_style.get("color", "#e74c3c"),
             penwidth=str(boundary_style.get("penwidth", "2")),
-            fontname=boundary_style.get("fontname", "Arial")
+            fontname=boundary_style.get("fontname", "Arial"),
         )
 
         return subgraph
@@ -1096,7 +1092,7 @@ class ThreatModeling(VisualizationBase):
             "Repudiation": [],
             "Information Disclosure": [],
             "Denial of Service": [],
-            "Elevation of Privilege": []
+            "Elevation of Privilege": [],
         }
 
         processes = self.inputdata.get("processes", {})
@@ -1114,14 +1110,16 @@ class ThreatModeling(VisualizationBase):
                 cvss_vector = threat_data.get("cvss_vector")
                 score, _ = get_cvss_score(cvss_value, cvss_vector)
 
-                threats[category].append({
-                    "element": threat_data.get("element", threat_id),
-                    "threat": threat_data.get("threat", "User-defined threat"),
-                    "mitigation": threat_data.get("mitigation", "Implement appropriate controls"),
-                    "cvss": score,
-                    "cvss_vector": cvss_vector,
-                    "user_defined": True
-                })
+                threats[category].append(
+                    {
+                        "element": threat_data.get("element", threat_id),
+                        "threat": threat_data.get("threat", "User-defined threat"),
+                        "mitigation": threat_data.get("mitigation", "Implement appropriate controls"),
+                        "cvss": score,
+                        "cvss_vector": cvss_vector,
+                        "user_defined": True,
+                    }
+                )
 
         # Build boundary membership map
         element_boundaries: dict[str, Optional[str]] = {}
@@ -1141,26 +1139,32 @@ class ThreatModeling(VisualizationBase):
             is_trusted = ext_data.get("isTrusted", False)
 
             if is_admin:
-                threats["Spoofing"].append({
-                    "element": label,
-                    "threat": f"CRITICAL: Admin user {label} could be impersonated",
-                    "mitigation": "Implement MFA and privileged access management",
-                    "cvss": 9.8  # Critical - admin impersonation
-                })
+                threats["Spoofing"].append(
+                    {
+                        "element": label,
+                        "threat": f"CRITICAL: Admin user {label} could be impersonated",
+                        "mitigation": "Implement MFA and privileged access management",
+                        "cvss": 9.8,  # Critical - admin impersonation
+                    }
+                )
             elif not is_trusted:
-                threats["Spoofing"].append({
-                    "element": label,
-                    "threat": f"Untrusted entity {label} could be spoofed",
-                    "mitigation": "Implement strong authentication",
-                    "cvss": 7.5  # High - identity spoofing
-                })
+                threats["Spoofing"].append(
+                    {
+                        "element": label,
+                        "threat": f"Untrusted entity {label} could be spoofed",
+                        "mitigation": "Implement strong authentication",
+                        "cvss": 7.5,  # High - identity spoofing
+                    }
+                )
 
-            threats["Repudiation"].append({
-                "element": label,
-                "threat": f"{label} could deny performing actions",
-                "mitigation": "Implement comprehensive audit logging",
-                "cvss": 5.3  # Medium - non-repudiation
-            })
+            threats["Repudiation"].append(
+                {
+                    "element": label,
+                    "threat": f"{label} could deny performing actions",
+                    "mitigation": "Implement comprehensive audit logging",
+                    "cvss": 5.3,  # Medium - non-repudiation
+                }
+            )
 
         # Analyze processes
         for proc_id, proc_data in processes.items():
@@ -1170,28 +1174,34 @@ class ThreatModeling(VisualizationBase):
             handles_resources = proc_data.get("handlesResourceConsumption", False)
 
             if not sanitizes_input:
-                threats["Tampering"].append({
-                    "element": label,
-                    "threat": f"{label} does not sanitize inputs",
-                    "mitigation": "Implement input validation and sanitization",
-                    "cvss": 8.6  # High - input tampering can lead to injection
-                })
+                threats["Tampering"].append(
+                    {
+                        "element": label,
+                        "threat": f"{label} does not sanitize inputs",
+                        "mitigation": "Implement input validation and sanitization",
+                        "cvss": 8.6,  # High - input tampering can lead to injection
+                    }
+                )
 
             if not handles_resources:
-                threats["Denial of Service"].append({
-                    "element": label,
-                    "threat": f"{label} may not handle resource exhaustion",
-                    "mitigation": "Implement rate limiting and resource quotas",
-                    "cvss": 7.5  # High - availability impact
-                })
+                threats["Denial of Service"].append(
+                    {
+                        "element": label,
+                        "threat": f"{label} may not handle resource exhaustion",
+                        "mitigation": "Implement rate limiting and resource quotas",
+                        "cvss": 7.5,  # High - availability impact
+                    }
+                )
 
             if not has_access_control:
-                threats["Elevation of Privilege"].append({
-                    "element": label,
-                    "threat": f"{label} lacks access control",
-                    "mitigation": "Implement RBAC/ABAC",
-                    "cvss": 8.8  # High - privilege escalation
-                })
+                threats["Elevation of Privilege"].append(
+                    {
+                        "element": label,
+                        "threat": f"{label} lacks access control",
+                        "mitigation": "Implement RBAC/ABAC",
+                        "cvss": 8.8,  # High - privilege escalation
+                    }
+                )
 
         # Analyze data stores
         for ds_id, ds_data in datastores.items():
@@ -1211,12 +1221,14 @@ class ThreatModeling(VisualizationBase):
                     cvss_score = 7.5  # High - data exposure
                     severity = "HIGH"
 
-                threats["Information Disclosure"].append({
-                    "element": label,
-                    "threat": f"{severity}: {label} is not encrypted at rest",
-                    "mitigation": "Enable encryption at rest",
-                    "cvss": cvss_score
-                })
+                threats["Information Disclosure"].append(
+                    {
+                        "element": label,
+                        "threat": f"{severity}: {label} is not encrypted at rest",
+                        "mitigation": "Enable encryption at rest",
+                        "cvss": cvss_score,
+                    }
+                )
 
         # Analyze data flows
         for flow_id, flow_data in dataflows.items():
@@ -1226,20 +1238,24 @@ class ThreatModeling(VisualizationBase):
             is_encrypted = flow_data.get("isEncrypted", False)
 
             if not is_encrypted:
-                threats["Information Disclosure"].append({
-                    "element": label,
-                    "threat": f"Flow '{label}' transmits data unencrypted",
-                    "mitigation": "Encrypt all data in transit using TLS",
-                    "cvss": 7.5  # High - data in transit exposure
-                })
+                threats["Information Disclosure"].append(
+                    {
+                        "element": label,
+                        "threat": f"Flow '{label}' transmits data unencrypted",
+                        "mitigation": "Encrypt all data in transit using TLS",
+                        "cvss": 7.5,  # High - data in transit exposure
+                    }
+                )
 
             if crosses_trust_boundary(source, target) and not is_encrypted:
-                threats["Tampering"].append({
-                    "element": label,
-                    "threat": f"Flow '{label}' crosses trust boundary without encryption",
-                    "mitigation": "Encrypt all data crossing trust boundaries",
-                    "cvss": 8.1  # High - cross-boundary tampering
-                })
+                threats["Tampering"].append(
+                    {
+                        "element": label,
+                        "threat": f"Flow '{label}' crosses trust boundary without encryption",
+                        "mitigation": "Encrypt all data crossing trust boundaries",
+                        "cvss": 8.1,  # High - cross-boundary tampering
+                    }
+                )
 
         return threats
 
@@ -1275,18 +1291,16 @@ class ThreatModeling(VisualizationBase):
             max_cvss = max(all_cvss) if all_cvss else 0
             critical_count = len([c for c in all_cvss if c >= 9.0])
             high_count = len([c for c in all_cvss if 7.0 <= c < 9.0])
-            report_lines.extend([
-                f"- **Average CVSS:** {avg_cvss:.1f}",
-                f"- **Maximum CVSS:** {max_cvss:.1f}",
-                f"- **Critical Threats (CVSS >= 9.0):** {critical_count}",
-                f"- **High Threats (CVSS 7.0-8.9):** {high_count}",
-            ])
+            report_lines.extend(
+                [
+                    f"- **Average CVSS:** {avg_cvss:.1f}",
+                    f"- **Maximum CVSS:** {max_cvss:.1f}",
+                    f"- **Critical Threats (CVSS >= 9.0):** {critical_count}",
+                    f"- **High Threats (CVSS 7.0-8.9):** {high_count}",
+                ]
+            )
 
-        report_lines.extend([
-            "",
-            "---",
-            ""
-        ])
+        report_lines.extend(["", "---", ""])
 
         for category, threat_list in threats.items():
             report_lines.append(f"## {category}")
@@ -1297,11 +1311,7 @@ class ThreatModeling(VisualizationBase):
             else:
                 # Sort by CVSS score (highest first) if CVSS is shown
                 if show_cvss:
-                    sorted_threats = sorted(
-                        threat_list,
-                        key=lambda t: t.get("cvss", 0),
-                        reverse=True
-                    )
+                    sorted_threats = sorted(threat_list, key=lambda t: t.get("cvss", 0), reverse=True)
                 else:
                     sorted_threats = threat_list
 
@@ -1325,7 +1335,7 @@ class ThreatModeling(VisualizationBase):
         report = "\n".join(report_lines)
 
         if output:
-            with open(output, 'w') as f:
+            with open(output, "w") as f:
                 f.write(report)
 
         return report
@@ -1348,11 +1358,7 @@ class ThreatModeling(VisualizationBase):
         self.load()
 
         if self.engine == ThreatModelEngine.PYTM:
-            self._pytm_wrapper = PyTMWrapper(
-                self.inputdata,
-                self.outputfile,
-                self.format
-            )
+            self._pytm_wrapper = PyTMWrapper(self.inputdata, self.outputfile, self.format)
             self._pytm_wrapper.render()
         else:
             self.render()
@@ -1365,11 +1371,7 @@ class ThreatModeling(VisualizationBase):
 
         if not self._pytm_wrapper:
             self.load()
-            self._pytm_wrapper = PyTMWrapper(
-                self.inputdata,
-                self.outputfile,
-                self.format
-            )
+            self._pytm_wrapper = PyTMWrapper(self.inputdata, self.outputfile, self.format)
             self._pytm_wrapper.build_model()
 
         return self._pytm_wrapper.get_threats()
@@ -1383,7 +1385,8 @@ class ThreatModeling(VisualizationBase):
     def is_pytm_available() -> bool:
         """Check if PyTM is installed and available."""
         try:
-            import pytm
+            import pytm  # noqa: F401  (import is the availability probe)
+
             return True
         except ImportError:
             return False
@@ -1404,6 +1407,7 @@ class ThreatModeling(VisualizationBase):
             >>> md.render("output", format="svg")
         """
         from .mermaiddiagrams import MermaidDiagrams
+
         return MermaidDiagrams.from_threat_model(self.inputfile)
 
     def to_cloud_diagram(self) -> CloudDiagrams:
@@ -1418,6 +1422,7 @@ class ThreatModeling(VisualizationBase):
             >>> cd.render("output", format="png")
         """
         from .clouddiagrams import CloudDiagrams
+
         return CloudDiagrams.from_threat_model(self.inputfile)
 
     def export_mermaid(self, output: str) -> str:

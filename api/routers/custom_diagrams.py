@@ -60,15 +60,13 @@ logger = logging.getLogger("usecvislib.api")
 router = APIRouter(tags=["Custom Diagrams"])
 
 
-@router.get(
-    "/custom-diagrams/shapes",
-    response_model=ShapeListResponse,
-    summary="List available shapes"
-)
+@router.get("/custom-diagrams/shapes", response_model=ShapeListResponse, summary="List available shapes")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def list_shapes(
     request: Request,
-    category: Optional[str] = Query(default=None, description="Filter by category (basic, flowchart, network, uml, icons, custom)"),
+    category: Optional[str] = Query(
+        default=None, description="Filter by category (basic, flowchart, network, uml, icons, custom)"
+    ),
 ):
     """
     List all available shapes for custom diagrams.
@@ -88,7 +86,7 @@ async def list_shapes(
 
     shapes = []
     for shape in all_shapes:
-        shape_category = shape.category.value if hasattr(shape.category, 'value') else str(shape.category)
+        shape_category = shape.category.value if hasattr(shape.category, "value") else str(shape.category)
         if category and shape_category != category:
             continue
 
@@ -96,35 +94,29 @@ async def list_shapes(
         graphviz_attrs = shape.graphviz if shape.graphviz else {}
         style_attrs = shape.default_style if shape.default_style else {}
 
-        shapes.append(ShapeInfo(
-            id=shape.id,
-            name=shape.name,
-            category=shape_category,
-            description=shape.description or "",
-            shape=graphviz_attrs.get("shape", "box"),
-            fillcolor=style_attrs.get("fillcolor"),
-            bordercolor=style_attrs.get("color") or style_attrs.get("bordercolor"),
-            fontcolor=style_attrs.get("fontcolor"),
-            style=graphviz_attrs.get("style"),
-        ))
+        shapes.append(
+            ShapeInfo(
+                id=shape.id,
+                name=shape.name,
+                category=shape_category,
+                description=shape.description or "",
+                shape=graphviz_attrs.get("shape", "box"),
+                fillcolor=style_attrs.get("fillcolor"),
+                bordercolor=style_attrs.get("color") or style_attrs.get("bordercolor"),
+                fontcolor=style_attrs.get("fontcolor"),
+                style=graphviz_attrs.get("style"),
+            )
+        )
 
     # Get available categories
-    categories = list(set(s.category for s in shapes))
+    categories = list({s.category for s in shapes})
 
     logger.info(f"Listed {len(shapes)} shapes" + (f" in category '{category}'" if category else ""))
 
-    return ShapeListResponse(
-        shapes=shapes,
-        total=len(shapes),
-        categories=sorted(categories)
-    )
+    return ShapeListResponse(shapes=shapes, total=len(shapes), categories=sorted(categories))
 
 
-@router.get(
-    "/custom-diagrams/shapes/{shape_id}",
-    response_model=ShapeInfo,
-    summary="Get shape details"
-)
+@router.get("/custom-diagrams/shapes/{shape_id}", response_model=ShapeInfo, summary="Get shape details")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def get_shape(
     request: Request,
@@ -137,7 +129,7 @@ async def get_shape(
     if not shape:
         raise HTTPException(status_code=404, detail=f"Shape '{shape_id}' not found")
 
-    shape_category = shape.category.value if hasattr(shape.category, 'value') else str(shape.category)
+    shape_category = shape.category.value if hasattr(shape.category, "value") else str(shape.category)
 
     # Get attributes from graphviz and default_style dictionaries
     graphviz_attrs = shape.graphviz if shape.graphviz else {}
@@ -156,15 +148,13 @@ async def get_shape(
     )
 
 
-@router.get(
-    "/custom-diagrams/templates",
-    response_model=TemplateListResponse,
-    summary="List custom diagram templates"
-)
+@router.get("/custom-diagrams/templates", response_model=TemplateListResponse, summary="List custom diagram templates")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def list_custom_diagram_templates(
     request: Request,
-    category: Optional[str] = Query(default=None, description="Filter by category (general, software, network, security, business)"),
+    category: Optional[str] = Query(
+        default=None, description="Filter by category (general, software, network, security, business)"
+    ),
 ):
     """
     List all available custom diagram templates.
@@ -188,7 +178,7 @@ async def list_custom_diagram_templates(
 
     for category_dir in os.listdir(CUSTOM_DIAGRAMS_TEMPLATES_DIR):
         category_path = os.path.join(CUSTOM_DIAGRAMS_TEMPLATES_DIR, category_dir)
-        if not os.path.isdir(category_path) or category_dir.startswith('.') or category_dir == '__pycache__':
+        if not os.path.isdir(category_path) or category_dir.startswith(".") or category_dir == "__pycache__":
             continue
 
         if category and category_dir != category:
@@ -197,7 +187,7 @@ async def list_custom_diagram_templates(
         categories_found.add(category_dir)
 
         for template_file in os.listdir(category_path):
-            if not template_file.endswith('.toml'):
+            if not template_file.endswith(".toml"):
                 continue
 
             template_path = os.path.join(category_path, template_file)
@@ -208,41 +198,40 @@ async def list_custom_diagram_templates(
                 cd = CustomDiagrams()
                 cd.load(template_path)
 
-                templates.append(TemplateInfo(
-                    id=f"{category_dir}/{template_id}",
-                    name=cd.settings.title if cd.settings else template_id.replace('-', ' ').title(),
-                    category=category_dir,
-                    description=getattr(cd.settings, 'description', '') if cd.settings else '',
-                    filename=template_file,
-                    node_count=len(cd.nodes),
-                    edge_count=len(cd.edges),
-                ))
+                templates.append(
+                    TemplateInfo(
+                        id=f"{category_dir}/{template_id}",
+                        name=cd.settings.title if cd.settings else template_id.replace("-", " ").title(),
+                        category=category_dir,
+                        description=getattr(cd.settings, "description", "") if cd.settings else "",
+                        filename=template_file,
+                        node_count=len(cd.nodes),
+                        edge_count=len(cd.edges),
+                    )
+                )
             except Exception as e:
                 logger.warning(f"Failed to load template {template_path}: {e}")
                 # Add basic info even if loading fails
-                templates.append(TemplateInfo(
-                    id=f"{category_dir}/{template_id}",
-                    name=template_id.replace('-', ' ').title(),
-                    category=category_dir,
-                    description='',
-                    filename=template_file,
-                    node_count=0,
-                    edge_count=0,
-                ))
+                templates.append(
+                    TemplateInfo(
+                        id=f"{category_dir}/{template_id}",
+                        name=template_id.replace("-", " ").title(),
+                        category=category_dir,
+                        description="",
+                        filename=template_file,
+                        node_count=0,
+                        edge_count=0,
+                    )
+                )
 
-    logger.info(f"Listed {len(templates)} custom diagram templates" + (f" in category '{category}'" if category else ""))
-
-    return TemplateListResponse(
-        templates=templates,
-        total=len(templates),
-        categories=sorted(categories_found)
+    logger.info(
+        f"Listed {len(templates)} custom diagram templates" + (f" in category '{category}'" if category else "")
     )
 
+    return TemplateListResponse(templates=templates, total=len(templates), categories=sorted(categories_found))
 
-@router.get(
-    "/custom-diagrams/templates/{template_id:path}",
-    summary="Get custom diagram template content"
-)
+
+@router.get("/custom-diagrams/templates/{template_id:path}", summary="Get custom diagram template content")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def get_custom_diagram_template(
     request: Request,
@@ -254,7 +243,7 @@ async def get_custom_diagram_template(
     Template ID format: `category/template_name` (e.g., `software/architecture`)
     """
     # Parse template ID
-    parts = template_id.split('/')
+    parts = template_id.split("/")
     if len(parts) != 2:
         raise HTTPException(status_code=400, detail="Invalid template ID format. Use 'category/template_name'")
 
@@ -289,13 +278,7 @@ async def get_custom_diagram_template(
 
     logger.info(f"Served custom diagram template: {template_id}")
 
-    return {
-        "id": template_id,
-        "category": category,
-        "name": template_name,
-        "format": "toml",
-        "content": content
-    }
+    return {"id": template_id, "category": category, "name": template_name, "format": "toml", "content": content}
 
 
 @router.post(
@@ -309,9 +292,9 @@ async def get_custom_diagram_template(
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated visualization image"
+            "description": "Generated visualization image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def visualize_custom_diagram(
@@ -387,13 +370,9 @@ async def visualize_custom_diagram(
         # Build the diagram with timeout protection
         # SECURITY: Prevents resource exhaustion from complex diagrams
         result = await run_sync_with_timeout(
-            lambda: cd.BuildCustomDiagram(
-                output=output_base,
-                output_format=format.value,
-                validate=True
-            ),
+            lambda: cd.BuildCustomDiagram(output=output_base, output_format=format.value, validate=True),
             REQUEST_TIMEOUT_VISUALIZE,
-            "custom diagram visualization"
+            "custom diagram visualization",
         )
         output_path = result.output_path
 
@@ -425,7 +404,7 @@ async def visualize_custom_diagram(
 @router.post(
     "/custom-diagrams/validate",
     response_model=CustomDiagramValidateResponse,
-    summary="Validate custom diagram configuration"
+    summary="Validate custom diagram configuration",
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def validate_custom_diagram(
@@ -482,9 +461,7 @@ async def validate_custom_diagram(
 
 
 @router.post(
-    "/custom-diagrams/stats",
-    response_model=CustomDiagramStatsResponse,
-    summary="Get custom diagram statistics"
+    "/custom-diagrams/stats", response_model=CustomDiagramStatsResponse, summary="Get custom diagram statistics"
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def get_custom_diagram_stats(
@@ -546,9 +523,9 @@ async def get_custom_diagram_stats(
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated visualization image"
+            "description": "Generated visualization image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def custom_diagram_from_template(
@@ -569,7 +546,7 @@ async def custom_diagram_from_template(
 
     try:
         # Parse template ID
-        parts = template_id.split('/')
+        parts = template_id.split("/")
         if len(parts) != 2:
             raise HTTPException(status_code=400, detail="Invalid template ID format. Use 'category/template_name'")
 
@@ -607,13 +584,9 @@ async def custom_diagram_from_template(
         # Build the diagram with timeout protection
         # SECURITY: Prevents resource exhaustion from complex templates
         result = await run_sync_with_timeout(
-            lambda: cd.BuildCustomDiagram(
-                output=output_base,
-                output_format=format.value,
-                validate=True
-            ),
+            lambda: cd.BuildCustomDiagram(output=output_base, output_format=format.value, validate=True),
             REQUEST_TIMEOUT_VISUALIZE,
-            "custom diagram template visualization"
+            "custom diagram template visualization",
         )
         output_path = result.output_path
 
@@ -651,9 +624,9 @@ async def custom_diagram_from_template(
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated visualization image"
+            "description": "Generated visualization image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def import_to_custom_diagram(
@@ -702,13 +675,9 @@ async def import_to_custom_diagram(
         # Build the diagram with timeout protection
         # SECURITY: Prevents resource exhaustion from complex imported diagrams
         result = await run_sync_with_timeout(
-            lambda: cd.BuildCustomDiagram(
-                output=output_base,
-                output_format=format.value,
-                validate=True
-            ),
+            lambda: cd.BuildCustomDiagram(output=output_base, output_format=format.value, validate=True),
             REQUEST_TIMEOUT_VISUALIZE,
-            "custom diagram import visualization"
+            "custom diagram import visualization",
         )
         output_path = result.output_path
 
@@ -742,10 +711,7 @@ async def import_to_custom_diagram(
         raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
-@router.get(
-    "/custom-diagrams/styles",
-    summary="Get available custom diagram styles"
-)
+@router.get("/custom-diagrams/styles", summary="Get available custom diagram styles")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def get_custom_diagram_styles(request: Request):
     """Get all available style presets for custom diagrams."""
@@ -759,19 +725,16 @@ async def get_custom_diagram_styles(request: Request):
             CustomDiagramStyle.MINIMAL.value: "Minimal black and white style",
             CustomDiagramStyle.NEON.value: "Vibrant neon style with glowing effects",
             CustomDiagramStyle.CORPORATE.value: "Professional corporate styling",
-        }
+        },
     }
 
 
-@router.get(
-    "/custom-diagrams/layouts",
-    summary="Get available layout algorithms"
-)
+@router.get("/custom-diagrams/layouts", summary="Get available layout algorithms")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def get_custom_diagram_layouts(request: Request):
     """Get all available layout algorithms for custom diagrams."""
     return {
-        "layouts": [l.value for l in CustomDiagramLayout],
+        "layouts": [layout.value for layout in CustomDiagramLayout],
         "default": CustomDiagramLayout.HIERARCHICAL.value,
         "descriptions": {
             CustomDiagramLayout.HIERARCHICAL.value: "Top-down or left-right tree layout (dot)",
@@ -779,5 +742,5 @@ async def get_custom_diagram_layouts(request: Request):
             CustomDiagramLayout.FORCE.value: "Force-directed graph layout (neato)",
             CustomDiagramLayout.RADIAL.value: "Radial layout from center (twopi)",
             CustomDiagramLayout.GRID.value: "Grid-based layout (osage)",
-        }
+        },
     }

@@ -60,9 +60,9 @@ router = APIRouter(tags=["Attack Graphs"])
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated visualization image"
+            "description": "Generated visualization image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def visualize_attack_graph(
@@ -138,11 +138,7 @@ async def visualize_attack_graph(
         # Generate visualization with timeout protection
         # SECURITY: Prevents resource exhaustion from complex/slow visualizations
         ag = AttackGraphs(input_for_viz, output_base, format=format.value, styleid=style.value)
-        await run_sync_with_timeout(
-            ag.BuildAttackGraph,
-            REQUEST_TIMEOUT_VISUALIZE,
-            "attack graph visualization"
-        )
+        await run_sync_with_timeout(ag.BuildAttackGraph, REQUEST_TIMEOUT_VISUALIZE, "attack graph visualization")
 
         output_path = f"{output_base}.{format.value}"
 
@@ -170,11 +166,7 @@ async def visualize_attack_graph(
         raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
-@router.post(
-    "/analyze/attack-graph",
-    response_model=GraphStats,
-    summary="Analyze attack graph structure"
-)
+@router.post("/analyze/attack-graph", response_model=GraphStats, summary="Analyze attack graph structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_attack_graph(
     request: Request,
@@ -219,11 +211,7 @@ async def analyze_attack_graph(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/analyze/attack-paths",
-    response_model=AttackPathsResponse,
-    summary="Find attack paths in graph"
-)
+@router.post("/analyze/attack-paths", response_model=AttackPathsResponse, summary="Find attack paths in graph")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_attack_paths(
     request: Request,
@@ -254,17 +242,14 @@ async def analyze_attack_paths(
         shortest = ag.shortest_path(source, target)
 
         # Format response
-        attack_paths = [
-            AttackPath(path=p, length=len(p))
-            for p in paths
-        ]
+        attack_paths = [AttackPath(path=p, length=len(p)) for p in paths]
 
         return AttackPathsResponse(
             source=source,
             target=target,
             paths=attack_paths,
             total_paths=len(paths),
-            shortest_path_length=len(shortest) if shortest else None
+            shortest_path_length=len(shortest) if shortest else None,
         )
 
     except AttackGraphError as e:
@@ -276,10 +261,7 @@ async def analyze_attack_paths(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/analyze/critical-nodes",
-    summary="Identify critical nodes in attack graph"
-)
+@router.post("/analyze/critical-nodes", summary="Identify critical nodes in attack graph")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_critical_nodes(
     request: Request,
@@ -304,10 +286,7 @@ async def analyze_critical_nodes(
 
         critical = ag.analyze_critical_nodes()[:limit]
 
-        return {
-            "critical_nodes": [CriticalNode(**node) for node in critical],
-            "total_nodes": len(ag._adjacency)
-        }
+        return {"critical_nodes": [CriticalNode(**node) for node in critical], "total_nodes": len(ag._adjacency)}
 
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -318,10 +297,7 @@ async def analyze_critical_nodes(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/analyze/centrality",
-    summary="Calculate centrality metrics for attack graph nodes"
-)
+@router.post("/analyze/centrality", summary="Calculate centrality metrics for attack graph nodes")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_centrality(
     request: Request,
@@ -351,23 +327,27 @@ async def analyze_centrality(
         if algorithm in ("betweenness", "all"):
             betweenness = ag.betweenness_centrality(top_n=limit)
             for node in betweenness:
-                nodes.append({
-                    "id": node["id"],
-                    "label": node["label"],
-                    "type": node["type"],
-                    "betweenness_centrality": node.get("betweenness_centrality")
-                })
+                nodes.append(
+                    {
+                        "id": node["id"],
+                        "label": node["label"],
+                        "type": node["type"],
+                        "betweenness_centrality": node.get("betweenness_centrality"),
+                    }
+                )
 
         if algorithm in ("closeness", "all"):
             closeness = ag.closeness_centrality(top_n=limit)
             if algorithm == "closeness":
                 for node in closeness:
-                    nodes.append({
-                        "id": node["id"],
-                        "label": node["label"],
-                        "type": node["type"],
-                        "closeness_centrality": node.get("closeness_centrality")
-                    })
+                    nodes.append(
+                        {
+                            "id": node["id"],
+                            "label": node["label"],
+                            "type": node["type"],
+                            "closeness_centrality": node.get("closeness_centrality"),
+                        }
+                    )
             else:
                 # Merge with existing nodes
                 closeness_map = {n["id"]: n.get("closeness_centrality") for n in closeness}
@@ -378,23 +358,21 @@ async def analyze_centrality(
             pr = ag.pagerank(top_n=limit)
             if algorithm == "pagerank":
                 for node in pr:
-                    nodes.append({
-                        "id": node["id"],
-                        "label": node["label"],
-                        "type": node["type"],
-                        "pagerank": node.get("pagerank")
-                    })
+                    nodes.append(
+                        {
+                            "id": node["id"],
+                            "label": node["label"],
+                            "type": node["type"],
+                            "pagerank": node.get("pagerank"),
+                        }
+                    )
             else:
                 # Merge with existing nodes
                 pr_map = {n["id"]: n.get("pagerank") for n in pr}
                 for node in nodes:
                     node["pagerank"] = pr_map.get(node["id"])
 
-        return {
-            "nodes": nodes[:limit],
-            "algorithm": algorithm,
-            "total_nodes": len(ag._adjacency)
-        }
+        return {"nodes": nodes[:limit], "algorithm": algorithm, "total_nodes": len(ag._adjacency)}
 
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -405,10 +383,7 @@ async def analyze_centrality(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/analyze/graph-metrics",
-    summary="Get comprehensive graph metrics"
-)
+@router.post("/analyze/graph-metrics", summary="Get comprehensive graph metrics")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_graph_metrics(
     request: Request,
@@ -445,10 +420,7 @@ async def analyze_graph_metrics(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/analyze/chokepoints",
-    summary="Identify network chokepoints"
-)
+@router.post("/analyze/chokepoints", summary="Identify network chokepoints")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_chokepoints(
     request: Request,
@@ -473,10 +445,7 @@ async def analyze_chokepoints(
 
         chokepoints = ag.find_chokepoints(top_n=limit)
 
-        return {
-            "chokepoints": chokepoints,
-            "total_analyzed": len(ag._adjacency)
-        }
+        return {"chokepoints": chokepoints, "total_analyzed": len(ag._adjacency)}
 
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -487,10 +456,7 @@ async def analyze_chokepoints(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/analyze/attack-surface",
-    summary="Identify attack surface entry points"
-)
+@router.post("/analyze/attack-surface", summary="Identify attack surface entry points")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_attack_surface(
     request: Request,
@@ -514,10 +480,7 @@ async def analyze_attack_surface(
 
         entry_points = ag.find_attack_surfaces()
 
-        return {
-            "entry_points": entry_points,
-            "total_attack_surface": len(entry_points)
-        }
+        return {"entry_points": entry_points, "total_attack_surface": len(entry_points)}
 
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -528,10 +491,7 @@ async def analyze_attack_surface(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/analyze/vulnerability-impact",
-    summary="Calculate vulnerability impact score"
-)
+@router.post("/analyze/vulnerability-impact", summary="Calculate vulnerability impact score")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_vulnerability_impact(
     request: Request,
@@ -559,10 +519,7 @@ async def analyze_vulnerability_impact(
         if "error" in impact:
             # SECURITY: Use generic error message to prevent information disclosure
             logger.warning(f"Vulnerability impact error: {impact.get('error', 'unknown')}")
-            raise HTTPException(
-                status_code=404,
-                detail="Vulnerability not found or cannot be analyzed"
-            )
+            raise HTTPException(status_code=404, detail="Vulnerability not found or cannot be analyzed")
 
         return impact
 
@@ -577,10 +534,7 @@ async def analyze_vulnerability_impact(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/validate/attack-graph",
-    summary="Validate attack graph structure"
-)
+@router.post("/validate/attack-graph", summary="Validate attack graph structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def validate_attack_graph(
     request: Request,
@@ -603,10 +557,7 @@ async def validate_attack_graph(
         ag = AttackGraphs(input_path, "unused")
         errors = ag.validate()
 
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors
-        }
+        return {"valid": len(errors) == 0, "errors": errors}
 
     except AttackGraphError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

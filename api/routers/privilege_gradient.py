@@ -58,9 +58,9 @@ router = APIRouter(tags=["Privilege Gradient Graphs"])
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated visualization image"
+            "description": "Generated visualization image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def visualize_privilege_gradient(
@@ -102,9 +102,7 @@ async def visualize_privilege_gradient(
 
         pg = PrivilegeGradient(input_for_viz, output_base, format=format.value, styleid=style.value)
         await run_sync_with_timeout(
-            pg.BuildPrivilegeGradient,
-            REQUEST_TIMEOUT_VISUALIZE,
-            "privilege gradient visualization"
+            pg.BuildPrivilegeGradient, REQUEST_TIMEOUT_VISUALIZE, "privilege gradient visualization"
         )
 
         output_path = f"{output_base}.{format.value}"
@@ -134,9 +132,7 @@ async def visualize_privilege_gradient(
 
 
 @router.post(
-    "/analyze/privilege-gradient",
-    response_model=GradientStats,
-    summary="Analyze privilege gradient graph structure"
+    "/analyze/privilege-gradient", response_model=GradientStats, summary="Analyze privilege gradient graph structure"
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_privilege_gradient(
@@ -181,11 +177,7 @@ async def analyze_privilege_gradient(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/analyze/inversions",
-    response_model=InversionsResponse,
-    summary="Detect privilege gradient inversions"
-)
+@router.post("/analyze/inversions", response_model=InversionsResponse, summary="Detect privilege gradient inversions")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_inversions(
     request: Request,
@@ -225,10 +217,7 @@ async def analyze_inversions(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/validate/privilege-gradient",
-    summary="Validate privilege gradient graph structure"
-)
+@router.post("/validate/privilege-gradient", summary="Validate privilege gradient graph structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def validate_privilege_gradient(
     request: Request,
@@ -251,10 +240,7 @@ async def validate_privilege_gradient(
         pg = PrivilegeGradient(input_path, "unused")
         errors = pg.validate()
 
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors
-        }
+        return {"valid": len(errors) == 0, "errors": errors}
 
     except PrivilegeGradientError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

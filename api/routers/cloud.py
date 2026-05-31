@@ -63,9 +63,9 @@ router = APIRouter(tags=["Cloud Diagrams"])
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated cloud diagram image"
+            "description": "Generated cloud diagram image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def visualize_cloud(
@@ -134,19 +134,17 @@ async def visualize_cloud(
         # Render with timeout protection (show=False to not open viewer)
         await run_sync_with_timeout(
             lambda: cd.render(
-                output_base,
-                format=format.value if format != CloudOutputFormat.DOT else "png",
-                show=False
+                output_base, format=format.value if format != CloudOutputFormat.DOT else "png", show=False
             ),
             REQUEST_TIMEOUT_VISUALIZE,
-            "cloud diagram rendering"
+            "cloud diagram rendering",
         )
 
         # Determine actual output path (diagrams library adds extension)
         if format == CloudOutputFormat.DOT:
             # For DOT format, generate the .dot file
             dot_path = f"{output_base}.dot"
-            cd.save_python(dot_path.replace('.dot', '.py'))  # Save Python code as alternative
+            cd.save_python(dot_path.replace(".dot", ".py"))  # Save Python code as alternative
             output_path = f"{output_base}.png"  # diagrams creates png
         else:
             output_path = f"{output_base}.{format.value}"
@@ -163,7 +161,7 @@ async def visualize_cloud(
             "jpg": "image/jpeg",
             "svg": "image/svg+xml",
             "pdf": "application/pdf",
-            "dot": "text/plain"
+            "dot": "text/plain",
         }
 
         return FileResponse(
@@ -175,8 +173,7 @@ async def visualize_cloud(
     except DiagramsNotInstalledError as e:
         cleanup_files(input_path, output_path)
         raise HTTPException(
-            status_code=503,
-            detail="Python diagrams library not installed. Run: pip install diagrams"
+            status_code=503, detail="Python diagrams library not installed. Run: pip install diagrams"
         ) from e
     except IconNotFoundError as e:
         cleanup_files(input_path, output_path)
@@ -191,11 +188,7 @@ async def visualize_cloud(
         raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
-@router.post(
-    "/analyze/cloud",
-    response_model=CloudValidateResponse,
-    summary="Validate cloud diagram"
-)
+@router.post("/analyze/cloud", response_model=CloudValidateResponse, summary="Validate cloud diagram")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_cloud(
     request: Request,
@@ -236,8 +229,8 @@ async def analyze_cloud(
                 edge_count=stats.get("edge_count", 0),
                 cluster_count=stats.get("cluster_count", 0),
                 providers_used=stats.get("providers_used", []),
-                loaded=True
-            )
+                loaded=True,
+            ),
         )
 
     except CloudDiagramError as e:
@@ -249,11 +242,7 @@ async def analyze_cloud(
         raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
-@router.get(
-    "/cloud/providers",
-    response_model=CloudProvidersResponse,
-    summary="List cloud providers"
-)
+@router.get("/cloud/providers", response_model=CloudProvidersResponse, summary="List cloud providers")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def list_cloud_providers(request: Request):
     """
@@ -264,33 +253,31 @@ async def list_cloud_providers(request: Request):
         return CloudProvidersResponse(providers=providers)
     except DiagramsNotInstalledError:
         # Return static list if diagrams not installed
-        return CloudProvidersResponse(providers=[
-            {"name": "aws", "description": "Amazon Web Services"},
-            {"name": "azure", "description": "Microsoft Azure"},
-            {"name": "gcp", "description": "Google Cloud Platform"},
-            {"name": "k8s", "description": "Kubernetes"},
-            {"name": "onprem", "description": "On-Premises"},
-            {"name": "alibabacloud", "description": "Alibaba Cloud"},
-            {"name": "oci", "description": "Oracle Cloud Infrastructure"},
-            {"name": "digitalocean", "description": "DigitalOcean"},
-            {"name": "openstack", "description": "OpenStack"},
-            {"name": "firebase", "description": "Firebase"},
-            {"name": "generic", "description": "Generic icons"},
-            {"name": "programming", "description": "Programming languages"},
-            {"name": "saas", "description": "SaaS services"},
-        ])
+        return CloudProvidersResponse(
+            providers=[
+                {"name": "aws", "description": "Amazon Web Services"},
+                {"name": "azure", "description": "Microsoft Azure"},
+                {"name": "gcp", "description": "Google Cloud Platform"},
+                {"name": "k8s", "description": "Kubernetes"},
+                {"name": "onprem", "description": "On-Premises"},
+                {"name": "alibabacloud", "description": "Alibaba Cloud"},
+                {"name": "oci", "description": "Oracle Cloud Infrastructure"},
+                {"name": "digitalocean", "description": "DigitalOcean"},
+                {"name": "openstack", "description": "OpenStack"},
+                {"name": "firebase", "description": "Firebase"},
+                {"name": "generic", "description": "Generic icons"},
+                {"name": "programming", "description": "Programming languages"},
+                {"name": "saas", "description": "SaaS services"},
+            ]
+        )
 
 
-@router.get(
-    "/cloud/icons",
-    response_model=CloudIconsListResponse,
-    summary="List cloud diagram icons"
-)
+@router.get("/cloud/icons", response_model=CloudIconsListResponse, summary="List cloud diagram icons")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def list_cloud_icons(
     request: Request,
     provider: CloudProvider = Query(..., description="Cloud provider"),
-    category: Optional[str] = Query(default=None, description="Filter by category (e.g., compute, database)")
+    category: Optional[str] = Query(default=None, description="Filter by category (e.g., compute, database)"),
 ):
     """
     List available icons for a specific cloud provider.
@@ -305,35 +292,25 @@ async def list_cloud_icons(
                 name=icon.get("name", ""),
                 provider=provider.value,
                 category=icon.get("category", ""),
-                full_path=icon.get("full_path", "")
+                full_path=icon.get("full_path", ""),
             )
             for icon in icons_list
         ]
-        return CloudIconsListResponse(
-            icons=icons,
-            provider=provider.value,
-            category=category,
-            total=len(icons)
-        )
+        return CloudIconsListResponse(icons=icons, provider=provider.value, category=category, total=len(icons))
     except DiagramsNotInstalledError as e:
         raise HTTPException(
-            status_code=503,
-            detail="Python diagrams library not installed. Run: pip install diagrams"
+            status_code=503, detail="Python diagrams library not installed. Run: pip install diagrams"
         ) from e
     except Exception as e:
         logger.error(f"Error listing cloud icons: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="Failed to list icons") from e
 
 
-@router.get(
-    "/cloud/templates",
-    response_model=CloudTemplateListResponse,
-    summary="List cloud diagram templates"
-)
+@router.get("/cloud/templates", response_model=CloudTemplateListResponse, summary="List cloud diagram templates")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def list_cloud_templates(
     request: Request,
-    category: Optional[str] = Query(default=None, description="Filter by category (e.g., aws, kubernetes, security)")
+    category: Optional[str] = Query(default=None, description="Filter by category (e.g., aws, kubernetes, security)"),
 ):
     """
     List available cloud diagram templates.
@@ -349,16 +326,12 @@ async def list_cloud_templates(
                 name=t.get("name", ""),
                 category=t.get("category", ""),
                 path=t.get("path", ""),
-                providers=t.get("providers", [])
+                providers=t.get("providers", []),
             )
             for t in all_templates
         ]
 
-        return CloudTemplateListResponse(
-            templates=templates,
-            categories=categories,
-            total=len(templates)
-        )
+        return CloudTemplateListResponse(templates=templates, categories=categories, total=len(templates))
     except Exception as e:
         logger.error(f"Error listing cloud templates: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="Failed to list templates") from e
@@ -367,14 +340,10 @@ async def list_cloud_templates(
 @router.get(
     "/cloud/template/{category}/{name}",
     response_model=CloudTemplateContentResponse,
-    summary="Get cloud template content"
+    summary="Get cloud template content",
 )
 @limiter.limit(RATE_LIMIT_DEFAULT)
-async def get_cloud_template(
-    request: Request,
-    category: str,
-    name: str
-):
+async def get_cloud_template(request: Request, category: str, name: str):
     """
     Get the content of a specific cloud diagram template.
 
@@ -430,7 +399,7 @@ async def get_cloud_template(
             category=category,
             content=content,
             filename=template_path.name,
-            providers=providers
+            providers=providers,
         )
 
     except HTTPException:
@@ -440,11 +409,7 @@ async def get_cloud_template(
         raise HTTPException(status_code=500, detail="Failed to get template") from e
 
 
-@router.post(
-    "/cloud/generate-code",
-    response_model=CloudPythonCodeResponse,
-    summary="Generate Python code from config"
-)
+@router.post("/cloud/generate-code", response_model=CloudPythonCodeResponse, summary="Generate Python code from config")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def generate_cloud_code(
     request: Request,
@@ -478,10 +443,7 @@ async def generate_cloud_code(
         title = cd.config.title if cd.config else "cloud_diagram"
         filename = f"{title.lower().replace(' ', '_')}.py"
 
-        return CloudPythonCodeResponse(
-            code=code,
-            filename=filename
-        )
+        return CloudPythonCodeResponse(code=code, filename=filename)
 
     except CloudDiagramError as e:
         cleanup_files(input_path)

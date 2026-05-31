@@ -124,7 +124,7 @@ def validate_format(format: str) -> bool:
     Returns:
         True if format is valid, False otherwise.
     """
-    return format in ['png', 'pdf', 'svg', 'dot']
+    return format in ["png", "pdf", "svg", "dot"]
 
 
 def validate_mode(mode: int) -> bool:
@@ -165,9 +165,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     if argv is None:
         argv = sys.argv[1:]
 
-    inputfile = ''
-    outputfile = ''
-    format = 'png'
+    inputfile = ""
+    outputfile = ""
+    format = "png"
     mode = 0
     styleid = ""
     visualization = "all"
@@ -176,23 +176,37 @@ def main(argv: Optional[list[str]] = None) -> int:
     attack_paths = ""  # source,target for attack graph path analysis
     analyze_critical = False
     theme = "default"  # Mermaid theme
-    direction = "TB"   # Cloud diagram direction
+    direction = "TB"  # Cloud diagram direction
 
     convert_format = ""  # Format to convert to: toml, json, yaml, mermaid
 
     try:
-        opts, args = getopt.getopt(
+        opts, _args = getopt.getopt(
             argv,
             "hi:o:f:m:s:S:v:C:rp:ct:d:",
-            ["help", "ifile=", "ofile=", "format=", "mode=", "styleid=",
-             "stylefile=", "visualization=", "config=", "report", "paths=", "critical",
-             "convert=", "theme=", "direction="]
+            [
+                "help",
+                "ifile=",
+                "ofile=",
+                "format=",
+                "mode=",
+                "styleid=",
+                "stylefile=",
+                "visualization=",
+                "config=",
+                "report",
+                "paths=",
+                "critical",
+                "convert=",
+                "theme=",
+                "direction=",
+            ],
         )
     except getopt.GetoptError as e:
         error_exit(str(e))
 
     for opt, arg in opts:
-        if opt in ('-h', '--help'):
+        if opt in ("-h", "--help"):
             Usage()
             return 0
         elif opt in ("-i", "--ifile"):
@@ -236,7 +250,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         if not os.path.isfile(inputfile):
             error_exit(f"Input file not found: {inputfile}", show_usage=False)
 
-        valid_convert_formats = ['toml', 'json', 'yaml', 'mermaid']
+        valid_convert_formats = ["toml", "json", "yaml", "mermaid"]
         if convert_format not in valid_convert_formats:
             error_exit(f"Invalid convert format: {convert_format}. Must be one of: {', '.join(valid_convert_formats)}")
 
@@ -246,11 +260,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
             # Determine input format from file extension
             input_ext = os.path.splitext(inputfile)[1].lower()
-            input_format_map = {
-                '.toml': 'toml', '.tml': 'toml',
-                '.json': 'json',
-                '.yaml': 'yaml', '.yml': 'yaml'
-            }
+            input_format_map = {".toml": "toml", ".tml": "toml", ".json": "json", ".yaml": "yaml", ".yml": "yaml"}
 
             if input_ext not in input_format_map:
                 error_exit(f"Unsupported input file format: {input_ext}. Must be .toml, .tml, .json, .yaml, or .yml")
@@ -258,16 +268,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             input_format = input_format_map[input_ext]
 
             # Determine output extension
-            output_ext_map = {
-                'toml': '.toml',
-                'json': '.json',
-                'yaml': '.yaml',
-                'mermaid': '.mmd'
-            }
+            output_ext_map = {"toml": ".toml", "json": ".json", "yaml": ".yaml", "mermaid": ".mmd"}
             output_ext = output_ext_map[convert_format]
             output_path = f"{outputfile}{output_ext}"
 
-            if convert_format == 'mermaid':
+            if convert_format == "mermaid":
                 # Special handling for Mermaid - need to parse and convert
                 import json
 
@@ -275,12 +280,12 @@ def main(argv: Optional[list[str]] = None) -> int:
                 import yaml as yaml_lib
 
                 # Parse input file
-                with open(inputfile, encoding='utf-8') as f:
+                with open(inputfile, encoding="utf-8") as f:
                     content = f.read()
 
-                if input_format == 'toml':
+                if input_format == "toml":
                     data = toml.loads(content)
-                elif input_format == 'json':
+                elif input_format == "json":
                     data = json.loads(content)
                 else:  # yaml
                     data = yaml_lib.safe_load(content)
@@ -290,7 +295,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                 mermaid_output = serialize_to_mermaid(data, diagram_type=vis_type)
 
                 # Write output
-                with open(output_path, 'w', encoding='utf-8') as f:
+                with open(output_path, "w", encoding="utf-8") as f:
                     f.write(mermaid_output)
 
                 print(f"Converted {inputfile} to Mermaid format: {output_path}")
@@ -329,6 +334,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         if mode == 0:
             # Attack Trees
             from . import attacktrees
+
             at = attacktrees.AttackTrees(inputfile, outputfile, format, styleid)
             at.BuildAttackTree()
             print(f"Attack tree generated: {outputfile}.{format}")
@@ -336,6 +342,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         elif mode == 1:
             # Threat Modeling
             from . import threatmodeling
+
             tm = threatmodeling.ThreatModeling(inputfile, outputfile, format, styleid)
             tm.BuildThreatModel()
             print(f"Threat model generated: {outputfile}.{format}")
@@ -355,16 +362,17 @@ def main(argv: Optional[list[str]] = None) -> int:
                 error_exit(f"Config file not found: {configfile}", show_usage=False)
 
             from . import binvis
+
             bv = binvis.BinVis(inputfile, outputfile, format, styleid, configfile)
 
             # Validate visualization type
-            valid_vis = ['all', 'entropy', 'distribution', 'windrose', 'heatmap']
+            valid_vis = ["all", "entropy", "distribution", "windrose", "heatmap"]
             if visualization not in valid_vis:
                 error_exit(f"Invalid visualization: {visualization}. Must be one of: {', '.join(valid_vis)}")
 
             bv.BuildBinVis(visualization)
 
-            if visualization == 'all':
+            if visualization == "all":
                 print(f"Binary visualizations generated: {outputfile}_*.{format}")
             else:
                 print(f"Binary visualization generated: {outputfile}_{visualization}.{format}")
@@ -381,6 +389,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         elif mode == 3:
             # Attack Graphs
             from . import attackgraphs
+
             ag = attackgraphs.AttackGraphs(inputfile, outputfile, format, styleid)
             ag.BuildAttackGraph()
             print(f"Attack graph generated: {outputfile}.{format}")
@@ -396,13 +405,13 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  Exploits: {stats['total_exploits']}")
             print(f"  Total nodes: {stats['total_nodes']}")
             print(f"  Total edges: {stats['total_edges']}")
-            if stats['total_vulnerabilities'] > 0:
+            if stats["total_vulnerabilities"] > 0:
                 print(f"  Average CVSS: {stats['average_cvss']:.1f}")
                 print(f"  Critical vulns (CVSS >= 9.0): {stats['critical_vulnerabilities']}")
 
             # Analyze attack paths if requested
             if attack_paths:
-                parts = attack_paths.split(',')
+                parts = attack_paths.split(",")
                 if len(parts) != 2:
                     error_exit("Attack paths must be in format: source,target")
                 source, target = parts[0].strip(), parts[1].strip()
@@ -434,12 +443,12 @@ def main(argv: Optional[list[str]] = None) -> int:
             from . import mermaiddiagrams
 
             # Validate theme
-            valid_themes = ['default', 'dark', 'forest', 'neutral', 'base']
+            valid_themes = ["default", "dark", "forest", "neutral", "base"]
             if theme not in valid_themes:
                 error_exit(f"Invalid theme: {theme}. Must be one of: {', '.join(valid_themes)}")
 
             # Validate format for Mermaid
-            valid_mermaid_formats = ['png', 'svg', 'pdf']
+            valid_mermaid_formats = ["png", "svg", "pdf"]
             if format not in valid_mermaid_formats:
                 error_exit(f"Invalid format for Mermaid: {format}. Must be one of: {', '.join(valid_mermaid_formats)}")
 
@@ -460,12 +469,12 @@ def main(argv: Optional[list[str]] = None) -> int:
             from . import clouddiagrams
 
             # Validate direction
-            valid_directions = ['TB', 'BT', 'LR', 'RL']
+            valid_directions = ["TB", "BT", "LR", "RL"]
             if direction not in valid_directions:
                 error_exit(f"Invalid direction: {direction}. Must be one of: {', '.join(valid_directions)}")
 
             # Validate format for Cloud diagrams
-            valid_cloud_formats = ['png', 'jpg', 'svg', 'pdf', 'dot']
+            valid_cloud_formats = ["png", "jpg", "svg", "pdf", "dot"]
             if format not in valid_cloud_formats:
                 error_exit(f"Invalid format for Cloud: {format}. Must be one of: {', '.join(valid_cloud_formats)}")
 
@@ -481,12 +490,13 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  Nodes: {stats['node_count']}")
             print(f"  Edges: {stats['edge_count']}")
             print(f"  Clusters: {stats['cluster_count']}")
-            if stats['providers_used']:
+            if stats["providers_used"]:
                 print(f"  Providers: {', '.join(stats['providers_used'])}")
 
         elif mode == 6:
             # Privilege Gradient Graphs
             from . import privilegegradient
+
             pg = privilegegradient.PrivilegeGradient(inputfile, outputfile, format, styleid)
             pg.BuildPrivilegeGradient()
             print(f"Privilege gradient graph generated: {outputfile}.{format}")
@@ -499,20 +509,23 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  Components: {stats['total_components']}")
             print(f"  Influences: {stats['total_influences']}")
             print(f"  Inversions: {stats['total_inversions']}")
-            if stats['max_trust_gap'] > 0:
+            if stats["max_trust_gap"] > 0:
                 print(f"  Max trust gap: {stats['max_trust_gap']}")
 
             # Print inversions
-            if stats['total_inversions'] > 0:
+            if stats["total_inversions"] > 0:
                 print("\nDetected Inversions:")
-                for inv in stats['inversions']:
-                    print(f"  [{inv['severity'].upper()}] {inv['from']} ({inv['from_zone']}) "
-                          f"-> {inv['to']} ({inv['to_zone']}) "
-                          f"[gap={inv['trust_gap']}]")
+                for inv in stats["inversions"]:
+                    print(
+                        f"  [{inv['severity'].upper()}] {inv['from']} ({inv['from_zone']}) "
+                        f"-> {inv['to']} ({inv['to_zone']}) "
+                        f"[gap={inv['trust_gap']}]"
+                    )
 
         elif mode == 7:
             # Component Diagrams
             from . import componentdiagram
+
             cd = componentdiagram.ComponentDiagram(inputfile, outputfile, format, styleid)
             cd.BuildComponentDiagram()
             print(f"Component diagram generated: {outputfile}.{format}")
@@ -527,6 +540,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         elif mode == 8:
             # Dependency Graphs
             from . import dependencygraph
+
             dg = dependencygraph.DependencyGraph(inputfile, outputfile, format, styleid)
             dg.BuildDependencyGraph()
             print(f"Dependency graph generated: {outputfile}.{format}")
@@ -539,18 +553,17 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  Circular: {stats['total_circular']}")
             print(f"  Internal: {stats['internal_count']}")
             print(f"  External: {stats['external_count']}")
-            if stats['groups']:
+            if stats["groups"]:
                 print(f"  Groups: {', '.join(stats['groups'])}")
 
         elif mode == 12:
             # MAESTRO Agentic Threat Model
             from . import maestro
+
             # The -v flag is used by binvis for visualization type; reuse here
             # for MAESTRO view selection. Valid: "layered" (default), "graph", "heatmap".
             maestro_view = visualization if visualization in ("layered", "graph", "heatmap") else "layered"
-            mm = maestro.MaestroThreatModel(
-                inputfile, outputfile, format, styleid, view=maestro_view
-            )
+            mm = maestro.MaestroThreatModel(inputfile, outputfile, format, styleid, view=maestro_view)
             mm.build()
             print(f"MAESTRO threat model generated: {outputfile}.{format}")
 
@@ -562,16 +575,14 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  Threats: {stats['total_threats']} ({stats['unmitigated_threats']} unmitigated)")
             print(f"  Cross-layer threats: {stats['total_cross_layer_threats']}")
             print(f"  Mitigations: {stats['total_mitigations']}")
-            if stats['patterns']:
+            if stats["patterns"]:
                 print(f"  Patterns: {', '.join(stats['patterns'])}")
-            if stats['threats_by_severity']:
-                sev_summary = ", ".join(
-                    f"{k}={v}" for k, v in sorted(stats['threats_by_severity'].items())
-                )
+            if stats["threats_by_severity"]:
+                sev_summary = ", ".join(f"{k}={v}" for k, v in sorted(stats["threats_by_severity"].items()))
                 print(f"  Severity breakdown: {sev_summary}")
-            if stats['warnings']:
+            if stats["warnings"]:
                 print("\nWarnings:")
-                for w in stats['warnings']:
+                for w in stats["warnings"]:
                     print(f"  - {w}")
 
     except FileNotFoundError as e:

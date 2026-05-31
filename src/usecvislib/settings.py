@@ -30,9 +30,9 @@ class DisplaySettings:
     Settings can be toggled globally or per visualization type.
     """
 
-    _instance: Optional['DisplaySettings'] = None
+    _instance: Optional["DisplaySettings"] = None
 
-    def __new__(cls) -> 'DisplaySettings':
+    def __new__(cls) -> "DisplaySettings":
         """Singleton pattern to ensure consistent settings across modules."""
         if cls._instance is None:
             cls._instance = super().__new__(cls)
@@ -98,11 +98,7 @@ class DisplaySettings:
         # Check type-specific setting
         return self._cvss_display.get(viz_type, True)
 
-    def set_cvss_enabled(
-        self,
-        enabled: bool,
-        viz_type: Optional[str] = None
-    ) -> None:
+    def set_cvss_enabled(self, enabled: bool, viz_type: Optional[str] = None) -> None:
         """Enable or disable CVSS display.
 
         Args:

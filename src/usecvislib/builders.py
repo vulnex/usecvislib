@@ -70,13 +70,9 @@ class AttackTreeBuilder:
             description: Optional description.
         """
         self._data: dict[str, Any] = {
-            "tree": {
-                "name": name,
-                "root": root,
-                "description": description
-            },
+            "tree": {"name": name, "root": root, "description": description},
             "nodes": {},
-            "edges": {}
+            "edges": {},
         }
 
     def add_node(
@@ -87,7 +83,7 @@ class AttackTreeBuilder:
         fillcolor: str = "#3498db",
         shape: str = "box",
         fontcolor: str = "white",
-        **attrs
+        **attrs,
     ) -> AttackTreeBuilder:
         """Add a node to the tree.
 
@@ -109,16 +105,12 @@ class AttackTreeBuilder:
             "fillcolor": fillcolor,
             "shape": shape,
             "fontcolor": fontcolor,
-            **attrs
+            **attrs,
         }
         return self
 
     def add_and_node(
-        self,
-        node_id: str,
-        label: Optional[str] = None,
-        fillcolor: str = "#e74c3c",
-        **attrs
+        self, node_id: str, label: Optional[str] = None, fillcolor: str = "#e74c3c", **attrs
     ) -> AttackTreeBuilder:
         """Add an AND node (all children must be completed).
 
@@ -131,20 +123,10 @@ class AttackTreeBuilder:
         Returns:
             Self for method chaining.
         """
-        return self.add_node(
-            node_id,
-            label=label,
-            fillcolor=fillcolor,
-            shape="trapezium",
-            **attrs
-        )
+        return self.add_node(node_id, label=label, fillcolor=fillcolor, shape="trapezium", **attrs)
 
     def add_or_node(
-        self,
-        node_id: str,
-        label: Optional[str] = None,
-        fillcolor: str = "#2ecc71",
-        **attrs
+        self, node_id: str, label: Optional[str] = None, fillcolor: str = "#2ecc71", **attrs
     ) -> AttackTreeBuilder:
         """Add an OR node (any child can complete it).
 
@@ -157,20 +139,10 @@ class AttackTreeBuilder:
         Returns:
             Self for method chaining.
         """
-        return self.add_node(
-            node_id,
-            label=label,
-            fillcolor=fillcolor,
-            shape="invtrapezium",
-            **attrs
-        )
+        return self.add_node(node_id, label=label, fillcolor=fillcolor, shape="invtrapezium", **attrs)
 
     def add_leaf_node(
-        self,
-        node_id: str,
-        label: Optional[str] = None,
-        fillcolor: str = "#9b59b6",
-        **attrs
+        self, node_id: str, label: Optional[str] = None, fillcolor: str = "#9b59b6", **attrs
     ) -> AttackTreeBuilder:
         """Add a leaf node (basic attack step).
 
@@ -183,22 +155,10 @@ class AttackTreeBuilder:
         Returns:
             Self for method chaining.
         """
-        return self.add_node(
-            node_id,
-            label=label,
-            fillcolor=fillcolor,
-            shape="ellipse",
-            **attrs
-        )
+        return self.add_node(node_id, label=label, fillcolor=fillcolor, shape="ellipse", **attrs)
 
     def add_edge(
-        self,
-        from_node: str,
-        to_node: str,
-        label: str = "",
-        style: str = "solid",
-        color: str = "black",
-        **attrs
+        self, from_node: str, to_node: str, label: str = "", style: str = "solid", color: str = "black", **attrs
     ) -> AttackTreeBuilder:
         """Add an edge between nodes.
 
@@ -216,21 +176,10 @@ class AttackTreeBuilder:
         if from_node not in self._data["edges"]:
             self._data["edges"][from_node] = []
 
-        self._data["edges"][from_node].append({
-            "to": to_node,
-            "label": label,
-            "style": style,
-            "color": color,
-            **attrs
-        })
+        self._data["edges"][from_node].append({"to": to_node, "label": label, "style": style, "color": color, **attrs})
         return self
 
-    def add_and_edge(
-        self,
-        from_node: str,
-        to_node: str,
-        **attrs
-    ) -> AttackTreeBuilder:
+    def add_and_edge(self, from_node: str, to_node: str, **attrs) -> AttackTreeBuilder:
         """Add an AND edge (required path).
 
         Args:
@@ -243,12 +192,7 @@ class AttackTreeBuilder:
         """
         return self.add_edge(from_node, to_node, label="AND", style="solid", **attrs)
 
-    def add_or_edge(
-        self,
-        from_node: str,
-        to_node: str,
-        **attrs
-    ) -> AttackTreeBuilder:
+    def add_or_edge(self, from_node: str, to_node: str, **attrs) -> AttackTreeBuilder:
         """Add an OR edge (alternative path).
 
         Args:
@@ -295,12 +239,7 @@ class AttackTreeBuilder:
             return json.dumps(self._data, indent=2)
         return json.dumps(self._data)
 
-    def to_attack_tree(
-        self,
-        outputfile: str,
-        format: str = "png",
-        styleid: str = "at_default"
-    ) -> AttackTrees:
+    def to_attack_tree(self, outputfile: str, format: str = "png", styleid: str = "at_default") -> AttackTrees:
         """Create AttackTrees instance from builder data.
 
         Args:
@@ -314,11 +253,7 @@ class AttackTreeBuilder:
         from .attacktrees import AttackTrees
 
         # Create a temporary file with the data
-        with tempfile.NamedTemporaryFile(
-            mode='w',
-            suffix='.json',
-            delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(self._data, f)
             temp_path = f.name
 
@@ -350,25 +285,17 @@ class AttackGraphBuilder:
             description: Optional description.
         """
         self._data: dict[str, Any] = {
-            "graph": {
-                "name": name,
-                "description": description
-            },
+            "graph": {"name": name, "description": description},
             "hosts": [],
             "vulnerabilities": [],
             "privileges": [],
             "services": [],
             "exploits": [],
-            "network_edges": []
+            "network_edges": [],
         }
 
     def add_host(
-        self,
-        host_id: str,
-        label: str,
-        ip: Optional[str] = None,
-        zone: str = "internal",
-        **attrs
+        self, host_id: str, label: str, ip: Optional[str] = None, zone: str = "internal", **attrs
     ) -> AttackGraphBuilder:
         """Add a host to the graph.
 
@@ -382,25 +309,14 @@ class AttackGraphBuilder:
         Returns:
             Self for method chaining.
         """
-        host = {
-            "id": host_id,
-            "label": label,
-            "zone": zone,
-            **attrs
-        }
+        host = {"id": host_id, "label": label, "zone": zone, **attrs}
         if ip:
             host["ip"] = ip
         self._data["hosts"].append(host)
         return self
 
     def add_vulnerability(
-        self,
-        vuln_id: str,
-        label: str,
-        cvss: float,
-        affected_host: str,
-        cve: Optional[str] = None,
-        **attrs
+        self, vuln_id: str, label: str, cvss: float, affected_host: str, cve: Optional[str] = None, **attrs
     ) -> AttackGraphBuilder:
         """Add a vulnerability to the graph.
 
@@ -415,26 +331,13 @@ class AttackGraphBuilder:
         Returns:
             Self for method chaining.
         """
-        vuln = {
-            "id": vuln_id,
-            "label": label,
-            "cvss": cvss,
-            "affected_host": affected_host,
-            **attrs
-        }
+        vuln = {"id": vuln_id, "label": label, "cvss": cvss, "affected_host": affected_host, **attrs}
         if cve:
             vuln["cve"] = cve
         self._data["vulnerabilities"].append(vuln)
         return self
 
-    def add_privilege(
-        self,
-        priv_id: str,
-        label: str,
-        host: str,
-        level: str = "user",
-        **attrs
-    ) -> AttackGraphBuilder:
+    def add_privilege(self, priv_id: str, label: str, host: str, level: str = "user", **attrs) -> AttackGraphBuilder:
         """Add a privilege level to the graph.
 
         Args:
@@ -447,23 +350,11 @@ class AttackGraphBuilder:
         Returns:
             Self for method chaining.
         """
-        self._data["privileges"].append({
-            "id": priv_id,
-            "label": label,
-            "host": host,
-            "level": level,
-            **attrs
-        })
+        self._data["privileges"].append({"id": priv_id, "label": label, "host": host, "level": level, **attrs})
         return self
 
     def add_service(
-        self,
-        service_id: str,
-        label: str,
-        host: str,
-        port: int,
-        protocol: str = "tcp",
-        **attrs
+        self, service_id: str, label: str, host: str, port: int, protocol: str = "tcp", **attrs
     ) -> AttackGraphBuilder:
         """Add a service to the graph.
 
@@ -478,24 +369,13 @@ class AttackGraphBuilder:
         Returns:
             Self for method chaining.
         """
-        self._data["services"].append({
-            "id": service_id,
-            "label": label,
-            "host": host,
-            "port": port,
-            "protocol": protocol,
-            **attrs
-        })
+        self._data["services"].append(
+            {"id": service_id, "label": label, "host": host, "port": port, "protocol": protocol, **attrs}
+        )
         return self
 
     def add_exploit(
-        self,
-        exploit_id: str,
-        label: str,
-        vulnerability: str,
-        precondition: str,
-        postcondition: str,
-        **attrs
+        self, exploit_id: str, label: str, vulnerability: str, precondition: str, postcondition: str, **attrs
     ) -> AttackGraphBuilder:
         """Add an exploit to the graph.
 
@@ -510,23 +390,19 @@ class AttackGraphBuilder:
         Returns:
             Self for method chaining.
         """
-        self._data["exploits"].append({
-            "id": exploit_id,
-            "label": label,
-            "vulnerability": vulnerability,
-            "precondition": precondition,
-            "postcondition": postcondition,
-            **attrs
-        })
+        self._data["exploits"].append(
+            {
+                "id": exploit_id,
+                "label": label,
+                "vulnerability": vulnerability,
+                "precondition": precondition,
+                "postcondition": postcondition,
+                **attrs,
+            }
+        )
         return self
 
-    def add_network_edge(
-        self,
-        from_host: str,
-        to_host: str,
-        label: str = "",
-        **attrs
-    ) -> AttackGraphBuilder:
+    def add_network_edge(self, from_host: str, to_host: str, label: str = "", **attrs) -> AttackGraphBuilder:
         """Add a network connection between hosts.
 
         Args:
@@ -538,11 +414,7 @@ class AttackGraphBuilder:
         Returns:
             Self for method chaining.
         """
-        edge = {
-            "from": from_host,
-            "to": to_host,
-            **attrs
-        }
+        edge = {"from": from_host, "to": to_host, **attrs}
         if label:
             edge["label"] = label
         self._data["network_edges"].append(edge)
@@ -582,12 +454,7 @@ class AttackGraphBuilder:
             return json.dumps(self._data, indent=2)
         return json.dumps(self._data)
 
-    def to_attack_graph(
-        self,
-        outputfile: str,
-        format: str = "png",
-        styleid: str = "ag_default"
-    ) -> AttackGraphs:
+    def to_attack_graph(self, outputfile: str, format: str = "png", styleid: str = "ag_default") -> AttackGraphs:
         """Create AttackGraphs instance from builder data.
 
         Args:
@@ -601,11 +468,7 @@ class AttackGraphBuilder:
         from .attackgraphs import AttackGraphs
 
         # Create a temporary file with the data
-        with tempfile.NamedTemporaryFile(
-            mode='w',
-            suffix='.json',
-            delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(self._data, f)
             temp_path = f.name
 
@@ -639,25 +502,15 @@ class ThreatModelBuilder:
             description: Optional description.
         """
         self._data: dict[str, Any] = {
-            "dfd": {
-                "name": name,
-                "id": system_id,
-                "description": description
-            },
+            "dfd": {"name": name, "id": system_id, "description": description},
             "processes": [],
             "datastores": [],
             "external_entities": [],
             "data_flows": [],
-            "trust_boundaries": []
+            "trust_boundaries": [],
         }
 
-    def add_process(
-        self,
-        process_id: str,
-        label: str,
-        trust_level: str = "internal",
-        **attrs
-    ) -> ThreatModelBuilder:
+    def add_process(self, process_id: str, label: str, trust_level: str = "internal", **attrs) -> ThreatModelBuilder:
         """Add a process to the diagram.
 
         Args:
@@ -669,21 +522,11 @@ class ThreatModelBuilder:
         Returns:
             Self for method chaining.
         """
-        self._data["processes"].append({
-            "id": process_id,
-            "label": label,
-            "trust_level": trust_level,
-            **attrs
-        })
+        self._data["processes"].append({"id": process_id, "label": label, "trust_level": trust_level, **attrs})
         return self
 
     def add_datastore(
-        self,
-        store_id: str,
-        label: str,
-        store_type: str = "database",
-        encrypted: bool = False,
-        **attrs
+        self, store_id: str, label: str, store_type: str = "database", encrypted: bool = False, **attrs
     ) -> ThreatModelBuilder:
         """Add a data store to the diagram.
 
@@ -697,22 +540,12 @@ class ThreatModelBuilder:
         Returns:
             Self for method chaining.
         """
-        self._data["datastores"].append({
-            "id": store_id,
-            "label": label,
-            "type": store_type,
-            "encrypted": encrypted,
-            **attrs
-        })
+        self._data["datastores"].append(
+            {"id": store_id, "label": label, "type": store_type, "encrypted": encrypted, **attrs}
+        )
         return self
 
-    def add_external_entity(
-        self,
-        entity_id: str,
-        label: str,
-        entity_type: str = "user",
-        **attrs
-    ) -> ThreatModelBuilder:
+    def add_external_entity(self, entity_id: str, label: str, entity_type: str = "user", **attrs) -> ThreatModelBuilder:
         """Add an external entity to the diagram.
 
         Args:
@@ -724,12 +557,7 @@ class ThreatModelBuilder:
         Returns:
             Self for method chaining.
         """
-        self._data["external_entities"].append({
-            "id": entity_id,
-            "label": label,
-            "type": entity_type,
-            **attrs
-        })
+        self._data["external_entities"].append({"id": entity_id, "label": label, "type": entity_type, **attrs})
         return self
 
     def add_data_flow(
@@ -740,7 +568,7 @@ class ThreatModelBuilder:
         protocol: Optional[str] = None,
         encrypted: bool = False,
         authenticated: bool = False,
-        **attrs
+        **attrs,
     ) -> ThreatModelBuilder:
         """Add a data flow between elements.
 
@@ -756,13 +584,7 @@ class ThreatModelBuilder:
         Returns:
             Self for method chaining.
         """
-        flow = {
-            "from": from_element,
-            "to": to_element,
-            "encrypted": encrypted,
-            "authenticated": authenticated,
-            **attrs
-        }
+        flow = {"from": from_element, "to": to_element, "encrypted": encrypted, "authenticated": authenticated, **attrs}
         if label:
             flow["label"] = label
         if protocol:
@@ -770,13 +592,7 @@ class ThreatModelBuilder:
         self._data["data_flows"].append(flow)
         return self
 
-    def add_trust_boundary(
-        self,
-        boundary_id: str,
-        label: str,
-        elements: list[str],
-        **attrs
-    ) -> ThreatModelBuilder:
+    def add_trust_boundary(self, boundary_id: str, label: str, elements: list[str], **attrs) -> ThreatModelBuilder:
         """Add a trust boundary containing elements.
 
         Args:
@@ -788,12 +604,7 @@ class ThreatModelBuilder:
         Returns:
             Self for method chaining.
         """
-        self._data["trust_boundaries"].append({
-            "id": boundary_id,
-            "label": label,
-            "elements": elements,
-            **attrs
-        })
+        self._data["trust_boundaries"].append({"id": boundary_id, "label": label, "elements": elements, **attrs})
         return self
 
     def set_dfd_attribute(self, key: str, value: Any) -> ThreatModelBuilder:
@@ -830,12 +641,7 @@ class ThreatModelBuilder:
             return json.dumps(self._data, indent=2)
         return json.dumps(self._data)
 
-    def to_threat_model(
-        self,
-        outputfile: str,
-        format: str = "png",
-        styleid: str = "tm_default"
-    ) -> ThreatModeling:
+    def to_threat_model(self, outputfile: str, format: str = "png", styleid: str = "tm_default") -> ThreatModeling:
         """Create ThreatModeling instance from builder data.
 
         Args:
@@ -849,11 +655,7 @@ class ThreatModelBuilder:
         from .threatmodeling import ThreatModeling
 
         # Create a temporary file with the data
-        with tempfile.NamedTemporaryFile(
-            mode='w',
-            suffix='.json',
-            delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(self._data, f)
             temp_path = f.name
 
@@ -877,35 +679,78 @@ class PrivilegeGradientBuilder:
     """
 
     DEFAULT_ZONES = [
-        {"id": "Z0", "label": "Untrusted / External", "trust_level": 0,
-         "color": "#ffcccc", "border_color": "#cc0000", "font_color": "#660000"},
-        {"id": "Z1", "label": "Edge / DMZ", "trust_level": 1,
-         "color": "#ffe0b2", "border_color": "#e65100", "font_color": "#663300"},
-        {"id": "Z2", "label": "Application Tier", "trust_level": 2,
-         "color": "#fff9c4", "border_color": "#f9a825", "font_color": "#665500"},
-        {"id": "Z3", "label": "Control Plane", "trust_level": 3,
-         "color": "#c8e6c9", "border_color": "#2e7d32", "font_color": "#1b5e20"},
-        {"id": "Z4", "label": "Root of Trust", "trust_level": 4,
-         "color": "#bbdefb", "border_color": "#1565c0", "font_color": "#0d47a1"},
+        {
+            "id": "Z0",
+            "label": "Untrusted / External",
+            "trust_level": 0,
+            "color": "#ffcccc",
+            "border_color": "#cc0000",
+            "font_color": "#660000",
+        },
+        {
+            "id": "Z1",
+            "label": "Edge / DMZ",
+            "trust_level": 1,
+            "color": "#ffe0b2",
+            "border_color": "#e65100",
+            "font_color": "#663300",
+        },
+        {
+            "id": "Z2",
+            "label": "Application Tier",
+            "trust_level": 2,
+            "color": "#fff9c4",
+            "border_color": "#f9a825",
+            "font_color": "#665500",
+        },
+        {
+            "id": "Z3",
+            "label": "Control Plane",
+            "trust_level": 3,
+            "color": "#c8e6c9",
+            "border_color": "#2e7d32",
+            "font_color": "#1b5e20",
+        },
+        {
+            "id": "Z4",
+            "label": "Root of Trust",
+            "trust_level": 4,
+            "color": "#bbdefb",
+            "border_color": "#1565c0",
+            "font_color": "#0d47a1",
+        },
     ]
 
     DEFAULT_INFLUENCE_TYPES = [
-        {"id": "data", "label": "Data Flow", "color": "#3498db",
-         "style": "solid", "arrowhead": "vee", "penwidth": "1.5"},
-        {"id": "feedback", "label": "Feedback", "color": "#e67e22",
-         "style": "dashed", "arrowhead": "vee", "penwidth": "1.5"},
-        {"id": "resource", "label": "Resource", "color": "#27ae60",
-         "style": "dotted", "arrowhead": "diamond", "penwidth": "2"},
-        {"id": "control", "label": "Control", "color": "#8e44ad",
-         "style": "bold", "arrowhead": "dot", "penwidth": "2"},
+        {
+            "id": "data",
+            "label": "Data Flow",
+            "color": "#3498db",
+            "style": "solid",
+            "arrowhead": "vee",
+            "penwidth": "1.5",
+        },
+        {
+            "id": "feedback",
+            "label": "Feedback",
+            "color": "#e67e22",
+            "style": "dashed",
+            "arrowhead": "vee",
+            "penwidth": "1.5",
+        },
+        {
+            "id": "resource",
+            "label": "Resource",
+            "color": "#27ae60",
+            "style": "dotted",
+            "arrowhead": "diamond",
+            "penwidth": "2",
+        },
+        {"id": "control", "label": "Control", "color": "#8e44ad", "style": "bold", "arrowhead": "dot", "penwidth": "2"},
     ]
 
     def __init__(
-        self,
-        name: str,
-        description: str = "",
-        use_default_zones: bool = True,
-        use_default_influence_types: bool = True
+        self, name: str, description: str = "", use_default_zones: bool = True, use_default_influence_types: bool = True
     ):
         """Initialize PrivilegeGradientBuilder.
 
@@ -944,7 +789,7 @@ class PrivilegeGradientBuilder:
         color: str = "#f0f0f0",
         border_color: str = "#999999",
         font_color: str = "#333333",
-        **attrs
+        **attrs,
     ) -> PrivilegeGradientBuilder:
         """Add a trust zone.
 
@@ -960,24 +805,20 @@ class PrivilegeGradientBuilder:
         Returns:
             Self for method chaining.
         """
-        self._data["zones"].append({
-            "id": zone_id,
-            "label": label,
-            "trust_level": trust_level,
-            "color": color,
-            "border_color": border_color,
-            "font_color": font_color,
-            **attrs
-        })
+        self._data["zones"].append(
+            {
+                "id": zone_id,
+                "label": label,
+                "trust_level": trust_level,
+                "color": color,
+                "border_color": border_color,
+                "font_color": font_color,
+                **attrs,
+            }
+        )
         return self
 
-    def add_component(
-        self,
-        comp_id: str,
-        label: str,
-        zone: str,
-        **attrs
-    ) -> PrivilegeGradientBuilder:
+    def add_component(self, comp_id: str, label: str, zone: str, **attrs) -> PrivilegeGradientBuilder:
         """Add a component to a zone.
 
         Args:
@@ -989,12 +830,7 @@ class PrivilegeGradientBuilder:
         Returns:
             Self for method chaining.
         """
-        self._data["components"].append({
-            "id": comp_id,
-            "label": label,
-            "zone": zone,
-            **attrs
-        })
+        self._data["components"].append({"id": comp_id, "label": label, "zone": zone, **attrs})
         return self
 
     def add_influence_type(
@@ -1005,7 +841,7 @@ class PrivilegeGradientBuilder:
         style: str = "solid",
         arrowhead: str = "vee",
         penwidth: str = "1.5",
-        **attrs
+        **attrs,
     ) -> PrivilegeGradientBuilder:
         """Add an influence type definition.
 
@@ -1021,15 +857,17 @@ class PrivilegeGradientBuilder:
         Returns:
             Self for method chaining.
         """
-        self._data["influence_types"].append({
-            "id": type_id,
-            "label": label,
-            "color": color,
-            "style": style,
-            "arrowhead": arrowhead,
-            "penwidth": penwidth,
-            **attrs
-        })
+        self._data["influence_types"].append(
+            {
+                "id": type_id,
+                "label": label,
+                "color": color,
+                "style": style,
+                "arrowhead": arrowhead,
+                "penwidth": penwidth,
+                **attrs,
+            }
+        )
         return self
 
     def add_influence(
@@ -1039,7 +877,7 @@ class PrivilegeGradientBuilder:
         influence_type: str = "data",
         label: str = "",
         influence_id: Optional[str] = None,
-        **attrs
+        **attrs,
     ) -> PrivilegeGradientBuilder:
         """Add an influence edge between components.
 
@@ -1058,21 +896,13 @@ class PrivilegeGradientBuilder:
             self._influence_counter += 1
             influence_id = f"inf_{self._influence_counter}"
 
-        influence = {
-            "id": influence_id,
-            "from": from_comp,
-            "to": to_comp,
-            "type": influence_type,
-            **attrs
-        }
+        influence = {"id": influence_id, "from": from_comp, "to": to_comp, "type": influence_type, **attrs}
         if label:
             influence["label"] = label
         self._data["influences"].append(influence)
         return self
 
-    def add_data_influence(
-        self, from_comp: str, to_comp: str, label: str = "", **attrs
-    ) -> PrivilegeGradientBuilder:
+    def add_data_influence(self, from_comp: str, to_comp: str, label: str = "", **attrs) -> PrivilegeGradientBuilder:
         """Add a data flow influence."""
         return self.add_influence(from_comp, to_comp, "data", label, **attrs)
 
@@ -1088,9 +918,7 @@ class PrivilegeGradientBuilder:
         """Add a resource dependency influence."""
         return self.add_influence(from_comp, to_comp, "resource", label, **attrs)
 
-    def add_control_influence(
-        self, from_comp: str, to_comp: str, label: str = "", **attrs
-    ) -> PrivilegeGradientBuilder:
+    def add_control_influence(self, from_comp: str, to_comp: str, label: str = "", **attrs) -> PrivilegeGradientBuilder:
         """Add a control flow influence."""
         return self.add_influence(from_comp, to_comp, "control", label, **attrs)
 
@@ -1129,10 +957,7 @@ class PrivilegeGradientBuilder:
         return json.dumps(self._data)
 
     def to_privilege_gradient(
-        self,
-        outputfile: str,
-        format: str = "png",
-        styleid: str = "pg_default"
+        self, outputfile: str, format: str = "png", styleid: str = "pg_default"
     ) -> PrivilegeGradient:
         """Create PrivilegeGradient instance from builder data.
 
@@ -1146,11 +971,7 @@ class PrivilegeGradientBuilder:
         """
         from .privilegegradient import PrivilegeGradient
 
-        with tempfile.NamedTemporaryFile(
-            mode='w',
-            suffix='.json',
-            delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(self._data, f)
             temp_path = f.name
 
@@ -1206,13 +1027,7 @@ class ComponentDiagramBuilder:
         return self
 
     def add_component(
-        self,
-        comp_id: str,
-        name: str,
-        layer: str,
-        comp_type: str = "service",
-        tech: str = "",
-        **attrs
+        self, comp_id: str, name: str, layer: str, comp_type: str = "service", tech: str = "", **attrs
     ) -> ComponentDiagramBuilder:
         """Add a component to a layer.
 
@@ -1243,12 +1058,7 @@ class ComponentDiagramBuilder:
         return self
 
     def add_connection(
-        self,
-        from_comp: str,
-        to_comp: str,
-        label: str = "",
-        style: str = "sync",
-        **attrs
+        self, from_comp: str, to_comp: str, label: str = "", style: str = "sync", **attrs
     ) -> ComponentDiagramBuilder:
         """Add a connection between components.
 
@@ -1282,17 +1092,12 @@ class ComponentDiagramBuilder:
         return json.dumps(self._data)
 
     def to_component_diagram(
-        self,
-        outputfile: str,
-        format: str = "png",
-        styleid: str = "cd_default"
+        self, outputfile: str, format: str = "png", styleid: str = "cd_default"
     ) -> ComponentDiagram:
         """Create ComponentDiagram instance from builder data."""
         from .componentdiagram import ComponentDiagram
 
-        with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.json', delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(self._data, f)
             temp_path = f.name
 
@@ -1333,7 +1138,7 @@ class DependencyGraphBuilder:
         language: str = "",
         group: str = "",
         version: str = "",
-        **attrs
+        **attrs,
     ) -> DependencyGraphBuilder:
         """Add a module to the graph.
 
@@ -1368,12 +1173,7 @@ class DependencyGraphBuilder:
         return self
 
     def add_dependency(
-        self,
-        from_mod: str,
-        to_mod: str,
-        dep_type: str = "import",
-        weight: str = "medium",
-        **attrs
+        self, from_mod: str, to_mod: str, dep_type: str = "import", weight: str = "medium", **attrs
     ) -> DependencyGraphBuilder:
         """Add a dependency between modules.
 
@@ -1387,13 +1187,15 @@ class DependencyGraphBuilder:
         Returns:
             Self for method chaining.
         """
-        self._data["dependencies"].append({
-            "from": from_mod,
-            "to": to_mod,
-            "type": dep_type,
-            "weight": weight,
-            **attrs,
-        })
+        self._data["dependencies"].append(
+            {
+                "from": from_mod,
+                "to": to_mod,
+                "type": dep_type,
+                "weight": weight,
+                **attrs,
+            }
+        )
         return self
 
     def mark_circular(self, cycle: list[str]) -> DependencyGraphBuilder:
@@ -1416,18 +1218,11 @@ class DependencyGraphBuilder:
             return json.dumps(self._data, indent=2)
         return json.dumps(self._data)
 
-    def to_dependency_graph(
-        self,
-        outputfile: str,
-        format: str = "png",
-        styleid: str = "dg_default"
-    ) -> DependencyGraph:
+    def to_dependency_graph(self, outputfile: str, format: str = "png", styleid: str = "dg_default") -> DependencyGraph:
         """Create DependencyGraph instance from builder data."""
         from .dependencygraph import DependencyGraph
 
-        with tempfile.NamedTemporaryFile(
-            mode='w', suffix='.json', delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(self._data, f)
             temp_path = f.name
 

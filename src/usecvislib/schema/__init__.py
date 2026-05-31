@@ -63,16 +63,15 @@ from .types import (
 from .validator import SchemaValidator
 
 __all__ = [
-    # Types
-    "FieldType",
-    "EdgeStyle",
     "ArrowStyle",
-    "FieldSchema",
-    "NodeTypeSchema",
-    "EdgeTypeSchema",
     "ClusterSchema",
     "DiagramSchema",
-
+    "EdgeStyle",
+    "EdgeTypeSchema",
+    "FieldSchema",
+    # Types
+    "FieldType",
+    "NodeTypeSchema",
     # Validator
     "SchemaValidator",
 ]

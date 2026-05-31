@@ -84,9 +84,9 @@ def apply_binvis_config(bv: BinVis, config: BinVisConfig) -> None:
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated visualization image"
+            "description": "Generated visualization image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def visualize_binary(
@@ -140,16 +140,12 @@ async def visualize_binary(
         vis_type = visualization_type.value
         if vis_type == "all":
             await run_sync_with_timeout(
-                lambda: bv.BuildBinVis("all"),
-                REQUEST_TIMEOUT_VISUALIZE,
-                "binary visualization (all)"
+                lambda: bv.BuildBinVis("all"), REQUEST_TIMEOUT_VISUALIZE, "binary visualization (all)"
             )
             output_path = f"{output_base}_entropy.{format.value}"
         else:
             await run_sync_with_timeout(
-                lambda: bv.BuildBinVis(vis_type),
-                REQUEST_TIMEOUT_VISUALIZE,
-                f"binary visualization ({vis_type})"
+                lambda: bv.BuildBinVis(vis_type), REQUEST_TIMEOUT_VISUALIZE, f"binary visualization ({vis_type})"
             )
             output_path = f"{output_base}_{vis_type}.{format.value}"
 
@@ -181,11 +177,7 @@ async def visualize_binary(
         raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
-@router.post(
-    "/analyze/binary",
-    response_model=FileStats,
-    summary="Analyze binary file statistics"
-)
+@router.post("/analyze/binary", response_model=FileStats, summary="Analyze binary file statistics")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_binary(
     request: Request,

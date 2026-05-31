@@ -58,6 +58,7 @@ logger = logging.getLogger(__name__)
 
 class CustomDiagramError(RenderError):
     """Custom diagram specific error."""
+
     pass
 
 
@@ -71,6 +72,7 @@ class VisualizationResult:
         stats: Dictionary of diagram statistics
         success: Whether the operation was successful
     """
+
     output_path: str
     format: str
     stats: dict[str, Any] = field(default_factory=dict)
@@ -104,6 +106,7 @@ class DiagramSettings:
         fontsize: Default font size
         bgcolor: Background color
     """
+
     title: str = "Custom Diagram"
     description: str = ""
     layout: str = "hierarchical"
@@ -186,19 +189,17 @@ class CustomDiagrams:
     # Style-related attributes that should be overridden by selected style
     # When a non-default style is selected, these attributes from schema nodes
     # are stripped so the style's values take precedence
-    STYLE_OVERRIDE_ATTRS = {
-        'fillcolor', 'fontcolor', 'color', 'style', 'fontname', 'fontsize', 'penwidth'
-    }
+    STYLE_OVERRIDE_ATTRS = {"fillcolor", "fontcolor", "color", "style", "fontname", "fontsize", "penwidth"}
 
     # Layout algorithms mapped to Graphviz engines
     LAYOUTS = {
-        "hierarchical": "dot",      # Top-down/left-right hierarchy
-        "circular": "circo",        # Circular layout
-        "force": "fdp",             # Force-directed placement
-        "grid": "neato",            # Spring model layout
-        "radial": "twopi",          # Radial layout
-        "compact": "patchwork",     # Space-filling layout
-        "sfdp": "sfdp",             # Scalable force-directed
+        "hierarchical": "dot",  # Top-down/left-right hierarchy
+        "circular": "circo",  # Circular layout
+        "force": "fdp",  # Force-directed placement
+        "grid": "neato",  # Spring model layout
+        "radial": "twopi",  # Radial layout
+        "compact": "patchwork",  # Space-filling layout
+        "sfdp": "sfdp",  # Scalable force-directed
     }
 
     # Supported output formats
@@ -230,9 +231,10 @@ class CustomDiagrams:
         """Load style configuration from file."""
         try:
             from .utils import ConfigModel
+
             config = ConfigModel(self.STYLE_FILE)
             # Load all available styles
-            for style_id in self.STYLES.keys():
+            for style_id in self.STYLES:
                 try:
                     self._style_config[style_id] = config.get(style_id)
                 except KeyError:
@@ -293,8 +295,9 @@ class CustomDiagrams:
         logger.info(f"Loaded diagram from {path}")
         return self
 
-    def load_from_string(self, content: str, format: str = "toml",
-                         base_path: Optional[Path] = None) -> "CustomDiagrams":
+    def load_from_string(
+        self, content: str, format: str = "toml", base_path: Optional[Path] = None
+    ) -> "CustomDiagrams":
         """Load diagram configuration from string content.
 
         Args:
@@ -312,8 +315,7 @@ class CustomDiagrams:
         logger.info(f"Loaded diagram from string ({format} format)")
         return self
 
-    def _load_from_dict(self, config: dict[str, Any],
-                        base_path: Optional[Path] = None) -> None:
+    def _load_from_dict(self, config: dict[str, Any], base_path: Optional[Path] = None) -> None:
         """Load configuration from dictionary.
 
         Args:
@@ -363,18 +365,14 @@ class CustomDiagrams:
         if not self.schema_validator.load_schema(self.schema):
             report = self.schema_validator.get_validation_report()
             if raise_on_error:
-                raise ValidationError(
-                    f"Schema validation failed: {report['errors']}"
-                )
+                raise ValidationError(f"Schema validation failed: {report['errors']}")
             return report
 
         # Phase 2: Validate data against schema
         if not self.schema_validator.validate_data(self.nodes, self.edges):
             report = self.schema_validator.get_validation_report()
             if raise_on_error:
-                raise ValidationError(
-                    f"Data validation failed: {report['errors']}"
-                )
+                raise ValidationError(f"Data validation failed: {report['errors']}")
             return report
 
         # Phase 3: Validate clusters
@@ -464,10 +462,7 @@ class CustomDiagrams:
 
         # Get shape attributes from registry
         try:
-            shape_attrs = self.shape_registry.get_graphviz_attrs(
-                type_schema.shape,
-                type_schema.style
-            )
+            shape_attrs = self.shape_registry.get_graphviz_attrs(type_schema.shape, type_schema.style)
         except ValueError:
             # Shape not found, use defaults
             shape_attrs = {"shape": "box", "style": "filled"}
@@ -485,11 +480,7 @@ class CustomDiagrams:
             shape_attrs["labelloc"] = "b"  # Label below image
 
         # Add node to graph
-        graph.node(
-            node_id,
-            label=escape_dot_label(label),
-            **shape_attrs
-        )
+        graph.node(node_id, label=escape_dot_label(label), **shape_attrs)
 
     def _add_edge(self, graph: gv.Digraph, edge: dict) -> None:
         """Add an edge to the graph.
@@ -569,10 +560,7 @@ class CustomDiagrams:
                 # Add nodes to cluster
                 for node_id in cluster.get("nodes", []):
                     # Find node data
-                    node_data = next(
-                        (n for n in self.nodes if n.get("id") == node_id),
-                        None
-                    )
+                    node_data = next((n for n in self.nodes if n.get("id") == node_id), None)
                     if node_data:
                         self._add_node(subgraph, node_data)
                         clustered_nodes.add(node_id)
@@ -598,7 +586,7 @@ class CustomDiagrams:
                 label = label.replace(placeholder, str(value) if value else "")
 
         # Remove any unreplaced placeholders
-        label = re.sub(r'\{[^}]+\}', '', label)
+        label = re.sub(r"\{[^}]+\}", "", label)
 
         # Clean up empty lines and extra whitespace
         lines = [line.strip() for line in label.split("\n") if line.strip()]
@@ -664,10 +652,7 @@ class CustomDiagrams:
             self.validate()
 
         if output_format not in self.OUTPUT_FORMATS:
-            raise CustomDiagramError(
-                f"Unsupported output format: {output_format}. "
-                f"Supported: {self.OUTPUT_FORMATS}"
-            )
+            raise CustomDiagramError(f"Unsupported output format: {output_format}. Supported: {self.OUTPUT_FORMATS}")
 
         try:
             graph = self._render_impl()
@@ -781,12 +766,14 @@ class CustomDiagrams:
         }
 
         # Add example node for each type
-        for type_name in self.schema.get("nodes", {}).keys():
-            template["nodes"].append({
-                "id": f"example_{type_name}",
-                "type": type_name,
-                "name": f"Example {type_name}",
-            })
+        for type_name in self.schema.get("nodes", {}):
+            template["nodes"].append(
+                {
+                    "id": f"example_{type_name}",
+                    "type": type_name,
+                    "name": f"Example {type_name}",
+                }
+            )
 
         return toml.dumps(template)
 
@@ -869,21 +856,25 @@ class CustomDiagrams:
             else:
                 node_type = "leaf"
 
-            cd.nodes.append({
-                "id": node_id,
-                "type": node_type,
-                "name": node_data.get("label", node_id),
-            })
+            cd.nodes.append(
+                {
+                    "id": node_id,
+                    "type": node_type,
+                    "name": node_data.get("label", node_id),
+                }
+            )
 
         # Convert edges from parent relationships
         for node_id, node_data in nodes.items():
             parent = node_data.get("parent")
             if parent:
-                cd.edges.append({
-                    "from": parent,
-                    "to": node_id,
-                    "type": "parent_child",
-                })
+                cd.edges.append(
+                    {
+                        "from": parent,
+                        "to": node_id,
+                        "type": "parent_child",
+                    }
+                )
 
         cd._config_loaded = True
         return cd
@@ -990,95 +981,115 @@ class CustomDiagrams:
         # Convert hosts
         hosts = ag.inputdata.get("hosts", {})
         for host_id, host_data in hosts.items():
-            cd.nodes.append({
-                "id": host_id,
-                "type": "host",
-                "name": host_data.get("label", host_id),
-                "ip": host_data.get("ip", ""),
-                "zone": host_data.get("zone", ""),
-            })
+            cd.nodes.append(
+                {
+                    "id": host_id,
+                    "type": "host",
+                    "name": host_data.get("label", host_id),
+                    "ip": host_data.get("ip", ""),
+                    "zone": host_data.get("zone", ""),
+                }
+            )
 
         # Convert vulnerabilities
         vulns = ag.inputdata.get("vulnerabilities", {})
         for vuln_id, vuln_data in vulns.items():
-            cd.nodes.append({
-                "id": vuln_id,
-                "type": "vulnerability",
-                "name": vuln_data.get("label", vuln_id),
-                "cvss": str(vuln_data.get("cvss", "")),
-            })
+            cd.nodes.append(
+                {
+                    "id": vuln_id,
+                    "type": "vulnerability",
+                    "name": vuln_data.get("label", vuln_id),
+                    "cvss": str(vuln_data.get("cvss", "")),
+                }
+            )
             # Create edge to affected host
             affected_host = vuln_data.get("affected_host")
             if affected_host:
-                cd.edges.append({
-                    "from": vuln_id,
-                    "to": affected_host,
-                    "type": "affects",
-                })
+                cd.edges.append(
+                    {
+                        "from": vuln_id,
+                        "to": affected_host,
+                        "type": "affects",
+                    }
+                )
 
         # Convert privileges
         privs = ag.inputdata.get("privileges", {})
         for priv_id, priv_data in privs.items():
-            cd.nodes.append({
-                "id": priv_id,
-                "type": "privilege",
-                "name": priv_data.get("label", priv_id),
-                "level": priv_data.get("level", ""),
-            })
+            cd.nodes.append(
+                {
+                    "id": priv_id,
+                    "type": "privilege",
+                    "name": priv_data.get("label", priv_id),
+                    "level": priv_data.get("level", ""),
+                }
+            )
             # Create edge to host
             host = priv_data.get("host")
             if host:
-                cd.edges.append({
-                    "from": priv_id,
-                    "to": host,
-                    "type": "grants",
-                })
+                cd.edges.append(
+                    {
+                        "from": priv_id,
+                        "to": host,
+                        "type": "grants",
+                    }
+                )
 
         # Convert services
         services = ag.inputdata.get("services", {})
         for svc_id, svc_data in services.items():
-            cd.nodes.append({
-                "id": svc_id,
-                "type": "service",
-                "name": svc_data.get("label", svc_id),
-                "port": str(svc_data.get("port", "")),
-            })
+            cd.nodes.append(
+                {
+                    "id": svc_id,
+                    "type": "service",
+                    "name": svc_data.get("label", svc_id),
+                    "port": str(svc_data.get("port", "")),
+                }
+            )
             # Create edge to host
             host = svc_data.get("host")
             if host:
-                cd.edges.append({
-                    "from": svc_id,
-                    "to": host,
-                    "type": "runs_on",
-                })
+                cd.edges.append(
+                    {
+                        "from": svc_id,
+                        "to": host,
+                        "type": "runs_on",
+                    }
+                )
 
         # Convert exploits
         exploits = ag.inputdata.get("exploits", {})
         for exp_id, exp_data in exploits.items():
-            cd.nodes.append({
-                "id": exp_id,
-                "type": "exploit",
-                "name": exp_data.get("label", exp_id),
-            })
+            cd.nodes.append(
+                {
+                    "id": exp_id,
+                    "type": "exploit",
+                    "name": exp_data.get("label", exp_id),
+                }
+            )
             # Create edges for precondition and postcondition
             vuln = exp_data.get("vulnerability")
             if vuln:
-                cd.edges.append({
-                    "from": exp_id,
-                    "to": vuln,
-                    "type": "exploits",
-                })
+                cd.edges.append(
+                    {
+                        "from": exp_id,
+                        "to": vuln,
+                        "type": "exploits",
+                    }
+                )
 
         # Convert network edges
         network_edges = ag.inputdata.get("network_edges", {})
-        for edge_id, edge_data in network_edges.items():
+        for _edge_id, edge_data in network_edges.items():
             if isinstance(edge_data, dict):
-                cd.edges.append({
-                    "from": edge_data.get("from", ""),
-                    "to": edge_data.get("to", ""),
-                    "type": "network",
-                    "label": edge_data.get("label", ""),
-                })
+                cd.edges.append(
+                    {
+                        "from": edge_data.get("from", ""),
+                        "to": edge_data.get("to", ""),
+                        "type": "network",
+                        "label": edge_data.get("label", ""),
+                    }
+                )
 
         cd._config_loaded = True
         return cd
@@ -1158,55 +1169,65 @@ class CustomDiagrams:
         # Convert processes
         processes = tm.inputdata.get("processes", {})
         for proc_id, proc_data in processes.items():
-            cd.nodes.append({
-                "id": proc_id,
-                "type": "process",
-                "name": proc_data.get("label", proc_id),
-                "description": proc_data.get("description", ""),
-            })
+            cd.nodes.append(
+                {
+                    "id": proc_id,
+                    "type": "process",
+                    "name": proc_data.get("label", proc_id),
+                    "description": proc_data.get("description", ""),
+                }
+            )
 
         # Convert data stores
         datastores = tm.inputdata.get("datastores", {})
         for ds_id, ds_data in datastores.items():
-            cd.nodes.append({
-                "id": ds_id,
-                "type": "datastore",
-                "name": ds_data.get("label", ds_id),
-                "type_info": ds_data.get("type", ""),
-            })
+            cd.nodes.append(
+                {
+                    "id": ds_id,
+                    "type": "datastore",
+                    "name": ds_data.get("label", ds_id),
+                    "type_info": ds_data.get("type", ""),
+                }
+            )
 
         # Convert external entities
         externals = tm.inputdata.get("externals", {})
         for ext_id, ext_data in externals.items():
-            cd.nodes.append({
-                "id": ext_id,
-                "type": "external",
-                "name": ext_data.get("label", ext_id),
-                "type_info": ext_data.get("type", ""),
-            })
+            cd.nodes.append(
+                {
+                    "id": ext_id,
+                    "type": "external",
+                    "name": ext_data.get("label", ext_id),
+                    "type_info": ext_data.get("type", ""),
+                }
+            )
 
         # Convert data flows
         dataflows = tm.inputdata.get("dataflows", {})
-        for flow_id, flow_data in dataflows.items():
+        for _flow_id, flow_data in dataflows.items():
             bidirectional = flow_data.get("bidirectional", False)
-            cd.edges.append({
-                "from": flow_data.get("source", ""),
-                "to": flow_data.get("destination", ""),
-                "type": "bidirectional" if bidirectional else "dataflow",
-                "data": flow_data.get("label", flow_data.get("data", "")),
-            })
+            cd.edges.append(
+                {
+                    "from": flow_data.get("source", ""),
+                    "to": flow_data.get("destination", ""),
+                    "type": "bidirectional" if bidirectional else "dataflow",
+                    "data": flow_data.get("label", flow_data.get("data", "")),
+                }
+            )
 
         # Add trust boundaries as clusters
         boundaries = tm.inputdata.get("boundaries", {})
         for boundary_id, boundary_data in boundaries.items():
             elements = boundary_data.get("elements", [])
             if elements:
-                cd.clusters.append({
-                    "id": boundary_id,
-                    "label": boundary_data.get("label", boundary_id),
-                    "nodes": elements,
-                    "style": {"color": "#E74C3C", "style": "dashed"},
-                })
+                cd.clusters.append(
+                    {
+                        "id": boundary_id,
+                        "label": boundary_data.get("label", boundary_id),
+                        "nodes": elements,
+                        "style": {"color": "#E74C3C", "style": "dashed"},
+                    }
+                )
 
         cd._config_loaded = True
         return cd
@@ -1231,10 +1252,7 @@ class CustomDiagrams:
         if cwd_templates.exists():
             return cwd_templates
 
-        raise CustomDiagramError(
-            "Templates directory not found. "
-            "Expected at templates/custom-diagrams/"
-        )
+        raise CustomDiagramError("Templates directory not found. Expected at templates/custom-diagrams/")
 
     @classmethod
     def list_templates(cls, category: Optional[str] = None) -> list[dict[str, str]]:
@@ -1257,22 +1275,21 @@ class CustomDiagrams:
 
         templates = []
 
-        if category:
-            categories = [templates_dir / category]
-        else:
-            categories = [d for d in templates_dir.iterdir() if d.is_dir()]
+        categories = [templates_dir / category] if category else [d for d in templates_dir.iterdir() if d.is_dir()]
 
         for category_dir in categories:
             if not category_dir.exists():
                 continue
 
             for template_file in category_dir.glob("*.toml"):
-                templates.append({
-                    "id": f"{category_dir.name}/{template_file.stem}",
-                    "name": template_file.stem.replace("-", " ").title(),
-                    "category": category_dir.name,
-                    "path": str(template_file),
-                })
+                templates.append(
+                    {
+                        "id": f"{category_dir.name}/{template_file.stem}",
+                        "name": template_file.stem.replace("-", " ").title(),
+                        "category": category_dir.name,
+                        "path": str(template_file),
+                    }
+                )
 
         return sorted(templates, key=lambda t: (t["category"], t["name"]))
 
@@ -1333,8 +1350,7 @@ class CustomDiagrams:
             available = cls.list_templates(category)
             available_ids = [t["id"] for t in available]
             raise CustomDiagramError(
-                f"Template not found: {template_id}. "
-                f"Available templates in '{category}': {available_ids}"
+                f"Template not found: {template_id}. Available templates in '{category}': {available_ids}"
             )
 
         cd = cls()
@@ -1358,10 +1374,7 @@ class CustomDiagrams:
         templates_dir = self.get_templates_dir()
 
         if "/" not in template_id:
-            raise CustomDiagramError(
-                f"Invalid template ID format: {template_id}. "
-                "Expected format: category/name"
-            )
+            raise CustomDiagramError(f"Invalid template ID format: {template_id}. Expected format: category/name")
 
         category, name = template_id.split("/", 1)
         template_path = templates_dir / category / f"{name}.toml"

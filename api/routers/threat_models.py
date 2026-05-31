@@ -59,9 +59,9 @@ router = APIRouter(tags=["Threat Modeling"])
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated visualization image"
+            "description": "Generated visualization image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def visualize_threat_model(
@@ -70,7 +70,9 @@ async def visualize_threat_model(
     file: UploadFile = File(..., description="TOML file containing threat model definition"),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     style: ThreatModelStyle = Query(default=ThreatModelStyle.DEFAULT, description="Style preset"),
-    engine: ThreatModelEngine = Query(default=ThreatModelEngine.USECVISLIB, description="Threat modeling engine (usecvislib or pytm)"),
+    engine: ThreatModelEngine = Query(
+        default=ThreatModelEngine.USECVISLIB, description="Threat modeling engine (usecvislib or pytm)"
+    ),
 ):
     """
     Generate a Data Flow Diagram from an uploaded threat model TOML file.
@@ -110,19 +112,9 @@ async def visualize_threat_model(
             logger.debug(f"Image resolution skipped: {e}")
             input_for_viz = input_path
 
-        tm = ThreatModeling(
-            input_for_viz,
-            output_base,
-            format=format.value,
-            styleid=style.value,
-            engine=engine.value
-        )
+        tm = ThreatModeling(input_for_viz, output_base, format=format.value, styleid=style.value, engine=engine.value)
         # SECURITY: Timeout protection for complex threat models
-        await run_sync_with_timeout(
-            tm.BuildThreatModel,
-            REQUEST_TIMEOUT_VISUALIZE,
-            "threat model visualization"
-        )
+        await run_sync_with_timeout(tm.BuildThreatModel, REQUEST_TIMEOUT_VISUALIZE, "threat model visualization")
 
         output_path = f"{output_base}.{format.value}"
 
@@ -148,11 +140,7 @@ async def visualize_threat_model(
         raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
-@router.post(
-    "/analyze/threat-model",
-    response_model=ModelStats,
-    summary="Analyze threat model structure"
-)
+@router.post("/analyze/threat-model", response_model=ModelStats, summary="Analyze threat model structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_threat_model(
     request: Request,
@@ -196,11 +184,7 @@ async def analyze_threat_model(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/analyze/stride",
-    response_model=StrideReport,
-    summary="Perform STRIDE threat analysis"
-)
+@router.post("/analyze/stride", response_model=StrideReport, summary="Perform STRIDE threat analysis")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_stride(
     request: Request,
@@ -248,7 +232,7 @@ async def analyze_stride(
                 threat=t.get("threat", ""),
                 mitigation=t.get("mitigation", ""),
                 cvss=cvss_score,
-                severity=severity
+                severity=severity,
             )
 
         return StrideReport(

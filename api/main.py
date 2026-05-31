@@ -17,7 +17,7 @@ import logging
 import os
 import shutil
 import sys
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,7 +26,7 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 # Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from usecvislib import __version__ as lib_version
 
@@ -69,6 +69,7 @@ logger = logging.getLogger("usecvislib.api")
 # Application Lifespan
 # =============================================================================
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown."""
@@ -82,7 +83,9 @@ async def lifespan(app: FastAPI):
         logger.debug(f"Image upload directory: {IMAGE_UPLOAD_DIR}")
     else:
         logger.info("Starting USecVisLib API")
-    logger.info(f"Rate limits: default={RATE_LIMIT_DEFAULT}, visualize={RATE_LIMIT_VISUALIZE}, analyze={RATE_LIMIT_ANALYZE}")
+    logger.info(
+        f"Rate limits: default={RATE_LIMIT_DEFAULT}, visualize={RATE_LIMIT_VISUALIZE}, analyze={RATE_LIMIT_ANALYZE}"
+    )
     os.makedirs(TEMP_DIR, exist_ok=True)
     os.makedirs(IMAGE_UPLOAD_DIR, exist_ok=True)
 
@@ -95,10 +98,8 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down USecVisLib API")
     cleanup_task.cancel()
-    try:
+    with suppress(asyncio.CancelledError):
         await cleanup_task
-    except asyncio.CancelledError:
-        pass
 
     # Cleanup temp directory
     if os.path.exists(TEMP_DIR):
@@ -164,7 +165,7 @@ export USECVISLIB_AUTH_ENABLED=false
         401: {"description": "Unauthorized - Missing or invalid API key"},
         422: {"model": ErrorResponse, "description": "Validation Error"},
         500: {"model": ErrorResponse, "description": "Internal Server Error"},
-    }
+    },
 )
 
 # =============================================================================
@@ -217,6 +218,7 @@ app.include_router(maestro.router)
 # OpenAPI Security Scheme
 # =============================================================================
 
+
 def custom_openapi():
     """Generate custom OpenAPI schema with authentication security scheme."""
     if app.openapi_schema:
@@ -238,7 +240,7 @@ def custom_openapi():
                 "type": "apiKey",
                 "in": "header",
                 "name": API_KEY_HEADER_NAME,
-                "description": "API key for authentication. Set via USECVISLIB_API_KEY environment variable."
+                "description": "API key for authentication. Set via USECVISLIB_API_KEY environment variable.",
             }
         }
         # Apply security globally
@@ -262,7 +264,7 @@ if __name__ == "__main__":
     # These can be overridden via environment variables for production
     uvicorn.run(
         app,
-        host=os.getenv("API_HOST", "0.0.0.0"),
+        host=os.getenv("API_HOST", "0.0.0.0"),  # noqa: S104  (server/container default; override via API_HOST)
         port=int(os.getenv("API_PORT", "8000")),
         # Timeout for keep-alive connections (seconds)
         timeout_keep_alive=int(os.getenv("TIMEOUT_KEEP_ALIVE", "5")),

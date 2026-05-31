@@ -57,9 +57,9 @@ router = APIRouter(tags=["Attack Trees"])
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated visualization image"
+            "description": "Generated visualization image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def visualize_attack_tree(
@@ -118,11 +118,7 @@ async def visualize_attack_tree(
         # Generate visualization with timeout protection
         # SECURITY: Prevents resource exhaustion from complex/slow visualizations
         at = AttackTrees(input_for_viz, output_base, format=format.value, styleid=style.value)
-        await run_sync_with_timeout(
-            at.BuildAttackTree,
-            REQUEST_TIMEOUT_VISUALIZE,
-            "attack tree visualization"
-        )
+        await run_sync_with_timeout(at.BuildAttackTree, REQUEST_TIMEOUT_VISUALIZE, "attack tree visualization")
 
         output_path = f"{output_base}.{format.value}"
 
@@ -151,11 +147,7 @@ async def visualize_attack_tree(
         raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
-@router.post(
-    "/analyze/attack-tree",
-    response_model=TreeStats,
-    summary="Analyze attack tree structure"
-)
+@router.post("/analyze/attack-tree", response_model=TreeStats, summary="Analyze attack tree structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_attack_tree(
     request: Request,
@@ -200,10 +192,7 @@ async def analyze_attack_tree(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/validate/attack-tree",
-    summary="Validate attack tree structure"
-)
+@router.post("/validate/attack-tree", summary="Validate attack tree structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def validate_attack_tree(
     request: Request,
@@ -226,10 +215,7 @@ async def validate_attack_tree(
         at = AttackTrees(input_path, "unused")
         errors = at.validate()
 
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors
-        }
+        return {"valid": len(errors) == 0, "errors": errors}
 
     except AttackTreeError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

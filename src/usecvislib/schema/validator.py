@@ -53,9 +53,22 @@ class SchemaValidator:
 
     # Valid Graphviz arrowhead styles
     VALID_ARROWHEADS = {
-        "normal", "vee", "dot", "diamond", "odiamond", "empty",
-        "none", "tee", "crow", "box", "obox", "open", "inv",
-        "invdot", "invodot", "invempty",
+        "normal",
+        "vee",
+        "dot",
+        "diamond",
+        "odiamond",
+        "empty",
+        "none",
+        "tee",
+        "crow",
+        "box",
+        "obox",
+        "open",
+        "inv",
+        "invdot",
+        "invodot",
+        "invempty",
     }
 
     def __init__(self, shape_registry):
@@ -105,10 +118,7 @@ class SchemaValidator:
         self._schema_loaded = len(self.errors) == 0
 
         if self._schema_loaded:
-            logger.debug(
-                f"Schema loaded: {len(self.node_types)} node types, "
-                f"{len(self.edge_types)} edge types"
-            )
+            logger.debug(f"Schema loaded: {len(self.node_types)} node types, {len(self.edge_types)} edge types")
 
         return self._schema_loaded
 
@@ -130,10 +140,7 @@ class SchemaValidator:
             return False
 
         if not type_name.replace("_", "").replace("-", "").isalnum():
-            self.errors.append(
-                f"Node type '{type_name}': name must be alphanumeric "
-                f"(underscores and hyphens allowed)"
-            )
+            self.errors.append(f"Node type '{type_name}': name must be alphanumeric (underscores and hyphens allowed)")
             valid = False
 
         # Shape must exist in registry
@@ -148,24 +155,19 @@ class SchemaValidator:
         # Validate required_fields is a list
         required_fields = type_def.get("required_fields", [])
         if not isinstance(required_fields, list):
-            self.errors.append(
-                f"Node type '{type_name}': 'required_fields' must be a list"
-            )
+            self.errors.append(f"Node type '{type_name}': 'required_fields' must be a list")
             valid = False
 
         # Validate optional_fields is a list
         optional_fields = type_def.get("optional_fields", [])
         if not isinstance(optional_fields, list):
-            self.errors.append(
-                f"Node type '{type_name}': 'optional_fields' must be a list"
-            )
+            self.errors.append(f"Node type '{type_name}': 'optional_fields' must be a list")
             valid = False
 
         # Warn about empty required_fields
         if not required_fields:
             self.warnings.append(
-                f"Node type '{type_name}': no required_fields defined, "
-                "consider adding at least 'name'"
+                f"Node type '{type_name}': no required_fields defined, consider adding at least 'name'"
             )
 
         # Validate style is a dict
@@ -177,9 +179,7 @@ class SchemaValidator:
         # Validate label_template format
         label_template = type_def.get("label_template", "{name}")
         if not isinstance(label_template, str):
-            self.errors.append(
-                f"Node type '{type_name}': 'label_template' must be a string"
-            )
+            self.errors.append(f"Node type '{type_name}': 'label_template' must be a string")
             valid = False
 
         return valid
@@ -205,25 +205,18 @@ class SchemaValidator:
         style = type_def.get("style", "solid")
         if style not in self.VALID_EDGE_STYLES:
             self.warnings.append(
-                f"Edge type '{type_name}': style '{style}' may not be supported. "
-                f"Valid styles: {self.VALID_EDGE_STYLES}"
+                f"Edge type '{type_name}': style '{style}' may not be supported. Valid styles: {self.VALID_EDGE_STYLES}"
             )
 
         # Validate arrowhead
         arrowhead = type_def.get("arrowhead", "normal")
         if arrowhead not in self.VALID_ARROWHEADS:
-            self.warnings.append(
-                f"Edge type '{type_name}': arrowhead '{arrowhead}' may not be supported"
-            )
+            self.warnings.append(f"Edge type '{type_name}': arrowhead '{arrowhead}' may not be supported")
 
         # Validate color format (basic check)
         color = type_def.get("color", "#333333")
-        if isinstance(color, str):
-            if color.startswith("#"):
-                if len(color) not in (4, 7, 9):  # #RGB, #RRGGBB, #RRGGBBAA
-                    self.warnings.append(
-                        f"Edge type '{type_name}': color '{color}' may be invalid"
-                    )
+        if isinstance(color, str) and color.startswith("#") and len(color) not in (4, 7, 9):  # #RGB/#RRGGBB/#RRGGBBAA
+            self.warnings.append(f"Edge type '{type_name}': color '{color}' may be invalid")
 
         return valid
 
@@ -284,8 +277,7 @@ class SchemaValidator:
         # Check if type is defined in schema
         if node_type not in self.node_types:
             self.errors.append(
-                f"Node '{node_id}': unknown type '{node_type}'. "
-                f"Valid types: {list(self.node_types.keys())}"
+                f"Node '{node_id}': unknown type '{node_type}'. Valid types: {list(self.node_types.keys())}"
             )
             return
 
@@ -293,18 +285,14 @@ class SchemaValidator:
         schema = self.node_types[node_type]
         for field_name in schema.required_fields:
             if field_name not in node:
-                self.errors.append(
-                    f"Node '{node_id}' (type: {node_type}): "
-                    f"missing required field '{field_name}'"
-                )
+                self.errors.append(f"Node '{node_id}' (type: {node_type}): missing required field '{field_name}'")
 
         # Warn about unknown fields
         known_fields = {"id", "type"} | set(schema.required_fields) | set(schema.optional_fields)
         for field_name in node:
             if field_name not in known_fields:
                 self.warnings.append(
-                    f"Node '{node_id}': unknown field '{field_name}' "
-                    f"(not in schema for type '{node_type}')"
+                    f"Node '{node_id}': unknown field '{field_name}' (not in schema for type '{node_type}')"
                 )
 
     def _validate_edge(self, index: int, edge: dict, node_ids: set[str]) -> None:
@@ -360,9 +348,7 @@ class SchemaValidator:
             cluster_nodes = cluster.get("nodes", [])
             for node_id in cluster_nodes:
                 if node_id not in node_ids:
-                    cluster_errors.append(
-                        f"Cluster '{cluster_id}': references unknown node '{node_id}'"
-                    )
+                    cluster_errors.append(f"Cluster '{cluster_id}': references unknown node '{node_id}'")
 
         self.errors.extend(cluster_errors)
         return len(cluster_errors) == 0

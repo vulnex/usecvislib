@@ -47,16 +47,12 @@ RATE_LIMIT_IMAGE_UPLOAD = os.getenv("RATE_LIMIT_IMAGE_UPLOAD", "10/minute")
 router = APIRouter(tags=["Images"])
 
 
-@router.post(
-    "/images/upload",
-    response_model=ImageUploadResponse,
-    summary="Upload an image for use in visualizations"
-)
+@router.post("/images/upload", response_model=ImageUploadResponse, summary="Upload an image for use in visualizations")
 @limiter.limit(RATE_LIMIT_IMAGE_UPLOAD)
 async def upload_image(
     request: Request,
     file: UploadFile = File(..., description="Image file to upload (PNG, JPEG, GIF, SVG, BMP)"),
-    api_key: Optional[str] = Depends(verify_api_key)
+    api_key: Optional[str] = Depends(verify_api_key),
 ):
     """
     Upload an image for use in node visualizations.
@@ -79,23 +75,19 @@ async def upload_image(
     if file.content_type not in IMAGE_ALLOWED_TYPES:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported image type: {file.content_type}. Allowed: {list(IMAGE_ALLOWED_TYPES.keys())}"
+            detail=f"Unsupported image type: {file.content_type}. Allowed: {list(IMAGE_ALLOWED_TYPES.keys())}",
         )
 
     # Read and validate size
     contents = await file.read()
     if len(contents) > IMAGE_MAX_SIZE:
         raise HTTPException(
-            status_code=400,
-            detail=f"Image too large. Maximum size: {IMAGE_MAX_SIZE // (1024*1024)} MB"
+            status_code=400, detail=f"Image too large. Maximum size: {IMAGE_MAX_SIZE // (1024 * 1024)} MB"
         )
 
     # Validate it's actually an image (magic bytes check)
     if not is_valid_image(contents, file.content_type):
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid image file. Content does not match expected format."
-        )
+        raise HTTPException(status_code=400, detail="Invalid image file. Content does not match expected format.")
 
     # Generate unique ID and save to user-specific directory
     # SECURITY: Per-user isolation prevents cross-user image access
@@ -107,31 +99,22 @@ async def upload_image(
 
     os.makedirs(user_image_dir, exist_ok=True)
 
-    with open(filepath, 'wb') as f:
+    with open(filepath, "wb") as f:
         f.write(contents)
 
     user_ns = get_user_namespace(api_key)
-    logger.info(f"Image uploaded: {image_id} ({sanitize_filename_for_log(file.filename)}, {len(contents)} bytes, ns={user_ns})")
+    logger.info(
+        f"Image uploaded: {image_id} ({sanitize_filename_for_log(file.filename)}, {len(contents)} bytes, ns={user_ns})"
+    )
 
     return ImageUploadResponse(
-        image_id=image_id,
-        filename=file.filename or "unknown",
-        size=len(contents),
-        content_type=file.content_type
+        image_id=image_id, filename=file.filename or "unknown", size=len(contents), content_type=file.content_type
     )
 
 
-@router.get(
-    "/images/{image_id}",
-    response_model=ImageInfoResponse,
-    summary="Get information about an uploaded image"
-)
+@router.get("/images/{image_id}", response_model=ImageInfoResponse, summary="Get information about an uploaded image")
 @limiter.limit(RATE_LIMIT_DEFAULT)
-async def get_image_info(
-    request: Request,
-    image_id: str,
-    api_key: Optional[str] = Depends(verify_api_key)
-):
+async def get_image_info(request: Request, image_id: str, api_key: Optional[str] = Depends(verify_api_key)):
     """
     Get information about an uploaded image by its ID.
 
@@ -151,20 +134,13 @@ async def get_image_info(
         exists=True,
         size=stat.st_size,
         content_type=get_image_content_type(filepath),
-        created_at=datetime.fromtimestamp(stat.st_mtime).isoformat() + "Z"
+        created_at=datetime.fromtimestamp(stat.st_mtime).isoformat() + "Z",
     )
 
 
-@router.get(
-    "/images/{image_id}/download",
-    summary="Download an uploaded image"
-)
+@router.get("/images/{image_id}/download", summary="Download an uploaded image")
 @limiter.limit(RATE_LIMIT_DEFAULT)
-async def download_image(
-    request: Request,
-    image_id: str,
-    api_key: Optional[str] = Depends(verify_api_key)
-):
+async def download_image(request: Request, image_id: str, api_key: Optional[str] = Depends(verify_api_key)):
     """
     Download an uploaded image by its ID.
 
@@ -179,24 +155,12 @@ async def download_image(
 
     content_type = get_image_content_type(filepath)
 
-    return FileResponse(
-        filepath,
-        media_type=content_type,
-        filename=os.path.basename(filepath)
-    )
+    return FileResponse(filepath, media_type=content_type, filename=os.path.basename(filepath))
 
 
-@router.delete(
-    "/images/{image_id}",
-    response_model=ImageDeleteResponse,
-    summary="Delete an uploaded image"
-)
+@router.delete("/images/{image_id}", response_model=ImageDeleteResponse, summary="Delete an uploaded image")
 @limiter.limit(RATE_LIMIT_DEFAULT)
-async def delete_image(
-    request: Request,
-    image_id: str,
-    api_key: Optional[str] = Depends(verify_api_key)
-):
+async def delete_image(request: Request, image_id: str, api_key: Optional[str] = Depends(verify_api_key)):
     """
     Delete an uploaded image by its ID.
 
@@ -214,22 +178,12 @@ async def delete_image(
     user_ns = get_user_namespace(api_key)
     logger.info(f"Image deleted: {image_id} (ns={user_ns})")
 
-    return ImageDeleteResponse(
-        deleted=True,
-        image_id=image_id
-    )
+    return ImageDeleteResponse(deleted=True, image_id=image_id)
 
 
-@router.get(
-    "/images",
-    response_model=ImageListResponse,
-    summary="List all uploaded images"
-)
+@router.get("/images", response_model=ImageListResponse, summary="List all uploaded images")
 @limiter.limit(RATE_LIMIT_DEFAULT)
-async def list_images(
-    request: Request,
-    api_key: Optional[str] = Depends(verify_api_key)
-):
+async def list_images(request: Request, api_key: Optional[str] = Depends(verify_api_key)):
     """
     List your uploaded images.
 
@@ -250,15 +204,14 @@ async def list_images(
                 image_id = os.path.splitext(filename)[0]
                 stat = os.stat(filepath)
 
-                images.append(ImageInfoResponse(
-                    image_id=image_id,
-                    exists=True,
-                    size=stat.st_size,
-                    content_type=get_image_content_type(filepath),
-                    created_at=datetime.fromtimestamp(stat.st_mtime).isoformat() + "Z"
-                ))
+                images.append(
+                    ImageInfoResponse(
+                        image_id=image_id,
+                        exists=True,
+                        size=stat.st_size,
+                        content_type=get_image_content_type(filepath),
+                        created_at=datetime.fromtimestamp(stat.st_mtime).isoformat() + "Z",
+                    )
+                )
 
-    return ImageListResponse(
-        images=images,
-        total=len(images)
-    )
+    return ImageListResponse(images=images, total=len(images))

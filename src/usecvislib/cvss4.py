@@ -30,8 +30,10 @@ from typing import Any, Optional
 # CVSS 4.0 Enumerations
 # =============================================================================
 
+
 class AttackVector(str, Enum):
     """CVSS 4.0 Attack Vector (AV) metric."""
+
     NETWORK = "N"
     ADJACENT = "A"
     LOCAL = "L"
@@ -40,18 +42,21 @@ class AttackVector(str, Enum):
 
 class AttackComplexity(str, Enum):
     """CVSS 4.0 Attack Complexity (AC) metric."""
+
     LOW = "L"
     HIGH = "H"
 
 
 class AttackRequirements(str, Enum):
     """CVSS 4.0 Attack Requirements (AT) metric - NEW in 4.0."""
+
     NONE = "N"
     PRESENT = "P"
 
 
 class PrivilegesRequired(str, Enum):
     """CVSS 4.0 Privileges Required (PR) metric."""
+
     NONE = "N"
     LOW = "L"
     HIGH = "H"
@@ -59,6 +64,7 @@ class PrivilegesRequired(str, Enum):
 
 class UserInteraction(str, Enum):
     """CVSS 4.0 User Interaction (UI) metric - expanded from 3.1."""
+
     NONE = "N"
     PASSIVE = "P"
     ACTIVE = "A"
@@ -66,6 +72,7 @@ class UserInteraction(str, Enum):
 
 class ImpactMetric(str, Enum):
     """CVSS 4.0 Impact metrics (VC/VI/VA/SC/SI/SA)."""
+
     HIGH = "H"
     LOW = "L"
     NONE = "N"
@@ -73,6 +80,7 @@ class ImpactMetric(str, Enum):
 
 class SafetyImpact(str, Enum):
     """CVSS 4.0 Modified Impact with Safety (MSI/MSA)."""
+
     NOT_DEFINED = "X"
     SAFETY = "S"
     HIGH = "H"
@@ -82,6 +90,7 @@ class SafetyImpact(str, Enum):
 
 class ExploitMaturity(str, Enum):
     """CVSS 4.0 Exploit Maturity (E) - Threat metric."""
+
     NOT_DEFINED = "X"
     ATTACKED = "A"
     POC = "P"
@@ -90,6 +99,7 @@ class ExploitMaturity(str, Enum):
 
 class RequirementLevel(str, Enum):
     """CVSS 4.0 Security Requirements (CR/IR/AR)."""
+
     NOT_DEFINED = "X"
     HIGH = "H"
     MEDIUM = "M"
@@ -98,6 +108,7 @@ class RequirementLevel(str, Enum):
 
 class ModifiedAttackVector(str, Enum):
     """CVSS 4.0 Modified Attack Vector (MAV)."""
+
     NOT_DEFINED = "X"
     NETWORK = "N"
     ADJACENT = "A"
@@ -107,6 +118,7 @@ class ModifiedAttackVector(str, Enum):
 
 class ModifiedAttackComplexity(str, Enum):
     """CVSS 4.0 Modified Attack Complexity (MAC)."""
+
     NOT_DEFINED = "X"
     LOW = "L"
     HIGH = "H"
@@ -114,6 +126,7 @@ class ModifiedAttackComplexity(str, Enum):
 
 class ModifiedAttackRequirements(str, Enum):
     """CVSS 4.0 Modified Attack Requirements (MAT)."""
+
     NOT_DEFINED = "X"
     NONE = "N"
     PRESENT = "P"
@@ -121,6 +134,7 @@ class ModifiedAttackRequirements(str, Enum):
 
 class ModifiedPrivilegesRequired(str, Enum):
     """CVSS 4.0 Modified Privileges Required (MPR)."""
+
     NOT_DEFINED = "X"
     NONE = "N"
     LOW = "L"
@@ -129,6 +143,7 @@ class ModifiedPrivilegesRequired(str, Enum):
 
 class ModifiedUserInteraction(str, Enum):
     """CVSS 4.0 Modified User Interaction (MUI)."""
+
     NOT_DEFINED = "X"
     NONE = "N"
     PASSIVE = "P"
@@ -137,6 +152,7 @@ class ModifiedUserInteraction(str, Enum):
 
 class ModifiedImpact(str, Enum):
     """CVSS 4.0 Modified Impact metrics (MVC/MVI/MVA/MSC)."""
+
     NOT_DEFINED = "X"
     HIGH = "H"
     LOW = "L"
@@ -150,74 +166,276 @@ class ModifiedImpact(str, Enum):
 # Complete lookup table from FIRST reference implementation
 # Keys are 6-digit strings representing EQ1-EQ6 levels
 MACROVECTOR_LOOKUP: dict[str, float] = {
-    "000000": 10.0, "000001": 9.9, "000010": 9.8, "000011": 9.5,
-    "000020": 9.5, "000021": 9.2, "000100": 10.0, "000101": 9.6,
-    "000110": 9.3, "000111": 8.7, "000120": 9.1, "000121": 8.1,
-    "000200": 9.3, "000201": 9.0, "000210": 8.9, "000211": 8.0,
-    "000220": 8.1, "000221": 6.8, "001000": 9.8, "001001": 9.5,
-    "001010": 9.5, "001011": 9.2, "001020": 9.0, "001021": 8.4,
-    "001100": 9.3, "001101": 9.2, "001110": 8.9, "001111": 8.1,
-    "001120": 8.1, "001121": 6.5, "001200": 8.8, "001201": 8.0,
-    "001210": 7.8, "001211": 7.0, "001220": 6.9, "001221": 4.8,
-    "002001": 9.2, "002011": 8.2, "002021": 7.2, "002101": 7.9,
-    "002111": 6.9, "002121": 5.0, "002201": 6.9, "002211": 5.5,
-    "002221": 2.7, "010000": 9.9, "010001": 9.7, "010010": 9.5,
-    "010011": 9.2, "010020": 9.2, "010021": 8.5, "010100": 9.5,
-    "010101": 9.1, "010110": 9.0, "010111": 8.3, "010120": 8.4,
-    "010121": 7.1, "010200": 9.2, "010201": 8.1, "010210": 8.2,
-    "010211": 7.1, "010220": 7.2, "010221": 5.3, "011000": 9.5,
-    "011001": 9.3, "011010": 9.2, "011011": 8.5, "011020": 8.5,
-    "011021": 7.3, "011100": 9.2, "011101": 8.2, "011110": 8.0,
-    "011111": 7.2, "011120": 7.0, "011121": 5.9, "011200": 8.4,
-    "011201": 7.0, "011210": 7.1, "011211": 5.2, "011220": 5.0,
-    "011221": 3.0, "012001": 8.6, "012011": 7.5, "012021": 5.2,
-    "012101": 7.1, "012111": 5.2, "012121": 2.9, "012201": 6.3,
-    "012211": 2.9, "012221": 1.7, "100000": 9.8, "100001": 9.5,
-    "100010": 9.4, "100011": 8.7, "100020": 9.1, "100021": 8.1,
-    "100100": 9.4, "100101": 8.9, "100110": 8.6, "100111": 7.4,
-    "100120": 7.7, "100121": 6.4, "100200": 8.7, "100201": 7.5,
-    "100210": 7.4, "100211": 6.3, "100220": 6.3, "100221": 4.9,
-    "101000": 9.4, "101001": 8.9, "101010": 8.8, "101011": 7.7,
-    "101020": 7.6, "101021": 6.7, "101100": 8.6, "101101": 7.6,
-    "101110": 7.4, "101111": 5.8, "101120": 5.9, "101121": 5.0,
-    "101200": 7.2, "101201": 5.7, "101210": 5.7, "101211": 5.2,
-    "101220": 5.2, "101221": 2.5, "102001": 8.3, "102011": 7.0,
-    "102021": 5.4, "102101": 6.5, "102111": 5.8, "102121": 2.6,
-    "102201": 5.3, "102211": 2.1, "102221": 1.3, "110000": 9.5,
-    "110001": 9.0, "110010": 8.8, "110011": 7.6, "110020": 7.6,
-    "110021": 7.0, "110100": 9.0, "110101": 7.7, "110110": 7.5,
-    "110111": 6.2, "110120": 6.1, "110121": 5.3, "110200": 7.7,
-    "110201": 6.6, "110210": 6.8, "110211": 5.9, "110220": 5.2,
-    "110221": 3.0, "111000": 8.9, "111001": 7.8, "111010": 7.6,
-    "111011": 6.7, "111020": 6.2, "111021": 5.8, "111100": 7.4,
-    "111101": 5.9, "111110": 5.7, "111111": 5.7, "111120": 4.7,
-    "111121": 2.3, "111200": 6.1, "111201": 5.2, "111210": 5.7,
-    "111211": 2.9, "111220": 2.4, "111221": 1.6, "112001": 7.1,
-    "112011": 5.9, "112021": 3.0, "112101": 5.8, "112111": 2.6,
-    "112121": 1.5, "112201": 2.3, "112211": 1.6, "112221": 0.6,
-    "200000": 9.3, "200001": 8.7, "200010": 8.6, "200011": 7.2,
-    "200020": 7.5, "200021": 5.8, "200100": 8.6, "200101": 7.4,
-    "200110": 7.4, "200111": 6.1, "200120": 5.6, "200121": 3.4,
-    "200200": 7.0, "200201": 5.4, "200210": 5.2, "200211": 4.0,
-    "200220": 4.0, "200221": 2.2, "201000": 8.5, "201001": 7.5,
-    "201010": 7.4, "201011": 5.5, "201020": 6.2, "201021": 5.1,
-    "201100": 7.2, "201101": 5.7, "201110": 5.5, "201111": 4.1,
-    "201120": 4.6, "201121": 1.9, "201200": 5.3, "201201": 3.6,
-    "201210": 3.4, "201211": 1.9, "201220": 1.9, "201221": 0.8,
-    "202001": 6.4, "202011": 5.1, "202021": 2.0, "202101": 4.7,
-    "202111": 2.1, "202121": 1.1, "202201": 2.4, "202211": 0.9,
-    "202221": 0.4, "210000": 8.8, "210001": 7.5, "210010": 7.3,
-    "210011": 5.3, "210020": 6.0, "210021": 5.0, "210100": 7.3,
-    "210101": 5.5, "210110": 5.9, "210111": 4.0, "210120": 4.1,
-    "210121": 2.0, "210200": 5.4, "210201": 4.3, "210210": 4.5,
-    "210211": 2.2, "210220": 2.0, "210221": 1.1, "211000": 7.5,
-    "211001": 5.5, "211010": 5.8, "211011": 4.5, "211020": 4.0,
-    "211021": 2.1, "211100": 6.1, "211101": 5.1, "211110": 4.8,
-    "211111": 1.8, "211120": 2.0, "211121": 0.9, "211200": 4.6,
-    "211201": 1.8, "211210": 1.7, "211211": 0.7, "211220": 0.8,
-    "211221": 0.2, "212001": 5.3, "212011": 2.4, "212021": 1.4,
-    "212101": 2.4, "212111": 1.2, "212121": 0.5, "212201": 1.0,
-    "212211": 0.3, "212221": 0.1,
+    "000000": 10.0,
+    "000001": 9.9,
+    "000010": 9.8,
+    "000011": 9.5,
+    "000020": 9.5,
+    "000021": 9.2,
+    "000100": 10.0,
+    "000101": 9.6,
+    "000110": 9.3,
+    "000111": 8.7,
+    "000120": 9.1,
+    "000121": 8.1,
+    "000200": 9.3,
+    "000201": 9.0,
+    "000210": 8.9,
+    "000211": 8.0,
+    "000220": 8.1,
+    "000221": 6.8,
+    "001000": 9.8,
+    "001001": 9.5,
+    "001010": 9.5,
+    "001011": 9.2,
+    "001020": 9.0,
+    "001021": 8.4,
+    "001100": 9.3,
+    "001101": 9.2,
+    "001110": 8.9,
+    "001111": 8.1,
+    "001120": 8.1,
+    "001121": 6.5,
+    "001200": 8.8,
+    "001201": 8.0,
+    "001210": 7.8,
+    "001211": 7.0,
+    "001220": 6.9,
+    "001221": 4.8,
+    "002001": 9.2,
+    "002011": 8.2,
+    "002021": 7.2,
+    "002101": 7.9,
+    "002111": 6.9,
+    "002121": 5.0,
+    "002201": 6.9,
+    "002211": 5.5,
+    "002221": 2.7,
+    "010000": 9.9,
+    "010001": 9.7,
+    "010010": 9.5,
+    "010011": 9.2,
+    "010020": 9.2,
+    "010021": 8.5,
+    "010100": 9.5,
+    "010101": 9.1,
+    "010110": 9.0,
+    "010111": 8.3,
+    "010120": 8.4,
+    "010121": 7.1,
+    "010200": 9.2,
+    "010201": 8.1,
+    "010210": 8.2,
+    "010211": 7.1,
+    "010220": 7.2,
+    "010221": 5.3,
+    "011000": 9.5,
+    "011001": 9.3,
+    "011010": 9.2,
+    "011011": 8.5,
+    "011020": 8.5,
+    "011021": 7.3,
+    "011100": 9.2,
+    "011101": 8.2,
+    "011110": 8.0,
+    "011111": 7.2,
+    "011120": 7.0,
+    "011121": 5.9,
+    "011200": 8.4,
+    "011201": 7.0,
+    "011210": 7.1,
+    "011211": 5.2,
+    "011220": 5.0,
+    "011221": 3.0,
+    "012001": 8.6,
+    "012011": 7.5,
+    "012021": 5.2,
+    "012101": 7.1,
+    "012111": 5.2,
+    "012121": 2.9,
+    "012201": 6.3,
+    "012211": 2.9,
+    "012221": 1.7,
+    "100000": 9.8,
+    "100001": 9.5,
+    "100010": 9.4,
+    "100011": 8.7,
+    "100020": 9.1,
+    "100021": 8.1,
+    "100100": 9.4,
+    "100101": 8.9,
+    "100110": 8.6,
+    "100111": 7.4,
+    "100120": 7.7,
+    "100121": 6.4,
+    "100200": 8.7,
+    "100201": 7.5,
+    "100210": 7.4,
+    "100211": 6.3,
+    "100220": 6.3,
+    "100221": 4.9,
+    "101000": 9.4,
+    "101001": 8.9,
+    "101010": 8.8,
+    "101011": 7.7,
+    "101020": 7.6,
+    "101021": 6.7,
+    "101100": 8.6,
+    "101101": 7.6,
+    "101110": 7.4,
+    "101111": 5.8,
+    "101120": 5.9,
+    "101121": 5.0,
+    "101200": 7.2,
+    "101201": 5.7,
+    "101210": 5.7,
+    "101211": 5.2,
+    "101220": 5.2,
+    "101221": 2.5,
+    "102001": 8.3,
+    "102011": 7.0,
+    "102021": 5.4,
+    "102101": 6.5,
+    "102111": 5.8,
+    "102121": 2.6,
+    "102201": 5.3,
+    "102211": 2.1,
+    "102221": 1.3,
+    "110000": 9.5,
+    "110001": 9.0,
+    "110010": 8.8,
+    "110011": 7.6,
+    "110020": 7.6,
+    "110021": 7.0,
+    "110100": 9.0,
+    "110101": 7.7,
+    "110110": 7.5,
+    "110111": 6.2,
+    "110120": 6.1,
+    "110121": 5.3,
+    "110200": 7.7,
+    "110201": 6.6,
+    "110210": 6.8,
+    "110211": 5.9,
+    "110220": 5.2,
+    "110221": 3.0,
+    "111000": 8.9,
+    "111001": 7.8,
+    "111010": 7.6,
+    "111011": 6.7,
+    "111020": 6.2,
+    "111021": 5.8,
+    "111100": 7.4,
+    "111101": 5.9,
+    "111110": 5.7,
+    "111111": 5.7,
+    "111120": 4.7,
+    "111121": 2.3,
+    "111200": 6.1,
+    "111201": 5.2,
+    "111210": 5.7,
+    "111211": 2.9,
+    "111220": 2.4,
+    "111221": 1.6,
+    "112001": 7.1,
+    "112011": 5.9,
+    "112021": 3.0,
+    "112101": 5.8,
+    "112111": 2.6,
+    "112121": 1.5,
+    "112201": 2.3,
+    "112211": 1.6,
+    "112221": 0.6,
+    "200000": 9.3,
+    "200001": 8.7,
+    "200010": 8.6,
+    "200011": 7.2,
+    "200020": 7.5,
+    "200021": 5.8,
+    "200100": 8.6,
+    "200101": 7.4,
+    "200110": 7.4,
+    "200111": 6.1,
+    "200120": 5.6,
+    "200121": 3.4,
+    "200200": 7.0,
+    "200201": 5.4,
+    "200210": 5.2,
+    "200211": 4.0,
+    "200220": 4.0,
+    "200221": 2.2,
+    "201000": 8.5,
+    "201001": 7.5,
+    "201010": 7.4,
+    "201011": 5.5,
+    "201020": 6.2,
+    "201021": 5.1,
+    "201100": 7.2,
+    "201101": 5.7,
+    "201110": 5.5,
+    "201111": 4.1,
+    "201120": 4.6,
+    "201121": 1.9,
+    "201200": 5.3,
+    "201201": 3.6,
+    "201210": 3.4,
+    "201211": 1.9,
+    "201220": 1.9,
+    "201221": 0.8,
+    "202001": 6.4,
+    "202011": 5.1,
+    "202021": 2.0,
+    "202101": 4.7,
+    "202111": 2.1,
+    "202121": 1.1,
+    "202201": 2.4,
+    "202211": 0.9,
+    "202221": 0.4,
+    "210000": 8.8,
+    "210001": 7.5,
+    "210010": 7.3,
+    "210011": 5.3,
+    "210020": 6.0,
+    "210021": 5.0,
+    "210100": 7.3,
+    "210101": 5.5,
+    "210110": 5.9,
+    "210111": 4.0,
+    "210120": 4.1,
+    "210121": 2.0,
+    "210200": 5.4,
+    "210201": 4.3,
+    "210210": 4.5,
+    "210211": 2.2,
+    "210220": 2.0,
+    "210221": 1.1,
+    "211000": 7.5,
+    "211001": 5.5,
+    "211010": 5.8,
+    "211011": 4.5,
+    "211020": 4.0,
+    "211021": 2.1,
+    "211100": 6.1,
+    "211101": 5.1,
+    "211110": 4.8,
+    "211111": 1.8,
+    "211120": 2.0,
+    "211121": 0.9,
+    "211200": 4.6,
+    "211201": 1.8,
+    "211210": 1.7,
+    "211211": 0.7,
+    "211220": 0.8,
+    "211221": 0.2,
+    "212001": 5.3,
+    "212011": 2.4,
+    "212021": 1.4,
+    "212101": 2.4,
+    "212111": 1.2,
+    "212121": 0.5,
+    "212201": 1.0,
+    "212211": 0.3,
+    "212221": 0.1,
 }
 
 # Maximum severity vectors for each MacroVector (highest severity in each class)
@@ -258,6 +476,7 @@ MAX_SEVERITY: dict[str, dict[str, list[str]]] = {
 # CVSS 4.0 Vector Dataclass
 # =============================================================================
 
+
 @dataclass
 class CVSSVector4:
     """Parsed CVSS 4.0 vector with all metrics.
@@ -276,6 +495,7 @@ class CVSSVector4:
             conf_req, integ_req, avail_req (requirements),
             mod_* (modified base metrics)
     """
+
     # Base metrics (mandatory)
     attack_vector: AttackVector = AttackVector.NETWORK
     attack_complexity: AttackComplexity = AttackComplexity.LOW
@@ -404,10 +624,7 @@ class CVSSVector4:
             eq1 = 2
 
         # EQ2: Attack Complexity / Attack Requirements
-        if ac == "L" and at == "N":
-            eq2 = 0
-        else:
-            eq2 = 1
+        eq2 = 0 if ac == "L" and at == "N" else 1
 
         # EQ3: Vulnerable System Impact (VC/VI/VA)
         if vc == "H" and vi == "H":
@@ -435,14 +652,11 @@ class CVSSVector4:
 
         # EQ6: Requirements combined with impact
         # Check if high requirement aligns with high impact
-        cr_h_vc_h = (cr == "H" and vc == "H")
-        ir_h_vi_h = (ir == "H" and vi == "H")
-        ar_h_va_h = (ar == "H" and va == "H")
+        cr_h_vc_h = cr == "H" and vc == "H"
+        ir_h_vi_h = ir == "H" and vi == "H"
+        ar_h_va_h = ar == "H" and va == "H"
 
-        if cr_h_vc_h or ir_h_vi_h or ar_h_va_h:
-            eq6 = 0
-        else:
-            eq6 = 1
+        eq6 = 0 if cr_h_vc_h or ir_h_vi_h or ar_h_va_h else 1
 
         return f"{eq1}{eq2}{eq3}{eq4}{eq5}{eq6}"
 
@@ -631,37 +845,37 @@ class CVSSVector4:
 
 # Base metrics pattern (mandatory)
 CVSS40_BASE_PATTERN = re.compile(
-    r'^CVSS:4\.0/'
-    r'AV:(?P<av>[NALP])/'
-    r'AC:(?P<ac>[LH])/'
-    r'AT:(?P<at>[NP])/'
-    r'PR:(?P<pr>[NLH])/'
-    r'UI:(?P<ui>[NPA])/'
-    r'VC:(?P<vc>[HLN])/'
-    r'VI:(?P<vi>[HLN])/'
-    r'VA:(?P<va>[HLN])/'
-    r'SC:(?P<sc>[HLN])/'
-    r'SI:(?P<si>[HLN])/'
-    r'SA:(?P<sa>[HLN])',
-    re.IGNORECASE
+    r"^CVSS:4\.0/"
+    r"AV:(?P<av>[NALP])/"
+    r"AC:(?P<ac>[LH])/"
+    r"AT:(?P<at>[NP])/"
+    r"PR:(?P<pr>[NLH])/"
+    r"UI:(?P<ui>[NPA])/"
+    r"VC:(?P<vc>[HLN])/"
+    r"VI:(?P<vi>[HLN])/"
+    r"VA:(?P<va>[HLN])/"
+    r"SC:(?P<sc>[HLN])/"
+    r"SI:(?P<si>[HLN])/"
+    r"SA:(?P<sa>[HLN])",
+    re.IGNORECASE,
 )
 
 # Optional metrics patterns
-EXPLOIT_PATTERN = re.compile(r'/E:(?P<e>[XAPU])', re.IGNORECASE)
-CR_PATTERN = re.compile(r'/CR:(?P<cr>[XHML])', re.IGNORECASE)
-IR_PATTERN = re.compile(r'/IR:(?P<ir>[XHML])', re.IGNORECASE)
-AR_PATTERN = re.compile(r'/AR:(?P<ar>[XHML])', re.IGNORECASE)
-MAV_PATTERN = re.compile(r'/MAV:(?P<mav>[XNALP])', re.IGNORECASE)
-MAC_PATTERN = re.compile(r'/MAC:(?P<mac>[XLH])', re.IGNORECASE)
-MAT_PATTERN = re.compile(r'/MAT:(?P<mat>[XNP])', re.IGNORECASE)
-MPR_PATTERN = re.compile(r'/MPR:(?P<mpr>[XNLH])', re.IGNORECASE)
-MUI_PATTERN = re.compile(r'/MUI:(?P<mui>[XNPA])', re.IGNORECASE)
-MVC_PATTERN = re.compile(r'/MVC:(?P<mvc>[XHLN])', re.IGNORECASE)
-MVI_PATTERN = re.compile(r'/MVI:(?P<mvi>[XHLN])', re.IGNORECASE)
-MVA_PATTERN = re.compile(r'/MVA:(?P<mva>[XHLN])', re.IGNORECASE)
-MSC_PATTERN = re.compile(r'/MSC:(?P<msc>[XHLN])', re.IGNORECASE)
-MSI_PATTERN = re.compile(r'/MSI:(?P<msi>[XSHLN])', re.IGNORECASE)
-MSA_PATTERN = re.compile(r'/MSA:(?P<msa>[XSHLN])', re.IGNORECASE)
+EXPLOIT_PATTERN = re.compile(r"/E:(?P<e>[XAPU])", re.IGNORECASE)
+CR_PATTERN = re.compile(r"/CR:(?P<cr>[XHML])", re.IGNORECASE)
+IR_PATTERN = re.compile(r"/IR:(?P<ir>[XHML])", re.IGNORECASE)
+AR_PATTERN = re.compile(r"/AR:(?P<ar>[XHML])", re.IGNORECASE)
+MAV_PATTERN = re.compile(r"/MAV:(?P<mav>[XNALP])", re.IGNORECASE)
+MAC_PATTERN = re.compile(r"/MAC:(?P<mac>[XLH])", re.IGNORECASE)
+MAT_PATTERN = re.compile(r"/MAT:(?P<mat>[XNP])", re.IGNORECASE)
+MPR_PATTERN = re.compile(r"/MPR:(?P<mpr>[XNLH])", re.IGNORECASE)
+MUI_PATTERN = re.compile(r"/MUI:(?P<mui>[XNPA])", re.IGNORECASE)
+MVC_PATTERN = re.compile(r"/MVC:(?P<mvc>[XHLN])", re.IGNORECASE)
+MVI_PATTERN = re.compile(r"/MVI:(?P<mvi>[XHLN])", re.IGNORECASE)
+MVA_PATTERN = re.compile(r"/MVA:(?P<mva>[XHLN])", re.IGNORECASE)
+MSC_PATTERN = re.compile(r"/MSC:(?P<msc>[XHLN])", re.IGNORECASE)
+MSI_PATTERN = re.compile(r"/MSI:(?P<msi>[XSHLN])", re.IGNORECASE)
+MSA_PATTERN = re.compile(r"/MSA:(?P<msa>[XSHLN])", re.IGNORECASE)
 
 
 def parse_cvss4_vector(vector_string: str) -> tuple[bool, Optional[CVSSVector4], Optional[str]]:
@@ -692,82 +906,82 @@ def parse_cvss4_vector(vector_string: str) -> tuple[bool, Optional[CVSSVector4],
     try:
         # Parse base metrics
         vector = CVSSVector4(
-            attack_vector=AttackVector(base_match.group('av')),
-            attack_complexity=AttackComplexity(base_match.group('ac')),
-            attack_requirements=AttackRequirements(base_match.group('at')),
-            privileges_required=PrivilegesRequired(base_match.group('pr')),
-            user_interaction=UserInteraction(base_match.group('ui')),
-            vuln_conf=ImpactMetric(base_match.group('vc')),
-            vuln_integ=ImpactMetric(base_match.group('vi')),
-            vuln_avail=ImpactMetric(base_match.group('va')),
-            subseq_conf=ImpactMetric(base_match.group('sc')),
-            subseq_integ=ImpactMetric(base_match.group('si')),
-            subseq_avail=ImpactMetric(base_match.group('sa')),
+            attack_vector=AttackVector(base_match.group("av")),
+            attack_complexity=AttackComplexity(base_match.group("ac")),
+            attack_requirements=AttackRequirements(base_match.group("at")),
+            privileges_required=PrivilegesRequired(base_match.group("pr")),
+            user_interaction=UserInteraction(base_match.group("ui")),
+            vuln_conf=ImpactMetric(base_match.group("vc")),
+            vuln_integ=ImpactMetric(base_match.group("vi")),
+            vuln_avail=ImpactMetric(base_match.group("va")),
+            subseq_conf=ImpactMetric(base_match.group("sc")),
+            subseq_integ=ImpactMetric(base_match.group("si")),
+            subseq_avail=ImpactMetric(base_match.group("sa")),
             raw_string=vector_string.strip(),
         )
 
         # Parse optional Threat metric
         e_match = EXPLOIT_PATTERN.search(vector_upper)
         if e_match:
-            vector.exploit_maturity = ExploitMaturity(e_match.group('e'))
+            vector.exploit_maturity = ExploitMaturity(e_match.group("e"))
 
         # Parse optional Environmental - Requirements
         cr_match = CR_PATTERN.search(vector_upper)
         if cr_match:
-            vector.conf_req = RequirementLevel(cr_match.group('cr'))
+            vector.conf_req = RequirementLevel(cr_match.group("cr"))
 
         ir_match = IR_PATTERN.search(vector_upper)
         if ir_match:
-            vector.integ_req = RequirementLevel(ir_match.group('ir'))
+            vector.integ_req = RequirementLevel(ir_match.group("ir"))
 
         ar_match = AR_PATTERN.search(vector_upper)
         if ar_match:
-            vector.avail_req = RequirementLevel(ar_match.group('ar'))
+            vector.avail_req = RequirementLevel(ar_match.group("ar"))
 
         # Parse optional Modified metrics
         mav_match = MAV_PATTERN.search(vector_upper)
         if mav_match:
-            vector.mod_attack_vector = ModifiedAttackVector(mav_match.group('mav'))
+            vector.mod_attack_vector = ModifiedAttackVector(mav_match.group("mav"))
 
         mac_match = MAC_PATTERN.search(vector_upper)
         if mac_match:
-            vector.mod_attack_complexity = ModifiedAttackComplexity(mac_match.group('mac'))
+            vector.mod_attack_complexity = ModifiedAttackComplexity(mac_match.group("mac"))
 
         mat_match = MAT_PATTERN.search(vector_upper)
         if mat_match:
-            vector.mod_attack_requirements = ModifiedAttackRequirements(mat_match.group('mat'))
+            vector.mod_attack_requirements = ModifiedAttackRequirements(mat_match.group("mat"))
 
         mpr_match = MPR_PATTERN.search(vector_upper)
         if mpr_match:
-            vector.mod_privileges_required = ModifiedPrivilegesRequired(mpr_match.group('mpr'))
+            vector.mod_privileges_required = ModifiedPrivilegesRequired(mpr_match.group("mpr"))
 
         mui_match = MUI_PATTERN.search(vector_upper)
         if mui_match:
-            vector.mod_user_interaction = ModifiedUserInteraction(mui_match.group('mui'))
+            vector.mod_user_interaction = ModifiedUserInteraction(mui_match.group("mui"))
 
         mvc_match = MVC_PATTERN.search(vector_upper)
         if mvc_match:
-            vector.mod_vuln_conf = ModifiedImpact(mvc_match.group('mvc'))
+            vector.mod_vuln_conf = ModifiedImpact(mvc_match.group("mvc"))
 
         mvi_match = MVI_PATTERN.search(vector_upper)
         if mvi_match:
-            vector.mod_vuln_integ = ModifiedImpact(mvi_match.group('mvi'))
+            vector.mod_vuln_integ = ModifiedImpact(mvi_match.group("mvi"))
 
         mva_match = MVA_PATTERN.search(vector_upper)
         if mva_match:
-            vector.mod_vuln_avail = ModifiedImpact(mva_match.group('mva'))
+            vector.mod_vuln_avail = ModifiedImpact(mva_match.group("mva"))
 
         msc_match = MSC_PATTERN.search(vector_upper)
         if msc_match:
-            vector.mod_subseq_conf = ModifiedImpact(msc_match.group('msc'))
+            vector.mod_subseq_conf = ModifiedImpact(msc_match.group("msc"))
 
         msi_match = MSI_PATTERN.search(vector_upper)
         if msi_match:
-            vector.mod_subseq_integ = SafetyImpact(msi_match.group('msi'))
+            vector.mod_subseq_integ = SafetyImpact(msi_match.group("msi"))
 
         msa_match = MSA_PATTERN.search(vector_upper)
         if msa_match:
-            vector.mod_subseq_avail = SafetyImpact(msa_match.group('msa'))
+            vector.mod_subseq_avail = SafetyImpact(msa_match.group("msa"))
 
         return True, vector, None
 

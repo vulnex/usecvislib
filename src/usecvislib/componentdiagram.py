@@ -30,6 +30,7 @@ from .base import VisualizationBase
 
 class ComponentDiagramError(utils.RenderError):
     """Exception raised for component diagram generation errors."""
+
     pass
 
 
@@ -43,7 +44,7 @@ class ComponentDiagram(VisualizationBase):
 
     STYLE_FILE = "config_componentdiagram.tml"
     DEFAULT_STYLE_ID = "cd_default"
-    ALLOWED_EXTENSIONS = ['.toml', '.tml', '.json', '.yaml', '.yml']
+    ALLOWED_EXTENSIONS = [".toml", ".tml", ".json", ".yaml", ".yml"]
     MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10 MB
 
     # Component type -> Graphviz shape mapping
@@ -66,19 +67,16 @@ class ComponentDiagram(VisualizationBase):
         "event": {"style": "dotted", "arrowhead": "normal"},
     }
 
-    def __init__(self, inputfile: str, outputfile: str, format: str = "",
-                 styleid: str = "", validate_paths: bool = True) -> None:
+    def __init__(
+        self, inputfile: str, outputfile: str, format: str = "", styleid: str = "", validate_paths: bool = True
+    ) -> None:
         if format == "":
             format = "png"
         if styleid == "":
             styleid = None
 
         super().__init__(
-            inputfile=inputfile,
-            outputfile=outputfile,
-            format=format,
-            styleid=styleid,
-            validate_paths=validate_paths
+            inputfile=inputfile, outputfile=outputfile, format=format, styleid=styleid, validate_paths=validate_paths
         )
 
         self.graph: Optional[Digraph] = None
@@ -88,9 +86,10 @@ class ComponentDiagram(VisualizationBase):
         self._temp_input: Optional[str] = None
 
     def __del__(self):
-        if hasattr(self, '_temp_input') and self._temp_input:
+        if hasattr(self, "_temp_input") and self._temp_input:
             try:
                 import os
+
                 if os.path.exists(self._temp_input):
                     os.remove(self._temp_input)
             except Exception:
@@ -149,8 +148,10 @@ class ComponentDiagram(VisualizationBase):
 
         self.inputdata = data
         self._normalize_data()
-        self.logger.debug(f"Loaded component diagram with {len(self._layers)} layers, "
-                          f"{len(self._components)} components, {len(self._connections)} connections")
+        self.logger.debug(
+            f"Loaded component diagram with {len(self._layers)} layers, "
+            f"{len(self._components)} components, {len(self._connections)} connections"
+        )
         return data
 
     def _normalize_data(self) -> None:
@@ -196,8 +197,14 @@ class ComponentDiagram(VisualizationBase):
 
         # Layer background colors for visual separation
         layer_colors = [
-            "#e3f2fd", "#f3e5f5", "#e8f5e9", "#fff3e0",
-            "#fce4ec", "#e0f7fa", "#f1f8e9", "#ede7f6",
+            "#e3f2fd",
+            "#f3e5f5",
+            "#e8f5e9",
+            "#fff3e0",
+            "#fce4ec",
+            "#e0f7fa",
+            "#f1f8e9",
+            "#ede7f6",
         ]
 
         # Build layer subgraphs
@@ -213,8 +220,7 @@ class ComponentDiagram(VisualizationBase):
                     label=layer_name,
                     fillcolor=fill,
                     color=border,
-                    **{k: v for k, v in sub_attrs.items()
-                       if k not in ("label",)}
+                    **{k: v for k, v in sub_attrs.items() if k not in ("label",)},
                 )
 
                 for comp in layer_data.get("components", []):
@@ -263,8 +269,9 @@ class ComponentDiagram(VisualizationBase):
             edge_attrs = utils.stringify_dict(edge_attrs)
             self.graph.edge(utils.sanitize_node_id(src), utils.sanitize_node_id(tgt), **edge_attrs)
 
-        self.logger.debug(f"Rendered component diagram with {len(self._layers)} layers, "
-                          f"{len(self._components)} components")
+        self.logger.debug(
+            f"Rendered component diagram with {len(self._layers)} layers, {len(self._components)} components"
+        )
 
     def _draw_impl(self, outputfile: str) -> None:
         if self.graph is None:

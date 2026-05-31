@@ -26,6 +26,7 @@ from typing import Any, Optional
 
 class ShapeCategory(Enum):
     """Categories for organizing shapes in the gallery."""
+
     BASIC = "basic"
     SECURITY = "security"
     NETWORK = "network"
@@ -37,6 +38,7 @@ class ShapeCategory(Enum):
 
 class Port(Enum):
     """Standard connection points on shapes."""
+
     NORTH = "n"
     SOUTH = "s"
     EAST = "e"
@@ -79,6 +81,7 @@ class Shape:
         ...     default_style={"fillcolor": "#4A90D9", "fontcolor": "white"}
         ... )
     """
+
     id: str
     name: str
     category: ShapeCategory
@@ -138,7 +141,7 @@ class Shape:
             "icon": self.icon,
             "ports": self.ports,
             "tags": self.tags,
-            "custom": self.custom
+            "custom": self.custom,
         }
 
     @classmethod
@@ -167,7 +170,7 @@ class Shape:
             tags=data.get("tags", []),
             custom=data.get("custom", False),
             svg_data=data.get("svg_data"),
-            dot_definition=data.get("dot_definition")
+            dot_definition=data.get("dot_definition"),
         )
 
 
@@ -184,29 +187,49 @@ STANDARD_PORTS = {
 # Graphviz shape name mapping for reference
 GRAPHVIZ_SHAPES = {
     # Basic shapes
-    "box", "rect", "rectangle", "square",
-    "circle", "ellipse", "oval",
-    "diamond", "rhombus",
-    "triangle", "invtriangle",
+    "box",
+    "rect",
+    "rectangle",
+    "square",
+    "circle",
+    "ellipse",
+    "oval",
+    "diamond",
+    "rhombus",
+    "triangle",
+    "invtriangle",
     "parallelogram",
-    "hexagon", "octagon", "pentagon",
-    "trapezium", "invtrapezium",
-    "house", "invhouse",
-    "star", "egg",
-
+    "hexagon",
+    "octagon",
+    "pentagon",
+    "trapezium",
+    "invtrapezium",
+    "house",
+    "invhouse",
+    "star",
+    "egg",
     # 3D shapes
-    "box3d", "cylinder",
-
+    "box3d",
+    "cylinder",
     # Flow shapes
-    "tab", "folder", "note",
-    "component", "cds",
-
+    "tab",
+    "folder",
+    "note",
+    "component",
+    "cds",
     # Record shapes
-    "record", "Mrecord",
-
+    "record",
+    "Mrecord",
     # Point shapes
-    "point", "none", "plaintext", "plain",
-
+    "point",
+    "none",
+    "plaintext",
+    "plain",
     # Arrow shapes (for edge decorations)
-    "normal", "vee", "dot", "tee", "crow", "inv",
+    "normal",
+    "vee",
+    "dot",
+    "tee",
+    "crow",
+    "inv",
 }

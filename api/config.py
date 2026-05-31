@@ -29,9 +29,7 @@ LOG_FORMAT = os.getenv("LOG_FORMAT", "%(asctime)s | %(levelname)-8s | %(name)s |
 ENABLE_TRACEBACK_LOGGING = os.getenv("ENABLE_TRACEBACK_LOGGING", "false").lower() == "true"
 
 logging.basicConfig(
-    level=getattr(logging, LOG_LEVEL, logging.INFO),
-    format=LOG_FORMAT,
-    handlers=[logging.StreamHandler()]
+    level=getattr(logging, LOG_LEVEL, logging.INFO), format=LOG_FORMAT, handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger("usecvislib.api")
 
@@ -55,6 +53,7 @@ SUPPORTED_CONFIG_EXTENSIONS = {".toml", ".tml", ".json", ".yaml", ".yml"}
 # =============================================================================
 # CORS Configuration
 # =============================================================================
+
 
 # SECURITY: Validate CORS origins to prevent misconfiguration attacks
 def _validate_cors_origin(origin: str) -> str:
@@ -98,8 +97,7 @@ def _parse_allowed_origins() -> list[str]:
     Rejects wildcards and malformed URLs that could bypass security controls.
     """
     raw_origins = os.getenv(
-        "ALLOWED_ORIGINS",
-        "http://localhost:3001,http://localhost:3000,http://127.0.0.1:3001,http://127.0.0.1:3000"
+        "ALLOWED_ORIGINS", "http://localhost:3001,http://localhost:3000,http://127.0.0.1:3001,http://127.0.0.1:3000"
     )
     origins = []
     for origin in raw_origins.split(","):
@@ -126,24 +124,25 @@ IMAGE_UPLOAD_DIR = os.getenv("IMAGE_UPLOAD_DIR", os.path.join(tempfile.gettempdi
 IMAGE_MAX_SIZE = 5 * 1024 * 1024  # 5 MB
 IMAGE_CLEANUP_AGE = int(os.getenv("IMAGE_CLEANUP_AGE", "3600"))  # 1 hour default
 IMAGE_ALLOWED_TYPES = {
-    'image/png': '.png',
-    'image/jpeg': '.jpg',
-    'image/gif': '.gif',
-    'image/svg+xml': '.svg',
-    'image/bmp': '.bmp',
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/gif": ".gif",
+    "image/svg+xml": ".svg",
+    "image/bmp": ".bmp",
 }
 # Magic bytes for image format detection
 IMAGE_MAGIC_BYTES = {
-    b'\x89PNG\r\n\x1a\n': 'image/png',
-    b'\xff\xd8\xff': 'image/jpeg',
-    b'GIF87a': 'image/gif',
-    b'GIF89a': 'image/gif',
-    b'BM': 'image/bmp',
+    b"\x89PNG\r\n\x1a\n": "image/png",
+    b"\xff\xd8\xff": "image/jpeg",
+    b"GIF87a": "image/gif",
+    b"GIF89a": "image/gif",
+    b"BM": "image/bmp",
 }
 
 # =============================================================================
 # Bundled Icons Configuration
 # =============================================================================
+
 
 # Resolve bundled icons directory (relative to project root or absolute path)
 def _get_bundled_icons_dir():
@@ -200,13 +199,13 @@ PROGRESS_ENTRY_TTL = int(os.getenv("PROGRESS_ENTRY_TTL", "3600"))  # 1 hour defa
 # =============================================================================
 
 # Templates directory path
-TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), '..', 'templates')
+TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "..", "templates")
 
 # Supported template file extensions
-TEMPLATE_EXTENSIONS = ('.tml', '.toml', '.json', '.yaml', '.yml')
+TEMPLATE_EXTENSIONS = (".tml", ".toml", ".json", ".yaml", ".yml")
 
 # Custom Diagrams templates directory
-CUSTOM_DIAGRAMS_TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), '..', 'templates', 'custom-diagrams')
+CUSTOM_DIAGRAMS_TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "..", "templates", "custom-diagrams")
 
 # Extension mapping for output filenames
 FORMAT_EXTENSIONS = {
@@ -223,7 +222,4 @@ REPORT_EXTENSIONS = {
 }
 
 # UUID validation pattern (RFC 4122)
-UUID_PATTERN = re.compile(
-    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
-    re.IGNORECASE
-)
+UUID_PATTERN = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.IGNORECASE)

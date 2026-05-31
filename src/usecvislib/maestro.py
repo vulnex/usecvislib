@@ -25,6 +25,7 @@ Supports TOML, JSON, and YAML input formats. Ships a built-in threat catalog
 each agent touches and the architecture patterns declared by the model.
 """
 
+import itertools
 import json
 import os
 from dataclasses import dataclass, field
@@ -39,6 +40,7 @@ from .base import VisualizationBase
 
 class MaestroError(utils.RenderError):
     """Exception raised for MAESTRO threat model generation errors."""
+
     pass
 
 
@@ -189,7 +191,7 @@ class MaestroThreatModel(VisualizationBase):
 
     STYLE_FILE = "config_maestro.tml"
     DEFAULT_STYLE_ID = "ma_default"
-    ALLOWED_EXTENSIONS = ['.toml', '.tml', '.json', '.yaml', '.yml']
+    ALLOWED_EXTENSIONS = [".toml", ".tml", ".json", ".yaml", ".yml"]
     MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10 MB
 
     CLUSTER_THRESHOLD_DEFAULT = 8
@@ -198,20 +200,22 @@ class MaestroThreatModel(VisualizationBase):
 
     SUPPORTED_VIEWS = ("layered", "graph", "heatmap")
 
-    def __init__(self, inputfile: str, outputfile: str, format: str = "",
-                 styleid: str = "", validate_paths: bool = True,
-                 view: str = "layered") -> None:
+    def __init__(
+        self,
+        inputfile: str,
+        outputfile: str,
+        format: str = "",
+        styleid: str = "",
+        validate_paths: bool = True,
+        view: str = "layered",
+    ) -> None:
         if format == "":
             format = "png"
         if styleid == "":
             styleid = None
 
         super().__init__(
-            inputfile=inputfile,
-            outputfile=outputfile,
-            format=format,
-            styleid=styleid,
-            validate_paths=validate_paths
+            inputfile=inputfile, outputfile=outputfile, format=format, styleid=styleid, validate_paths=validate_paths
         )
 
         self.graph: Optional[Digraph] = None
@@ -253,7 +257,7 @@ class MaestroThreatModel(VisualizationBase):
         )
 
         try:
-            with open(catalog_path, encoding='utf-8') as f:
+            with open(catalog_path, encoding="utf-8") as f:
                 self._catalog = json.load(f)
         except OSError as e:
             raise MaestroError(f"Failed to read MAESTRO catalog: {e}") from e
@@ -379,9 +383,7 @@ class MaestroThreatModel(VisualizationBase):
             if len(layers) != len(raw.get("layers", [])):
                 bad = set(raw.get("layers", [])) - valid_layers
                 if bad:
-                    self.warnings.append(
-                        f"Agent '{agent_id}' references unknown layers: {sorted(bad)}"
-                    )
+                    self.warnings.append(f"Agent '{agent_id}' references unknown layers: {sorted(bad)}")
             self.agents[agent_id] = Agent(
                 id=agent_id,
                 name=raw.get("name", agent_id),
@@ -501,12 +503,8 @@ class MaestroThreatModel(VisualizationBase):
             return
 
         catalog = self._load_catalog()
-        catalog_threats: dict[str, dict[str, Any]] = {
-            t["id"]: t for t in catalog.get("threats", [])
-        }
-        catalog_cross: dict[str, dict[str, Any]] = {
-            t["id"]: t for t in catalog.get("cross_layer_threats", [])
-        }
+        catalog_threats: dict[str, dict[str, Any]] = {t["id"]: t for t in catalog.get("threats", [])}
+        catalog_cross: dict[str, dict[str, Any]] = {t["id"]: t for t in catalog.get("cross_layer_threats", [])}
         pattern_map: dict[str, list[str]] = catalog.get("pattern_threats", {})
 
         # Compute layers actually declared across all agents
@@ -516,7 +514,7 @@ class MaestroThreatModel(VisualizationBase):
 
         # 1) Attach threats matching declared layers (one threat per agent that
         # touches the layer).
-        for threat_id, ct in catalog_threats.items():
+        for _threat_id, ct in catalog_threats.items():
             layer = ct["layer"]
             if self.catalog_mode == CatalogMode.AUTO.value and layer not in declared_layers:
                 continue
@@ -575,7 +573,7 @@ class MaestroThreatModel(VisualizationBase):
 
     def _attach_threat_for_agent(self, catalog_threat: dict[str, Any], agent_id: str) -> None:
         """Attach a catalog threat to an agent (idempotent by composite id)."""
-        composite_id = f"{catalog_threat['id']}@{agent_id}" if agent_id else catalog_threat['id']
+        composite_id = f"{catalog_threat['id']}@{agent_id}" if agent_id else catalog_threat["id"]
         if composite_id in self.threats:
             return
         self.threats[composite_id] = Threat(
@@ -629,12 +627,12 @@ class MaestroThreatModel(VisualizationBase):
 
             # Override fields when provided
             for attr in ("severity", "likelihood", "status", "description"):
-                if attr in raw and raw[attr]:
+                if raw.get(attr):
                     setattr(existing, attr, raw[attr])
             if "mitigations" in raw and isinstance(raw["mitigations"], list):
                 existing.mitigations = list(raw["mitigations"])
             for attr in ("mitre_attack", "owasp_asi", "nist_ai_rmf"):
-                if attr in raw and raw[attr]:
+                if raw.get(attr):
                     setattr(existing, attr, raw[attr])
 
     # ----------------------------------------------------------------- render
@@ -719,8 +717,7 @@ class MaestroThreatModel(VisualizationBase):
             # when no agent spans the boundary.
             if previous_layer_key is not None:
                 spine_agent = next(
-                    (a for a in self.agents.values()
-                     if previous_layer_key in a.layers and layer_key in a.layers),
+                    (a for a in self.agents.values() if previous_layer_key in a.layers and layer_key in a.layers),
                     None,
                 )
                 if spine_agent is not None:
@@ -760,14 +757,14 @@ class MaestroThreatModel(VisualizationBase):
         Picks an asset in each band when available to avoid adding pure-noise
         nodes; falls back to fresh anchor points otherwise.
         """
+
         def pick_node(layer_key: str) -> str:
             asset = next((a for a in self.assets.values() if a.layer == layer_key), None)
             if asset is not None:
                 return utils.sanitize_node_id(f"asset_{asset.id}")
             anchor = utils.sanitize_node_id(f"anchor_{layer_key}")
             with self.graph.subgraph(name=f"cluster_{layer_key}") as sub:
-                sub.node(anchor, "", shape="point", style="invis",
-                         width="0", height="0")
+                sub.node(anchor, "", shape="point", style="invis", width="0", height="0")
             return anchor
 
         self.graph.edge(
@@ -805,10 +802,7 @@ class MaestroThreatModel(VisualizationBase):
         asset_attrs = utils.stringify_dict(asset_style)
 
         # Auto-clustering when count exceeds threshold
-        if (
-            self.clustering_enabled
-            and len(agents_in_layer) > self.cluster_threshold
-        ):
+        if self.clustering_enabled and len(agents_in_layer) > self.cluster_threshold:
             self._render_clustered_agents(sub, layer_key, agents_in_layer, agent_attrs)
         else:
             for agent in agents_in_layer:
@@ -834,9 +828,7 @@ class MaestroThreatModel(VisualizationBase):
 
         for agent_type, members in by_type.items():
             cluster_name = f"cluster_{layer_key}_{utils.sanitize_node_id(agent_type)}"
-            severities = [
-                self._max_severity_for_agent_in_layer(a.id, layer_key) for a in members
-            ]
+            severities = [self._max_severity_for_agent_in_layer(a.id, layer_key) for a in members]
             worst = max(
                 severities,
                 key=lambda s: SEVERITY_RANK.get(s, 0),
@@ -862,8 +854,11 @@ class MaestroThreatModel(VisualizationBase):
         whole-agent view; the layered renderer uses _agent_label_for_layer."""
         worst = self._max_severity_for_agent(agent.id)
         threat_count = sum(
-            1 for t in self.threats.values()
-            if t.target_id == agent.id and t.status not in (
+            1
+            for t in self.threats.values()
+            if t.target_id == agent.id
+            and t.status
+            not in (
                 ThreatStatus.MITIGATED.value,
                 ThreatStatus.NOT_APPLICABLE.value,
             )
@@ -871,10 +866,7 @@ class MaestroThreatModel(VisualizationBase):
         severity_label = ""
         if threat_count > 0:
             color = SEVERITY_COLORS.get(worst, "#9e9e9e")
-            severity_label = (
-                f"<BR/><FONT POINT-SIZE='9' COLOR='{color}'>"
-                f"{threat_count} open ({worst})</FONT>"
-            )
+            severity_label = f"<BR/><FONT POINT-SIZE='9' COLOR='{color}'>{threat_count} open ({worst})</FONT>"
         return (
             f"<<B>{utils.escape_dot_label(agent.name)}</B>"
             f"<BR/><FONT POINT-SIZE='9'><I>{utils.escape_dot_label(agent.type)} "
@@ -887,10 +879,12 @@ class MaestroThreatModel(VisualizationBase):
         ON THIS LAYER only, so each band's view of the agent reflects its own
         risk surface."""
         layer_threats = [
-            t for t in self.threats.values()
+            t
+            for t in self.threats.values()
             if t.target_id == agent.id
             and t.layer == layer_key
-            and t.status not in (
+            and t.status
+            not in (
                 ThreatStatus.MITIGATED.value,
                 ThreatStatus.NOT_APPLICABLE.value,
             )
@@ -902,10 +896,7 @@ class MaestroThreatModel(VisualizationBase):
                 key=lambda s: SEVERITY_RANK.get(s, 0),
             )
             color = SEVERITY_COLORS.get(worst, "#9e9e9e")
-            severity_label = (
-                f"<BR/><FONT POINT-SIZE='9' COLOR='{color}'>"
-                f"{len(layer_threats)} open ({worst})</FONT>"
-            )
+            severity_label = f"<BR/><FONT POINT-SIZE='9' COLOR='{color}'>{len(layer_threats)} open ({worst})</FONT>"
         return (
             f"<<B>{utils.escape_dot_label(agent.name)}</B>"
             f"<BR/><FONT POINT-SIZE='9'><I>{utils.escape_dot_label(agent.type)} "
@@ -915,10 +906,12 @@ class MaestroThreatModel(VisualizationBase):
 
     def _max_severity_for_agent_in_layer(self, agent_id: str, layer_key: str) -> str:
         layer_threats = [
-            t for t in self.threats.values()
+            t
+            for t in self.threats.values()
             if t.target_id == agent_id
             and t.layer == layer_key
-            and t.status not in (
+            and t.status
+            not in (
                 ThreatStatus.MITIGATED.value,
                 ThreatStatus.NOT_APPLICABLE.value,
             )
@@ -939,8 +932,11 @@ class MaestroThreatModel(VisualizationBase):
 
     def _max_severity_for_agent(self, agent_id: str) -> str:
         agent_threats = [
-            t for t in self.threats.values()
-            if t.target_id == agent_id and t.status not in (
+            t
+            for t in self.threats.values()
+            if t.target_id == agent_id
+            and t.status
+            not in (
                 ThreatStatus.MITIGATED.value,
                 ThreatStatus.NOT_APPLICABLE.value,
             )
@@ -953,18 +949,9 @@ class MaestroThreatModel(VisualizationBase):
         )
 
     def _security_gutter_label(self) -> str:
-        detective_count = sum(
-            1 for m in self.mitigations.values()
-            if m.type == "detective" and m.implemented
-        )
-        preventive_count = sum(
-            1 for m in self.mitigations.values()
-            if m.type == "preventive" and m.implemented
-        )
-        return (
-            f"Security & Compliance\\n"
-            f"{preventive_count} preventive | {detective_count} detective"
-        )
+        detective_count = sum(1 for m in self.mitigations.values() if m.type == "detective" and m.implemented)
+        preventive_count = sum(1 for m in self.mitigations.values() if m.type == "preventive" and m.implemented)
+        return f"Security & Compliance\\n{preventive_count} preventive | {detective_count} detective"
 
     def _render_cross_layer(self, clt: CrossLayerThreat, cross_style: dict[str, Any]) -> None:
         """Render a cross-layer threat as a dashed chain of edges between the
@@ -978,9 +965,7 @@ class MaestroThreatModel(VisualizationBase):
         for threat_ref in clt.attack_chain:
             for tid, threat in self.threats.items():
                 if (tid == threat_ref or threat.id.startswith(f"{threat_ref}@")) and threat.target_id:
-                    chain_node_ids.append(
-                        self._agent_node_id(threat.target_id, threat.layer)
-                    )
+                    chain_node_ids.append(self._agent_node_id(threat.target_id, threat.layer))
                     break
 
         # Fallback: pick one agent per layer the chain spans.
@@ -997,7 +982,7 @@ class MaestroThreatModel(VisualizationBase):
             return
 
         label = f" {clt.id}: {clt.name}"
-        for src, tgt in zip(chain_node_ids, chain_node_ids[1:]):
+        for src, tgt in itertools.pairwise(chain_node_ids):
             self.graph.edge(src, tgt, label=label, **edge_attrs)
             label = ""  # Only label the first edge of the chain
 
@@ -1046,15 +1031,15 @@ class MaestroThreatModel(VisualizationBase):
         sev_row = ""
         if any(counts.values()):
             parts = []
-            for sev, n in (("critical", counts["critical"]),
-                           ("high", counts["high"]),
-                           ("medium", counts["medium"]),
-                           ("low", counts["low"])):
+            for sev, n in (
+                ("critical", counts["critical"]),
+                ("high", counts["high"]),
+                ("medium", counts["medium"]),
+                ("low", counts["low"]),
+            ):
                 if n > 0:
                     color = SEVERITY_COLORS.get(sev, "#9e9e9e")
-                    parts.append(
-                        f"<FONT COLOR='{color}'>{sev[0].upper()}:{n}</FONT>"
-                    )
+                    parts.append(f"<FONT COLOR='{color}'>{sev[0].upper()}:{n}</FONT>")
             sev_row = f"<BR/><FONT POINT-SIZE='9'>{' '.join(parts)}</FONT>"
 
         return (
@@ -1089,9 +1074,7 @@ class MaestroThreatModel(VisualizationBase):
         render_cfg = self.inputdata.get("render", {}) if isinstance(self.inputdata, dict) else {}
         direction = str(render_cfg.get("graph_direction", "LR")).upper() if isinstance(render_cfg, dict) else "LR"
         if direction not in ("LR", "TB"):
-            self.warnings.append(
-                f"Unknown graph_direction '{direction}', falling back to LR"
-            )
+            self.warnings.append(f"Unknown graph_direction '{direction}', falling back to LR")
             direction = "LR"
 
         # First-hop-only chain labels by default to keep dense models readable.
@@ -1162,10 +1145,7 @@ class MaestroThreatModel(VisualizationBase):
                 )
 
                 # Auto-cluster crowded layers (re-use V1 threshold semantics).
-                if (
-                    self.clustering_enabled
-                    and len(members) > self.cluster_threshold
-                ):
+                if self.clustering_enabled and len(members) > self.cluster_threshold:
                     self._render_graph_clustered_agents(sub, layer_key, members, agent_attrs)
                 else:
                     for agent in members:
@@ -1226,8 +1206,7 @@ class MaestroThreatModel(VisualizationBase):
             fillcolor=node_fill,
             color=border_color,
             penwidth=penwidth,
-            **{k: v for k, v in agent_attrs.items()
-               if k not in ("fillcolor", "color", "penwidth")},
+            **{k: v for k, v in agent_attrs.items() if k not in ("fillcolor", "color", "penwidth")},
         )
 
     def _render_graph_clustered_agents(
@@ -1278,10 +1257,10 @@ class MaestroThreatModel(VisualizationBase):
         a single agent that spans multiple layers render as a labeled
         self-loop rather than vanishing.
         """
+
         def pick_agent_for_layer(layer_value: str) -> Optional[Agent]:
             primary = next(
-                (a for a in self.agents.values()
-                 if a.layers and a.layers[0] == layer_value),
+                (a for a in self.agents.values() if a.layers and a.layers[0] == layer_value),
                 None,
             )
             if primary is not None:
@@ -1316,7 +1295,8 @@ class MaestroThreatModel(VisualizationBase):
                 # declared layers. Draw a self-loop so the chain still
                 # surfaces visually rather than being silently dropped.
                 self.graph.edge(
-                    cleaned[0], cleaned[0],
+                    cleaned[0],
+                    cleaned[0],
                     label=f" {clt.id} ({len(clt.layers)} layers)",
                     color=color,
                     fontcolor=color,
@@ -1329,7 +1309,7 @@ class MaestroThreatModel(VisualizationBase):
                 continue
 
             # Multi-agent chain: solid colored edges per hop.
-            for i, (src, tgt) in enumerate(zip(cleaned, cleaned[1:])):
+            for i, (src, tgt) in enumerate(itertools.pairwise(cleaned)):
                 if chain_labels_mode == "off":
                     edge_label = ""
                 elif chain_labels_mode == "first":
@@ -1337,7 +1317,8 @@ class MaestroThreatModel(VisualizationBase):
                 else:  # "all"
                     edge_label = chain_label if i == 0 else f" {clt.id}"
                 self.graph.edge(
-                    src, tgt,
+                    src,
+                    tgt,
                     label=edge_label,
                     color=color,
                     fontcolor=color,
@@ -1359,6 +1340,7 @@ class MaestroThreatModel(VisualizationBase):
         # keep the import inside the method so the cheap layered path doesn't
         # pay for the import.
         import matplotlib
+
         matplotlib.use("Agg")  # Non-interactive backend
         import matplotlib.pyplot as plt
         import numpy as np
@@ -1367,7 +1349,8 @@ class MaestroThreatModel(VisualizationBase):
         severity_to_rank = {"low": 1, "medium": 2, "high": 3, "critical": 4}
         # 5-stop colormap aligned with rank: 0 = none, 1 = low, ..., 4 = critical
         colors = ["#eeeeee", "#4caf50", "#ffb300", "#fb8c00", "#e53935"]
-        from matplotlib.colors import ListedColormap, BoundaryNorm
+        from matplotlib.colors import BoundaryNorm, ListedColormap
+
         cmap = ListedColormap(colors)
         norm = BoundaryNorm([-0.5, 0.5, 1.5, 2.5, 3.5, 4.5], cmap.N)
 
@@ -1390,19 +1373,19 @@ class MaestroThreatModel(VisualizationBase):
         for i, agent in enumerate(agents):
             for j, layer in enumerate(layers):
                 relevant = [
-                    t for t in self.threats.values()
+                    t
+                    for t in self.threats.values()
                     if t.target_id == agent.id
                     and t.layer == layer
-                    and t.status not in (
+                    and t.status
+                    not in (
                         ThreatStatus.MITIGATED.value,
                         ThreatStatus.NOT_APPLICABLE.value,
                     )
                 ]
                 if relevant:
                     count_matrix[i, j] = len(relevant)
-                    rank_matrix[i, j] = max(
-                        severity_to_rank.get(t.severity, 0) for t in relevant
-                    )
+                    rank_matrix[i, j] = max(severity_to_rank.get(t.severity, 0) for t in relevant)
 
         fig_width = max(8, 1.2 * len(layers) + 4)
         fig_height = max(3, 0.5 * len(agents) + 2)
@@ -1426,8 +1409,7 @@ class MaestroThreatModel(VisualizationBase):
                 count = count_matrix[i, j]
                 if count > 0:
                     color = "white" if rank_matrix[i, j] >= 3 else "#212121"
-                    ax.text(j, i, str(count), ha="center", va="center",
-                            color=color, fontsize=9, fontweight="bold")
+                    ax.text(j, i, str(count), ha="center", va="center", color=color, fontsize=9, fontweight="bold")
 
         # Colorbar with severity ticks
         cbar = fig.colorbar(im, ax=ax, ticks=[0, 1, 2, 3, 4], shrink=0.8)
@@ -1441,9 +1423,7 @@ class MaestroThreatModel(VisualizationBase):
         fig.tight_layout()
 
         self._fig = fig
-        self.logger.debug(
-            f"Rendered heatmap: {len(agents)} agents x {len(layers)} layers"
-        )
+        self.logger.debug(f"Rendered heatmap: {len(agents)} agents x {len(layers)} layers")
 
     def _draw_impl(self, outputfile: str) -> None:
         if self.view == "heatmap":
@@ -1451,10 +1431,10 @@ class MaestroThreatModel(VisualizationBase):
                 raise MaestroError("Heatmap not rendered. Call render() first.")
             output_path = f"{outputfile}.{self.format}"
             try:
-                self._fig.savefig(output_path, format=self.format, dpi=150,
-                                  bbox_inches="tight")
+                self._fig.savefig(output_path, format=self.format, dpi=150, bbox_inches="tight")
                 # Close to free memory; subsequent draws would re-render.
                 import matplotlib.pyplot as plt
+
                 plt.close(self._fig)
                 self.logger.debug("Successfully wrote MAESTRO heatmap")
             except Exception as e:
@@ -1491,22 +1471,16 @@ class MaestroThreatModel(VisualizationBase):
             if asset.layer not in valid_layers:
                 errors.append(f"Asset '{asset.id}' references unknown layer '{asset.layer}'")
             if asset.owner_agent and asset.owner_agent not in self.agents:
-                errors.append(
-                    f"Asset '{asset.id}' owner_agent '{asset.owner_agent}' does not exist"
-                )
+                errors.append(f"Asset '{asset.id}' owner_agent '{asset.owner_agent}' does not exist")
 
         agent_ids = set(self.agents.keys())
         for threat in self.threats.values():
             if threat.target_id and threat.target_id not in agent_ids:
-                errors.append(
-                    f"Threat '{threat.id}' targets unknown agent '{threat.target_id}'"
-                )
+                errors.append(f"Threat '{threat.id}' targets unknown agent '{threat.target_id}'")
 
         for clt in self.cross_layer_threats.values():
             if len(clt.layers) < 2:
-                errors.append(
-                    f"Cross-layer threat '{clt.id}' must span at least 2 layers"
-                )
+                errors.append(f"Cross-layer threat '{clt.id}' must span at least 2 layers")
 
         return errors
 
@@ -1522,8 +1496,10 @@ class MaestroThreatModel(VisualizationBase):
             threats_by_status[threat.status] = threats_by_status.get(threat.status, 0) + 1
 
         unmitigated = sum(
-            1 for t in self.threats.values()
-            if t.status not in (
+            1
+            for t in self.threats.values()
+            if t.status
+            not in (
                 ThreatStatus.MITIGATED.value,
                 ThreatStatus.NOT_APPLICABLE.value,
             )
@@ -1608,9 +1584,7 @@ class MaestroThreatModel(VisualizationBase):
 
             tid = utils.sanitize_node_id(threat.id)
             target = (
-                utils.sanitize_node_id(threat.target_id)
-                if threat.target_id
-                else next(iter(processes.keys()), "system")
+                utils.sanitize_node_id(threat.target_id) if threat.target_id else next(iter(processes.keys()), "system")
             )
             stride_threats[tid] = {
                 "target": target,
@@ -1674,12 +1648,14 @@ class MaestroThreatModel(VisualizationBase):
         hosts: list[dict[str, Any]] = []
         for agent in self.agents.values():
             zone = agent.layers[0] if agent.layers else "agent-frameworks"
-            hosts.append({
-                "id": utils.sanitize_node_id(agent.id),
-                "label": agent.name,
-                "description": f"{agent.type} / autonomy={agent.autonomy}",
-                "zone": zone,
-            })
+            hosts.append(
+                {
+                    "id": utils.sanitize_node_id(agent.id),
+                    "label": agent.name,
+                    "description": f"{agent.type} / autonomy={agent.autonomy}",
+                    "zone": zone,
+                }
+            )
 
         # Collect threats that appear in any chain (uniqued)
         chain_threat_ids: set[str] = set()
@@ -1697,13 +1673,15 @@ class MaestroThreatModel(VisualizationBase):
                     break
             if match is None:
                 continue
-            vulnerabilities.append({
-                "id": utils.sanitize_node_id(f"vuln_{match.id}"),
-                "label": match.name,
-                "description": match.description or match.name,
-                "affected_host": utils.sanitize_node_id(match.target_id or "system"),
-                "severity": match.severity,
-            })
+            vulnerabilities.append(
+                {
+                    "id": utils.sanitize_node_id(f"vuln_{match.id}"),
+                    "label": match.name,
+                    "description": match.description or match.name,
+                    "affected_host": utils.sanitize_node_id(match.target_id or "system"),
+                    "severity": match.severity,
+                }
+            )
 
         edges: list[dict[str, Any]] = []
         for clt in self.cross_layer_threats.values():
@@ -1720,13 +1698,15 @@ class MaestroThreatModel(VisualizationBase):
                     if agent:
                         host_chain.append(utils.sanitize_node_id(agent.id))
 
-            for src, tgt in zip(host_chain, host_chain[1:]):
-                edges.append({
-                    "from": src,
-                    "to": tgt,
-                    "label": clt.name,
-                    "chain_id": clt.id,
-                })
+            for src, tgt in itertools.pairwise(host_chain):
+                edges.append(
+                    {
+                        "from": src,
+                        "to": tgt,
+                        "label": clt.name,
+                        "chain_id": clt.id,
+                    }
+                )
 
         return {
             "_meta": {
@@ -1769,25 +1749,27 @@ class MaestroThreatModel(VisualizationBase):
 
         zones = [
             {"id": "Z0", "label": "External / Untrusted", "trust_level": 0, "color": "#ffcccc"},
-            {"id": "Z1", "label": "Reactive Agent",       "trust_level": 1, "color": "#ffe0b2"},
-            {"id": "Z2", "label": "Deliberative Agent",   "trust_level": 2, "color": "#fff9c4"},
-            {"id": "Z3", "label": "Learning Agent",       "trust_level": 3, "color": "#c8e6c9"},
+            {"id": "Z1", "label": "Reactive Agent", "trust_level": 1, "color": "#ffe0b2"},
+            {"id": "Z2", "label": "Deliberative Agent", "trust_level": 2, "color": "#fff9c4"},
+            {"id": "Z3", "label": "Learning Agent", "trust_level": 3, "color": "#c8e6c9"},
             {"id": "Z4", "label": "Self-Modifying / Core", "trust_level": 4, "color": "#bbdefb"},
         ]
 
         components: list[dict[str, Any]] = []
         for agent in self.agents.values():
             trust = self._AUTONOMY_TRUST.get(agent.autonomy, 1)
-            components.append({
-                "id": utils.sanitize_node_id(agent.id),
-                "label": agent.name,
-                "zone": f"Z{trust}",
-            })
+            components.append(
+                {
+                    "id": utils.sanitize_node_id(agent.id),
+                    "label": agent.name,
+                    "zone": f"Z{trust}",
+                }
+            )
 
         influence_types = [
-            {"id": "data",     "label": "Data Flow", "color": "#3498db", "style": "solid"},
-            {"id": "control",  "label": "Control",   "color": "#8e44ad", "style": "bold"},
-            {"id": "feedback", "label": "Feedback",  "color": "#e67e22", "style": "dashed"},
+            {"id": "data", "label": "Data Flow", "color": "#3498db", "style": "solid"},
+            {"id": "control", "label": "Control", "color": "#8e44ad", "style": "bold"},
+            {"id": "feedback", "label": "Feedback", "color": "#e67e22", "style": "dashed"},
         ]
 
         influences: list[dict[str, Any]] = []
@@ -1805,15 +1787,17 @@ class MaestroThreatModel(VisualizationBase):
                     if agent:
                         chain_agents.append(utils.sanitize_node_id(agent.id))
 
-            for src, tgt in zip(chain_agents, chain_agents[1:]):
+            for src, tgt in itertools.pairwise(chain_agents):
                 inf_idx += 1
-                influences.append({
-                    "id": f"inf_{inf_idx}",
-                    "from": src,
-                    "to": tgt,
-                    "type": "control",
-                    "label": clt.id,
-                })
+                influences.append(
+                    {
+                        "id": f"inf_{inf_idx}",
+                        "from": src,
+                        "to": tgt,
+                        "type": "control",
+                        "label": clt.id,
+                    }
+                )
 
         return {
             "_meta": {

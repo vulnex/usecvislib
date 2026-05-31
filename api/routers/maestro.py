@@ -57,6 +57,7 @@ router = APIRouter(tags=["MAESTRO Agentic Threat Model"])
 # Visualize
 # =============================================================================
 
+
 @router.post(
     "/visualize/maestro",
     summary="Generate MAESTRO agentic threat model visualization",
@@ -68,9 +69,9 @@ router = APIRouter(tags=["MAESTRO Agentic Threat Model"])
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated visualization image"
+            "description": "Generated visualization image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def visualize_maestro(
@@ -148,6 +149,7 @@ async def visualize_maestro(
 # Analyze
 # =============================================================================
 
+
 @router.post(
     "/analyze/maestro",
     response_model=MaestroStats,
@@ -203,6 +205,7 @@ async def analyze_maestro(
 # Threats (filterable detail)
 # =============================================================================
 
+
 @router.post(
     "/analyze/maestro/threats",
     response_model=MaestroThreatsResponse,
@@ -214,7 +217,9 @@ async def list_maestro_threats(
     file: UploadFile = File(..., description="MAESTRO configuration file"),
     layer: Optional[str] = Query(default=None, description="Filter by MAESTRO layer key"),
     severity: Optional[str] = Query(default=None, description="Filter by severity (low/medium/high/critical)"),
-    status: Optional[str] = Query(default=None, description="Filter by status (identified/in-progress/mitigated/accepted/not-applicable)"),
+    status: Optional[str] = Query(
+        default=None, description="Filter by status (identified/in-progress/mitigated/accepted/not-applicable)"
+    ),
 ):
     """
     Return per-threat detail after auto-population and overrides are applied,
@@ -244,23 +249,25 @@ async def list_maestro_threats(
                 continue
             if status and t.status != status:
                 continue
-            threats.append(MaestroThreatDetail(
-                id=t.id,
-                layer=t.layer,
-                name=t.name,
-                description=t.description,
-                target_id=t.target_id,
-                severity=t.severity,
-                likelihood=t.likelihood,
-                status=t.status,
-                mitigations=list(t.mitigations),
-                stride_category=t.stride_category,
-                stride_mapping=t.stride_mapping,
-                mitre_attack=t.mitre_attack,
-                owasp_asi=t.owasp_asi,
-                nist_ai_rmf=t.nist_ai_rmf,
-                from_catalog=t.from_catalog,
-            ))
+            threats.append(
+                MaestroThreatDetail(
+                    id=t.id,
+                    layer=t.layer,
+                    name=t.name,
+                    description=t.description,
+                    target_id=t.target_id,
+                    severity=t.severity,
+                    likelihood=t.likelihood,
+                    status=t.status,
+                    mitigations=list(t.mitigations),
+                    stride_category=t.stride_category,
+                    stride_mapping=t.stride_mapping,
+                    mitre_attack=t.mitre_attack,
+                    owasp_asi=t.owasp_asi,
+                    nist_ai_rmf=t.nist_ai_rmf,
+                    from_catalog=t.from_catalog,
+                )
+            )
 
         return MaestroThreatsResponse(
             total=len(threats),
@@ -284,6 +291,7 @@ async def list_maestro_threats(
 # =============================================================================
 # Validate
 # =============================================================================
+
 
 @router.post(
     "/validate/maestro",
@@ -326,6 +334,7 @@ async def validate_maestro(
 # =============================================================================
 # Catalog
 # =============================================================================
+
 
 @router.get(
     "/maestro/catalog",
@@ -380,6 +389,7 @@ async def get_maestro_catalog_for_layer(request: Request, layer: str):
 # =============================================================================
 # Cross-Reference Exports (Phase 3)
 # =============================================================================
+
 
 @router.post(
     "/maestro/export/{target}",

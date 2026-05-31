@@ -111,3 +111,6 @@ secrets/
 *.pem
 *.key
 /devnotes
+
+# gstack skill runtime artifacts
+.gstack/

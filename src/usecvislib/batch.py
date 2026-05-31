@@ -43,6 +43,7 @@ class BatchResult:
         successes: Dictionary mapping filenames to their processing results.
         failures: Dictionary mapping filenames to error messages.
     """
+
     successes: dict[str, Any] = field(default_factory=dict)
     failures: dict[str, str] = field(default_factory=dict)
 
@@ -85,7 +86,7 @@ class BatchResult:
             "failures": self.failure_count,
             "success_rate": self.success_rate,
             "success_percentage": round(self.success_percentage, 2),
-            "failed_files": list(self.failures.keys())
+            "failed_files": list(self.failures.keys()),
         }
 
     def get_stats(self, filename: str) -> Optional[dict[str, Any]]:
@@ -114,11 +115,7 @@ class BatchResult:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
-        return {
-            "summary": self.summary(),
-            "successes": self.successes,
-            "failures": self.failures
-        }
+        return {"summary": self.summary(), "successes": self.successes, "failures": self.failures}
 
 
 class BatchProcessor:
@@ -154,12 +151,7 @@ class BatchProcessor:
         return cls._MODULES
 
     def __init__(
-        self,
-        module_type: str,
-        output_dir: str,
-        format: str = "png",
-        style: Optional[str] = None,
-        max_workers: int = 4
+        self, module_type: str, output_dir: str, format: str = "png", style: Optional[str] = None, max_workers: int = 4
     ):
         """Initialize batch processor.
 
@@ -177,10 +169,7 @@ class BatchProcessor:
         modules = self._get_modules()
         if module_type not in modules:
             valid_types = ", ".join(modules.keys())
-            raise ValueError(
-                f"Unknown module type: {module_type}. "
-                f"Valid types: {valid_types}"
-            )
+            raise ValueError(f"Unknown module type: {module_type}. Valid types: {valid_types}")
 
         self.module_type = module_type
         self.module_class = modules[module_type]
@@ -199,7 +188,7 @@ class BatchProcessor:
         collect_stats: bool = True,
         validate: bool = True,
         skip_on_error: bool = True,
-        on_progress: Optional[Callable[[str, bool, Optional[str]], None]] = None
+        on_progress: Optional[Callable[[str, bool, Optional[str]], None]] = None,
     ) -> BatchResult:
         """Process multiple input files.
 
@@ -230,15 +219,7 @@ class BatchProcessor:
 
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all tasks
-            futures = {
-                executor.submit(
-                    self._process_single,
-                    f,
-                    collect_stats,
-                    validate
-                ): f
-                for f in input_files
-            }
+            futures = {executor.submit(self._process_single, f, collect_stats, validate): f for f in input_files}
 
             # Collect results as they complete
             for future in as_completed(futures):
@@ -261,18 +242,10 @@ class BatchProcessor:
                             f.cancel()
                         raise
 
-        logger.info(
-            f"Batch processing complete: {result.success_count} succeeded, "
-            f"{result.failure_count} failed"
-        )
+        logger.info(f"Batch processing complete: {result.success_count} succeeded, {result.failure_count} failed")
         return result
 
-    def _process_single(
-        self,
-        input_file: str,
-        collect_stats: bool,
-        validate: bool
-    ) -> dict[str, Any]:
+    def _process_single(self, input_file: str, collect_stats: bool, validate: bool) -> dict[str, Any]:
         """Process a single file.
 
         Args:
@@ -298,18 +271,12 @@ class BatchProcessor:
         # Create instance
         instance = self.module_class(input_file, output_path, **kwargs)
 
-        result: dict[str, Any] = {
-            "file": input_file,
-            "output": f"{output_path}.{self.format}"
-        }
+        result: dict[str, Any] = {"file": input_file, "output": f"{output_path}.{self.format}"}
 
         # Validate if requested
         if validate:
             errors = instance.validate()
-            result["validation"] = {
-                "valid": len(errors) == 0,
-                "errors": errors
-            }
+            result["validation"] = {"valid": len(errors) == 0, "errors": errors}
             if errors:
                 raise ValueError(f"Validation failed: {errors}")
 
@@ -329,17 +296,13 @@ class BatchProcessor:
                 result["stats"] = instance.get_graph_stats()
             elif self.module_type == "binary":
                 result["stats"] = instance.get_file_stats()
-            elif hasattr(instance, 'get_stats'):
+            elif hasattr(instance, "get_stats"):
                 result["stats"] = instance.get_stats()
 
         return result
 
     def process_directory(
-        self,
-        input_dir: str,
-        extensions: Optional[list[str]] = None,
-        recursive: bool = False,
-        **kwargs
+        self, input_dir: str, extensions: Optional[list[str]] = None, recursive: bool = False, **kwargs
     ) -> BatchResult:
         """Process all matching files in a directory.
 
@@ -361,7 +324,7 @@ class BatchProcessor:
             ... )
         """
         if extensions is None:
-            extensions = ['.toml', '.tml', '.json', '.yaml', '.yml']
+            extensions = [".toml", ".tml", ".json", ".yaml", ".yml"]
 
         input_path = Path(input_dir)
 
@@ -409,7 +372,7 @@ class BatchProcessor:
             "total_vulnerabilities": 0,
             "max_cvss": 0.0,
             "avg_cvss": 0.0,
-            "by_file": {}
+            "by_file": {},
         }
 
         cvss_values = []
@@ -429,10 +392,7 @@ class BatchProcessor:
             if "average_cvss" in stats:
                 cvss_values.append(stats["average_cvss"])
             if "max_cvss" in stats:
-                aggregated["max_cvss"] = max(
-                    aggregated["max_cvss"],
-                    stats["max_cvss"]
-                )
+                aggregated["max_cvss"] = max(aggregated["max_cvss"], stats["max_cvss"])
 
         # Calculate average CVSS
         if cvss_values:
@@ -448,7 +408,7 @@ def process_batch(
     format: str = "png",
     style: Optional[str] = None,
     max_workers: int = 4,
-    **kwargs
+    **kwargs,
 ) -> BatchResult:
     """Convenience function for batch processing.
 
@@ -474,11 +434,5 @@ def process_batch(
         ...     "/output"
         ... )
     """
-    processor = BatchProcessor(
-        module_type,
-        output_dir,
-        format=format,
-        style=style,
-        max_workers=max_workers
-    )
+    processor = BatchProcessor(module_type, output_dir, format=format, style=style, max_workers=max_workers)
     return processor.process_files(input_files, **kwargs)

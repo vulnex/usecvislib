@@ -53,6 +53,7 @@ router = APIRouter(tags=["Architecture Diagrams"])
 # Component Diagram Endpoints
 # =============================================================================
 
+
 @router.post(
     "/visualize/component-diagram",
     summary="Generate component diagram visualization",
@@ -64,9 +65,9 @@ router = APIRouter(tags=["Architecture Diagrams"])
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated visualization image"
+            "description": "Generated visualization image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def visualize_component_diagram(
@@ -106,9 +107,7 @@ async def visualize_component_diagram(
 
         cd = ComponentDiagram(input_for_viz, output_base, format=format.value, styleid=style.value)
         await run_sync_with_timeout(
-            cd.BuildComponentDiagram,
-            REQUEST_TIMEOUT_VISUALIZE,
-            "component diagram visualization"
+            cd.BuildComponentDiagram, REQUEST_TIMEOUT_VISUALIZE, "component diagram visualization"
         )
 
         output_path = f"{output_base}.{format.value}"
@@ -138,9 +137,7 @@ async def visualize_component_diagram(
 
 
 @router.post(
-    "/analyze/component-diagram",
-    response_model=ComponentDiagramStats,
-    summary="Analyze component diagram structure"
+    "/analyze/component-diagram", response_model=ComponentDiagramStats, summary="Analyze component diagram structure"
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_component_diagram(
@@ -185,10 +182,7 @@ async def analyze_component_diagram(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/validate/component-diagram",
-    summary="Validate component diagram structure"
-)
+@router.post("/validate/component-diagram", summary="Validate component diagram structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def validate_component_diagram(
     request: Request,
@@ -210,10 +204,7 @@ async def validate_component_diagram(
         cd = ComponentDiagram(input_path, "unused")
         errors = cd.validate()
 
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors
-        }
+        return {"valid": len(errors) == 0, "errors": errors}
 
     except ComponentDiagramError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -228,6 +219,7 @@ async def validate_component_diagram(
 # Dependency Graph Endpoints
 # =============================================================================
 
+
 @router.post(
     "/visualize/dependency-graph",
     summary="Generate dependency graph visualization",
@@ -239,9 +231,9 @@ async def validate_component_diagram(
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated visualization image"
+            "description": "Generated visualization image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def visualize_dependency_graph(
@@ -282,9 +274,7 @@ async def visualize_dependency_graph(
 
         dg = DependencyGraph(input_for_viz, output_base, format=format.value, styleid=style.value)
         await run_sync_with_timeout(
-            dg.BuildDependencyGraph,
-            REQUEST_TIMEOUT_VISUALIZE,
-            "dependency graph visualization"
+            dg.BuildDependencyGraph, REQUEST_TIMEOUT_VISUALIZE, "dependency graph visualization"
         )
 
         output_path = f"{output_base}.{format.value}"
@@ -314,9 +304,7 @@ async def visualize_dependency_graph(
 
 
 @router.post(
-    "/analyze/dependency-graph",
-    response_model=DependencyGraphStats,
-    summary="Analyze dependency graph structure"
+    "/analyze/dependency-graph", response_model=DependencyGraphStats, summary="Analyze dependency graph structure"
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_dependency_graph(
@@ -361,10 +349,7 @@ async def analyze_dependency_graph(
         cleanup_files(input_path)
 
 
-@router.post(
-    "/validate/dependency-graph",
-    summary="Validate dependency graph structure"
-)
+@router.post("/validate/dependency-graph", summary="Validate dependency graph structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def validate_dependency_graph(
     request: Request,
@@ -386,10 +371,7 @@ async def validate_dependency_graph(
         dg = DependencyGraph(input_path, "unused")
         errors = dg.validate()
 
-        return {
-            "valid": len(errors) == 0,
-            "errors": errors
-        }
+        return {"valid": len(errors) == 0, "errors": errors}
 
     except DependencyGraphError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

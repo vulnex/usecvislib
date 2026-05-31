@@ -75,19 +75,17 @@ from .custom import (
 from .registry import ShapeRegistry
 
 __all__ = [
+    "GRAPHVIZ_SHAPES",
+    "STANDARD_PORTS",
+    "CustomShapeError",
+    # Custom shapes
+    "CustomShapeLoader",
+    "Port",
     # Base types
     "Shape",
     "ShapeCategory",
-    "Port",
-    "STANDARD_PORTS",
-    "GRAPHVIZ_SHAPES",
-
     # Registry
     "ShapeRegistry",
-
-    # Custom shapes
-    "CustomShapeLoader",
-    "CustomShapeError",
     "register_custom_shapes",
 ]
 

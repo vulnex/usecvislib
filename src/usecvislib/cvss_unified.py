@@ -166,10 +166,7 @@ def validate_vector(vector_string: str) -> tuple[bool, Optional[str]]:
         return False, f"Unrecognized CVSS version in vector: {vector_string}"
 
 
-def get_cvss_score_unified(
-    cvss_value: Any,
-    cvss_vector: Optional[str] = None
-) -> tuple[Optional[float], Optional[str]]:
+def get_cvss_score_unified(cvss_value: Any, cvss_vector: Optional[str] = None) -> tuple[Optional[float], Optional[str]]:
     """Get CVSS score from either a numeric value or vector string (any version).
 
     This is the main entry point for CVSS score resolution. It handles:

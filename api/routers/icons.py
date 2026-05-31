@@ -49,7 +49,7 @@ def _scan_bundled_icons(category: Optional[str] = None) -> list[dict]:
             continue
 
         # Walk through all subdirectories recursively
-        for root, dirs, files in os.walk(cat_dir):
+        for root, _dirs, files in os.walk(cat_dir):
             for filename in files:
                 ext = os.path.splitext(filename)[1].lower()
                 if ext not in BUNDLED_ICON_EXTENSIONS:
@@ -75,24 +75,22 @@ def _scan_bundled_icons(category: Optional[str] = None) -> list[dict]:
                 except OSError:
                     size = 0
 
-                icons.append({
-                    "id": icon_id,
-                    "name": name,
-                    "category": cat,
-                    "subcategory": subcategory,
-                    "filename": filename,
-                    "format": ext[1:],  # Remove the leading dot
-                    "size": size
-                })
+                icons.append(
+                    {
+                        "id": icon_id,
+                        "name": name,
+                        "category": cat,
+                        "subcategory": subcategory,
+                        "filename": filename,
+                        "format": ext[1:],  # Remove the leading dot
+                        "size": size,
+                    }
+                )
 
     return icons
 
 
-@router.get(
-    "/icons",
-    response_model=BundledIconsListResponse,
-    summary="List bundled icons"
-)
+@router.get("/icons", response_model=BundledIconsListResponse, summary="List bundled icons")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def list_bundled_icons(
     request: Request,
@@ -100,7 +98,7 @@ async def list_bundled_icons(
     subcategory: Optional[str] = Query(None, description="Filter by subcategory (e.g., Compute, Database)"),
     search: Optional[str] = Query(None, description="Search icons by name (case-insensitive)"),
     page: int = Query(1, ge=1, description="Page number"),
-    page_size: int = Query(50, ge=10, le=200, description="Icons per page (10-200)")
+    page_size: int = Query(50, ge=10, le=200, description="Icons per page (10-200)"),
 ):
     """
     List bundled icons with pagination, filtering, and search.
@@ -115,8 +113,7 @@ async def list_bundled_icons(
     """
     if category and category not in BUNDLED_ICON_CATEGORIES:
         raise HTTPException(
-            status_code=400,
-            detail=f"Invalid category. Available categories: {', '.join(BUNDLED_ICON_CATEGORIES)}"
+            status_code=400, detail=f"Invalid category. Available categories: {', '.join(BUNDLED_ICON_CATEGORIES)}"
         )
 
     # Get all icons for the category (or all categories)
@@ -130,17 +127,17 @@ async def list_bundled_icons(
     if search:
         search_lower = search.lower()
         all_icons = [
-            icon for icon in all_icons
-            if search_lower in icon["name"].lower() or
-               search_lower in icon.get("subcategory", "").lower() or
-               search_lower in icon["id"].lower()
+            icon
+            for icon in all_icons
+            if search_lower in icon["name"].lower()
+            or search_lower in icon.get("subcategory", "").lower()
+            or search_lower in icon["id"].lower()
         ]
 
     # Get unique subcategories for the filtered results
-    subcategories = sorted(set(
-        icon.get("subcategory") for icon in _scan_bundled_icons(category)
-        if icon.get("subcategory")
-    ))
+    subcategories = sorted(
+        {icon.get("subcategory") for icon in _scan_bundled_icons(category) if icon.get("subcategory")}
+    )
 
     # Calculate pagination
     total = len(all_icons)
@@ -157,15 +154,11 @@ async def list_bundled_icons(
         page=page,
         page_size=page_size,
         total_pages=total_pages,
-        has_more=page < total_pages
+        has_more=page < total_pages,
     )
 
 
-@router.get(
-    "/icons/categories",
-    response_model=BundledIconsCategoriesResponse,
-    summary="List icon categories"
-)
+@router.get("/icons/categories", response_model=BundledIconsCategoriesResponse, summary="List icon categories")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def list_icon_categories(request: Request):
     """
@@ -176,21 +169,12 @@ async def list_icon_categories(request: Request):
         icons = _scan_bundled_icons(cat)
         counts[cat] = len(icons)
 
-    return BundledIconsCategoriesResponse(
-        categories=BUNDLED_ICON_CATEGORIES,
-        counts=counts
-    )
+    return BundledIconsCategoriesResponse(categories=BUNDLED_ICON_CATEGORIES, counts=counts)
 
 
-@router.get(
-    "/icons/{icon_path:path}",
-    summary="Get a bundled icon"
-)
+@router.get("/icons/{icon_path:path}", summary="Get a bundled icon")
 @limiter.limit(RATE_LIMIT_DEFAULT)
-async def get_bundled_icon(
-    request: Request,
-    icon_path: str
-):
+async def get_bundled_icon(request: Request, icon_path: str):
     """
     Download a bundled icon by its path.
 
@@ -205,7 +189,7 @@ async def get_bundled_icon(
     """
     # SECURITY: Comprehensive path traversal prevention
     # Check for various bypass attempts including URL-encoded sequences
-    dangerous_patterns = ['..', '%2e', '%2f', '%5c', '\x00', '\\']
+    dangerous_patterns = ["..", "%2e", "%2f", "%5c", "\x00", "\\"]
     icon_path_lower = icon_path.lower()
     for pattern in dangerous_patterns:
         if pattern in icon_path_lower:
@@ -222,13 +206,12 @@ async def get_bundled_icon(
     # Validate category
     if category not in BUNDLED_ICON_CATEGORIES:
         raise HTTPException(
-            status_code=400,
-            detail=f"Invalid category. Available categories: {', '.join(BUNDLED_ICON_CATEGORIES)}"
+            status_code=400, detail=f"Invalid category. Available categories: {', '.join(BUNDLED_ICON_CATEGORIES)}"
         )
 
     # SECURITY: Validate each path component
     for part in parts:
-        if not part or part.startswith('.'):
+        if not part or part.startswith("."):
             raise HTTPException(status_code=400, detail="Invalid icon path")
 
     # Reconstruct the relative path (everything after category)
@@ -270,12 +253,8 @@ async def get_bundled_icon(
         ".svg": "image/svg+xml",
         ".jpg": "image/jpeg",
         ".jpeg": "image/jpeg",
-        ".gif": "image/gif"
+        ".gif": "image/gif",
     }
     content_type = content_types.get(ext, "application/octet-stream")
 
-    return FileResponse(
-        path=icon_file_path,
-        media_type=content_type,
-        filename=os.path.basename(icon_file_path)
-    )
+    return FileResponse(path=icon_file_path, media_type=content_type, filename=os.path.basename(icon_file_path))

@@ -35,18 +35,15 @@ from .schemas import OutputFormat
 
 logger = logging.getLogger("usecvislib.api")
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 # =============================================================================
 # Timeout Helpers
 # =============================================================================
 
-async def run_with_timeout(
-    coro: Coroutine[Any, Any, T],
-    timeout_seconds: int,
-    operation_name: str = "operation"
-) -> T:
+
+async def run_with_timeout(coro: Coroutine[Any, Any, T], timeout_seconds: int, operation_name: str = "operation") -> T:
     """Run a coroutine with a timeout.
 
     SECURITY: Prevents resource exhaustion from slow/complex operations.
@@ -67,17 +64,12 @@ async def run_with_timeout(
     except asyncio.TimeoutError:
         logger.warning(f"Request timeout: {operation_name} exceeded {timeout_seconds}s")
         raise HTTPException(
-            status_code=504,
-            detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
+            status_code=504, detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
         ) from None
 
 
 async def run_sync_with_timeout(
-    func: Callable[..., T],
-    timeout_seconds: int,
-    operation_name: str = "operation",
-    *args,
-    **kwargs
+    func: Callable[..., T], timeout_seconds: int, operation_name: str = "operation", *args, **kwargs
 ) -> T:
     """Run a synchronous function in a thread pool with timeout.
 
@@ -97,15 +89,11 @@ async def run_sync_with_timeout(
         HTTPException: 504 Gateway Timeout if operation exceeds timeout
     """
     try:
-        return await asyncio.wait_for(
-            asyncio.to_thread(func, *args, **kwargs),
-            timeout=timeout_seconds
-        )
+        return await asyncio.wait_for(asyncio.to_thread(func, *args, **kwargs), timeout=timeout_seconds)
     except asyncio.TimeoutError:
         logger.warning(f"Request timeout: {operation_name} exceeded {timeout_seconds}s")
         raise HTTPException(
-            status_code=504,
-            detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
+            status_code=504, detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
         ) from None
 
 
@@ -121,27 +109,27 @@ def with_timeout(timeout_seconds: int, operation_name: str = "operation"):
     Returns:
         Decorated function with timeout enforcement
     """
+
     def decorator(func: Callable[..., Coroutine[Any, Any, T]]) -> Callable[..., Coroutine[Any, Any, T]]:
         @wraps(func)
         async def wrapper(*args, **kwargs) -> T:
             try:
-                return await asyncio.wait_for(
-                    func(*args, **kwargs),
-                    timeout=timeout_seconds
-                )
+                return await asyncio.wait_for(func(*args, **kwargs), timeout=timeout_seconds)
             except asyncio.TimeoutError:
                 logger.warning(f"Request timeout: {operation_name} exceeded {timeout_seconds}s")
                 raise HTTPException(
-                    status_code=504,
-                    detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
+                    status_code=504, detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
                 ) from None
+
         return wrapper
+
     return decorator
 
 
 # =============================================================================
 # Validation Helpers
 # =============================================================================
+
 
 def validate_uuid_format(value: str) -> bool:
     """Validate that a string is a valid UUID format.
@@ -167,18 +155,16 @@ def validate_path_component(component: str) -> bool:
     if not component:
         return False
     # Check for path traversal attempts
-    if '..' in component:
+    if ".." in component:
         return False
     # Check for absolute path indicators
-    if component.startswith('/') or component.startswith('\\'):
+    if component.startswith("/") or component.startswith("\\"):
         return False
     # Check for URL-encoded traversal
-    if '%2e' in component.lower() or '%2f' in component.lower():
+    if "%2e" in component.lower() or "%2f" in component.lower():
         return False
     # Check for null bytes
-    if '\x00' in component:
-        return False
-    return True
+    return "\x00" not in component
 
 
 def validate_path_within_directory(path: Path, base_dir: Path) -> bool:
@@ -237,18 +223,16 @@ def sanitize_filename_for_log(filename: str) -> str:
     if len(filename) > 100:
         filename = filename[:97] + "..."
     # Remove control characters and newlines (log injection prevention)
-    sanitized = "".join(
-        c if c.isprintable() and c not in '\r\n\t' else '_'
-        for c in filename
-    )
+    sanitized = "".join(c if c.isprintable() and c not in "\r\n\t" else "_" for c in filename)
     # Escape any remaining special log format characters
-    sanitized = sanitized.replace('%', '%%')
+    sanitized = sanitized.replace("%", "%%")
     return sanitized
 
 
 # =============================================================================
 # Image Helper Functions
 # =============================================================================
+
 
 def is_valid_image(content: bytes, claimed_type: str) -> bool:
     """Validate image content by checking magic bytes.
@@ -266,22 +250,22 @@ def is_valid_image(content: bytes, claimed_type: str) -> bool:
     """
     # Check magic bytes FIRST (defense-in-depth: verify actual content before trusting claimed type)
     magic_match = False
-    for magic, detected_type in IMAGE_MAGIC_BYTES.items():
+    for magic, _detected_type in IMAGE_MAGIC_BYTES.items():
         if content.startswith(magic):
             magic_match = True
             break
 
     # For SVG, check for XML/SVG content with XXE prevention
-    if claimed_type == 'image/svg+xml':
+    if claimed_type == "image/svg+xml":
         try:
-            text = content.decode('utf-8', errors='ignore')
+            text = content.decode("utf-8", errors="ignore")
             text_lower = text.lower()
             # SECURITY: Scan entire content for DTD/entity declarations (XXE vectors)
-            if '<!doctype' in text_lower or '<!entity' in text_lower:
+            if "<!doctype" in text_lower or "<!entity" in text_lower:
                 return False
             # Check header for valid SVG/XML markers
             header_lower = text_lower[:4000]
-            return '<svg' in header_lower or '<?xml' in header_lower
+            return "<svg" in header_lower or "<?xml" in header_lower
         except Exception:
             return False
 
@@ -294,7 +278,7 @@ def get_image_content_type(filepath: str) -> str:
     for content_type, file_ext in IMAGE_ALLOWED_TYPES.items():
         if file_ext == ext:
             return content_type
-    return 'application/octet-stream'
+    return "application/octet-stream"
 
 
 def get_user_namespace(api_key: Optional[str]) -> str:
@@ -312,7 +296,8 @@ def get_user_namespace(api_key: Optional[str]) -> str:
     if not api_key:
         return "shared"
     import hashlib
-    key_hash = hashlib.sha256(api_key.encode('utf-8')).hexdigest()
+
+    key_hash = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
     return key_hash[:12]
 
 
@@ -392,6 +377,7 @@ def resolve_image_references(data: dict) -> dict:
     Returns:
         Modified configuration dictionary
     """
+
     def process_node_attrs(attrs: dict) -> None:
         """Process node attributes, resolving image_id if present."""
         if not isinstance(attrs, dict):
@@ -407,7 +393,7 @@ def resolve_image_references(data: dict) -> dict:
 
     # Attack Trees - nodes dict
     if "nodes" in data and isinstance(data["nodes"], dict):
-        for node_id, attrs in data["nodes"].items():
+        for _node_id, attrs in data["nodes"].items():
             process_node_attrs(attrs)
 
     # Attack Graphs - hosts, vulnerabilities, privileges, services (can be dict or list)
@@ -415,7 +401,7 @@ def resolve_image_references(data: dict) -> dict:
         if section in data:
             section_data = data[section]
             if isinstance(section_data, dict):
-                for item_id, attrs in section_data.items():
+                for _item_id, attrs in section_data.items():
                     process_node_attrs(attrs)
             elif isinstance(section_data, list):
                 for item in section_data:
@@ -424,7 +410,7 @@ def resolve_image_references(data: dict) -> dict:
     # Threat Models - processes, datastores, externals dicts
     for section in ["processes", "datastores", "externals"]:
         if section in data and isinstance(data[section], dict):
-            for item_id, attrs in data[section].items():
+            for _item_id, attrs in data[section].items():
                 process_node_attrs(attrs)
 
     # Custom Diagrams - nodes list
@@ -438,6 +424,7 @@ def resolve_image_references(data: dict) -> dict:
 # =============================================================================
 # File Helper Functions
 # =============================================================================
+
 
 def get_content_type(format: OutputFormat) -> str:
     """Get MIME content type for output format."""
@@ -478,7 +465,7 @@ def validate_config_file_extension(filename: str) -> None:
         logger.warning(f"File rejected: unsupported extension={ext}, name={sanitize_filename_for_log(filename)}")
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported file format. Supported formats: {', '.join(sorted(SUPPORTED_CONFIG_EXTENSIONS))}"
+            detail=f"Unsupported file format. Supported formats: {', '.join(sorted(SUPPORTED_CONFIG_EXTENSIONS))}",
         )
 
 
@@ -494,17 +481,17 @@ def write_config_file(filepath: str, data: dict, ext: str) -> None:
     import yaml
 
     ext_lower = ext.lower()
-    with open(filepath, 'w') as f:
-        if ext_lower == '.json':
+    with open(filepath, "w") as f:
+        if ext_lower == ".json":
             json.dump(data, f, indent=2)
-        elif ext_lower in ('.yaml', '.yml'):
+        elif ext_lower in (".yaml", ".yml"):
             # SECURITY: Use SafeDumper to prevent serialization of arbitrary Python objects
             yaml.dump(data, f, default_flow_style=False, Dumper=yaml.SafeDumper)
         else:  # .toml, .tml or default
             toml.dump(data, f)
 
 
-def save_upload_file(upload_file: UploadFile, suffix: str = None, max_size: int = MAX_CONFIG_FILE_SIZE) -> str:
+def save_upload_file(upload_file: UploadFile, suffix: str | None = None, max_size: int = MAX_CONFIG_FILE_SIZE) -> str:
     """Save uploaded file to temp directory and return path.
 
     Args:
@@ -526,10 +513,11 @@ def save_upload_file(upload_file: UploadFile, suffix: str = None, max_size: int 
     file_size = len(content)
 
     if file_size > max_size:
-        logger.warning(f"File rejected: size={file_size} bytes, max={max_size} bytes, name={sanitize_filename_for_log(upload_file.filename)}")
+        logger.warning(
+            f"File rejected: size={file_size} bytes, max={max_size} bytes, name={sanitize_filename_for_log(upload_file.filename)}"
+        )
         raise HTTPException(
-            status_code=413,
-            detail=f"File too large. Maximum size is {max_size // 1024 // 1024}MB for this file type."
+            status_code=413, detail=f"File too large. Maximum size is {max_size // 1024 // 1024}MB for this file type."
         )
 
     with open(temp_path, "wb") as f:
@@ -569,8 +557,7 @@ def _cleanup_old_progress_entries() -> int:
     """
     now = time.time()
     expired_keys = [
-        job_id for job_id, data in _progress_store.items()
-        if now - data.get("timestamp", 0) > PROGRESS_ENTRY_TTL
+        job_id for job_id, data in _progress_store.items() if now - data.get("timestamp", 0) > PROGRESS_ENTRY_TTL
     ]
     for job_id in expired_keys:
         _progress_store.pop(job_id, None)
@@ -610,7 +597,7 @@ def update_progress(job_id: str, step: str, progress: int, total: int = 100, sta
         "total": total,
         "percentage": round((progress / total) * 100, 1) if total > 0 else 0,
         "status": status,
-        "timestamp": time.time()
+        "timestamp": time.time(),
     }
 
 
@@ -628,21 +615,23 @@ def clear_progress(job_id: str):
 # Template Helpers
 # =============================================================================
 
+
 def get_template_format(filename: str) -> str:
     """Get the format type for a template file."""
     ext = os.path.splitext(filename.lower())[1]
-    if ext in ('.tml', '.toml'):
-        return 'toml'
-    elif ext == '.json':
-        return 'json'
-    elif ext in ('.yaml', '.yml'):
-        return 'yaml'
-    return 'toml'
+    if ext in (".tml", ".toml"):
+        return "toml"
+    elif ext == ".json":
+        return "json"
+    elif ext in (".yaml", ".yml"):
+        return "yaml"
+    return "toml"
 
 
 # =============================================================================
 # Background Cleanup Tasks
 # =============================================================================
+
 
 async def cleanup_old_images():
     """Background task to clean up old uploaded images.

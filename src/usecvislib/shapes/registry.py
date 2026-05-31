@@ -137,10 +137,7 @@ class ShapeRegistry:
                 try:
                     category = ShapeCategory(category_str)
                 except ValueError:
-                    logger.warning(
-                        f"Unknown category '{category_str}' for shape '{shape_id}', "
-                        f"defaulting to BASIC"
-                    )
+                    logger.warning(f"Unknown category '{category_str}' for shape '{shape_id}', defaulting to BASIC")
                     category = ShapeCategory.BASIC
 
                 shape = Shape(
@@ -152,7 +149,7 @@ class ShapeRegistry:
                     default_style=shape_def.get("default_style", {}),
                     icon=shape_def.get("icon", ""),
                     ports=shape_def.get("ports", ["n", "s", "e", "w"]),
-                    tags=shape_def.get("tags", [])
+                    tags=shape_def.get("tags", []),
                 )
                 self.register_shape(shape)
                 count += 1
@@ -243,10 +240,7 @@ class ShapeRegistry:
         Returns:
             List of ShapeCategory values
         """
-        return sorted(
-            [cat for cat in self._categories.keys() if self._categories[cat]],
-            key=lambda c: c.value
-        )
+        return sorted([cat for cat in self._categories if self._categories[cat]], key=lambda c: c.value)
 
     def count_shapes(self, category: Optional[ShapeCategory] = None) -> int:
         """Count shapes, optionally by category.
@@ -305,16 +299,9 @@ class ShapeRegistry:
             List of shapes with the tag
         """
         tag = tag.lower()
-        return [
-            shape for shape in self._shapes.values()
-            if any(tag == t.lower() for t in shape.tags)
-        ]
+        return [shape for shape in self._shapes.values() if any(tag == t.lower() for t in shape.tags)]
 
-    def get_graphviz_attrs(
-        self,
-        shape_id: str,
-        style_overrides: Optional[dict[str, str]] = None
-    ) -> dict[str, str]:
+    def get_graphviz_attrs(self, shape_id: str, style_overrides: Optional[dict[str, str]] = None) -> dict[str, str]:
         """Get Graphviz attributes for rendering a shape.
 
         Merges the shape's graphviz attributes with default_style,
@@ -362,18 +349,14 @@ class ShapeRegistry:
         Returns:
             Dictionary with gallery statistics and category breakdown
         """
-        category_counts = {
-            cat.value: len(shapes)
-            for cat, shapes in self._categories.items()
-            if shapes
-        }
+        category_counts = {cat.value: len(shapes) for cat, shapes in self._categories.items() if shapes}
 
         return {
             "total_shapes": len(self._shapes),
             "categories": len(category_counts),
             "category_counts": category_counts,
             "custom_shapes": sum(1 for s in self._shapes.values() if s.custom),
-            "loaded": self._loaded
+            "loaded": self._loaded,
         }
 
     def export_gallery(self) -> dict[str, list[dict[str, Any]]]:

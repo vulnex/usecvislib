@@ -29,6 +29,7 @@ from .base import VisualizationBase
 
 class DependencyGraphError(utils.RenderError):
     """Exception raised for dependency graph generation errors."""
+
     pass
 
 
@@ -43,7 +44,7 @@ class DependencyGraph(VisualizationBase):
 
     STYLE_FILE = "config_dependencygraph.tml"
     DEFAULT_STYLE_ID = "dg_default"
-    ALLOWED_EXTENSIONS = ['.toml', '.tml', '.json', '.yaml', '.yml']
+    ALLOWED_EXTENSIONS = [".toml", ".tml", ".json", ".yaml", ".yml"]
     MAX_INPUT_SIZE = 10 * 1024 * 1024
 
     # Group colors for internal modules
@@ -73,19 +74,16 @@ class DependencyGraph(VisualizationBase):
         "heavy": "3",
     }
 
-    def __init__(self, inputfile: str, outputfile: str, format: str = "",
-                 styleid: str = "", validate_paths: bool = True) -> None:
+    def __init__(
+        self, inputfile: str, outputfile: str, format: str = "", styleid: str = "", validate_paths: bool = True
+    ) -> None:
         if format == "":
             format = "png"
         if styleid == "":
             styleid = None
 
         super().__init__(
-            inputfile=inputfile,
-            outputfile=outputfile,
-            format=format,
-            styleid=styleid,
-            validate_paths=validate_paths
+            inputfile=inputfile, outputfile=outputfile, format=format, styleid=styleid, validate_paths=validate_paths
         )
 
         self.graph: Optional[Digraph] = None
@@ -96,9 +94,10 @@ class DependencyGraph(VisualizationBase):
         self._temp_input: Optional[str] = None
 
     def __del__(self):
-        if hasattr(self, '_temp_input') and self._temp_input:
+        if hasattr(self, "_temp_input") and self._temp_input:
             try:
                 import os
+
                 if os.path.exists(self._temp_input):
                     os.remove(self._temp_input)
             except Exception:
@@ -172,8 +171,10 @@ class DependencyGraph(VisualizationBase):
         self.inputdata = data
         self._normalize_data()
         self._build_circular_edges()
-        self.logger.debug(f"Loaded dependency graph with {len(self._modules)} modules, "
-                          f"{len(self._dependencies)} dependencies, {len(self._circular)} circular")
+        self.logger.debug(
+            f"Loaded dependency graph with {len(self._modules)} modules, "
+            f"{len(self._dependencies)} dependencies, {len(self._circular)} circular"
+        )
         return data
 
     def _normalize_data(self) -> None:
@@ -295,8 +296,14 @@ class DependencyGraph(VisualizationBase):
 
         self.logger.debug(f"Rendered dependency graph with {len(self._modules)} modules")
 
-    def _add_module_node(self, graph: Digraph, mod_id: str, mod_data: dict[str, Any],
-                         module_style: dict[str, Any], external_style: dict[str, Any]) -> None:
+    def _add_module_node(
+        self,
+        graph: Digraph,
+        mod_id: str,
+        mod_data: dict[str, Any],
+        module_style: dict[str, Any],
+        external_style: dict[str, Any],
+    ) -> None:
         """Add a module node to the graph."""
         mod_name = mod_data.get("name", mod_id)
         mod_type = mod_data.get("type", "internal")

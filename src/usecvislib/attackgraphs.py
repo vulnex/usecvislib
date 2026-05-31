@@ -52,6 +52,7 @@ from .settings import is_cvss_enabled
 
 class AttackGraphError(utils.RenderError):
     """Exception raised for attack graph generation errors."""
+
     pass
 
 
@@ -77,24 +78,14 @@ class AttackGraphs(VisualizationBase):
     # Configuration for base class
     STYLE_FILE = "config_attackgraphs.tml"
     DEFAULT_STYLE_ID = "ag_default"
-    ALLOWED_EXTENSIONS = ['.toml', '.tml', '.json', '.yaml', '.yml']
+    ALLOWED_EXTENSIONS = [".toml", ".tml", ".json", ".yaml", ".yml"]
     MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10 MB
 
     # Node type prefixes for internal identification
-    NODE_TYPES = {
-        'host': 'H',
-        'vulnerability': 'V',
-        'privilege': 'P',
-        'service': 'S'
-    }
+    NODE_TYPES = {"host": "H", "vulnerability": "V", "privilege": "P", "service": "S"}
 
     def __init__(
-        self,
-        inputfile: str,
-        outputfile: str,
-        format: str = "",
-        styleid: str = "",
-        validate_paths: bool = True
+        self, inputfile: str, outputfile: str, format: str = "", styleid: str = "", validate_paths: bool = True
     ) -> None:
         """Initialize AttackGraphs with input/output paths and styling options.
 
@@ -118,11 +109,7 @@ class AttackGraphs(VisualizationBase):
 
         # Initialize base class
         super().__init__(
-            inputfile=inputfile,
-            outputfile=outputfile,
-            format=format,
-            styleid=styleid,
-            validate_paths=validate_paths
+            inputfile=inputfile, outputfile=outputfile, format=format, styleid=styleid, validate_paths=validate_paths
         )
 
         # Attack graph specific state
@@ -148,9 +135,10 @@ class AttackGraphs(VisualizationBase):
         This ensures temp files created by AttackGraphBuilder are properly
         cleaned up even if an exception occurs during processing.
         """
-        if hasattr(self, '_temp_input') and self._temp_input:
+        if hasattr(self, "_temp_input") and self._temp_input:
             try:
                 import os
+
                 if os.path.exists(self._temp_input):
                     os.remove(self._temp_input)
             except Exception:
@@ -163,55 +151,38 @@ class AttackGraphs(VisualizationBase):
             Dictionary with default graph, node type, and edge styles.
         """
         return {
-            "graph": {
-                "rankdir": "LR",
-                "bgcolor": "white",
-                "fontname": "Arial",
-                "splines": "ortho"
-            },
+            "graph": {"rankdir": "LR", "bgcolor": "white", "fontname": "Arial", "splines": "ortho"},
             "host": {
                 "shape": "box3d",
                 "style": "filled",
                 "fillcolor": "#4a90d9",
                 "fontcolor": "white",
-                "fontname": "Arial"
+                "fontname": "Arial",
             },
             "vulnerability": {
                 "shape": "diamond",
                 "style": "filled",
                 "fillcolor": "#e74c3c",
                 "fontcolor": "white",
-                "fontname": "Arial"
+                "fontname": "Arial",
             },
             "privilege": {
                 "shape": "ellipse",
                 "style": "filled",
                 "fillcolor": "#f39c12",
                 "fontcolor": "white",
-                "fontname": "Arial"
+                "fontname": "Arial",
             },
             "service": {
                 "shape": "component",
                 "style": "filled",
                 "fillcolor": "#27ae60",
                 "fontcolor": "white",
-                "fontname": "Arial"
-            },
-            "edge": {
-                "color": "#34495e",
                 "fontname": "Arial",
-                "fontsize": "10"
             },
-            "network_edge": {
-                "color": "#3498db",
-                "style": "dashed",
-                "fontname": "Arial"
-            },
-            "exploit_edge": {
-                "color": "#e74c3c",
-                "style": "bold",
-                "fontname": "Arial"
-            }
+            "edge": {"color": "#34495e", "fontname": "Arial", "fontsize": "10"},
+            "network_edge": {"color": "#3498db", "style": "dashed", "fontname": "Arial"},
+            "exploit_edge": {"color": "#e74c3c", "style": "bold", "fontname": "Arial"},
         }
 
     def _get_metadata_root_key(self) -> str:
@@ -252,14 +223,14 @@ class AttackGraphs(VisualizationBase):
 
         TOML [[section]] creates lists, but we need dicts keyed by 'id'.
         """
-        for section in ['hosts', 'vulnerabilities', 'privileges', 'services', 'exploits', 'network_edges']:
+        for section in ["hosts", "vulnerabilities", "privileges", "services", "exploits", "network_edges"]:
             data = self.inputdata.get(section, [])
             if isinstance(data, list):
                 # Convert list of dicts to dict keyed by 'id'
                 normalized = {}
                 for item in data:
                     if isinstance(item, dict):
-                        item_id = item.get('id', f'item_{len(normalized)}')
+                        item_id = item.get("id", f"item_{len(normalized)}")
                         normalized[item_id] = item
                 self.inputdata[section] = normalized
 
@@ -273,11 +244,11 @@ class AttackGraphs(VisualizationBase):
         self._normalize_data()
 
         # Add all nodes
-        for node_type in ['hosts', 'vulnerabilities', 'privileges', 'services']:
+        for node_type in ["hosts", "vulnerabilities", "privileges", "services"]:
             nodes = self.inputdata.get(node_type, {})
-            type_key = node_type.rstrip('s')  # 'hosts' -> 'host'
-            if type_key == 'vulnerabilitie':
-                type_key = 'vulnerability'
+            type_key = node_type.rstrip("s")  # 'hosts' -> 'host'
+            if type_key == "vulnerabilitie":
+                type_key = "vulnerability"
             for node_id in nodes:
                 self._adjacency[node_id] = set()
                 self._reverse_adjacency[node_id] = set()
@@ -285,7 +256,7 @@ class AttackGraphs(VisualizationBase):
 
         # Add network edges from network_edges array format
         network_edges = self.inputdata.get("network_edges", {})
-        for edge_id, edge_data in network_edges.items():
+        for _edge_id, edge_data in network_edges.items():
             source = edge_data.get("from")
             target = edge_data.get("to")
             if source and target:
@@ -387,10 +358,7 @@ class AttackGraphs(VisualizationBase):
         vulnerabilities = self.inputdata.get("vulnerabilities", {})
         for vuln_id, vuln_data in vulnerabilities.items():
             if vuln_id in self._nx_graph:
-                score, _ = get_cvss_score(
-                    vuln_data.get("cvss"),
-                    vuln_data.get("cvss_vector")
-                )
+                score, _ = get_cvss_score(vuln_data.get("cvss"), vuln_data.get("cvss_vector"))
                 self._nx_graph.nodes[vuln_id]["cvss"] = score if score is not None else 5.0
 
         # Add host metadata
@@ -435,7 +403,8 @@ class AttackGraphs(VisualizationBase):
             len(self.inputdata.get("network_edges", {}))
             + sum(len(v) if isinstance(v, list) else 0 for v in self.inputdata.get("network", {}).values())
             + sum(len(e.get("preconditions", [])) + len(e.get("postconditions", [])) for e in exploits.values())
-            + len(vulns) + len(services)  # host-vuln and host-svc links
+            + len(vulns)
+            + len(services)  # host-vuln and host-svc links
         )
         utils.check_graph_complexity(total_nodes, total_edges)
 
@@ -449,10 +418,7 @@ class AttackGraphs(VisualizationBase):
         exploit_edge_style = self.style.get("exploit_edge", self._default_style()["exploit_edge"])
 
         # Create the graph
-        self.graph = Digraph(
-            name=graph_meta.get("name", "Attack Graph"),
-            format=self.format
-        )
+        self.graph = Digraph(name=graph_meta.get("name", "Attack Graph"), format=self.format)
 
         # Apply graph attributes
         graph_attrs = utils.stringify_dict(graph_style)
@@ -467,12 +433,12 @@ class AttackGraphs(VisualizationBase):
         for host_id, host_data in hosts.items():
             node_attrs = host_data.copy() if isinstance(host_data, dict) else {}
             # Check if node has an image and if user wants a styled background
-            has_image = 'image' in node_attrs and node_attrs['image']
-            host_user_shape = host_data.get('shape', '') if isinstance(host_data, dict) else ''
-            host_user_style = host_data.get('style', '') if isinstance(host_data, dict) else ''
-            host_user_fillcolor = host_data.get('fillcolor', '') if isinstance(host_data, dict) else ''
-            host_wants_no_bg = host_user_shape in ('none', 'plaintext', 'point')
-            host_wants_bg = ('filled' in str(host_user_style).lower()) or bool(host_user_fillcolor)
+            has_image = "image" in node_attrs and node_attrs["image"]
+            host_user_shape = host_data.get("shape", "") if isinstance(host_data, dict) else ""
+            host_user_style = host_data.get("style", "") if isinstance(host_data, dict) else ""
+            host_user_fillcolor = host_data.get("fillcolor", "") if isinstance(host_data, dict) else ""
+            host_wants_no_bg = host_user_shape in ("none", "plaintext", "point")
+            host_wants_bg = ("filled" in str(host_user_style).lower()) or bool(host_user_fillcolor)
             host_has_visible_shape = bool(host_user_shape) and not host_wants_no_bg
             user_set_shape = (host_has_visible_shape or host_wants_bg) and not host_wants_no_bg
             # Merge default style first, then process image (so image can override shape)
@@ -494,12 +460,12 @@ class AttackGraphs(VisualizationBase):
         for vuln_id, vuln_data in vulnerabilities.items():
             node_attrs = vuln_data.copy() if isinstance(vuln_data, dict) else {}
             # Check if node has an image and if user wants a styled background
-            has_image = 'image' in node_attrs and node_attrs['image']
-            vuln_user_shape = vuln_data.get('shape', '') if isinstance(vuln_data, dict) else ''
-            vuln_user_style = vuln_data.get('style', '') if isinstance(vuln_data, dict) else ''
-            vuln_user_fillcolor = vuln_data.get('fillcolor', '') if isinstance(vuln_data, dict) else ''
-            vuln_wants_no_bg = vuln_user_shape in ('none', 'plaintext', 'point')
-            vuln_wants_bg = ('filled' in str(vuln_user_style).lower()) or bool(vuln_user_fillcolor)
+            has_image = "image" in node_attrs and node_attrs["image"]
+            vuln_user_shape = vuln_data.get("shape", "") if isinstance(vuln_data, dict) else ""
+            vuln_user_style = vuln_data.get("style", "") if isinstance(vuln_data, dict) else ""
+            vuln_user_fillcolor = vuln_data.get("fillcolor", "") if isinstance(vuln_data, dict) else ""
+            vuln_wants_no_bg = vuln_user_shape in ("none", "plaintext", "point")
+            vuln_wants_bg = ("filled" in str(vuln_user_style).lower()) or bool(vuln_user_fillcolor)
             vuln_has_visible_shape = bool(vuln_user_shape) and not vuln_wants_no_bg
             user_set_shape = (vuln_has_visible_shape or vuln_wants_bg) and not vuln_wants_no_bg
             # Merge default style first, then process image (so image can override shape)
@@ -549,12 +515,12 @@ class AttackGraphs(VisualizationBase):
         for priv_id, priv_data in privileges.items():
             node_attrs = priv_data.copy() if isinstance(priv_data, dict) else {}
             # Check if node has an image and if user wants a styled background
-            has_image = 'image' in node_attrs and node_attrs['image']
-            priv_user_shape = priv_data.get('shape', '') if isinstance(priv_data, dict) else ''
-            priv_user_style = priv_data.get('style', '') if isinstance(priv_data, dict) else ''
-            priv_user_fillcolor = priv_data.get('fillcolor', '') if isinstance(priv_data, dict) else ''
-            priv_wants_no_bg = priv_user_shape in ('none', 'plaintext', 'point')
-            priv_wants_bg = ('filled' in str(priv_user_style).lower()) or bool(priv_user_fillcolor)
+            has_image = "image" in node_attrs and node_attrs["image"]
+            priv_user_shape = priv_data.get("shape", "") if isinstance(priv_data, dict) else ""
+            priv_user_style = priv_data.get("style", "") if isinstance(priv_data, dict) else ""
+            priv_user_fillcolor = priv_data.get("fillcolor", "") if isinstance(priv_data, dict) else ""
+            priv_wants_no_bg = priv_user_shape in ("none", "plaintext", "point")
+            priv_wants_bg = ("filled" in str(priv_user_style).lower()) or bool(priv_user_fillcolor)
             priv_has_visible_shape = bool(priv_user_shape) and not priv_wants_no_bg
             user_set_shape = (priv_has_visible_shape or priv_wants_bg) and not priv_wants_no_bg
             # Merge default style first, then process image (so image can override shape)
@@ -578,12 +544,12 @@ class AttackGraphs(VisualizationBase):
         for svc_id, svc_data in services.items():
             node_attrs = svc_data.copy() if isinstance(svc_data, dict) else {}
             # Check if node has an image and if user wants a styled background
-            has_image = 'image' in node_attrs and node_attrs['image']
-            svc_user_shape = svc_data.get('shape', '') if isinstance(svc_data, dict) else ''
-            svc_user_style = svc_data.get('style', '') if isinstance(svc_data, dict) else ''
-            svc_user_fillcolor = svc_data.get('fillcolor', '') if isinstance(svc_data, dict) else ''
-            svc_wants_no_bg = svc_user_shape in ('none', 'plaintext', 'point')
-            svc_wants_bg = ('filled' in str(svc_user_style).lower()) or bool(svc_user_fillcolor)
+            has_image = "image" in node_attrs and node_attrs["image"]
+            svc_user_shape = svc_data.get("shape", "") if isinstance(svc_data, dict) else ""
+            svc_user_style = svc_data.get("style", "") if isinstance(svc_data, dict) else ""
+            svc_user_fillcolor = svc_data.get("fillcolor", "") if isinstance(svc_data, dict) else ""
+            svc_wants_no_bg = svc_user_shape in ("none", "plaintext", "point")
+            svc_wants_bg = ("filled" in str(svc_user_style).lower()) or bool(svc_user_fillcolor)
             svc_has_visible_shape = bool(svc_user_shape) and not svc_wants_no_bg
             user_set_shape = (svc_has_visible_shape or svc_wants_bg) and not svc_wants_no_bg
             # Merge default style first, then process image (so image can override shape)
@@ -605,7 +571,7 @@ class AttackGraphs(VisualizationBase):
 
         # Add network edges
         network_edges = self.inputdata.get("network_edges", {})
-        for edge_id, edge_data in network_edges.items():
+        for _edge_id, edge_data in network_edges.items():
             source = edge_data.get("from")
             target = edge_data.get("to")
             if source and target:
@@ -634,7 +600,7 @@ class AttackGraphs(VisualizationBase):
                 shape="hexagon",
                 style="filled",
                 fillcolor="#9b59b6",
-                fontcolor="white"
+                fontcolor="white",
             )
 
             preconditions = exploit_data.get("preconditions", [])
@@ -656,13 +622,17 @@ class AttackGraphs(VisualizationBase):
         for vuln_id, vuln_data in vulnerabilities.items():
             host = vuln_data.get("host") or vuln_data.get("affected_host")
             if host:
-                self.graph.edge(utils.sanitize_node_id(host), utils.sanitize_node_id(vuln_id), style="dotted", color="#95a5a6")
+                self.graph.edge(
+                    utils.sanitize_node_id(host), utils.sanitize_node_id(vuln_id), style="dotted", color="#95a5a6"
+                )
 
         # Link services to hosts
         for svc_id, svc_data in services.items():
             host = svc_data.get("host")
             if host:
-                self.graph.edge(utils.sanitize_node_id(host), utils.sanitize_node_id(svc_id), style="dotted", color="#95a5a6")
+                self.graph.edge(
+                    utils.sanitize_node_id(host), utils.sanitize_node_id(svc_id), style="dotted", color="#95a5a6"
+                )
 
         self.logger.debug(f"Rendered attack graph with {len(hosts)} hosts")
 
@@ -765,7 +735,7 @@ class AttackGraphs(VisualizationBase):
 
         # Validate network_edges references
         network_edges = self.inputdata.get("network_edges", {})
-        for edge_id, edge_data in network_edges.items():
+        for _edge_id, edge_data in network_edges.items():
             source = edge_data.get("from")
             target = edge_data.get("to")
             if source and source not in all_nodes and source != "internet" and source != "attacker":
@@ -845,18 +815,12 @@ class AttackGraphs(VisualizationBase):
             "total_nodes": len(hosts) + len(vulnerabilities) + len(privileges) + len(services) + len(exploits),
             "total_edges": network_edge_count + exploit_edge_count,
             "average_cvss": round(avg_cvss, 2),
-            "critical_vulnerabilities": critical_vulns
+            "critical_vulnerabilities": critical_vulns,
         }
 
     # Attack graph specific analysis methods
 
-    def find_attack_paths(
-        self,
-        source: str,
-        target: str,
-        max_paths: int = 10,
-        max_depth: int = 20
-    ) -> list[list[str]]:
+    def find_attack_paths(self, source: str, target: str, max_paths: int = 10, max_depth: int = 20) -> list[list[str]]:
         """Find all attack paths from source to target using optimized iterative DFS.
 
         Uses an iterative approach with explicit stack for better performance
@@ -905,17 +869,12 @@ class AttackGraphs(VisualizationBase):
             for neighbor in reversed(neighbors):
                 if neighbor not in visited:
                     new_visited = visited | {neighbor}
-                    new_path = path + [neighbor]
+                    new_path = [*path, neighbor]
                     stack.append((neighbor, new_path, new_visited))
 
         return paths
 
-    def find_attack_paths_generator(
-        self,
-        source: str,
-        target: str,
-        max_depth: int = 20
-    ) -> Iterator[list[str]]:
+    def find_attack_paths_generator(self, source: str, target: str, max_depth: int = 20) -> Iterator[list[str]]:
         """Generator version for memory-efficient path enumeration.
 
         Yields paths one at a time without storing all in memory.
@@ -957,11 +916,7 @@ class AttackGraphs(VisualizationBase):
 
             for neighbor in self._adjacency.get(current, set()):
                 if neighbor not in visited:
-                    stack.append((
-                        neighbor,
-                        path + [neighbor],
-                        visited | {neighbor}
-                    ))
+                    stack.append((neighbor, [*path, neighbor], visited | {neighbor}))
 
     def shortest_path(self, source: str, target: str) -> list[str]:
         """Find shortest attack path using optimized BFS with parent pointers.
@@ -1014,10 +969,7 @@ class AttackGraphs(VisualizationBase):
         return []  # No path found
 
     def find_weighted_shortest_path(
-        self,
-        source: str,
-        target: str,
-        weight_func: Optional[callable] = None
+        self, source: str, target: str, weight_func: Optional[callable] = None
     ) -> tuple[list[str], float]:
         """Find shortest path with weights using Dijkstra's algorithm.
 
@@ -1047,7 +999,7 @@ class AttackGraphs(VisualizationBase):
             self._build_adjacency()
 
         if source not in self._adjacency and source not in self._node_types:
-            return [], float('inf')
+            return [], float("inf")
 
         # Dijkstra's algorithm with heapq
         distances: dict[str, float] = {source: 0}
@@ -1081,7 +1033,7 @@ class AttackGraphs(VisualizationBase):
                         parent[neighbor] = current
                         heapq.heappush(heap, (new_dist, neighbor))
 
-        return [], float('inf')
+        return [], float("inf")
 
     def _get_node_weight(self, node_id: str) -> float:
         """Get weight for a node based on CVSS score for vulnerabilities.
@@ -1137,20 +1089,22 @@ class AttackGraphs(VisualizationBase):
             node_type = self._node_types.get(node_id, "unknown")
 
             label = node_id
-            for section in ['hosts', 'vulnerabilities', 'privileges', 'services', 'exploits']:
+            for section in ["hosts", "vulnerabilities", "privileges", "services", "exploits"]:
                 if node_id in self.inputdata.get(section, {}):
                     label = self.inputdata[section][node_id].get("label", node_id)
                     break
 
-            node_scores.append({
-                "id": node_id,
-                "label": label,
-                "type": node_type,
-                "in_degree": in_degree,
-                "out_degree": out_degree,
-                "total_degree": total_degree,
-                "criticality_score": total_degree
-            })
+            node_scores.append(
+                {
+                    "id": node_id,
+                    "label": label,
+                    "type": node_type,
+                    "in_degree": in_degree,
+                    "out_degree": out_degree,
+                    "total_degree": total_degree,
+                    "criticality_score": total_degree,
+                }
+            )
 
         node_scores.sort(key=lambda x: x["criticality_score"], reverse=True)
 
@@ -1184,7 +1138,7 @@ class AttackGraphs(VisualizationBase):
 
     def _get_node_label(self, node_id: str) -> str:
         """Get display label for a node."""
-        for section in ['hosts', 'vulnerabilities', 'privileges', 'services', 'exploits']:
+        for section in ["hosts", "vulnerabilities", "privileges", "services", "exploits"]:
             if node_id in self.inputdata.get(section, {}):
                 return self.inputdata[section][node_id].get("label", node_id)
         return node_id
@@ -1207,12 +1161,14 @@ class AttackGraphs(VisualizationBase):
         results = []
 
         for node_id, score in centrality.items():
-            results.append({
-                "id": node_id,
-                "label": self._get_node_label(node_id),
-                "type": self._node_types.get(node_id, "unknown"),
-                "betweenness_centrality": round(score, 6)
-            })
+            results.append(
+                {
+                    "id": node_id,
+                    "label": self._get_node_label(node_id),
+                    "type": self._node_types.get(node_id, "unknown"),
+                    "betweenness_centrality": round(score, 6),
+                }
+            )
 
         results.sort(key=lambda x: x["betweenness_centrality"], reverse=True)
         return results[:top_n]
@@ -1235,12 +1191,14 @@ class AttackGraphs(VisualizationBase):
         results = []
 
         for node_id, score in centrality.items():
-            results.append({
-                "id": node_id,
-                "label": self._get_node_label(node_id),
-                "type": self._node_types.get(node_id, "unknown"),
-                "closeness_centrality": round(score, 6)
-            })
+            results.append(
+                {
+                    "id": node_id,
+                    "label": self._get_node_label(node_id),
+                    "type": self._node_types.get(node_id, "unknown"),
+                    "closeness_centrality": round(score, 6),
+                }
+            )
 
         results.sort(key=lambda x: x["closeness_centrality"], reverse=True)
         return results[:top_n]
@@ -1268,22 +1226,19 @@ class AttackGraphs(VisualizationBase):
 
         results = []
         for node_id, score in pr.items():
-            results.append({
-                "id": node_id,
-                "label": self._get_node_label(node_id),
-                "type": self._node_types.get(node_id, "unknown"),
-                "pagerank": round(score, 6)
-            })
+            results.append(
+                {
+                    "id": node_id,
+                    "label": self._get_node_label(node_id),
+                    "type": self._node_types.get(node_id, "unknown"),
+                    "pagerank": round(score, 6),
+                }
+            )
 
         results.sort(key=lambda x: x["pagerank"], reverse=True)
         return results[:top_n]
 
-    def k_shortest_paths(
-        self,
-        source: str,
-        target: str,
-        k: int = 5
-    ) -> list[list[str]]:
+    def k_shortest_paths(self, source: str, target: str, k: int = 5) -> list[list[str]]:
         """Find k shortest simple paths between source and target.
 
         Uses NetworkX's shortest_simple_paths for efficient enumeration.
@@ -1307,12 +1262,7 @@ class AttackGraphs(VisualizationBase):
         except nx.NetworkXNoPath:
             return []
 
-    def all_paths_between(
-        self,
-        source: str,
-        target: str,
-        cutoff: int = 10
-    ) -> Iterator[list[str]]:
+    def all_paths_between(self, source: str, target: str, cutoff: int = 10) -> Iterator[list[str]]:
         """Generator for all simple paths between source and target.
 
         Memory-efficient iteration over all paths up to a cutoff depth.
@@ -1394,10 +1344,7 @@ class AttackGraphs(VisualizationBase):
                 return nx.diameter(self._nx_graph)
             else:
                 # Find diameter of largest strongly connected component
-                largest_scc = max(
-                    nx.strongly_connected_components(self._nx_graph),
-                    key=len
-                )
+                largest_scc = max(nx.strongly_connected_components(self._nx_graph), key=len)
                 if len(largest_scc) > 1:
                     subgraph = self._nx_graph.subgraph(largest_scc)
                     return nx.diameter(subgraph)
@@ -1427,15 +1374,17 @@ class AttackGraphs(VisualizationBase):
                 in_deg = self._nx_graph.in_degree(node_id)
                 out_deg = self._nx_graph.out_degree(node_id)
 
-                results.append({
-                    "id": node_id,
-                    "label": self._get_node_label(node_id),
-                    "type": self._node_types.get(node_id, "unknown"),
-                    "betweenness_score": round(score, 6),
-                    "in_degree": in_deg,
-                    "out_degree": out_deg,
-                    "is_critical": score > 0.1  # Threshold for critical chokepoint
-                })
+                results.append(
+                    {
+                        "id": node_id,
+                        "label": self._get_node_label(node_id),
+                        "type": self._node_types.get(node_id, "unknown"),
+                        "betweenness_score": round(score, 6),
+                        "in_degree": in_deg,
+                        "out_degree": out_deg,
+                        "is_critical": score > 0.1,  # Threshold for critical chokepoint
+                    }
+                )
 
         results.sort(key=lambda x: x["betweenness_score"], reverse=True)
         return results[:top_n]
@@ -1460,17 +1409,18 @@ class AttackGraphs(VisualizationBase):
 
             # Entry points: no incoming edges and has outgoing edges
             # or nodes named 'internet', 'attacker', 'external'
-            is_entry = (in_degree == 0 and out_degree > 0) or \
-                       node_id.lower() in ('internet', 'attacker', 'external')
+            is_entry = (in_degree == 0 and out_degree > 0) or node_id.lower() in ("internet", "attacker", "external")
 
             if is_entry:
-                entry_points.append({
-                    "id": node_id,
-                    "label": self._get_node_label(node_id),
-                    "type": node_type,
-                    "out_degree": out_degree,
-                    "reachable_nodes": len(nx.descendants(self._nx_graph, node_id))
-                })
+                entry_points.append(
+                    {
+                        "id": node_id,
+                        "label": self._get_node_label(node_id),
+                        "type": node_type,
+                        "out_degree": out_degree,
+                        "reachable_nodes": len(nx.descendants(self._nx_graph, node_id)),
+                    }
+                )
 
         # Sort by number of reachable nodes (attack surface size)
         entry_points.sort(key=lambda x: x["reachable_nodes"], reverse=True)
@@ -1491,10 +1441,7 @@ class AttackGraphs(VisualizationBase):
         self._ensure_nx_graph()
 
         if vuln_id not in self._nx_graph:
-            return {
-                "id": vuln_id,
-                "error": "Vulnerability not found in graph"
-            }
+            return {"id": vuln_id, "error": "Vulnerability not found in graph"}
 
         # Get base CVSS score
         cvss = self._nx_graph.nodes[vuln_id].get("cvss", 5.0)
@@ -1504,10 +1451,7 @@ class AttackGraphs(VisualizationBase):
         ancestors = nx.ancestors(self._nx_graph, vuln_id)
 
         # Count high-value targets reachable from this vulnerability
-        privilege_targets = sum(
-            1 for n in descendants
-            if self._node_types.get(n) == "privilege"
-        )
+        privilege_targets = sum(1 for n in descendants if self._node_types.get(n) == "privilege")
 
         # Calculate normalized impact score
         # Base: CVSS (0-10), adjusted by reachability
@@ -1521,7 +1465,7 @@ class AttackGraphs(VisualizationBase):
             "reachable_nodes": len(descendants),
             "privilege_targets": privilege_targets,
             "attack_paths_through": len(ancestors),
-            "impact_score": round(min(impact_score, 10.0), 2)
+            "impact_score": round(min(impact_score, 10.0), 2),
         }
 
     def get_graph_metrics(self) -> dict[str, Any]:
@@ -1559,7 +1503,7 @@ class AttackGraphs(VisualizationBase):
             "largest_scc_size": len(max(sccs, key=len)) if sccs else 0,
             "num_cycles": num_cycles,
             "is_dag": nx.is_directed_acyclic_graph(self._nx_graph),
-            "node_types": type_counts
+            "node_types": type_counts,
         }
 
     # =========================================================================
@@ -1578,6 +1522,7 @@ class AttackGraphs(VisualizationBase):
             >>> md.render("output", format="svg")
         """
         from .mermaiddiagrams import MermaidDiagrams
+
         return MermaidDiagrams.from_attack_graph(self.inputfile)
 
     def to_cloud_diagram(self) -> CloudDiagrams:
@@ -1592,6 +1537,7 @@ class AttackGraphs(VisualizationBase):
             >>> cd.render("output", format="png")
         """
         from .clouddiagrams import CloudDiagrams
+
         return CloudDiagrams.from_attack_graph(self.inputfile)
 
     def export_mermaid(self, output: str) -> str:

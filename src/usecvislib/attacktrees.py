@@ -38,6 +38,7 @@ from .settings import is_cvss_enabled
 
 class AttackTreeError(utils.RenderError):
     """Exception raised for attack tree generation errors."""
+
     pass
 
 
@@ -62,24 +63,26 @@ class AttackTrees(VisualizationBase):
     # Configuration for base class
     STYLE_FILE = "config_attacktrees.tml"
     DEFAULT_STYLE_ID = "at_default"
-    ALLOWED_EXTENSIONS = ['.toml', '.tml', '.json', '.yaml', '.yml']
+    ALLOWED_EXTENSIONS = [".toml", ".tml", ".json", ".yaml", ".yml"]
     MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10 MB
 
     # Style-related attributes that should be overridden by selected style
     # When a non-default style is selected, these attributes from template nodes
     # are stripped so the style's values take precedence
     STYLE_OVERRIDE_ATTRS = {
-        'fillcolor', 'fontcolor', 'color', 'style', 'shape',
-        'fontname', 'fontsize', 'penwidth', 'margin'
+        "fillcolor",
+        "fontcolor",
+        "color",
+        "style",
+        "shape",
+        "fontname",
+        "fontsize",
+        "penwidth",
+        "margin",
     }
 
     def __init__(
-        self,
-        inputfile: str,
-        outputfile: str,
-        format: str = "",
-        styleid: str = "",
-        validate_paths: bool = True
+        self, inputfile: str, outputfile: str, format: str = "", styleid: str = "", validate_paths: bool = True
     ) -> None:
         """Initialize AttackTrees with input/output paths and styling options.
 
@@ -103,11 +106,7 @@ class AttackTrees(VisualizationBase):
 
         # Initialize base class
         super().__init__(
-            inputfile=inputfile,
-            outputfile=outputfile,
-            format=format,
-            styleid=styleid,
-            validate_paths=validate_paths
+            inputfile=inputfile, outputfile=outputfile, format=format, styleid=styleid, validate_paths=validate_paths
         )
 
         # Attack tree specific state
@@ -125,9 +124,10 @@ class AttackTrees(VisualizationBase):
         This ensures temp files created by AttackTreeBuilder are properly
         cleaned up even if an exception occurs during processing.
         """
-        if hasattr(self, '_temp_input') and self._temp_input:
+        if hasattr(self, "_temp_input") and self._temp_input:
             try:
                 import os
+
                 if os.path.exists(self._temp_input):
                     os.remove(self._temp_input)
             except Exception:
@@ -145,19 +145,16 @@ class AttackTrees(VisualizationBase):
                 "fillcolor": "#e74c3c",
                 "fontcolor": "white",
                 "fontname": "Arial",
-                "shape": "box"
+                "shape": "box",
             },
             "node": {
                 "style": "filled",
                 "fillcolor": "#3498db",
                 "fontcolor": "white",
                 "fontname": "Arial",
-                "shape": "box"
+                "shape": "box",
             },
-            "edge": {
-                "color": "#34495e",
-                "fontname": "Arial"
-            }
+            "edge": {"color": "#34495e", "fontname": "Arial"},
         }
 
     def _strip_style_attrs(self, attrs: dict[str, Any]) -> dict[str, Any]:
@@ -235,10 +232,7 @@ class AttackTrees(VisualizationBase):
         edge_defaults = self.style.get("edge", {})
 
         # Create the graph
-        self.dot = Digraph(
-            format=self.format,
-            name=tree.get("name", "Attack Tree")
-        )
+        self.dot = Digraph(format=self.format, name=tree.get("name", "Attack Tree"))
 
         # Apply graph-level parameters
         diagraph_params = tree.get("params", {})
@@ -258,12 +252,12 @@ class AttackTrees(VisualizationBase):
         # 2. User set style containing "filled", OR
         # 3. User set a fillcolor
         root_user_data = nodes.get(root_node, {})
-        root_user_shape = root_user_data.get('shape', '') if isinstance(root_user_data, dict) else ''
-        root_user_style = root_user_data.get('style', '') if isinstance(root_user_data, dict) else ''
-        root_user_fillcolor = root_user_data.get('fillcolor', '') if isinstance(root_user_data, dict) else ''
+        root_user_shape = root_user_data.get("shape", "") if isinstance(root_user_data, dict) else ""
+        root_user_style = root_user_data.get("style", "") if isinstance(root_user_data, dict) else ""
+        root_user_fillcolor = root_user_data.get("fillcolor", "") if isinstance(root_user_data, dict) else ""
 
-        root_wants_no_background = root_user_shape in ('none', 'plaintext', 'point')
-        root_wants_background = ('filled' in str(root_user_style).lower()) or bool(root_user_fillcolor)
+        root_wants_no_background = root_user_shape in ("none", "plaintext", "point")
+        root_wants_background = ("filled" in str(root_user_style).lower()) or bool(root_user_fillcolor)
         root_has_visible_shape = bool(root_user_shape) and not root_wants_no_background
 
         user_set_shape = (root_has_visible_shape or root_wants_background) and not root_wants_no_background
@@ -293,15 +287,15 @@ class AttackTrees(VisualizationBase):
             # 1. User set a visible shape (not none/plaintext/point), OR
             # 2. User set style containing "filled", OR
             # 3. User set a fillcolor
-            has_image = 'image' in node_attrs and node_attrs['image']
-            user_shape = attributes.get('shape', '') if isinstance(attributes, dict) else ''
-            user_style = attributes.get('style', '') if isinstance(attributes, dict) else ''
-            user_fillcolor = attributes.get('fillcolor', '') if isinstance(attributes, dict) else ''
+            has_image = "image" in node_attrs and node_attrs["image"]
+            user_shape = attributes.get("shape", "") if isinstance(attributes, dict) else ""
+            user_style = attributes.get("style", "") if isinstance(attributes, dict) else ""
+            user_fillcolor = attributes.get("fillcolor", "") if isinstance(attributes, dict) else ""
 
             # User explicitly wants NO background if they set shape="none"
-            user_wants_no_background = user_shape in ('none', 'plaintext', 'point')
+            user_wants_no_background = user_shape in ("none", "plaintext", "point")
             # User wants a styled background if they set style="filled" or a fillcolor
-            user_wants_background = ('filled' in str(user_style).lower()) or bool(user_fillcolor)
+            user_wants_background = ("filled" in str(user_style).lower()) or bool(user_fillcolor)
             # Also preserve if user set a visible shape (box, ellipse, etc.)
             user_has_visible_shape = bool(user_shape) and not user_wants_no_background
 
@@ -353,21 +347,17 @@ class AttackTrees(VisualizationBase):
         # Add edges
         for parent, children in edges.items():
             if not isinstance(children, list):
-                raise AttackTreeError(
-                    f"Edges for '{parent}' must be a list, got {type(children).__name__}"
-                )
+                raise AttackTreeError(f"Edges for '{parent}' must be a list, got {type(children).__name__}")
             for child in children:
                 if not isinstance(child, dict):
-                    raise AttackTreeError(
-                        f"Edge entry must be a dict with 'to' key, got {type(child).__name__}"
-                    )
-                if 'to' not in child:
+                    raise AttackTreeError(f"Edge entry must be a dict with 'to' key, got {type(child).__name__}")
+                if "to" not in child:
                     raise AttackTreeError(f"Edge entry missing 'to' key: {child}")
 
-                edge_attrs = {k: v for k, v in child.items() if k != 'to'}
+                edge_attrs = {k: v for k, v in child.items() if k != "to"}
                 edge_kwargs = utils.merge_dicts(edge_attrs, edge_defaults)
                 edge_kwargs = utils.stringify_dict(edge_kwargs)
-                self.dot.edge(utils.sanitize_node_id(parent), utils.sanitize_node_id(child['to']), **edge_kwargs)
+                self.dot.edge(utils.sanitize_node_id(parent), utils.sanitize_node_id(child["to"]), **edge_kwargs)
 
         self.logger.debug(f"Rendered attack tree with {len(nodes)} nodes")
 
@@ -418,8 +408,8 @@ class AttackTrees(VisualizationBase):
         for parent, children in edges.items():
             all_connected.add(parent)
             for child in children:
-                if isinstance(child, dict) and 'to' in child:
-                    all_connected.add(child['to'])
+                if isinstance(child, dict) and "to" in child:
+                    all_connected.add(child["to"])
 
         orphans = set(nodes.keys()) - all_connected
         if orphans:
@@ -431,9 +421,8 @@ class AttackTrees(VisualizationBase):
             if parent not in defined_nodes:
                 errors.append(f"Edge parent '{parent}' not defined in nodes")
             for child in children:
-                if isinstance(child, dict) and 'to' in child:
-                    if child['to'] not in defined_nodes:
-                        errors.append(f"Edge target '{child['to']}' not defined in nodes")
+                if isinstance(child, dict) and "to" in child and child["to"] not in defined_nodes:
+                    errors.append(f"Edge target '{child['to']}' not defined in nodes")
 
         # Validate CVSS values in nodes
         for node_name, node_attrs in nodes.items():
@@ -471,15 +460,15 @@ class AttackTrees(VisualizationBase):
         all_children = set()
         for children in edges.values():
             for child in children:
-                if isinstance(child, dict) and 'to' in child:
-                    all_children.add(child['to'])
+                if isinstance(child, dict) and "to" in child:
+                    all_children.add(child["to"])
 
         leaf_nodes = all_children - parents
 
         # Calculate CVSS statistics
         cvss_scores = []
         nodes_with_cvss = 0
-        for node_name, node_attrs in nodes.items():
+        for _node_name, node_attrs in nodes.items():
             if isinstance(node_attrs, dict):
                 score, _ = get_cvss_score(node_attrs.get("cvss"), node_attrs.get("cvss_vector"))
                 if score is not None:
@@ -545,6 +534,7 @@ class AttackTrees(VisualizationBase):
             >>> md.render("output", format="svg")
         """
         from .mermaiddiagrams import MermaidDiagrams
+
         return MermaidDiagrams.from_attack_tree(self.inputfile)
 
     def to_cloud_diagram(self) -> CloudDiagrams:
@@ -559,6 +549,7 @@ class AttackTrees(VisualizationBase):
             >>> cd.render("output", format="png")
         """
         from .clouddiagrams import CloudDiagrams
+
         return CloudDiagrams.from_attack_tree(self.inputfile)
 
     def export_mermaid(self, output: str) -> str:

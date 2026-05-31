@@ -60,16 +60,19 @@ logger = logging.getLogger(__name__)
 
 class MermaidError(RenderError):
     """Mermaid-specific error."""
+
     pass
 
 
 class MermaidCLINotFoundError(MermaidError):
     """Raised when mermaid-cli is not installed."""
+
     pass
 
 
 class MermaidSyntaxError(MermaidError):
     """Raised when Mermaid syntax is invalid."""
+
     pass
 
 
@@ -85,6 +88,7 @@ class MermaidConfig:
         height: Output image height in pixels
         source: Raw Mermaid syntax
     """
+
     title: str = ""
     theme: str = "default"
     background: str = "white"
@@ -123,6 +127,7 @@ class MermaidResult:
         stats: Dictionary of diagram statistics
         success: Whether the operation was successful
     """
+
     output_path: str
     format: str
     stats: dict[str, Any] = field(default_factory=dict)
@@ -249,21 +254,13 @@ class MermaidDiagrams:
         mmdc_path = shutil.which("mmdc")
         if not mmdc_path:
             raise MermaidCLINotFoundError(
-                "mermaid-cli (mmdc) not found in PATH. "
-                "Install with: npm install -g @mermaid-js/mermaid-cli"
+                "mermaid-cli (mmdc) not found in PATH. Install with: npm install -g @mermaid-js/mermaid-cli"
             )
 
         try:
-            result = subprocess.run(
-                ["mmdc", "--version"],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
+            result = subprocess.run(["mmdc", "--version"], capture_output=True, text=True, timeout=10)
             if result.returncode != 0:
-                raise MermaidCLINotFoundError(
-                    f"mermaid-cli check failed: {result.stderr or result.stdout}"
-                )
+                raise MermaidCLINotFoundError(f"mermaid-cli check failed: {result.stderr or result.stdout}")
             version = result.stdout.strip()
             logger.debug(f"mermaid-cli version: {version}")
             self._cli_validated = True
@@ -271,8 +268,7 @@ class MermaidDiagrams:
             raise MermaidCLINotFoundError("mermaid-cli version check timed out") from None
         except FileNotFoundError:
             raise MermaidCLINotFoundError(
-                "mermaid-cli (mmdc) not found. "
-                "Install with: npm install -g @mermaid-js/mermaid-cli"
+                "mermaid-cli (mmdc) not found. Install with: npm install -g @mermaid-js/mermaid-cli"
             ) from None
 
     def _get_puppeteer_config(self) -> Optional[str]:
@@ -329,10 +325,7 @@ class MermaidDiagrams:
 
         suffix = path.suffix.lower()
         if suffix not in self.ALLOWED_EXTENSIONS:
-            raise ValidationError(
-                f"Unsupported file extension: {suffix}. "
-                f"Supported: {self.ALLOWED_EXTENSIONS}"
-            )
+            raise ValidationError(f"Unsupported file extension: {suffix}. Supported: {self.ALLOWED_EXTENSIONS}")
 
         self._config_path = path
 
@@ -354,11 +347,7 @@ class MermaidDiagrams:
         logger.info(f"Loaded Mermaid diagram from {path} (type: {self.diagram_type})")
         return self
 
-    def load_from_string(
-        self,
-        content: str,
-        format: str = "mermaid"
-    ) -> MermaidDiagrams:
+    def load_from_string(self, content: str, format: str = "mermaid") -> MermaidDiagrams:
         """Load from string content.
 
         Args:
@@ -381,10 +370,7 @@ class MermaidDiagrams:
             self.config = MermaidConfig.from_dict(config_data)
             self.source = self.config.source
         else:
-            raise ValidationError(
-                f"Unsupported format: {format}. "
-                "Supported: mermaid, toml, yaml, json"
-            )
+            raise ValidationError(f"Unsupported format: {format}. Supported: mermaid, toml, yaml, json")
 
         if not self.source.strip():
             raise ValidationError("Mermaid source is empty")
@@ -433,9 +419,7 @@ class MermaidDiagrams:
             raise ValidationError("No Mermaid source loaded. Call load() first.")
 
         if format not in self.OUTPUT_FORMATS:
-            raise ValidationError(
-                f"Unsupported format: {format}. Supported: {self.OUTPUT_FORMATS}"
-            )
+            raise ValidationError(f"Unsupported format: {format}. Supported: {self.OUTPUT_FORMATS}")
 
         # Resolve parameters (explicit > config > defaults)
         w = width if width is not None else self.config.width
@@ -453,12 +437,7 @@ class MermaidDiagrams:
         output_file = f"{output_path_obj}.{format}"
 
         # Create temp input file
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            suffix=".mmd",
-            delete=False,
-            encoding="utf-8"
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False, encoding="utf-8") as f:
             f.write(self.source)
             input_path = f.name
 
@@ -466,12 +445,18 @@ class MermaidDiagrams:
             # Build mmdc command
             cmd = [
                 "mmdc",
-                "-i", input_path,
-                "-o", output_file,
-                "-t", t,
-                "-w", str(w),
-                "-H", str(h),
-                "-b", bg,
+                "-i",
+                input_path,
+                "-o",
+                output_file,
+                "-t",
+                t,
+                "-w",
+                str(w),
+                "-H",
+                str(h),
+                "-b",
+                bg,
             ]
 
             # Add puppeteer config if available (for Docker/sandbox environments)
@@ -481,12 +466,7 @@ class MermaidDiagrams:
 
             logger.debug(f"Running: {' '.join(cmd)}")
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=120
-            )
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
 
             if result.returncode != 0:
                 error_msg = result.stderr or result.stdout or "Unknown error"
@@ -501,12 +481,7 @@ class MermaidDiagrams:
 
             logger.info(f"Rendered Mermaid diagram to {output_file}")
 
-            return MermaidResult(
-                output_path=output_file,
-                format=format,
-                stats=self.get_stats(),
-                success=True
-            )
+            return MermaidResult(output_path=output_file, format=format, stats=self.get_stats(), success=True)
 
         except subprocess.TimeoutExpired:
             raise MermaidError("mermaid-cli rendering timed out (120s limit)") from None
@@ -573,12 +548,7 @@ class MermaidDiagrams:
                 if puppeteer_config:
                     cmd.extend(["-p", puppeteer_config])
 
-                result = subprocess.run(
-                    cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30
-                )
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
 
                 if result.returncode != 0:
                     error_msg = result.stderr or result.stdout or "Unknown validation error"
@@ -627,7 +597,7 @@ class MermaidDiagrams:
             Dictionary with diagram statistics
         """
         lines = self.source.split("\n") if self.source else []
-        non_empty_lines = [l for l in lines if l.strip() and not l.strip().startswith("%%")]
+        non_empty_lines = [ln for ln in lines if ln.strip() and not ln.strip().startswith("%%")]
 
         return {
             "title": self.config.title,
@@ -750,11 +720,7 @@ class MermaidDiagrams:
         return instance
 
     @classmethod
-    def from_custom_diagram(
-        cls,
-        custom_diagram: CustomDiagrams,
-        **kwargs
-    ) -> MermaidDiagrams:
+    def from_custom_diagram(cls, custom_diagram: CustomDiagrams, **kwargs) -> MermaidDiagrams:
         """Create from CustomDiagrams instance.
 
         Converts CustomDiagrams to Mermaid flowchart syntax.
@@ -791,11 +757,11 @@ class MermaidDiagrams:
 
             # Determine shape based on type
             if "diamond" in node_type.lower() or "decision" in node_type.lower():
-                lines.append(f'    {node_id}{{{label}}}')
+                lines.append(f"    {node_id}{{{label}}}")
             elif "circle" in node_type.lower() or "process" in node_type.lower():
-                lines.append(f'    {node_id}(({label}))')
+                lines.append(f"    {node_id}(({label}))")
             elif "database" in node_type.lower() or "datastore" in node_type.lower():
-                lines.append(f'    {node_id}[({label})]')
+                lines.append(f"    {node_id}[({label})]")
             else:
                 lines.append(f'    {node_id}["{label}"]')
 
@@ -845,8 +811,7 @@ class MermaidDiagrams:
 
         if self.diagram_type not in ("flowchart", "graph", "unknown"):
             raise MermaidError(
-                f"Cannot convert {self.diagram_type} to CustomDiagrams. "
-                "Only flowchart/graph types are supported."
+                f"Cannot convert {self.diagram_type} to CustomDiagrams. Only flowchart/graph types are supported."
             )
 
         cd = CustomDiagrams()
@@ -854,7 +819,7 @@ class MermaidDiagrams:
         # Parse direction from first line
         direction = "TD"
         first_line = self.source.strip().split("\n")[0]
-        direction_match = re.search(r'(flowchart|graph)\s+(TD|TB|BT|LR|RL)', first_line, re.IGNORECASE)
+        direction_match = re.search(r"(flowchart|graph)\s+(TD|TB|BT|LR|RL)", first_line, re.IGNORECASE)
         if direction_match:
             direction = direction_match.group(2).upper()
 
@@ -874,10 +839,7 @@ class MermaidDiagrams:
                 continue
 
             # Match node definitions: id[label] or id["label"] or id{label} etc.
-            node_match = re.match(
-                r'^(\w+)\s*[\[\(\{<][\[\(\{"\']*([^\]\)\}>"\']+)[\]\)\}>"\']*[\]\)\}>]?\s*$',
-                line
-            )
+            node_match = re.match(r'^(\w+)\s*[\[\(\{<][\[\(\{"\']*([^\]\)\}>"\']+)[\]\)\}>"\']*[\]\)\}>]?\s*$', line)
             if node_match:
                 node_id = node_match.group(1)
                 label = node_match.group(2)
@@ -885,10 +847,7 @@ class MermaidDiagrams:
                 continue
 
             # Match edges: A --> B or A -->|label| B
-            edge_match = re.match(
-                r'^(\w+)\s*(-+>+|=+>+|\.+>+)\s*(?:\|([^|]+)\|)?\s*(\w+)\s*$',
-                line
-            )
+            edge_match = re.match(r"^(\w+)\s*(-+>+|=+>+|\.+>+)\s*(?:\|([^|]+)\|)?\s*(\w+)\s*$", line)
             if edge_match:
                 from_id = edge_match.group(1)
                 label = edge_match.group(3) or ""
@@ -933,10 +892,7 @@ class MermaidDiagrams:
         if cwd_templates.exists():
             return cwd_templates
 
-        raise MermaidError(
-            "Mermaid templates directory not found. "
-            "Expected at templates/mermaid/"
-        )
+        raise MermaidError("Mermaid templates directory not found. Expected at templates/mermaid/")
 
     @classmethod
     def list_templates(cls, category: Optional[str] = None) -> list[dict[str, str]]:
@@ -955,31 +911,32 @@ class MermaidDiagrams:
 
         templates = []
 
-        if category:
-            categories = [templates_dir / category]
-        else:
-            categories = [d for d in templates_dir.iterdir() if d.is_dir()]
+        categories = [templates_dir / category] if category else [d for d in templates_dir.iterdir() if d.is_dir()]
 
         for category_dir in categories:
             if not category_dir.exists():
                 continue
 
             for template_file in category_dir.glob("*.toml"):
-                templates.append({
-                    "id": f"{category_dir.name}/{template_file.stem}",
-                    "name": template_file.stem.replace("-", " ").title(),
-                    "category": category_dir.name,
-                    "path": str(template_file),
-                })
+                templates.append(
+                    {
+                        "id": f"{category_dir.name}/{template_file.stem}",
+                        "name": template_file.stem.replace("-", " ").title(),
+                        "category": category_dir.name,
+                        "path": str(template_file),
+                    }
+                )
 
             # Also check for .mmd files
             for template_file in category_dir.glob("*.mmd"):
-                templates.append({
-                    "id": f"{category_dir.name}/{template_file.stem}",
-                    "name": template_file.stem.replace("-", " ").title(),
-                    "category": category_dir.name,
-                    "path": str(template_file),
-                })
+                templates.append(
+                    {
+                        "id": f"{category_dir.name}/{template_file.stem}",
+                        "name": template_file.stem.replace("-", " ").title(),
+                        "category": category_dir.name,
+                        "path": str(template_file),
+                    }
+                )
 
         return sorted(templates, key=lambda t: (t["category"], t["name"]))
 
@@ -1036,8 +993,7 @@ class MermaidDiagrams:
             available = cls.list_templates(category)
             available_ids = [t["id"] for t in available]
             raise MermaidError(
-                f"Template not found: {template_id}. "
-                f"Available templates in '{category}': {available_ids}"
+                f"Template not found: {template_id}. Available templates in '{category}': {available_ids}"
             )
 
         instance = cls(**kwargs)
@@ -1066,6 +1022,7 @@ class MermaidDiagrams:
 # Helper Functions
 # =============================================================================
 
+
 def _sanitize_mermaid_id(node_id: str) -> str:
     """Sanitize a node ID for Mermaid compatibility.
 
@@ -1084,17 +1041,17 @@ def _sanitize_mermaid_id(node_id: str) -> str:
         return "node"
 
     # Replace spaces and hyphens with underscores
-    sanitized = re.sub(r'[\s\-]+', '_', str(node_id))
+    sanitized = re.sub(r"[\s\-]+", "_", str(node_id))
 
     # Remove other special characters
-    sanitized = re.sub(r'[^a-zA-Z0-9_]', '', sanitized)
+    sanitized = re.sub(r"[^a-zA-Z0-9_]", "", sanitized)
 
     # Ensure doesn't start with number
     if sanitized and sanitized[0].isdigit():
-        sanitized = 'n_' + sanitized
+        sanitized = "n_" + sanitized
 
     # Ensure not empty
-    return sanitized or 'node'
+    return sanitized or "node"
 
 
 def _escape_mermaid_label(text: str, max_length: int = 100) -> str:
@@ -1114,22 +1071,22 @@ def _escape_mermaid_label(text: str, max_length: int = 100) -> str:
 
     # Truncate if too long
     if len(text) > max_length:
-        text = text[:max_length - 3] + "..."
+        text = text[: max_length - 3] + "..."
 
     # Escape quotes
     text = text.replace('"', "'")
 
     # Handle special Mermaid characters
-    text = text.replace('[', '(')
-    text = text.replace(']', ')')
-    text = text.replace('{', '(')
-    text = text.replace('}', ')')
-    text = text.replace('|', '/')
-    text = text.replace('<', 'lt')
-    text = text.replace('>', 'gt')
-    text = text.replace('#', '')
+    text = text.replace("[", "(")
+    text = text.replace("]", ")")
+    text = text.replace("{", "(")
+    text = text.replace("}", ")")
+    text = text.replace("|", "/")
+    text = text.replace("<", "lt")
+    text = text.replace(">", "gt")
+    text = text.replace("#", "")
 
     # Remove newlines
-    text = text.replace('\n', ' ').replace('\r', '')
+    text = text.replace("\n", " ").replace("\r", "")
 
     return text

@@ -27,48 +27,55 @@ from typing import Any, Optional
 
 class CVSSVersion(str, Enum):
     """Supported CVSS versions."""
+
     V3_0 = "3.0"
     V3_1 = "3.1"
 
 
 class AttackVector(str, Enum):
     """CVSS Attack Vector (AV) metric."""
-    NETWORK = "N"      # 0.85
-    ADJACENT = "A"     # 0.62
-    LOCAL = "L"        # 0.55
-    PHYSICAL = "P"     # 0.20
+
+    NETWORK = "N"  # 0.85
+    ADJACENT = "A"  # 0.62
+    LOCAL = "L"  # 0.55
+    PHYSICAL = "P"  # 0.20
 
 
 class AttackComplexity(str, Enum):
     """CVSS Attack Complexity (AC) metric."""
-    LOW = "L"          # 0.77
-    HIGH = "H"         # 0.44
+
+    LOW = "L"  # 0.77
+    HIGH = "H"  # 0.44
 
 
 class PrivilegesRequired(str, Enum):
     """CVSS Privileges Required (PR) metric."""
-    NONE = "N"         # 0.85 (unchanged) / 0.85 (changed)
-    LOW = "L"          # 0.62 (unchanged) / 0.68 (changed)
-    HIGH = "H"         # 0.27 (unchanged) / 0.50 (changed)
+
+    NONE = "N"  # 0.85 (unchanged) / 0.85 (changed)
+    LOW = "L"  # 0.62 (unchanged) / 0.68 (changed)
+    HIGH = "H"  # 0.27 (unchanged) / 0.50 (changed)
 
 
 class UserInteraction(str, Enum):
     """CVSS User Interaction (UI) metric."""
-    NONE = "N"         # 0.85
-    REQUIRED = "R"     # 0.62
+
+    NONE = "N"  # 0.85
+    REQUIRED = "R"  # 0.62
 
 
 class Scope(str, Enum):
     """CVSS Scope (S) metric."""
+
     UNCHANGED = "U"
     CHANGED = "C"
 
 
 class Impact(str, Enum):
     """CVSS Confidentiality/Integrity/Availability (C/I/A) impact metrics."""
-    NONE = "N"         # 0.00
-    LOW = "L"          # 0.22
-    HIGH = "H"         # 0.56
+
+    NONE = "N"  # 0.00
+    LOW = "L"  # 0.22
+    HIGH = "H"  # 0.56
 
 
 # Metric value mappings for score calculation
@@ -125,6 +132,7 @@ class CVSSVector:
         availability: Availability Impact (A) metric
         raw_string: Original vector string
     """
+
     version: CVSSVersion
     attack_vector: AttackVector
     attack_complexity: AttackComplexity
@@ -162,10 +170,7 @@ class CVSSVector:
         iss = 1 - ((1 - c) * (1 - i) * (1 - a))
 
         # Calculate Impact
-        if self.scope == Scope.UNCHANGED:
-            impact = 6.42 * iss
-        else:
-            impact = 7.52 * (iss - 0.029) - 3.25 * pow(iss - 0.02, 15)
+        impact = 6.42 * iss if self.scope == Scope.UNCHANGED else 7.52 * (iss - 0.029) - 3.25 * pow(iss - 0.02, 15)
 
         # Calculate Exploitability
         exploitability = 8.22 * av * ac * pr * ui
@@ -186,6 +191,7 @@ class CVSSVector:
     def _round_up(value: float) -> float:
         """Round up to 1 decimal place per CVSS specification."""
         import math
+
         return math.ceil(value * 10) / 10
 
     def to_dict(self) -> dict[str, Any]:
@@ -207,16 +213,16 @@ class CVSSVector:
 
 # Regex pattern for CVSS 3.x vector string
 CVSS_VECTOR_PATTERN = re.compile(
-    r'^CVSS:(?P<version>3\.[01])/'
-    r'AV:(?P<av>[NALP])/'
-    r'AC:(?P<ac>[LH])/'
-    r'PR:(?P<pr>[NLH])/'
-    r'UI:(?P<ui>[NR])/'
-    r'S:(?P<s>[UC])/'
-    r'C:(?P<c>[NLH])/'
-    r'I:(?P<i>[NLH])/'
-    r'A:(?P<a>[NLH])$',
-    re.IGNORECASE
+    r"^CVSS:(?P<version>3\.[01])/"
+    r"AV:(?P<av>[NALP])/"
+    r"AC:(?P<ac>[LH])/"
+    r"PR:(?P<pr>[NLH])/"
+    r"UI:(?P<ui>[NR])/"
+    r"S:(?P<s>[UC])/"
+    r"C:(?P<c>[NLH])/"
+    r"I:(?P<i>[NLH])/"
+    r"A:(?P<a>[NLH])$",
+    re.IGNORECASE,
 )
 
 
@@ -249,18 +255,18 @@ def parse_cvss_vector(vector_string: str) -> tuple[bool, Optional[CVSSVector], O
         return False, None, f"Invalid CVSS vector format: {vector_string}"
 
     try:
-        version = CVSSVersion(match.group('version'))
+        version = CVSSVersion(match.group("version"))
 
         vector = CVSSVector(
             version=version,
-            attack_vector=AttackVector(match.group('av')),
-            attack_complexity=AttackComplexity(match.group('ac')),
-            privileges_required=PrivilegesRequired(match.group('pr')),
-            user_interaction=UserInteraction(match.group('ui')),
-            scope=Scope(match.group('s')),
-            confidentiality=Impact(match.group('c')),
-            integrity=Impact(match.group('i')),
-            availability=Impact(match.group('a')),
+            attack_vector=AttackVector(match.group("av")),
+            attack_complexity=AttackComplexity(match.group("ac")),
+            privileges_required=PrivilegesRequired(match.group("pr")),
+            user_interaction=UserInteraction(match.group("ui")),
+            scope=Scope(match.group("s")),
+            confidentiality=Impact(match.group("c")),
+            integrity=Impact(match.group("i")),
+            availability=Impact(match.group("a")),
             raw_string=vector_string.strip(),
         )
 
@@ -354,7 +360,7 @@ def get_cvss_score(cvss_value: Any, cvss_vector: Optional[str] = None) -> tuple[
 # Common CVSS vector examples for reference
 CVSS_EXAMPLES = {
     "critical_network_rce": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",  # 10.0
-    "high_network_auth": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",     # 8.8
+    "high_network_auth": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",  # 8.8
     "medium_local_privesc": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N",  # 5.5
-    "low_physical_dos": "CVSS:3.1/AV:P/AC:H/PR:H/UI:R/S:U/C:N/I:N/A:L",      # 1.6
+    "low_physical_dos": "CVSS:3.1/AV:P/AC:H/PR:H/UI:R/S:U/C:N/I:N/A:L",  # 1.6
 }

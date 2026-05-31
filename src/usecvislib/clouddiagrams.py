@@ -60,22 +60,26 @@ logger = logging.getLogger(__name__)
 
 class CloudDiagramError(RenderError):
     """Cloud diagram specific error."""
+
     pass
 
 
 class DiagramsNotInstalledError(CloudDiagramError):
     """Raised when diagrams library is not installed."""
+
     pass
 
 
 class IconNotFoundError(CloudDiagramError):
     """Raised when a requested icon is not found."""
+
     pass
 
 
 # =============================================================================
 # Security: String Escaping for Code Generation
 # =============================================================================
+
 
 def _escape_python_string(value: str, max_length: int = 500) -> str:
     """Escape a string for safe use in generated Python code.
@@ -99,11 +103,11 @@ def _escape_python_string(value: str, max_length: int = 500) -> str:
         return ""
 
     # Remove null bytes
-    value = value.replace('\x00', '')
+    value = value.replace("\x00", "")
 
     # Truncate if too long
     if len(value) > max_length:
-        value = value[:max_length - 3] + "..."
+        value = value[: max_length - 3] + "..."
         logger.warning(f"Truncated string to {max_length} characters for code generation")
 
     # Use repr() for comprehensive escaping, then strip the outer quotes
@@ -116,7 +120,7 @@ def _escape_python_string(value: str, max_length: int = 500) -> str:
     # Ensure single quotes are escaped for safety
     escaped = escaped.replace("'", "\\'")
     # Escape f-string braces to prevent code execution in f-strings
-    escaped = escaped.replace('{', '{{').replace('}', '}}')
+    escaped = escaped.replace("{", "{{").replace("}", "}}")
 
     return escaped
 
@@ -135,6 +139,7 @@ class CloudDiagramConfig:
         node_attr: Default node attributes
         edge_attr: Default edge attributes
     """
+
     title: str = "Cloud Architecture"
     direction: str = "LR"
     outformat: str = "png"
@@ -174,13 +179,14 @@ class CloudNode:
         label: Display label
         cluster_id: Optional cluster this node belongs to
     """
+
     id: str
     icon: str
     label: str
     cluster_id: Optional[str] = None
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], cluster_id: str = None) -> CloudNode:
+    def from_dict(cls, data: dict[str, Any], cluster_id: str | None = None) -> CloudNode:
         """Create from dictionary."""
         return cls(
             id=data.get("id", ""),
@@ -201,6 +207,7 @@ class CloudEdge:
         color: Edge color
         style: Edge style (solid, dashed, dotted, bold)
     """
+
     from_id: Union[str, list[str]]
     to_id: Union[str, list[str]]
     label: str = ""
@@ -229,6 +236,7 @@ class CloudCluster:
         nodes: List of nodes in this cluster
         style: Cluster style attributes
     """
+
     id: str
     label: str
     nodes: list[CloudNode] = field(default_factory=list)
@@ -238,10 +246,7 @@ class CloudCluster:
     def from_dict(cls, data: dict[str, Any]) -> CloudCluster:
         """Create from dictionary."""
         cluster_id = data.get("id", "")
-        nodes = [
-            CloudNode.from_dict(n, cluster_id)
-            for n in data.get("nodes", [])
-        ]
+        nodes = [CloudNode.from_dict(n, cluster_id) for n in data.get("nodes", [])]
         return cls(
             id=cluster_id,
             label=data.get("label", cluster_id),
@@ -260,6 +265,7 @@ class CloudDiagramResult:
         stats: Dictionary of diagram statistics
         success: Whether the operation was successful
     """
+
     output_path: str
     format: str
     stats: dict[str, Any] = field(default_factory=dict)
@@ -361,13 +367,12 @@ class CloudDiagrams:
             DiagramsNotInstalledError: If diagrams library is not found
         """
         try:
-            import diagrams
+            import diagrams  # noqa: F401  (import is the availability probe)
+
             self._diagrams_available = True
             logger.debug("diagrams library available")
         except ImportError:
-            raise DiagramsNotInstalledError(
-                "diagrams library not found. Install with: pip install diagrams"
-            ) from None
+            raise DiagramsNotInstalledError("diagrams library not found. Install with: pip install diagrams") from None
 
     # =========================================================================
     # Input Methods
@@ -393,10 +398,7 @@ class CloudDiagrams:
 
         suffix = path.suffix.lower()
         if suffix not in self.ALLOWED_EXTENSIONS:
-            raise ValidationError(
-                f"Unsupported file extension: {suffix}. "
-                f"Supported: {self.ALLOWED_EXTENSIONS}"
-            )
+            raise ValidationError(f"Unsupported file extension: {suffix}. Supported: {self.ALLOWED_EXTENSIONS}")
 
         self._config_path = path
 
@@ -407,11 +409,7 @@ class CloudDiagrams:
         logger.info(f"Loaded cloud diagram from {path}")
         return self
 
-    def load_from_string(
-        self,
-        content: str,
-        format: str = "toml"
-    ) -> CloudDiagrams:
+    def load_from_string(self, content: str, format: str = "toml") -> CloudDiagrams:
         """Load from string content.
 
         Args:
@@ -428,9 +426,7 @@ class CloudDiagrams:
             raise ValidationError("Content is empty")
 
         if format not in ("toml", "yaml", "json"):
-            raise ValidationError(
-                f"Unsupported format: {format}. Supported: toml, yaml, json"
-            )
+            raise ValidationError(f"Unsupported format: {format}. Supported: toml, yaml, json")
 
         config_data = parse_content(content, format)
         self._load_from_dict(config_data)
@@ -463,10 +459,7 @@ class CloudDiagrams:
 
         # Load standalone nodes - check both locations
         nodes_data = data.get("nodes", []) or cloud_section.get("nodes", [])
-        standalone_nodes = [
-            CloudNode.from_dict(n)
-            for n in nodes_data
-        ]
+        standalone_nodes = [CloudNode.from_dict(n) for n in nodes_data]
 
         # Combine all nodes (cluster nodes + standalone)
         self.nodes = standalone_nodes.copy()
@@ -475,10 +468,7 @@ class CloudDiagrams:
 
         # Load edges - check both locations
         edges_data = data.get("edges", []) or cloud_section.get("edges", [])
-        self.edges = [
-            CloudEdge.from_dict(e)
-            for e in edges_data
-        ]
+        self.edges = [CloudEdge.from_dict(e) for e in edges_data]
 
     # =========================================================================
     # Rendering
@@ -487,8 +477,8 @@ class CloudDiagrams:
     def render(
         self,
         output: str,
-        format: str = None,
-        show: bool = None,
+        format: str | None = None,
+        show: bool | None = None,
     ) -> CloudDiagramResult:
         """Render diagram to image file.
 
@@ -513,9 +503,7 @@ class CloudDiagrams:
         show_result = show if show is not None else self.config.show
 
         if fmt not in self.OUTPUT_FORMATS:
-            raise ValidationError(
-                f"Unsupported format: {fmt}. Supported: {self.OUTPUT_FORMATS}"
-            )
+            raise ValidationError(f"Unsupported format: {fmt}. Supported: {self.OUTPUT_FORMATS}")
 
         # Validate output path
         output_path_obj = validate_output_path(output)
@@ -524,12 +512,7 @@ class CloudDiagrams:
         # Generate and execute Python code
         code = self._generate_executable_code(output_base, fmt, show_result)
 
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            suffix=".py",
-            delete=False,
-            encoding="utf-8"
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False, encoding="utf-8") as f:
             f.write(code)
             script_path = f.name
 
@@ -540,7 +523,7 @@ class CloudDiagrams:
                 capture_output=True,
                 text=True,
                 timeout=120,
-                cwd=str(Path(output_base).parent) if Path(output_base).parent.exists() else "."
+                cwd=str(Path(output_base).parent) if Path(output_base).parent.exists() else ".",
             )
 
             if result.returncode != 0:
@@ -560,12 +543,7 @@ class CloudDiagrams:
 
             logger.info(f"Rendered cloud diagram to {output_file}")
 
-            return CloudDiagramResult(
-                output_path=output_file,
-                format=fmt,
-                stats=self.get_stats(),
-                success=True
-            )
+            return CloudDiagramResult(output_path=output_file, format=fmt, stats=self.get_stats(), success=True)
 
         except subprocess.TimeoutExpired:
             raise CloudDiagramError("Diagram rendering timed out (120s limit)") from None
@@ -576,12 +554,7 @@ class CloudDiagrams:
             except Exception as e:
                 logger.warning(f"Failed to cleanup temp script: {e}")
 
-    def _generate_executable_code(
-        self,
-        output: str,
-        format: str,
-        show: bool
-    ) -> str:
+    def _generate_executable_code(self, output: str, format: str, show: bool) -> str:
         """Generate executable Python code for rendering.
 
         Args:
@@ -610,13 +583,13 @@ class CloudDiagrams:
         # SECURITY: Use _escape_python_string to prevent code injection
         title_escaped = _escape_python_string(self.config.title)
         direction_escaped = _escape_python_string(self.config.direction)
-        lines.append('with Diagram(')
+        lines.append("with Diagram(")
         lines.append(f'    "{title_escaped}",')
         lines.append(f'    filename="{output}",')
         lines.append(f'    outformat="{format}",')
-        lines.append(f'    show={show},')
+        lines.append(f"    show={show},")
         lines.append(f'    direction="{direction_escaped}",')
-        lines.append('):')
+        lines.append("):")
 
         # Track node variable names for edge references
         node_vars: dict[str, str] = {}
@@ -635,7 +608,7 @@ class CloudDiagrams:
         # Add clusters with their nodes
         for cluster in self.clusters:
             cluster_label_escaped = _escape_python_string(cluster.label)
-            lines.append('')
+            lines.append("")
             lines.append(f'    with Cluster("{cluster_label_escaped}"):')
 
             for node in cluster.nodes:
@@ -651,7 +624,7 @@ class CloudDiagrams:
         for edge in self.edges:
             edge_code = self._generate_edge_code(edge, node_vars)
             if edge_code:
-                lines.append(f'    {edge_code}')
+                lines.append(f"    {edge_code}")
 
         return "\n".join(lines)
 
@@ -737,7 +710,7 @@ class CloudDiagrams:
         """
         try:
             provider_module = importlib.import_module(f"diagrams.{provider}")
-            for importer, modname, ispkg in pkgutil.iter_modules(provider_module.__path__):
+            for _importer, modname, _ispkg in pkgutil.iter_modules(provider_module.__path__):
                 try:
                     submodule = importlib.import_module(f"diagrams.{provider}.{modname}")
                     if hasattr(submodule, icon_name):
@@ -773,18 +746,14 @@ class CloudDiagrams:
             Safe variable name
         """
         # Replace non-alphanumeric with underscore
-        safe = re.sub(r'[^a-zA-Z0-9]', '_', node_id)
+        safe = re.sub(r"[^a-zA-Z0-9]", "_", node_id)
         # Ensure doesn't start with number
         if safe and safe[0].isdigit():
-            safe = 'n_' + safe
+            safe = "n_" + safe
         # Ensure not empty
-        return safe or 'node'
+        return safe or "node"
 
-    def _generate_edge_code(
-        self,
-        edge: CloudEdge,
-        node_vars: dict[str, str]
-    ) -> Optional[str]:
+    def _generate_edge_code(self, edge: CloudEdge, node_vars: dict[str, str]) -> Optional[str]:
         """Generate Python code for an edge.
 
         Args:
@@ -807,16 +776,10 @@ class CloudDiagrams:
             return None
 
         # Format source
-        if len(from_vars) == 1:
-            source = from_vars[0]
-        else:
-            source = f"[{', '.join(from_vars)}]"
+        source = from_vars[0] if len(from_vars) == 1 else f"[{', '.join(from_vars)}]"
 
         # Format target
-        if len(to_vars) == 1:
-            target = to_vars[0]
-        else:
-            target = f"[{', '.join(to_vars)}]"
+        target = to_vars[0] if len(to_vars) == 1 else f"[{', '.join(to_vars)}]"
 
         # Build edge with optional label/style
         # SECURITY: Use _escape_python_string to prevent code injection
@@ -853,11 +816,7 @@ class CloudDiagrams:
         if not self._loaded:
             raise ValidationError("No configuration loaded. Call load() first.")
 
-        return self._generate_executable_code(
-            output="diagram",
-            format=self.config.outformat,
-            show=self.config.show
-        )
+        return self._generate_executable_code(output="diagram", format=self.config.outformat, show=self.config.show)
 
     def save_python(self, output: str) -> str:
         """Save generated Python code to file.
@@ -895,10 +854,7 @@ class CloudDiagrams:
         Returns:
             List of provider dictionaries with id and name
         """
-        return [
-            {"id": pid, "name": pname}
-            for pid, pname in cls.PROVIDERS.items()
-        ]
+        return [{"id": pid, "name": pname} for pid, pname in cls.PROVIDERS.items()]
 
     @classmethod
     def list_categories(cls, provider: str) -> list[str]:
@@ -913,7 +869,7 @@ class CloudDiagrams:
         try:
             provider_module = importlib.import_module(f"diagrams.{provider}")
             categories = []
-            for importer, modname, ispkg in pkgutil.iter_modules(provider_module.__path__):
+            for _importer, modname, _ispkg in pkgutil.iter_modules(provider_module.__path__):
                 if not modname.startswith("_"):
                     categories.append(modname)
             return sorted(categories)
@@ -922,11 +878,7 @@ class CloudDiagrams:
             return []
 
     @classmethod
-    def list_icons(
-        cls,
-        provider: str,
-        category: str = None
-    ) -> list[dict[str, str]]:
+    def list_icons(cls, provider: str, category: str | None = None) -> list[dict[str, str]]:
         """List available icons.
 
         Args:
@@ -952,13 +904,15 @@ class CloudDiagrams:
                         obj = getattr(module, name)
                         # Check if it's a diagrams node class
                         if isinstance(obj, type) and name[0].isupper():
-                            icons.append({
-                                "id": name,
-                                "path": f"{provider}.{cat}.{name}",
-                                "name": name,
-                                "category": cat,
-                                "provider": provider,
-                            })
+                            icons.append(
+                                {
+                                    "id": name,
+                                    "path": f"{provider}.{cat}.{name}",
+                                    "name": name,
+                                    "category": cat,
+                                    "provider": provider,
+                                }
+                            )
             except ImportError:
                 continue
 
@@ -980,7 +934,7 @@ class CloudDiagrams:
         query_lower = query.lower()
         results = []
 
-        for provider in cls.PROVIDERS.keys():
+        for provider in cls.PROVIDERS:
             try:
                 icons = cls.list_icons(provider)
                 for icon in icons:
@@ -1015,10 +969,7 @@ class CloudDiagrams:
 
         # Check direction
         if self.config.direction not in self.DIRECTIONS:
-            errors.append(
-                f"Invalid direction: {self.config.direction}. "
-                f"Must be one of: {self.DIRECTIONS}"
-            )
+            errors.append(f"Invalid direction: {self.config.direction}. Must be one of: {self.DIRECTIONS}")
 
         # Check icon paths
         for node in self.nodes:
@@ -1134,11 +1085,7 @@ class CloudDiagrams:
             else:
                 icon = "generic.compute.Rack"
 
-            cd.nodes.append(CloudNode(
-                id=node_id,
-                icon=icon,
-                label=label
-            ))
+            cd.nodes.append(CloudNode(id=node_id, icon=icon, label=label))
 
         # Convert edges
         edges_data = at.inputdata.get("edges", {})
@@ -1148,11 +1095,9 @@ class CloudDiagrams:
                     if isinstance(target, str):
                         cd.edges.append(CloudEdge(from_id=source, to_id=target))
                     elif isinstance(target, dict):
-                        cd.edges.append(CloudEdge(
-                            from_id=source,
-                            to_id=target.get("to", ""),
-                            label=target.get("label", "")
-                        ))
+                        cd.edges.append(
+                            CloudEdge(from_id=source, to_id=target.get("to", ""), label=target.get("label", ""))
+                        )
 
         cd._loaded = True
         return cd
@@ -1184,11 +1129,7 @@ class CloudDiagrams:
 
         # Convert hosts
         for host_id, host_data in ag.inputdata.get("hosts", {}).items():
-            cd.nodes.append(CloudNode(
-                id=host_id,
-                icon="onprem.compute.Server",
-                label=host_data.get("label", host_id)
-            ))
+            cd.nodes.append(CloudNode(id=host_id, icon="onprem.compute.Server", label=host_data.get("label", host_id)))
 
         # Convert vulnerabilities
         for vuln_id, vuln_data in ag.inputdata.get("vulnerabilities", {}).items():
@@ -1197,46 +1138,28 @@ class CloudDiagrams:
             if cvss:
                 label = f"{label} ({cvss})"
 
-            cd.nodes.append(CloudNode(
-                id=vuln_id,
-                icon="generic.os.Suse",
-                label=label
-            ))
+            cd.nodes.append(CloudNode(id=vuln_id, icon="generic.os.Suse", label=label))
 
             # Edge to affected host
             host = vuln_data.get("host")
             if host:
-                cd.edges.append(CloudEdge(
-                    from_id=vuln_id,
-                    to_id=host,
-                    label="affects"
-                ))
+                cd.edges.append(CloudEdge(from_id=vuln_id, to_id=host, label="affects"))
 
         # Convert services
         for svc_id, svc_data in ag.inputdata.get("services", {}).items():
-            cd.nodes.append(CloudNode(
-                id=svc_id,
-                icon="generic.network.Switch",
-                label=svc_data.get("label", svc_id)
-            ))
+            cd.nodes.append(CloudNode(id=svc_id, icon="generic.network.Switch", label=svc_data.get("label", svc_id)))
 
         # Convert privileges
         for priv_id, priv_data in ag.inputdata.get("privileges", {}).items():
-            cd.nodes.append(CloudNode(
-                id=priv_id,
-                icon="generic.storage.Storage",
-                label=priv_data.get("label", priv_id)
-            ))
+            cd.nodes.append(
+                CloudNode(id=priv_id, icon="generic.storage.Storage", label=priv_data.get("label", priv_id))
+            )
 
         # Convert network edges
         for source, targets in ag.inputdata.get("network", {}).items():
             if isinstance(targets, list):
                 for target in targets:
-                    cd.edges.append(CloudEdge(
-                        from_id=source,
-                        to_id=target,
-                        style="dashed"
-                    ))
+                    cd.edges.append(CloudEdge(from_id=source, to_id=target, style="dashed"))
 
         cd._loaded = True
         return cd
@@ -1274,48 +1197,54 @@ class CloudDiagrams:
 
         # Convert processes
         for proc_id, proc_data in tm.inputdata.get("processes", {}).items():
-            cd.nodes.append(CloudNode(
-                id=proc_id,
-                icon="generic.compute.Rack",
-                label=proc_data.get("label", proc_id),
-                cluster_id=node_to_boundary.get(proc_id)
-            ))
+            cd.nodes.append(
+                CloudNode(
+                    id=proc_id,
+                    icon="generic.compute.Rack",
+                    label=proc_data.get("label", proc_id),
+                    cluster_id=node_to_boundary.get(proc_id),
+                )
+            )
 
         # Convert data stores
         for ds_id, ds_data in tm.inputdata.get("datastores", {}).items():
-            cd.nodes.append(CloudNode(
-                id=ds_id,
-                icon="generic.storage.Storage",
-                label=ds_data.get("label", ds_id),
-                cluster_id=node_to_boundary.get(ds_id)
-            ))
+            cd.nodes.append(
+                CloudNode(
+                    id=ds_id,
+                    icon="generic.storage.Storage",
+                    label=ds_data.get("label", ds_id),
+                    cluster_id=node_to_boundary.get(ds_id),
+                )
+            )
 
         # Convert external entities
         for ext_id, ext_data in tm.inputdata.get("externals", {}).items():
-            cd.nodes.append(CloudNode(
-                id=ext_id,
-                icon="generic.device.Mobile",
-                label=ext_data.get("label", ext_id),
-                cluster_id=node_to_boundary.get(ext_id)
-            ))
+            cd.nodes.append(
+                CloudNode(
+                    id=ext_id,
+                    icon="generic.device.Mobile",
+                    label=ext_data.get("label", ext_id),
+                    cluster_id=node_to_boundary.get(ext_id),
+                )
+            )
 
         # Create clusters from boundaries
         for boundary_id, boundary_data in tm.inputdata.get("boundaries", {}).items():
             cluster_nodes = [n for n in cd.nodes if n.cluster_id == boundary_id]
             if cluster_nodes:
-                cd.clusters.append(CloudCluster(
-                    id=boundary_id,
-                    label=boundary_data.get("label", boundary_id),
-                    nodes=cluster_nodes
-                ))
+                cd.clusters.append(
+                    CloudCluster(id=boundary_id, label=boundary_data.get("label", boundary_id), nodes=cluster_nodes)
+                )
 
         # Convert data flows
-        for flow_id, flow_data in tm.inputdata.get("dataflows", {}).items():
-            cd.edges.append(CloudEdge(
-                from_id=flow_data.get("from", flow_data.get("source", "")),
-                to_id=flow_data.get("to", flow_data.get("destination", "")),
-                label=flow_data.get("label", flow_data.get("data", ""))
-            ))
+        for _flow_id, flow_data in tm.inputdata.get("dataflows", {}).items():
+            cd.edges.append(
+                CloudEdge(
+                    from_id=flow_data.get("from", flow_data.get("source", "")),
+                    to_id=flow_data.get("to", flow_data.get("destination", "")),
+                    label=flow_data.get("label", flow_data.get("data", "")),
+                )
+            )
 
         cd._loaded = True
         return cd
@@ -1348,18 +1277,12 @@ class CloudDiagrams:
             node_type = node.get("type", "default").lower()
             icon = type_to_icon.get(node_type, type_to_icon["default"])
 
-            cd.nodes.append(CloudNode(
-                id=node.get("id", ""),
-                icon=icon,
-                label=node.get("name", node.get("id", ""))
-            ))
+            cd.nodes.append(CloudNode(id=node.get("id", ""), icon=icon, label=node.get("name", node.get("id", ""))))
 
         for edge in custom.edges:
-            cd.edges.append(CloudEdge(
-                from_id=edge.get("from", ""),
-                to_id=edge.get("to", ""),
-                label=edge.get("label", "")
-            ))
+            cd.edges.append(
+                CloudEdge(from_id=edge.get("from", ""), to_id=edge.get("to", ""), label=edge.get("label", ""))
+            )
 
         # Convert clusters
         for cluster in custom.clusters:
@@ -1368,11 +1291,11 @@ class CloudDiagrams:
             for n in cluster_nodes:
                 n.cluster_id = cluster.get("id", "")
 
-            cd.clusters.append(CloudCluster(
-                id=cluster.get("id", ""),
-                label=cluster.get("label", cluster.get("id", "")),
-                nodes=cluster_nodes
-            ))
+            cd.clusters.append(
+                CloudCluster(
+                    id=cluster.get("id", ""), label=cluster.get("label", cluster.get("id", "")), nodes=cluster_nodes
+                )
+            )
 
         cd._loaded = True
         return cd
@@ -1402,10 +1325,7 @@ class CloudDiagrams:
         if cwd_templates.exists():
             return cwd_templates
 
-        raise CloudDiagramError(
-            "Cloud templates directory not found. "
-            "Expected at templates/cloud/"
-        )
+        raise CloudDiagramError("Cloud templates directory not found. Expected at templates/cloud/")
 
     @classmethod
     def list_templates(cls, category: Optional[str] = None) -> list[dict[str, str]]:
@@ -1424,10 +1344,7 @@ class CloudDiagrams:
 
         templates = []
 
-        if category:
-            categories = [templates_dir / category]
-        else:
-            categories = [d for d in templates_dir.iterdir() if d.is_dir()]
+        categories = [templates_dir / category] if category else [d for d in templates_dir.iterdir() if d.is_dir()]
 
         for category_dir in categories:
             if not category_dir.exists():
@@ -1435,12 +1352,14 @@ class CloudDiagrams:
 
             for ext in (".toml", ".yaml", ".yml", ".json"):
                 for template_file in category_dir.glob(f"*{ext}"):
-                    templates.append({
-                        "id": f"{category_dir.name}/{template_file.stem}",
-                        "name": template_file.stem.replace("-", " ").title(),
-                        "category": category_dir.name,
-                        "path": str(template_file),
-                    })
+                    templates.append(
+                        {
+                            "id": f"{category_dir.name}/{template_file.stem}",
+                            "name": template_file.stem.replace("-", " ").title(),
+                            "category": category_dir.name,
+                            "path": str(template_file),
+                        }
+                    )
 
         return sorted(templates, key=lambda t: (t["category"], t["name"]))
 
@@ -1479,10 +1398,7 @@ class CloudDiagrams:
         templates_dir = cls.get_templates_dir()
 
         if "/" not in template_id:
-            raise CloudDiagramError(
-                f"Invalid template ID format: {template_id}. "
-                "Expected format: category/name"
-            )
+            raise CloudDiagramError(f"Invalid template ID format: {template_id}. Expected format: category/name")
 
         category, name = template_id.split("/", 1)
 
@@ -1497,10 +1413,7 @@ class CloudDiagrams:
         if not template_path:
             available = cls.list_templates(category)
             available_ids = [t["id"] for t in available]
-            raise CloudDiagramError(
-                f"Template not found: {template_id}. "
-                f"Available in '{category}': {available_ids}"
-            )
+            raise CloudDiagramError(f"Template not found: {template_id}. Available in '{category}': {available_ids}")
 
         instance = cls()
         instance.load(str(template_path))
@@ -1521,7 +1434,4 @@ class CloudDiagrams:
     def __repr__(self) -> str:
         """Return string representation."""
         status = "loaded" if self._loaded else "empty"
-        return (
-            f"<CloudDiagrams({self.config.title!r}, {status}, "
-            f"nodes={len(self.nodes)}, edges={len(self.edges)})>"
-        )
+        return f"<CloudDiagrams({self.config.title!r}, {status}, nodes={len(self.nodes)}, edges={len(self.edges)})>"

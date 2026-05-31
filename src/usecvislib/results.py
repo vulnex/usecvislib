@@ -27,6 +27,7 @@ from typing import Any, Optional
 
 class Severity(str, Enum):
     """Severity levels for validation issues."""
+
     CRITICAL = "critical"
     ERROR = "error"
     WARNING = "warning"
@@ -52,6 +53,7 @@ class TemplateMetadata:
         email: Author email.
         url: Author URL.
     """
+
     name: str = ""
     description: str = ""
     engineversion: str = ""
@@ -83,7 +85,7 @@ class TemplateMetadata:
         }
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any], root_key: str = "") -> 'TemplateMetadata':
+    def from_dict(cls, data: dict[str, Any], root_key: str = "") -> "TemplateMetadata":
         """Create TemplateMetadata from a dictionary.
 
         Args:
@@ -99,7 +101,7 @@ class TemplateMetadata:
             root = data[root_key]
         else:
             # Search common root keys
-            for key in ['tree', 'graph', 'model']:
+            for key in ["tree", "graph", "model"]:
                 if key in data:
                     root = data[key]
                     break
@@ -107,16 +109,16 @@ class TemplateMetadata:
                 root = data
 
         return cls(
-            name=root.get('name', ''),
-            description=root.get('description', ''),
-            engineversion=root.get('engineversion', ''),
-            version=root.get('version', ''),
-            type=root.get('type', ''),
-            date=root.get('date', ''),
-            last_modified=root.get('last_modified', ''),
-            author=root.get('author', ''),
-            email=root.get('email', ''),
-            url=root.get('url', ''),
+            name=root.get("name", ""),
+            description=root.get("description", ""),
+            engineversion=root.get("engineversion", ""),
+            version=root.get("version", ""),
+            type=root.get("type", ""),
+            date=root.get("date", ""),
+            last_modified=root.get("last_modified", ""),
+            author=root.get("author", ""),
+            email=root.get("email", ""),
+            url=root.get("url", ""),
         )
 
     def has_metadata(self) -> bool:
@@ -125,13 +127,15 @@ class TemplateMetadata:
         Returns:
             True if at least one metadata field is set.
         """
-        return any([
-            self.engineversion,
-            self.version,
-            self.type,
-            self.date,
-            self.author,
-        ])
+        return any(
+            [
+                self.engineversion,
+                self.version,
+                self.type,
+                self.date,
+                self.author,
+            ]
+        )
 
 
 @dataclass
@@ -144,6 +148,7 @@ class ValidationIssue:
         location: Optional location in the data (e.g., "hosts.webserver").
         suggestion: Optional suggestion for fixing the issue.
     """
+
     message: str
     severity: Severity
     location: Optional[str] = None
@@ -166,6 +171,7 @@ class ValidationResult:
         is_valid: Whether the validation passed (no errors).
         issues: List of validation issues found.
     """
+
     is_valid: bool
     issues: list[ValidationIssue] = field(default_factory=list)
 
@@ -189,7 +195,7 @@ class ValidationResult:
         """Get all critical-level issues."""
         return [i for i in self.issues if i.severity == Severity.CRITICAL]
 
-    def merge(self, other: 'ValidationResult') -> 'ValidationResult':
+    def merge(self, other: "ValidationResult") -> "ValidationResult":
         """Merge two validation results.
 
         Args:
@@ -198,18 +204,15 @@ class ValidationResult:
         Returns:
             New ValidationResult with combined issues.
         """
-        return ValidationResult(
-            is_valid=self.is_valid and other.is_valid,
-            issues=self.issues + other.issues
-        )
+        return ValidationResult(is_valid=self.is_valid and other.is_valid, issues=self.issues + other.issues)
 
     def add_issue(
         self,
         message: str,
         severity: Severity = Severity.ERROR,
         location: Optional[str] = None,
-        suggestion: Optional[str] = None
-    ) -> 'ValidationResult':
+        suggestion: Optional[str] = None,
+    ) -> "ValidationResult":
         """Add an issue to the result.
 
         Args:
@@ -233,14 +236,9 @@ class ValidationResult:
             "error_count": len(self.errors),
             "warning_count": len(self.warnings),
             "issues": [
-                {
-                    "message": i.message,
-                    "severity": i.severity.value,
-                    "location": i.location,
-                    "suggestion": i.suggestion
-                }
+                {"message": i.message, "severity": i.severity.value, "location": i.location, "suggestion": i.suggestion}
                 for i in self.issues
-            ]
+            ],
         }
 
 
@@ -254,6 +252,7 @@ class AnalysisResult:
         risk_score: Optional overall risk score (0-10).
         metadata: Additional metadata about the analysis.
     """
+
     stats: dict[str, Any]
     recommendations: list[str] = field(default_factory=list)
     risk_score: Optional[float] = None
@@ -274,7 +273,7 @@ class AnalysisResult:
             return "low"
         return "none"
 
-    def add_recommendation(self, recommendation: str) -> 'AnalysisResult':
+    def add_recommendation(self, recommendation: str) -> "AnalysisResult":
         """Add a recommendation.
 
         Args:
@@ -293,7 +292,7 @@ class AnalysisResult:
             "recommendations": self.recommendations,
             "risk_score": self.risk_score,
             "risk_level": self.risk_level,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
 
@@ -309,6 +308,7 @@ class PathResult:
         shortest_length: Length of the shortest path.
         total_cost: Optional total cost for weighted paths.
     """
+
     source: str
     target: str
     paths: list[list[str]] = field(default_factory=list)
@@ -364,7 +364,7 @@ class PathResult:
             "shortest_length": self.shortest_length,
             "shortest_path": self.shortest_path,
             "total_cost": self.total_cost,
-            "paths": self.paths
+            "paths": self.paths,
         }
 
 
@@ -381,6 +381,7 @@ class CriticalNode:
         criticality_score: Calculated criticality score.
         metadata: Additional node metadata.
     """
+
     node_id: str
     label: str
     node_type: str
@@ -404,7 +405,7 @@ class CriticalNode:
             "out_degree": self.out_degree,
             "total_degree": self.total_degree,
             "criticality_score": self.criticality_score,
-            **self.metadata
+            **self.metadata,
         }
 
 
@@ -417,6 +418,7 @@ class CriticalNodeResult:
         analysis_method: Method used for analysis.
         metadata: Additional analysis metadata.
     """
+
     nodes: list[CriticalNode] = field(default_factory=list)
     analysis_method: str = "degree_centrality"
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -468,7 +470,7 @@ class CriticalNodeResult:
             "analysis_method": self.analysis_method,
             "node_count": len(self.nodes),
             "nodes": [n.to_dict() for n in self.nodes],
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
 
@@ -484,6 +486,7 @@ class STRIDEThreat:
         severity: Threat severity level.
         confidence: Confidence in the threat identification (0-1).
     """
+
     category: str
     element: str
     threat: str
@@ -499,7 +502,7 @@ class STRIDEThreat:
             "threat": self.threat,
             "mitigation": self.mitigation,
             "severity": self.severity,
-            "confidence": self.confidence
+            "confidence": self.confidence,
         }
 
 
@@ -511,6 +514,7 @@ class STRIDEResult:
         threats: Dictionary mapping categories to threat lists.
         metadata: Additional analysis metadata.
     """
+
     threats: dict[str, list[STRIDEThreat]] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -563,7 +567,7 @@ class STRIDEResult:
         """
         return self.threats.get(category, [])
 
-    def add_threat(self, threat: STRIDEThreat) -> 'STRIDEResult':
+    def add_threat(self, threat: STRIDEThreat) -> "STRIDEResult":
         """Add a threat to the result.
 
         Args:
@@ -590,11 +594,8 @@ class STRIDEResult:
         return {
             "total_count": self.total_count,
             "by_category": self.summary(),
-            "threats": {
-                cat: [t.to_dict() for t in threats]
-                for cat, threats in self.threats.items()
-            },
-            "metadata": self.metadata
+            "threats": {cat: [t.to_dict() for t in threats] for cat, threats in self.threats.items()},
+            "metadata": self.metadata,
         }
 
 
@@ -610,6 +611,7 @@ class BinaryAnalysisResult:
         sections: Analysis of different file sections.
         metadata: Additional metadata.
     """
+
     file_path: str
     file_size: int
     entropy: float
@@ -651,7 +653,7 @@ class BinaryAnalysisResult:
             "is_likely_compressed": self.is_likely_compressed,
             "stats": self.stats,
             "sections": self.sections,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
 
 
@@ -667,6 +669,7 @@ class RenderResult:
         warnings: Any warnings generated during rendering.
         metadata: Additional rendering metadata.
     """
+
     success: bool
     output_path: Optional[str] = None
     format: Optional[str] = None
@@ -682,5 +685,5 @@ class RenderResult:
             "format": self.format,
             "duration_ms": self.duration_ms,
             "warnings": self.warnings,
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }

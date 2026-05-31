@@ -37,6 +37,7 @@ from .base import VisualizationBase
 
 class PrivilegeGradientError(utils.RenderError):
     """Exception raised for privilege gradient graph generation errors."""
+
     pass
 
 
@@ -61,40 +62,82 @@ class PrivilegeGradient(VisualizationBase):
 
     STYLE_FILE = "config_privilegegradient.tml"
     DEFAULT_STYLE_ID = "pg_default"
-    ALLOWED_EXTENSIONS = ['.toml', '.tml', '.json', '.yaml', '.yml']
+    ALLOWED_EXTENSIONS = [".toml", ".tml", ".json", ".yaml", ".yml"]
     MAX_INPUT_SIZE = 10 * 1024 * 1024  # 10 MB
 
     DEFAULT_ZONES = [
-        {"id": "Z0", "label": "Untrusted / External", "trust_level": 0,
-         "color": "#ffcccc", "border_color": "#cc0000", "font_color": "#660000"},
-        {"id": "Z1", "label": "Edge / DMZ", "trust_level": 1,
-         "color": "#ffe0b2", "border_color": "#e65100", "font_color": "#663300"},
-        {"id": "Z2", "label": "Application Tier", "trust_level": 2,
-         "color": "#fff9c4", "border_color": "#f9a825", "font_color": "#665500"},
-        {"id": "Z3", "label": "Control Plane", "trust_level": 3,
-         "color": "#c8e6c9", "border_color": "#2e7d32", "font_color": "#1b5e20"},
-        {"id": "Z4", "label": "Root of Trust", "trust_level": 4,
-         "color": "#bbdefb", "border_color": "#1565c0", "font_color": "#0d47a1"},
+        {
+            "id": "Z0",
+            "label": "Untrusted / External",
+            "trust_level": 0,
+            "color": "#ffcccc",
+            "border_color": "#cc0000",
+            "font_color": "#660000",
+        },
+        {
+            "id": "Z1",
+            "label": "Edge / DMZ",
+            "trust_level": 1,
+            "color": "#ffe0b2",
+            "border_color": "#e65100",
+            "font_color": "#663300",
+        },
+        {
+            "id": "Z2",
+            "label": "Application Tier",
+            "trust_level": 2,
+            "color": "#fff9c4",
+            "border_color": "#f9a825",
+            "font_color": "#665500",
+        },
+        {
+            "id": "Z3",
+            "label": "Control Plane",
+            "trust_level": 3,
+            "color": "#c8e6c9",
+            "border_color": "#2e7d32",
+            "font_color": "#1b5e20",
+        },
+        {
+            "id": "Z4",
+            "label": "Root of Trust",
+            "trust_level": 4,
+            "color": "#bbdefb",
+            "border_color": "#1565c0",
+            "font_color": "#0d47a1",
+        },
     ]
 
     DEFAULT_INFLUENCE_TYPES = [
-        {"id": "data", "label": "Data Flow", "color": "#3498db",
-         "style": "solid", "arrowhead": "vee", "penwidth": "1.5"},
-        {"id": "feedback", "label": "Feedback", "color": "#e67e22",
-         "style": "dashed", "arrowhead": "vee", "penwidth": "1.5"},
-        {"id": "resource", "label": "Resource", "color": "#27ae60",
-         "style": "dotted", "arrowhead": "diamond", "penwidth": "2"},
-        {"id": "control", "label": "Control", "color": "#8e44ad",
-         "style": "bold", "arrowhead": "dot", "penwidth": "2"},
+        {
+            "id": "data",
+            "label": "Data Flow",
+            "color": "#3498db",
+            "style": "solid",
+            "arrowhead": "vee",
+            "penwidth": "1.5",
+        },
+        {
+            "id": "feedback",
+            "label": "Feedback",
+            "color": "#e67e22",
+            "style": "dashed",
+            "arrowhead": "vee",
+            "penwidth": "1.5",
+        },
+        {
+            "id": "resource",
+            "label": "Resource",
+            "color": "#27ae60",
+            "style": "dotted",
+            "arrowhead": "diamond",
+            "penwidth": "2",
+        },
+        {"id": "control", "label": "Control", "color": "#8e44ad", "style": "bold", "arrowhead": "dot", "penwidth": "2"},
     ]
 
     def __init__(
-        self,
-        inputfile: str,
-        outputfile: str,
-        format: str = "",
-        styleid: str = "",
-        validate_paths: bool = True
+        self, inputfile: str, outputfile: str, format: str = "", styleid: str = "", validate_paths: bool = True
     ) -> None:
         if format == "":
             format = "png"
@@ -102,11 +145,7 @@ class PrivilegeGradient(VisualizationBase):
             styleid = None
 
         super().__init__(
-            inputfile=inputfile,
-            outputfile=outputfile,
-            format=format,
-            styleid=styleid,
-            validate_paths=validate_paths
+            inputfile=inputfile, outputfile=outputfile, format=format, styleid=styleid, validate_paths=validate_paths
         )
 
         self.graph: Optional[Digraph] = None
@@ -121,9 +160,10 @@ class PrivilegeGradient(VisualizationBase):
         self._temp_input: Optional[str] = None
 
     def __del__(self):
-        if hasattr(self, '_temp_input') and self._temp_input:
+        if hasattr(self, "_temp_input") and self._temp_input:
             try:
                 import os
+
                 if os.path.exists(self._temp_input):
                     os.remove(self._temp_input)
             except Exception:
@@ -221,8 +261,10 @@ class PrivilegeGradient(VisualizationBase):
         self._normalize_data()
         self._build_adjacency()
         self._detect_inversions()
-        self.logger.debug(f"Loaded privilege gradient with {len(self._components)} components, "
-                          f"{len(self._influences)} influences, {len(self._inversions)} inversions")
+        self.logger.debug(
+            f"Loaded privilege gradient with {len(self._components)} components, "
+            f"{len(self._influences)} influences, {len(self._inversions)} inversions"
+        )
         return data
 
     def _normalize_data(self) -> None:
@@ -312,9 +354,7 @@ class PrivilegeGradient(VisualizationBase):
         self._nx_graph = nx.DiGraph()
 
         for comp_id, comp_data in self._components.items():
-            self._nx_graph.add_node(comp_id, **{
-                k: v for k, v in comp_data.items() if k != "id"
-            })
+            self._nx_graph.add_node(comp_id, **{k: v for k, v in comp_data.items() if k != "id"})
 
         for source, targets in self._adjacency.items():
             for target in targets:
@@ -361,18 +401,20 @@ class PrivilegeGradient(VisualizationBase):
                 else:
                     severity = "medium"
 
-                self._inversions.append({
-                    "from": source_id,
-                    "to": target_id,
-                    "from_zone": source_zone_id,
-                    "to_zone": target_zone_id,
-                    "from_trust": source_trust,
-                    "to_trust": target_trust,
-                    "trust_gap": trust_gap,
-                    "severity": severity,
-                    "influence_type": influence.get("type", "unknown"),
-                    "label": influence.get("label", ""),
-                })
+                self._inversions.append(
+                    {
+                        "from": source_id,
+                        "to": target_id,
+                        "from_zone": source_zone_id,
+                        "to_zone": target_zone_id,
+                        "from_trust": source_trust,
+                        "to_trust": target_trust,
+                        "trust_gap": trust_gap,
+                        "severity": severity,
+                        "influence_type": influence.get("type", "unknown"),
+                        "label": influence.get("label", ""),
+                    }
+                )
 
     def _render_impl(self) -> None:
         """Build the privilege gradient graph from loaded data."""
@@ -388,10 +430,7 @@ class PrivilegeGradient(VisualizationBase):
         inversion_style = self.style.get("inversion", self._default_style()["inversion"])
 
         # Create main graph
-        self.graph = Digraph(
-            name=graph_meta.get("name", "Privilege Gradient Graph"),
-            format=self.format
-        )
+        self.graph = Digraph(name=graph_meta.get("name", "Privilege Gradient Graph"), format=self.format)
 
         graph_attrs = utils.stringify_dict(graph_style)
         self.graph.attr(**graph_attrs)
@@ -400,10 +439,7 @@ class PrivilegeGradient(VisualizationBase):
             self.graph.attr(label=graph_meta["name"], labelloc="t")
 
         # Sort zones by trust_level ascending (low trust left, high trust right)
-        sorted_zones = sorted(
-            self._zones.values(),
-            key=lambda z: z.get("trust_level", 0)
-        )
+        sorted_zones = sorted(self._zones.values(), key=lambda z: z.get("trust_level", 0))
 
         # Build zone subgraphs
         zone_anchors = []
@@ -422,8 +458,7 @@ class PrivilegeGradient(VisualizationBase):
                     fillcolor=zone_color,
                     color=zone_border,
                     fontcolor=zone_font_color,
-                    **{k: v for k, v in sub_attrs.items()
-                       if k not in ("fillcolor", "color", "fontcolor", "label")}
+                    **{k: v for k, v in sub_attrs.items() if k not in ("fillcolor", "color", "fontcolor", "label")},
                 )
 
                 # Add invisible anchor node for ordering
@@ -436,12 +471,12 @@ class PrivilegeGradient(VisualizationBase):
                     if comp_data.get("zone") == zone_id:
                         node_attrs = comp_data.copy()
                         # Check for images
-                        has_image = 'image' in node_attrs and node_attrs['image']
-                        user_shape = comp_data.get('shape', '')
-                        user_style_attr = comp_data.get('style', '')
-                        user_fillcolor = comp_data.get('fillcolor', '')
-                        wants_no_bg = user_shape in ('none', 'plaintext', 'point')
-                        wants_bg = ('filled' in str(user_style_attr).lower()) or bool(user_fillcolor)
+                        has_image = "image" in node_attrs and node_attrs["image"]
+                        user_shape = comp_data.get("shape", "")
+                        user_style_attr = comp_data.get("style", "")
+                        user_fillcolor = comp_data.get("fillcolor", "")
+                        wants_no_bg = user_shape in ("none", "plaintext", "point")
+                        wants_bg = ("filled" in str(user_style_attr).lower()) or bool(user_fillcolor)
                         has_visible_shape = bool(user_shape) and not wants_no_bg
                         user_set_shape = (has_visible_shape or wants_bg) and not wants_no_bg
 
@@ -465,10 +500,7 @@ class PrivilegeGradient(VisualizationBase):
 
         # Add invisible edges between zone anchors for ordering
         for i in range(len(zone_anchors) - 1):
-            self.graph.edge(
-                zone_anchors[i], zone_anchors[i + 1],
-                style="invis", weight="100"
-            )
+            self.graph.edge(zone_anchors[i], zone_anchors[i + 1], style="invis", weight="100")
 
         # Build inversion lookup for quick checking
         inversion_set = set()
@@ -497,7 +529,11 @@ class PrivilegeGradient(VisualizationBase):
                         inv_severity = inv["severity"]
                         break
                 severity_marker = {"critical": "!!!", "high": "!!", "medium": "!"}.get(inv_severity, "!")
-                edge_attrs["label"] = f" {severity_marker} INVERSION {severity_marker}\\n{inf_label}" if inf_label else f" {severity_marker} INVERSION {severity_marker}"
+                edge_attrs["label"] = (
+                    f" {severity_marker} INVERSION {severity_marker}\\n{inf_label}"
+                    if inf_label
+                    else f" {severity_marker} INVERSION {severity_marker}"
+                )
             else:
                 # Use influence type style
                 style_key = f"{inf_type}_influence"
@@ -527,8 +563,10 @@ class PrivilegeGradient(VisualizationBase):
         # Add legend
         self._add_legend()
 
-        self.logger.debug(f"Rendered privilege gradient with {len(self._zones)} zones, "
-                          f"{len(self._components)} components, {len(self._inversions)} inversions")
+        self.logger.debug(
+            f"Rendered privilege gradient with {len(self._zones)} zones, "
+            f"{len(self._components)} components, {len(self._inversions)} inversions"
+        )
 
     def _add_legend(self) -> None:
         """Add a compact HTML-table legend at the bottom of the graph."""
@@ -572,12 +610,15 @@ class PrivilegeGradient(VisualizationBase):
             f'<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="4" CELLPADDING="2" '
             f'BGCOLOR="{legend_bg}" COLOR="{legend_border}" STYLE="ROUNDED">'
             f'<TR><TD COLSPAN="{len(rows) * 3}"><B><FONT COLOR="{font_color}" POINT-SIZE="9">'
-            f'Legend</FONT></B></TD></TR>'
-            f'<TR>{cells}</TR></TABLE>>'
+            f"Legend</FONT></B></TD></TR>"
+            f"<TR>{cells}</TR></TABLE>>"
         )
 
         self.graph.node(
-            "_legend", label=html_label, shape="none", margin="0",
+            "_legend",
+            label=html_label,
+            shape="none",
+            margin="0",
         )
 
     def _draw_impl(self, outputfile: str) -> None:
@@ -697,7 +738,7 @@ class PrivilegeGradient(VisualizationBase):
         zone_ids = list(self._zones.keys())
         matrix: dict[str, dict[str, int]] = {}
         for z in zone_ids:
-            matrix[z] = {z2: 0 for z2 in zone_ids}
+            matrix[z] = dict.fromkeys(zone_ids, 0)
 
         for influence in self._influences:
             source_id = influence.get("from")
@@ -715,9 +756,7 @@ class PrivilegeGradient(VisualizationBase):
 
         return matrix
 
-    def find_influence_paths(
-        self, source: str, target: str, max_paths: int = 10
-    ) -> list[list[str]]:
+    def find_influence_paths(self, source: str, target: str, max_paths: int = 10) -> list[list[str]]:
         """Find influence paths between two components using BFS."""
         if not self._loaded:
             self.load()
@@ -744,7 +783,7 @@ class PrivilegeGradient(VisualizationBase):
 
             for neighbor in self._adjacency.get(current, []):
                 if neighbor not in path:  # avoid cycles
-                    queue.append((neighbor, path + [neighbor]))
+                    queue.append((neighbor, [*path, neighbor]))
 
         return paths
 
@@ -764,14 +803,16 @@ class PrivilegeGradient(VisualizationBase):
             in_deg = len(self._reverse_adjacency.get(comp_id, []))
             out_deg = len(self._adjacency.get(comp_id, []))
 
-            results.append({
-                "id": comp_id,
-                "label": comp_data.get("label", comp_id),
-                "zone": comp_data.get("zone", "unknown"),
-                "in_degree": in_deg,
-                "out_degree": out_deg,
-                "degree_centrality": round(score, 6),
-            })
+            results.append(
+                {
+                    "id": comp_id,
+                    "label": comp_data.get("label", comp_id),
+                    "zone": comp_data.get("zone", "unknown"),
+                    "in_degree": in_deg,
+                    "out_degree": out_deg,
+                    "degree_centrality": round(score, 6),
+                }
+            )
 
         results.sort(key=lambda x: x["degree_centrality"], reverse=True)
         return results[:top_n]

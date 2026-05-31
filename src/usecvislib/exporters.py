@@ -54,7 +54,7 @@ class ExportMixin:
         output: Optional[str] = None,
         include_stats: bool = True,
         include_metadata: bool = True,
-        pretty: bool = True
+        pretty: bool = True,
     ) -> str:
         """Export data as JSON.
 
@@ -73,7 +73,7 @@ class ExportMixin:
             >>> ag.export_json("export.json")  # Write to file
         """
         # Ensure data is loaded
-        if not getattr(self, '_loaded', False):
+        if not getattr(self, "_loaded", False):
             self.load()
 
         data: dict[str, Any] = {}
@@ -82,21 +82,21 @@ class ExportMixin:
         if include_metadata:
             data["metadata"] = {
                 "type": self.__class__.__name__,
-                "source": getattr(self, 'inputfile', 'unknown'),
-                "version": "0.2.3"
+                "source": getattr(self, "inputfile", "unknown"),
+                "version": "0.2.3",
             }
 
         # Add main data
-        data["data"] = getattr(self, 'inputdata', {})
+        data["data"] = getattr(self, "inputdata", {})
 
         # Add stats if available and requested
         if include_stats:
             stats_method = None
-            if hasattr(self, 'get_graph_stats'):
+            if hasattr(self, "get_graph_stats"):
                 stats_method = self.get_graph_stats
-            elif hasattr(self, 'get_file_stats'):
+            elif hasattr(self, "get_file_stats"):
                 stats_method = self.get_file_stats
-            elif hasattr(self, 'get_stats'):
+            elif hasattr(self, "get_stats"):
                 stats_method = self.get_stats
 
             if stats_method:
@@ -115,19 +115,13 @@ class ExportMixin:
             # SECURITY: Validate output path to prevent writing to sensitive locations
             output_path = validate_output_path(output)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 f.write(json_str)
             logger.info(f"Exported JSON to: {output}")
 
         return json_str
 
-    def export_csv(
-        self,
-        output: str,
-        section: str = "nodes",
-        delimiter: str = ",",
-        include_header: bool = True
-    ) -> int:
+    def export_csv(self, output: str, section: str = "nodes", delimiter: str = ",", include_header: bool = True) -> int:
         """Export specific section as CSV.
 
         Args:
@@ -149,7 +143,7 @@ class ExportMixin:
             >>> ag.export_csv("vulns.csv", section="vulnerabilities")
         """
         # Ensure data is loaded
-        if not getattr(self, '_loaded', False):
+        if not getattr(self, "_loaded", False):
             self.load()
 
         # Get data for section
@@ -163,19 +157,14 @@ class ExportMixin:
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Write CSV
-        with open(output_path, 'w', newline='', encoding='utf-8') as f:
+        with open(output_path, "w", newline="", encoding="utf-8") as f:
             # Get all possible keys from all rows
             all_keys = set()
             for row in data:
                 all_keys.update(row.keys())
             fieldnames = sorted(all_keys)
 
-            writer = csv.DictWriter(
-                f,
-                fieldnames=fieldnames,
-                delimiter=delimiter,
-                extrasaction='ignore'
-            )
+            writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=delimiter, extrasaction="ignore")
 
             if include_header:
                 writer.writeheader()
@@ -196,7 +185,7 @@ class ExportMixin:
         Returns:
             List of dictionaries suitable for CSV export.
         """
-        inputdata = getattr(self, 'inputdata', {})
+        inputdata = getattr(self, "inputdata", {})
 
         # Handle common section patterns
         if section in inputdata:
@@ -209,7 +198,7 @@ class ExportMixin:
                 return [{"id": k, **v} for k, v in data.items()]
 
         # Try nested sections
-        for key, value in inputdata.items():
+        for _key, value in inputdata.items():
             if isinstance(value, dict) and section in value:
                 sub_data = value[section]
                 if isinstance(sub_data, list):
@@ -225,11 +214,11 @@ class ExportMixin:
         Returns:
             List of section names available for export.
         """
-        if not getattr(self, '_loaded', False):
+        if not getattr(self, "_loaded", False):
             self.load()
 
         sections = []
-        inputdata = getattr(self, 'inputdata', {})
+        inputdata = getattr(self, "inputdata", {})
 
         for key, value in inputdata.items():
             if isinstance(value, (list, dict)):
@@ -251,11 +240,7 @@ class Exporter:
     """
 
     @staticmethod
-    def to_json(
-        data: dict[str, Any],
-        output: Optional[str] = None,
-        pretty: bool = True
-    ) -> str:
+    def to_json(data: dict[str, Any], output: Optional[str] = None, pretty: bool = True) -> str:
         """Export dictionary to JSON.
 
         Args:
@@ -273,17 +258,14 @@ class Exporter:
             # SECURITY: Validate output path to prevent writing to sensitive locations
             output_path = validate_output_path(output)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 f.write(json_str)
 
         return json_str
 
     @staticmethod
     def to_csv(
-        data: list[dict[str, Any]],
-        output: str,
-        fieldnames: Optional[list[str]] = None,
-        delimiter: str = ","
+        data: list[dict[str, Any]], output: str, fieldnames: Optional[list[str]] = None, delimiter: str = ","
     ) -> int:
         """Export list of dictionaries to CSV.
 
@@ -310,23 +292,15 @@ class Exporter:
         # SECURITY: Validate output path to prevent writing to sensitive locations
         output_path = validate_output_path(output)
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w', newline='', encoding='utf-8') as f:
-            writer = csv.DictWriter(
-                f,
-                fieldnames=fieldnames,
-                delimiter=delimiter,
-                extrasaction='ignore'
-            )
+        with open(output_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames, delimiter=delimiter, extrasaction="ignore")
             writer.writeheader()
             writer.writerows(data)
 
         return len(data)
 
     @staticmethod
-    def to_yaml(
-        data: dict[str, Any],
-        output: Optional[str] = None
-    ) -> str:
+    def to_yaml(data: dict[str, Any], output: Optional[str] = None) -> str:
         """Export dictionary to YAML.
 
         Args:
@@ -340,18 +314,14 @@ class Exporter:
 
         # SECURITY: Use SafeDumper to prevent serialization of arbitrary Python objects
         yaml_str = yaml.dump(
-            data,
-            default_flow_style=False,
-            allow_unicode=True,
-            sort_keys=False,
-            Dumper=yaml.SafeDumper
+            data, default_flow_style=False, allow_unicode=True, sort_keys=False, Dumper=yaml.SafeDumper
         )
 
         if output:
             # SECURITY: Validate output path to prevent writing to sensitive locations
             output_path = validate_output_path(output)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 f.write(yaml_str)
 
         return yaml_str
@@ -372,20 +342,18 @@ class Exporter:
         if not value:
             return ""
         # Escape pipe character (breaks table structure)
-        value = value.replace('|', '\\|')
+        value = value.replace("|", "\\|")
         # Escape backslash (escape character)
-        value = value.replace('\\', '\\\\')
+        value = value.replace("\\", "\\\\")
         # Remove/escape newlines (breaks table rows)
-        value = value.replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
+        value = value.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
         # Escape backticks (could create code blocks)
-        value = value.replace('`', '\\`')
+        value = value.replace("`", "\\`")
         return value
 
     @staticmethod
     def to_markdown_table(
-        data: list[dict[str, Any]],
-        output: Optional[str] = None,
-        columns: Optional[list[str]] = None
+        data: list[dict[str, Any]], output: Optional[str] = None, columns: Optional[list[str]] = None
     ) -> str:
         """Export list of dictionaries to Markdown table.
 
@@ -416,10 +384,7 @@ class Exporter:
 
         # Rows - escape all values
         for row in data:
-            values = [
-                Exporter._escape_markdown_cell(str(row.get(col, "")))
-                for col in columns
-            ]
+            values = [Exporter._escape_markdown_cell(str(row.get(col, ""))) for col in columns]
             lines.append("| " + " | ".join(values) + " |")
 
         md_str = "\n".join(lines)
@@ -428,7 +393,7 @@ class Exporter:
             # SECURITY: Validate output path to prevent writing to sensitive locations
             output_path = validate_output_path(output)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, 'w', encoding='utf-8') as f:
+            with open(output_path, "w", encoding="utf-8") as f:
                 f.write(md_str)
 
         return md_str
@@ -451,14 +416,11 @@ class ReportGenerator:
             visualization: A visualization instance (AttackGraphs, etc.)
         """
         self.viz = visualization
-        if not getattr(self.viz, '_loaded', False):
+        if not getattr(self.viz, "_loaded", False):
             self.viz.load()
 
     def generate_report(
-        self,
-        output_dir: str,
-        formats: Optional[list[str]] = None,
-        prefix: str = "report"
+        self, output_dir: str, formats: Optional[list[str]] = None, prefix: str = "report"
     ) -> dict[str, str]:
         """Generate a report in multiple formats.
 
@@ -484,7 +446,7 @@ class ReportGenerator:
         # JSON export
         if "json" in formats:
             json_file = str(output_path / f"{prefix}.json")
-            if hasattr(self.viz, 'export_json'):
+            if hasattr(self.viz, "export_json"):
                 self.viz.export_json(json_file)
             else:
                 exporter.to_json(self.viz.inputdata, json_file)
@@ -493,7 +455,7 @@ class ReportGenerator:
         # CSV exports for each section
         if "csv" in formats:
             sections = []
-            if hasattr(self.viz, 'get_exportable_sections'):
+            if hasattr(self.viz, "get_exportable_sections"):
                 sections = self.viz.get_exportable_sections()
             else:
                 sections = list(self.viz.inputdata.keys())
@@ -501,7 +463,7 @@ class ReportGenerator:
             for section in sections:
                 try:
                     csv_file = str(output_path / f"{prefix}_{section}.csv")
-                    if hasattr(self.viz, 'export_csv'):
+                    if hasattr(self.viz, "export_csv"):
                         self.viz.export_csv(csv_file, section=section)
                     outputs[f"csv_{section}"] = csv_file
                 except (ValueError, KeyError) as e:
@@ -533,11 +495,11 @@ class ReportGenerator:
 
         # Add stats if available
         stats = None
-        if hasattr(self.viz, 'get_graph_stats'):
+        if hasattr(self.viz, "get_graph_stats"):
             stats = self.viz.get_graph_stats()
-        elif hasattr(self.viz, 'get_file_stats'):
+        elif hasattr(self.viz, "get_file_stats"):
             stats = self.viz.get_file_stats()
-        elif hasattr(self.viz, 'get_stats'):
+        elif hasattr(self.viz, "get_stats"):
             stats = self.viz.get_stats()
 
         if stats:
@@ -560,5 +522,5 @@ class ReportGenerator:
 
         # SECURITY: Validate output path to prevent writing to sensitive locations
         output_path = validate_output_path(output)
-        with open(output_path, 'w', encoding='utf-8') as f:
+        with open(output_path, "w", encoding="utf-8") as f:
             f.write("\n".join(lines))

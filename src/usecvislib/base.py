@@ -26,7 +26,7 @@ from . import utils
 if TYPE_CHECKING:
     from .results import TemplateMetadata
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class VisualizationBase(ABC, Generic[T]):
@@ -58,7 +58,7 @@ class VisualizationBase(ABC, Generic[T]):
     # Override in subclasses
     STYLE_FILE: str = ""
     DEFAULT_STYLE_ID: str = ""
-    ALLOWED_EXTENSIONS: list[str] = ['.toml', '.tml', '.json', '.yaml', '.yml']
+    ALLOWED_EXTENSIONS: list[str] = [".toml", ".tml", ".json", ".yaml", ".yml"]
     MAX_INPUT_SIZE: int = 10 * 1024 * 1024  # 10 MB
 
     def __init__(
@@ -67,7 +67,7 @@ class VisualizationBase(ABC, Generic[T]):
         outputfile: str,
         format: str = "png",
         styleid: Optional[str] = None,
-        validate_paths: bool = True
+        validate_paths: bool = True,
     ) -> None:
         """Initialize visualization module.
 
@@ -88,9 +88,7 @@ class VisualizationBase(ABC, Generic[T]):
         # Validate and store paths
         if validate_paths:
             self._inputfile = utils.validate_input_path(
-                inputfile,
-                allowed_extensions=self.ALLOWED_EXTENSIONS,
-                max_size_bytes=self.MAX_INPUT_SIZE
+                inputfile, allowed_extensions=self.ALLOWED_EXTENSIONS, max_size_bytes=self.MAX_INPUT_SIZE
             )
             self._outputfile = utils.validate_output_path(outputfile)
             self.inputfile = str(self._inputfile)
@@ -194,7 +192,7 @@ class VisualizationBase(ABC, Generic[T]):
 
     # Public API with fluent interface
 
-    def load(self, inputfile: Optional[str] = None) -> 'VisualizationBase':
+    def load(self, inputfile: Optional[str] = None) -> "VisualizationBase":
         """Load input data from configuration file.
 
         Args:
@@ -210,9 +208,7 @@ class VisualizationBase(ABC, Generic[T]):
         """
         if inputfile:
             self._inputfile = utils.validate_input_path(
-                inputfile,
-                allowed_extensions=self.ALLOWED_EXTENSIONS,
-                max_size_bytes=self.MAX_INPUT_SIZE
+                inputfile, allowed_extensions=self.ALLOWED_EXTENSIONS, max_size_bytes=self.MAX_INPUT_SIZE
             )
             self.inputfile = str(self._inputfile)
 
@@ -222,7 +218,7 @@ class VisualizationBase(ABC, Generic[T]):
         self._rendered = False
         return self
 
-    def render(self) -> 'VisualizationBase':
+    def render(self) -> "VisualizationBase":
         """Build the visualization graph from loaded data.
 
         Returns:
@@ -240,7 +236,7 @@ class VisualizationBase(ABC, Generic[T]):
         self._rendered = True
         return self
 
-    def draw(self, outputfile: Optional[str] = None) -> 'VisualizationBase':
+    def draw(self, outputfile: Optional[str] = None) -> "VisualizationBase":
         """Save visualization to file.
 
         Args:
@@ -288,7 +284,7 @@ class VisualizationBase(ABC, Generic[T]):
 
         return self._get_stats_impl()
 
-    def get_metadata(self) -> 'TemplateMetadata':
+    def get_metadata(self) -> "TemplateMetadata":
         """Get template metadata.
 
         Extracts metadata fields from the loaded template data including
@@ -318,7 +314,7 @@ class VisualizationBase(ABC, Generic[T]):
         # Default behavior: auto-detect
         return ""
 
-    def build(self) -> 'VisualizationBase':
+    def build(self) -> "VisualizationBase":
         """Complete build workflow: load, render, draw.
 
         Returns:
@@ -328,7 +324,7 @@ class VisualizationBase(ABC, Generic[T]):
 
     # Context manager support
 
-    def __enter__(self) -> 'VisualizationBase':
+    def __enter__(self) -> "VisualizationBase":
         """Enter context manager."""
         return self
 

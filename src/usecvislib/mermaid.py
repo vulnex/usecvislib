@@ -45,6 +45,7 @@ from typing import Any, Optional
 
 class MermaidDiagramType(str, Enum):
     """Supported Mermaid diagram types."""
+
     FLOWCHART = "flowchart"
     SEQUENCE = "sequenceDiagram"
     GANTT = "gantt"
@@ -52,6 +53,7 @@ class MermaidDiagramType(str, Enum):
 
 class MermaidDirection(str, Enum):
     """Flowchart direction options."""
+
     TOP_DOWN = "TD"
     BOTTOM_UP = "BT"
     LEFT_RIGHT = "LR"
@@ -61,6 +63,7 @@ class MermaidDirection(str, Enum):
 # =============================================================================
 # Helper Functions
 # =============================================================================
+
 
 def sanitize_node_id(node_id: str) -> str:
     """
@@ -81,17 +84,17 @@ def sanitize_node_id(node_id: str) -> str:
         return "node"
 
     # Replace spaces and hyphens with underscores
-    sanitized = re.sub(r'[\s\-]+', '_', str(node_id))
+    sanitized = re.sub(r"[\s\-]+", "_", str(node_id))
 
     # Remove other special characters
-    sanitized = re.sub(r'[^a-zA-Z0-9_]', '', sanitized)
+    sanitized = re.sub(r"[^a-zA-Z0-9_]", "", sanitized)
 
     # Ensure doesn't start with number
     if sanitized and sanitized[0].isdigit():
-        sanitized = 'n_' + sanitized
+        sanitized = "n_" + sanitized
 
     # Ensure not empty
-    return sanitized or 'node'
+    return sanitized or "node"
 
 
 def escape_label(text: str, max_length: int = 100) -> str:
@@ -112,23 +115,23 @@ def escape_label(text: str, max_length: int = 100) -> str:
 
     # Truncate if too long
     if len(text) > max_length:
-        text = text[:max_length - 3] + "..."
+        text = text[: max_length - 3] + "..."
 
     # Escape quotes
     text = text.replace('"', "'")
 
     # Handle special Mermaid characters
-    text = text.replace('[', '(')
-    text = text.replace(']', ')')
-    text = text.replace('{', '(')
-    text = text.replace('}', ')')
-    text = text.replace('|', '/')
-    text = text.replace('<', 'lt')
-    text = text.replace('>', 'gt')
-    text = text.replace('#', '')
+    text = text.replace("[", "(")
+    text = text.replace("]", ")")
+    text = text.replace("{", "(")
+    text = text.replace("}", ")")
+    text = text.replace("|", "/")
+    text = text.replace("<", "lt")
+    text = text.replace(">", "gt")
+    text = text.replace("#", "")
 
     # Remove newlines
-    text = text.replace('\n', ' ').replace('\r', '')
+    text = text.replace("\n", " ").replace("\r", "")
 
     return text
 
@@ -136,6 +139,7 @@ def escape_label(text: str, max_length: int = 100) -> str:
 # =============================================================================
 # Visualization Type Detection
 # =============================================================================
+
 
 def detect_visualization_type(data: dict[str, Any]) -> str:
     """
@@ -179,9 +183,7 @@ def detect_visualization_type(data: dict[str, Any]) -> str:
     # Vulnerability Tree: have 'dependencies' with 'vulnerabilities'
     if "dependencies" in data:
         deps = data.get("dependencies", {})
-        if isinstance(deps, dict) and any(
-            "vulnerabilities" in v for v in deps.values() if isinstance(v, dict)
-        ):
+        if isinstance(deps, dict) and any("vulnerabilities" in v for v in deps.values() if isinstance(v, dict)):
             return "vuln_tree"
 
     return "unknown"
@@ -191,10 +193,8 @@ def detect_visualization_type(data: dict[str, Any]) -> str:
 # Attack Tree Converter
 # =============================================================================
 
-def _convert_attack_tree(
-    data: dict[str, Any],
-    direction: MermaidDirection = MermaidDirection.TOP_DOWN
-) -> str:
+
+def _convert_attack_tree(data: dict[str, Any], direction: MermaidDirection = MermaidDirection.TOP_DOWN) -> str:
     """
     Convert attack tree configuration to Mermaid flowchart.
 
@@ -236,10 +236,10 @@ def _convert_attack_tree(
             lines.append(f'    {safe_id}(["{safe_label}"])')
         elif node_type == "and":
             # AND node: hexagon
-            lines.append(f'    {safe_id}{{{{{safe_label}}}}}')
+            lines.append(f"    {safe_id}{{{{{safe_label}}}}}")
         elif node_type == "or":
             # OR node: diamond
-            lines.append(f'    {safe_id}{{{safe_label}}}')
+            lines.append(f"    {safe_id}{{{safe_label}}}")
         else:
             # Regular node: rectangle
             lines.append(f'    {safe_id}["{safe_label}"]')
@@ -288,10 +288,8 @@ def _convert_attack_tree(
 # Threat Model Converter
 # =============================================================================
 
-def _convert_threat_model(
-    data: dict[str, Any],
-    diagram_type: str = "flowchart"
-) -> str:
+
+def _convert_threat_model(data: dict[str, Any], diagram_type: str = "flowchart") -> str:
     """
     Convert threat model configuration to Mermaid diagram.
 
@@ -338,7 +336,7 @@ def _convert_threat_model_flowchart(data: dict[str, Any]) -> str:
                 "source": flow_data.get("from", flow_data.get("source", "")),
                 "target": flow_data.get("to", flow_data.get("target", "")),
                 "name": flow_data.get("label", flow_data.get("name", "")),
-                **flow_data
+                **flow_data,
             }
 
     # Add title as comment
@@ -348,10 +346,10 @@ def _convert_threat_model_flowchart(data: dict[str, Any]) -> str:
 
     # Element type to shape mapping
     shape_map = {
-        "process": ('((', '))'),      # Circle
-        "datastore": ('[(', ')]'),    # Cylinder
-        "external": ('[', ']'),       # Rectangle
-        "actor": ('[', ']'),          # Rectangle
+        "process": ("((", "))"),  # Circle
+        "datastore": ("[(", ")]"),  # Cylinder
+        "external": ("[", "]"),  # Rectangle
+        "actor": ("[", "]"),  # Rectangle
     }
 
     # Generate elements
@@ -361,13 +359,13 @@ def _convert_threat_model_flowchart(data: dict[str, Any]) -> str:
         elem_type = elem_data.get("type", "process")
         safe_label = escape_label(label)
 
-        left, right = shape_map.get(elem_type, ('[', ']'))
+        left, right = shape_map.get(elem_type, ("[", "]"))
         lines.append(f'    {safe_id}{left}"{safe_label}"{right}')
 
     lines.append("")
 
     # Generate flows (dataflows)
-    for flow_id, flow_data in flows.items():
+    for _flow_id, flow_data in flows.items():
         source = flow_data.get("source", "")
         target = flow_data.get("target", "")
         flow_label = flow_data.get("data", flow_data.get("name", ""))
@@ -436,6 +434,7 @@ def _convert_threat_model_sequence(data: dict[str, Any]) -> str:
 # Attack Graph Converter
 # =============================================================================
 
+
 def _list_to_dict(items: Any, id_key: str = "id") -> dict[str, Any]:
     """Convert list of items to dict keyed by id_key."""
     if isinstance(items, dict):
@@ -445,10 +444,7 @@ def _list_to_dict(items: Any, id_key: str = "id") -> dict[str, Any]:
     return {}
 
 
-def _convert_attack_graph(
-    data: dict[str, Any],
-    max_nodes: int = 100
-) -> str:
+def _convert_attack_graph(data: dict[str, Any], max_nodes: int = 100) -> str:
     """
     Convert attack graph configuration to Mermaid flowchart.
 
@@ -501,7 +497,7 @@ def _convert_attack_graph(
         cvss = vuln_data.get("cvss", "")
         if cvss:
             label = f"{label} ({cvss})"
-        lines.append(f'    {safe_id}{{{escape_label(label)}}}')
+        lines.append(f"    {safe_id}{{{escape_label(label)}}}")
         node_count += 1
 
     # Generate privilege nodes (hexagon shape)
@@ -510,7 +506,7 @@ def _convert_attack_graph(
             break
         safe_id = sanitize_node_id(priv_id)
         label = priv_data.get("label", priv_data.get("name", priv_id))
-        lines.append(f'    {safe_id}{{{{{escape_label(label)}}}}}')
+        lines.append(f"    {safe_id}{{{{{escape_label(label)}}}}}")
         node_count += 1
 
     # Generate service nodes (rounded rectangle)
@@ -569,10 +565,8 @@ def _convert_attack_graph(
 # Kill Chain Converter
 # =============================================================================
 
-def _convert_killchain(
-    data: dict[str, Any],
-    diagram_type: str = "flowchart"
-) -> str:
+
+def _convert_killchain(data: dict[str, Any], diagram_type: str = "flowchart") -> str:
     """
     Convert kill chain configuration to Mermaid diagram.
 
@@ -685,6 +679,7 @@ def _convert_killchain_timeline(data: dict[str, Any]) -> str:
 # Timeline/Incident Converter
 # =============================================================================
 
+
 def _convert_timeline(data: dict[str, Any]) -> str:
     """
     Convert incident timeline to Mermaid Gantt chart.
@@ -773,10 +768,8 @@ def _add_gantt_event(lines: list[str], event: dict[str, Any]) -> None:
 # Access Graph Converter
 # =============================================================================
 
-def _convert_access_graph(
-    data: dict[str, Any],
-    max_nodes: int = 50
-) -> str:
+
+def _convert_access_graph(data: dict[str, Any], max_nodes: int = 50) -> str:
     """
     Convert access graph configuration to Mermaid flowchart.
 
@@ -800,11 +793,11 @@ def _convert_access_graph(
 
     # Principal type to shape mapping
     principal_shapes = {
-        "user": ('((', '))'),           # Circle
-        "group": ('{{', '}}'),          # Hexagon
-        "role": ('{', '}'),             # Diamond
-        "service_account": ('[', ']'),  # Rectangle
-        "machine": ('[/', '/]'),        # Parallelogram
+        "user": ("((", "))"),  # Circle
+        "group": ("{{", "}}"),  # Hexagon
+        "role": ("{", "}"),  # Diamond
+        "service_account": ("[", "]"),  # Rectangle
+        "machine": ("[/", "/]"),  # Parallelogram
     }
 
     node_count = 0
@@ -821,7 +814,7 @@ def _convert_access_graph(
         if privileged:
             label += " [PRIV]"
 
-        left, right = principal_shapes.get(p_type, ('(', ')'))
+        left, right = principal_shapes.get(p_type, ("(", ")"))
         lines.append(f'    {safe_id}{left}"{escape_label(label)}"{right}')
         node_count += 1
 
@@ -837,8 +830,8 @@ def _convert_access_graph(
     lines.append("")
 
     # Generate relations
-    valid_nodes = set(sanitize_node_id(p) for p in principals.keys())
-    valid_nodes.update(sanitize_node_id(r) for r in resources.keys())
+    valid_nodes = {sanitize_node_id(p) for p in principals}
+    valid_nodes.update(sanitize_node_id(r) for r in resources)
 
     for rel in relations:
         source = rel.get("source", "")
@@ -868,6 +861,7 @@ def _convert_access_graph(
 # =============================================================================
 # Vulnerability Tree Converter
 # =============================================================================
+
 
 def _convert_vuln_tree(data: dict[str, Any]) -> str:
     """
@@ -957,6 +951,7 @@ def _convert_vuln_tree(data: dict[str, Any]) -> str:
 # Generic/Unknown Format Converter
 # =============================================================================
 
+
 def _convert_generic(data: dict[str, Any]) -> str:
     """
     Convert generic/unknown configuration to basic Mermaid flowchart.
@@ -975,7 +970,7 @@ def _convert_generic(data: dict[str, Any]) -> str:
 
     # Create nodes for top-level keys
     for key in data:
-        if isinstance(data[key], dict) or isinstance(data[key], list):
+        if isinstance(data[key], (dict, list)):
             safe_key = sanitize_node_id(key)
             count = len(data[key])
             lines.append(f'    {safe_key}["{escape_label(key)} ({count} items)"]')
@@ -987,11 +982,12 @@ def _convert_generic(data: dict[str, Any]) -> str:
 # Main Serialization Function
 # =============================================================================
 
+
 def serialize_to_mermaid(
     data: dict[str, Any],
     diagram_type: Optional[str] = None,
     direction: MermaidDirection = MermaidDirection.TOP_DOWN,
-    max_nodes: int = 100
+    max_nodes: int = 100,
 ) -> str:
     """
     Serialize configuration data to Mermaid diagram syntax.

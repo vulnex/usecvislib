@@ -35,6 +35,7 @@ try:
 except ImportError:
     tomllib = None
 import atexit
+import contextlib
 import tempfile
 
 import toml  # Fallback for older parsing
@@ -47,10 +48,8 @@ _temp_files_to_cleanup: list[str] = []
 def _cleanup_temp_files():
     """Clean up any temporary files created during the session."""
     for path in _temp_files_to_cleanup:
-        try:
+        with contextlib.suppress(OSError):
             Path(path).unlink(missing_ok=True)
-        except OSError:
-            pass
     _temp_files_to_cleanup.clear()
 
 
@@ -60,6 +59,7 @@ atexit.register(_cleanup_temp_files)
 # Optional PIL for image resizing
 try:
     from PIL import Image
+
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
@@ -81,12 +81,13 @@ SUPPORTED_EXTENSIONS = {
 }
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 # =============================================================================
 # Custom Exception Hierarchy
 # =============================================================================
+
 
 class USecVisLibError(Exception):
     """Base exception for all USecVisLib errors.
@@ -114,11 +115,13 @@ class USecVisLibError(Exception):
 
 class ConfigError(USecVisLibError):
     """Exception raised for configuration parsing errors."""
+
     pass
 
 
 class FileError(USecVisLibError):
     """Exception raised for file operation errors."""
+
     pass
 
 
@@ -128,21 +131,25 @@ class SecurityError(USecVisLibError):
     This includes path traversal attempts, injection attempts,
     and other security-related issues.
     """
+
     pass
 
 
 class ValidationError(USecVisLibError):
     """Exception raised when input validation fails."""
+
     pass
 
 
 class RenderError(USecVisLibError):
     """Exception raised when visualization rendering fails."""
+
     pass
 
 
 class AnalysisError(USecVisLibError):
     """Exception raised when analysis operations fail."""
+
     pass
 
 
@@ -155,31 +162,47 @@ class AnalysisError(USecVisLibError):
 # NOTE: /var/tmp, /tmp, and /private/var/folders are excluded as they are temp dirs
 SENSITIVE_PATHS = [
     # Core system directories
-    '/etc', '/usr', '/bin', '/sbin', '/root', '/boot', '/lib',
+    "/etc",
+    "/usr",
+    "/bin",
+    "/sbin",
+    "/root",
+    "/boot",
+    "/lib",
     # Linux kernel/process filesystems
-    '/proc', '/sys', '/dev',
+    "/proc",
+    "/sys",
+    "/dev",
     # Library directories
-    '/lib64', '/lib32',
+    "/lib64",
+    "/lib32",
     # Optional/third-party software
-    '/opt',
+    "/opt",
     # macOS-specific system paths (but not /private/var/folders which is temp)
-    '/private/etc', '/System', '/Library',
+    "/private/etc",
+    "/System",
+    "/Library",
     # Snap/Flatpak paths
-    '/snap',
+    "/snap",
     # Specific /var subdirectories (not /var itself to allow /var/tmp)
-    '/var/log', '/var/run', '/var/lib', '/var/spool', '/var/cache',
+    "/var/log",
+    "/var/run",
+    "/var/lib",
+    "/var/spool",
+    "/var/cache",
     # Specific /private/var subdirectories (not /private/var/folders which is temp)
-    '/private/var/log', '/private/var/run', '/private/var/db', '/private/var/root',
+    "/private/var/log",
+    "/private/var/run",
+    "/private/var/db",
+    "/private/var/root",
 ]
 
 # Default allowed configuration file extensions
-CONFIG_EXTENSIONS = ['.toml', '.tml', '.json', '.yaml', '.yml']
+CONFIG_EXTENSIONS = [".toml", ".tml", ".json", ".yaml", ".yml"]
 
 
 def validate_input_path(
-    path: str,
-    allowed_extensions: Optional[list[str]] = None,
-    max_size_bytes: Optional[int] = None
+    path: str, allowed_extensions: Optional[list[str]] = None, max_size_bytes: Optional[int] = None
 ) -> Path:
     """Validate an input file path for security.
 
@@ -208,7 +231,7 @@ def validate_input_path(
         raise SecurityError("Empty path provided")
 
     # Check for null bytes (path injection)
-    if '\x00' in path:
+    if "\x00" in path:
         logger.warning(f"Null byte detected in path: {path!r}")
         raise SecurityError("Null byte detected in path")
 
@@ -225,7 +248,7 @@ def validate_input_path(
         raise SecurityError(f"Invalid path: {e}", path=path) from e
 
     # Check for null bytes in resolved path
-    if '\x00' in str(resolved):
+    if "\x00" in str(resolved):
         raise SecurityError("Null byte detected in resolved path")
 
     # Check path exists
@@ -236,12 +259,8 @@ def validate_input_path(
         raise FileError(f"Path is not a file: {path}")
 
     # Check extension
-    if allowed_extensions:
-        if resolved.suffix.lower() not in [ext.lower() for ext in allowed_extensions]:
-            raise SecurityError(
-                f"File extension '{resolved.suffix}' not allowed",
-                allowed=allowed_extensions
-            )
+    if allowed_extensions and resolved.suffix.lower() not in [ext.lower() for ext in allowed_extensions]:
+        raise SecurityError(f"File extension '{resolved.suffix}' not allowed", allowed=allowed_extensions)
 
     # Check file size
     if max_size_bytes is not None:
@@ -251,7 +270,7 @@ def validate_input_path(
                 raise SecurityError(
                     f"File size ({size} bytes) exceeds maximum ({max_size_bytes} bytes)",
                     file_size=size,
-                    max_size=max_size_bytes
+                    max_size=max_size_bytes,
                 )
         except OSError as e:
             raise FileError(f"Cannot check file size: {e}", path=path) from e
@@ -261,9 +280,7 @@ def validate_input_path(
 
 
 def validate_output_path(
-    path: str,
-    allowed_directory: Optional[Union[str, Path]] = None,
-    create_parents: bool = True
+    path: str, allowed_directory: Optional[Union[str, Path]] = None, create_parents: bool = True
 ) -> Path:
     """Validate an output file path for security.
 
@@ -289,7 +306,7 @@ def validate_output_path(
         raise SecurityError("Empty output path provided")
 
     # Check for null bytes
-    if '\x00' in path:
+    if "\x00" in path:
         logger.warning(f"Null byte detected in output path: {path!r}")
         raise SecurityError("Null byte detected in path")
 
@@ -300,7 +317,7 @@ def validate_output_path(
         raise SecurityError(f"Invalid path: {e}", path=path) from e
 
     # Check for null bytes in resolved path
-    if '\x00' in str(resolved):
+    if "\x00" in str(resolved):
         raise SecurityError("Null byte detected in resolved path")
 
     # Check within allowed directory
@@ -312,17 +329,14 @@ def validate_output_path(
             raise SecurityError(
                 f"Output path must be within {allowed_directory}",
                 output_path=str(resolved),
-                allowed_directory=str(allowed)
+                allowed_directory=str(allowed),
             ) from None
 
     # Prevent writing to sensitive system locations
     resolved_str = str(resolved)
     for sensitive in SENSITIVE_PATHS:
-        if resolved_str.startswith(sensitive + '/') or resolved_str == sensitive:
-            raise SecurityError(
-                f"Cannot write to sensitive location: {sensitive}",
-                path=resolved_str
-            )
+        if resolved_str.startswith(sensitive + "/") or resolved_str == sensitive:
+            raise SecurityError(f"Cannot write to sensitive location: {sensitive}", path=resolved_str)
 
     # Create parent directories if needed
     if create_parents:
@@ -340,7 +354,7 @@ def validate_output_path(
 # =============================================================================
 
 # Supported image extensions for Graphviz
-IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.svg']
+IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg"]
 
 # Default max image size (5 MB)
 IMAGE_MAX_SIZE = 5 * 1024 * 1024
@@ -459,7 +473,6 @@ def _convert_svg_to_png(svg_path: Path, size: int = 48) -> Optional[Path]:
     """
     try:
         import hashlib
-        import stat
         import tempfile
 
         import cairosvg
@@ -483,7 +496,7 @@ def _convert_svg_to_png(svg_path: Path, size: int = 48) -> Optional[Path]:
             return None
 
         # Generate cache filename based on SVG path hash
-        path_hash = hashlib.md5(str(svg_path).encode()).hexdigest()[:12]
+        path_hash = hashlib.md5(str(svg_path).encode(), usedforsecurity=False).hexdigest()[:12]
         png_path = cache_dir / f"{path_hash}_{size}.png"
 
         # Return cached version if exists
@@ -491,12 +504,7 @@ def _convert_svg_to_png(svg_path: Path, size: int = 48) -> Optional[Path]:
             return png_path
 
         # Convert SVG to PNG
-        cairosvg.svg2png(
-            url=str(svg_path),
-            write_to=str(png_path),
-            output_width=size,
-            output_height=size
-        )
+        cairosvg.svg2png(url=str(svg_path), write_to=str(png_path), output_width=size, output_height=size)
         logger.debug(f"Converted SVG to PNG: {svg_path} -> {png_path}")
         return png_path
 
@@ -543,9 +551,9 @@ def resolve_bundled_icon(icon_id: str) -> Optional[Path]:
         return None
 
     # Priority order: PNG first (native Graphviz support), then SVG (needs conversion)
-    png_extensions = ['.png', '.PNG']
-    svg_extensions = ['.svg', '.SVG']
-    other_extensions = [ext for ext in IMAGE_EXTENSIONS if ext.lower() not in ['.png', '.svg']]
+    png_extensions = [".png", ".PNG"]
+    svg_extensions = [".svg", ".SVG"]
+    other_extensions = [ext for ext in IMAGE_EXTENSIONS if ext.lower() not in [".png", ".svg"]]
 
     # Try PNG first (best Graphviz support)
     for ext in png_extensions:
@@ -578,7 +586,7 @@ def resolve_bundled_icon(icon_id: str) -> Optional[Path]:
             if icon_path.exists() and _validate_path_within_directory(icon_path, icons_dir):
                 resolved = icon_path.resolve()
                 # Convert SVG if needed
-                if ext.lower() == '.svg':
+                if ext.lower() == ".svg":
                     png_path = _convert_svg_to_png(resolved)
                     if png_path:
                         return png_path
@@ -609,7 +617,8 @@ def resolve_uploaded_image(image_id: str) -> Optional[Path]:
 
     # Validate UUID format (basic check)
     import re
-    uuid_pattern = r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$'
+
+    uuid_pattern = r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
     if not re.match(uuid_pattern, image_id.lower()):
         logger.warning(f"Invalid uploaded image ID format: {image_id}")
         return None
@@ -651,12 +660,12 @@ def resolve_image_reference(image_ref: str) -> Optional[Path]:
 
     # Handle bundled icon reference
     if image_ref.startswith(IMAGE_PREFIX_BUNDLED):
-        icon_id = image_ref[len(IMAGE_PREFIX_BUNDLED):]
+        icon_id = image_ref[len(IMAGE_PREFIX_BUNDLED) :]
         return resolve_bundled_icon(icon_id)
 
     # Handle uploaded image reference
     if image_ref.startswith(IMAGE_PREFIX_UPLOADED):
-        image_id = image_ref[len(IMAGE_PREFIX_UPLOADED):]
+        image_id = image_ref[len(IMAGE_PREFIX_UPLOADED) :]
         return resolve_uploaded_image(image_id)
 
     # Handle local file path (existing behavior)
@@ -667,9 +676,7 @@ def resolve_image_reference(image_ref: str) -> Optional[Path]:
 
 
 def validate_image_path(
-    image_path: str,
-    allowed_extensions: Optional[list[str]] = None,
-    max_size_bytes: Optional[int] = None
+    image_path: str, allowed_extensions: Optional[list[str]] = None, max_size_bytes: Optional[int] = None
 ) -> Path:
     """Validate an image path for security and existence.
 
@@ -708,11 +715,7 @@ def validate_image_path(
         max_size_bytes = IMAGE_MAX_SIZE
 
     # Use existing validation infrastructure
-    return validate_input_path(
-        image_path,
-        allowed_extensions=allowed_extensions,
-        max_size_bytes=max_size_bytes
-    )
+    return validate_input_path(image_path, allowed_extensions=allowed_extensions, max_size_bytes=max_size_bytes)
 
 
 def _escape_html(text: str) -> str:
@@ -742,7 +745,7 @@ def process_node_image(
     node_attrs: dict[str, Any],
     node_id: str,
     logger_instance: Optional[logging.Logger] = None,
-    preserve_shape: bool = False
+    preserve_shape: bool = False,
 ) -> dict[str, Any]:
     """Process and validate image attribute in node attributes.
 
@@ -780,14 +783,14 @@ def process_node_image(
     """
     log = logger_instance or logger
 
-    if 'image' not in node_attrs:
+    if "image" not in node_attrs:
         return node_attrs
 
-    image_ref = node_attrs.get('image')
+    image_ref = node_attrs.get("image")
 
     # Skip if image is empty or None
     if not image_ref:
-        del node_attrs['image']
+        del node_attrs["image"]
         return node_attrs
 
     # Use the unified image resolution function
@@ -797,7 +800,7 @@ def process_node_image(
         log.debug(f"Resolved image for node '{node_id}': {image_ref} -> {resolved_path}")
 
         # Get the label text (existing label or node_id)
-        label_text = node_attrs.get('label', '') or node_id
+        label_text = node_attrs.get("label", "") or node_id
 
         # Set Graphviz attributes for icon rendering
         # SECURITY: Escape the path to prevent DOT injection via special characters
@@ -820,7 +823,7 @@ def process_node_image(
                         # Create thumbnail maintaining aspect ratio
                         img.thumbnail((48, 48), Image.Resampling.LANCZOS)
                         # Save to temp file
-                        suffix = Path(resolved_path).suffix or '.png'
+                        suffix = Path(resolved_path).suffix or ".png"
                         with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
                             img.save(tmp.name)
                             display_path = tmp.name
@@ -833,19 +836,20 @@ def process_node_image(
         # Image on top, text below - this ensures consistent positioning
         # Use html.escape for paths (not _escape_html which converts \n to <BR/>)
         import html as _html
+
         escaped_display = _html.escape(str(display_path), quote=True)
         html_label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
 <TR><TD><IMG SRC="{escaped_display}"/></TD></TR>
 <TR><TD>{safe_label}</TD></TR>
 </TABLE>>'''
 
-        node_attrs['label'] = html_label
-        node_attrs['shape'] = 'none'        # No shape = no background
-        node_attrs['style'] = ''            # No style
+        node_attrs["label"] = html_label
+        node_attrs["shape"] = "none"  # No shape = no background
+        node_attrs["style"] = ""  # No style
 
     else:
         log.warning(f"Could not resolve image for node '{node_id}': {image_ref}")
-        del node_attrs['image']
+        del node_attrs["image"]
 
     return node_attrs
 
@@ -853,6 +857,7 @@ def process_node_image(
 # =============================================================================
 # DOT Injection Prevention
 # =============================================================================
+
 
 def escape_dot_label(value: Any, max_length: int = 1000) -> str:
     """Escape a value for safe use in Graphviz DOT labels.
@@ -874,29 +879,29 @@ def escape_dot_label(value: Any, max_length: int = 1000) -> str:
 
     # Truncate if too long
     if len(s) > max_length:
-        s = s[:max_length - 3] + "..."
+        s = s[: max_length - 3] + "..."
         logger.debug(f"Truncated DOT label to {max_length} characters")
 
     # Remove null bytes and other control characters
-    s = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', s)
+    s = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", s)
 
     # Escape backslashes first
-    s = s.replace('\\', '\\\\')
+    s = s.replace("\\", "\\\\")
 
     # Escape quotes
     s = s.replace('"', '\\"')
 
     # Escape newlines and tabs
-    s = s.replace('\n', '\\n')
-    s = s.replace('\r', '\\r')
-    s = s.replace('\t', '\\t')
+    s = s.replace("\n", "\\n")
+    s = s.replace("\r", "\\r")
+    s = s.replace("\t", "\\t")
 
     # Escape HTML-like characters for label safety
-    s = s.replace('<', '\\<')
-    s = s.replace('>', '\\>')
-    s = s.replace('{', '\\{')
-    s = s.replace('}', '\\}')
-    s = s.replace('|', '\\|')
+    s = s.replace("<", "\\<")
+    s = s.replace(">", "\\>")
+    s = s.replace("{", "\\{")
+    s = s.replace("}", "\\}")
+    s = s.replace("|", "\\|")
 
     return s
 
@@ -919,15 +924,15 @@ def sanitize_node_id(node_id: Any) -> str:
     s = str(node_id)
 
     # Only allow safe characters: alphanumeric, underscore, hyphen
-    sanitized = re.sub(r'[^a-zA-Z0-9_-]', '_', s)
+    sanitized = re.sub(r"[^a-zA-Z0-9_-]", "_", s)
 
     # Ensure doesn't start with a number (DOT requirement)
     if sanitized and sanitized[0].isdigit():
-        sanitized = 'n_' + sanitized
+        sanitized = "n_" + sanitized
 
     # Ensure not empty
     if not sanitized:
-        return 'unnamed'
+        return "unnamed"
 
     return sanitized
 
@@ -941,9 +946,9 @@ MAX_GRAPH_NODES = 10000
 MAX_GRAPH_EDGES = 50000
 
 
-def check_graph_complexity(nodes_count: int, edges_count: int,
-                           max_nodes: int = MAX_GRAPH_NODES,
-                           max_edges: int = MAX_GRAPH_EDGES) -> None:
+def check_graph_complexity(
+    nodes_count: int, edges_count: int, max_nodes: int = MAX_GRAPH_NODES, max_edges: int = MAX_GRAPH_EDGES
+) -> None:
     """Check that graph complexity is within safe limits.
 
     Args:
@@ -957,13 +962,11 @@ def check_graph_complexity(nodes_count: int, edges_count: int,
     """
     if nodes_count > max_nodes:
         raise ValueError(
-            f"Graph complexity limit exceeded: {nodes_count} nodes "
-            f"(maximum {max_nodes}). Reduce the input size."
+            f"Graph complexity limit exceeded: {nodes_count} nodes (maximum {max_nodes}). Reduce the input size."
         )
     if edges_count > max_edges:
         raise ValueError(
-            f"Graph complexity limit exceeded: {edges_count} edges "
-            f"(maximum {max_edges}). Reduce the input size."
+            f"Graph complexity limit exceeded: {edges_count} edges (maximum {max_edges}). Reduce the input size."
         )
 
 
@@ -971,10 +974,9 @@ def check_graph_complexity(nodes_count: int, edges_count: int,
 # Logging Configuration
 # =============================================================================
 
+
 def configure_logging(
-    level: int = logging.INFO,
-    format_string: Optional[str] = None,
-    log_file: Optional[str] = None
+    level: int = logging.INFO, format_string: Optional[str] = None, log_file: Optional[str] = None
 ) -> None:
     """Configure logging for USecVisLib.
 
@@ -984,7 +986,7 @@ def configure_logging(
         log_file: Optional file path to write logs to.
     """
     if format_string is None:
-        format_string = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format_string = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
     handlers: list[logging.Handler] = [logging.StreamHandler()]
 
@@ -995,11 +997,7 @@ def configure_logging(
         except (OSError, PermissionError) as e:
             logger.warning(f"Cannot create log file {log_file}: {e}")
 
-    logging.basicConfig(
-        level=level,
-        format=format_string,
-        handlers=handlers
-    )
+    logging.basicConfig(level=level, format=format_string, handlers=handlers)
 
 
 def get_logger(name: str) -> logging.Logger:
@@ -1058,8 +1056,7 @@ def detect_format(filepath: str) -> ConfigFormat:
         return SUPPORTED_EXTENSIONS[ext]
 
     raise ConfigError(
-        f"Unsupported file extension: {ext}. "
-        f"Supported extensions: {', '.join(SUPPORTED_EXTENSIONS.keys())}"
+        f"Unsupported file extension: {ext}. Supported extensions: {', '.join(SUPPORTED_EXTENSIONS.keys())}"
     )
 
 
@@ -1088,7 +1085,7 @@ def detect_format_from_content(content: str) -> ConfigFormat:
     try:
         toml.loads(content)
         # Check if it looks like TOML (has sections or key = value)
-        if '[' in content or '=' in content:
+        if "[" in content or "=" in content:
             return "toml"
     except toml.TomlDecodeError:
         pass
@@ -1154,8 +1151,7 @@ def parse_json(content: str) -> dict[str, Any]:
         raise ConfigError(f"Invalid JSON content: {e}") from e
     except RecursionError:
         raise ConfigError(
-            "JSON content exceeds maximum nesting depth. "
-            "This may indicate a malformed or malicious configuration."
+            "JSON content exceeds maximum nesting depth. This may indicate a malformed or malicious configuration."
         ) from None
     finally:
         sys.setrecursionlimit(old_limit)
@@ -1174,9 +1170,7 @@ def parse_yaml(content: str) -> dict[str, Any]:
         ConfigError: If content is not valid YAML or exceeds size limits.
     """
     if len(content) > MAX_CONFIG_SIZE:
-        raise ConfigError(
-            f"YAML content size ({len(content)} bytes) exceeds maximum ({MAX_CONFIG_SIZE} bytes)"
-        )
+        raise ConfigError(f"YAML content size ({len(content)} bytes) exceeds maximum ({MAX_CONFIG_SIZE} bytes)")
     try:
         result = yaml.safe_load(content)
         if result is None:
@@ -1229,10 +1223,7 @@ def parse_content(content: str, format: ConfigFormat) -> dict[str, Any]:
         ConfigError: If content is invalid, too large, too deeply nested, or format is unsupported.
     """
     if len(content) > MAX_CONFIG_SIZE:
-        raise ConfigError(
-            f"Configuration size ({len(content)} bytes) exceeds maximum "
-            f"({MAX_CONFIG_SIZE} bytes)"
-        )
+        raise ConfigError(f"Configuration size ({len(content)} bytes) exceeds maximum ({MAX_CONFIG_SIZE} bytes)")
 
     parsers = {
         "toml": parse_toml,
@@ -1270,7 +1261,7 @@ def ReadConfigFile(filepath: str, format: Optional[ConfigFormat] = None) -> dict
         format = detect_format(filepath)
 
     try:
-        with open(filepath, encoding='utf-8') as f:
+        with open(filepath, encoding="utf-8") as f:
             content = f.read()
     except OSError as e:
         raise FileError(f"Failed to read file {filepath}: {e}") from e
@@ -1335,6 +1326,7 @@ def serialize_to_mermaid(data: dict[str, Any]) -> str:
         converted back to TOML/JSON/YAML.
     """
     from .mermaid import serialize_to_mermaid as mermaid_serialize
+
     return mermaid_serialize(data)
 
 
@@ -1423,19 +1415,19 @@ def _validate_path_component(component: str) -> None:
         return
 
     # Check for path traversal
-    if '..' in component:
+    if ".." in component:
         raise SecurityError(f"Path traversal detected in path component: {component}")
 
     # Check for absolute paths (would reset os.path.join)
-    if component.startswith('/') or component.startswith('\\'):
+    if component.startswith("/") or component.startswith("\\"):
         raise SecurityError(f"Absolute path not allowed in path component: {component}")
 
     # Check for Windows drive letters
-    if len(component) >= 2 and component[1] == ':':
+    if len(component) >= 2 and component[1] == ":":
         raise SecurityError(f"Drive letter not allowed in path component: {component}")
 
     # Check for null bytes
-    if '\x00' in component:
+    if "\x00" in component:
         raise SecurityError("Null byte detected in path component")
 
 
@@ -1584,10 +1576,7 @@ class ConfigModel:
                 break
 
         if config_path is None:
-            raise FileError(
-                f"Configuration file not found: {config_file}. "
-                f"Searched in: {', '.join(possible_paths)}"
-            )
+            raise FileError(f"Configuration file not found: {config_file}. Searched in: {', '.join(possible_paths)}")
 
         try:
             self.config = toml.load(config_path)
@@ -1660,13 +1649,14 @@ class ConfigModel:
             filepath: Path to save to. Uses original file if not specified.
         """
         save_path = filepath or self.config_file
-        with open(save_path, 'w') as f:
+        with open(save_path, "w") as f:
             toml.dump(self.config, f)
 
 
 # =============================================================================
 # Caching Utilities
 # =============================================================================
+
 
 def cached_result(key_func: Optional[Callable] = None):
     """Decorator for caching method results.
@@ -1692,8 +1682,9 @@ def cached_result(key_func: Optional[Callable] = None):
         >>> obj.expensive_computation(2, 10)  # Cached
         >>> obj.expensive_computation.clear_cache(obj)  # Clear cache
     """
+
     def decorator(method: Callable) -> Callable:
-        cache_attr = f'_cache_{method.__name__}'
+        cache_attr = f"_cache_{method.__name__}"
 
         @functools.wraps(method)
         def wrapper(self, *args, **kwargs):
@@ -1735,7 +1726,7 @@ def cached_result(key_func: Optional[Callable] = None):
     return decorator
 
 
-def content_hash(content: Union[str, bytes], algorithm: str = 'md5') -> str:
+def content_hash(content: Union[str, bytes], algorithm: str = "md5") -> str:
     """Generate hash of content for cache keys.
 
     Useful for creating cache keys based on file or data content.
@@ -1752,19 +1743,19 @@ def content_hash(content: Union[str, bytes], algorithm: str = 'md5') -> str:
         '65a8e27d8879283831b664bd8b7f0ad4'
     """
     if isinstance(content, str):
-        content = content.encode('utf-8')
+        content = content.encode("utf-8")
 
-    if algorithm == 'md5':
-        return hashlib.md5(content).hexdigest()
-    elif algorithm == 'sha1':
-        return hashlib.sha1(content).hexdigest()
-    elif algorithm == 'sha256':
+    if algorithm == "md5":
+        return hashlib.md5(content, usedforsecurity=False).hexdigest()
+    elif algorithm == "sha1":
+        return hashlib.sha1(content, usedforsecurity=False).hexdigest()
+    elif algorithm == "sha256":
         return hashlib.sha256(content).hexdigest()
     else:
         raise ValueError(f"Unsupported hash algorithm: {algorithm}")
 
 
-def file_hash(filepath: str, algorithm: str = 'md5', chunk_size: int = 8192) -> str:
+def file_hash(filepath: str, algorithm: str = "md5", chunk_size: int = 8192) -> str:
     """Generate hash of a file's contents.
 
     Processes the file in chunks for memory efficiency with large files.
@@ -1781,16 +1772,16 @@ def file_hash(filepath: str, algorithm: str = 'md5', chunk_size: int = 8192) -> 
         >>> file_hash("myfile.txt")
         '65a8e27d8879283831b664bd8b7f0ad4'
     """
-    if algorithm == 'md5':
-        hasher = hashlib.md5()
-    elif algorithm == 'sha1':
-        hasher = hashlib.sha1()
-    elif algorithm == 'sha256':
+    if algorithm == "md5":
+        hasher = hashlib.md5(usedforsecurity=False)
+    elif algorithm == "sha1":
+        hasher = hashlib.sha1(usedforsecurity=False)
+    elif algorithm == "sha256":
         hasher = hashlib.sha256()
     else:
         raise ValueError(f"Unsupported hash algorithm: {algorithm}")
 
-    with open(filepath, 'rb') as f:
+    with open(filepath, "rb") as f:
         while True:
             chunk = f.read(chunk_size)
             if not chunk:

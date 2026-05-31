@@ -23,6 +23,7 @@ from typing import Any, Optional
 
 class OutputFormat(str, Enum):
     """Supported output formats for visualizations."""
+
     PNG = "png"
     PDF = "pdf"
     SVG = "svg"
@@ -34,7 +35,7 @@ class OutputFormat(str, Enum):
         return [f.value for f in cls]
 
     @classmethod
-    def from_string(cls, value: str) -> 'OutputFormat':
+    def from_string(cls, value: str) -> "OutputFormat":
         """Convert string to OutputFormat enum.
 
         Args:
@@ -55,6 +56,7 @@ class OutputFormat(str, Enum):
 
 class ConfigFormat(str, Enum):
     """Supported configuration file formats."""
+
     TOML = "toml"
     JSON = "json"
     YAML = "yaml"
@@ -63,6 +65,7 @@ class ConfigFormat(str, Enum):
 
 class NodeType(str, Enum):
     """Node types for attack graphs."""
+
     HOST = "host"
     VULNERABILITY = "vulnerability"
     PRIVILEGE = "privilege"
@@ -72,6 +75,7 @@ class NodeType(str, Enum):
 
 class NodeTypePrefix(str, Enum):
     """Node type prefixes for internal identification in attack graphs."""
+
     HOST = "H"
     VULNERABILITY = "V"
     PRIVILEGE = "P"
@@ -80,12 +84,14 @@ class NodeTypePrefix(str, Enum):
 
 class GateType(str, Enum):
     """Gate types for attack trees."""
+
     AND = "AND"
     OR = "OR"
 
 
 class ElementType(str, Enum):
     """Element types for threat models."""
+
     PROCESS = "process"
     DATASTORE = "datastore"
     EXTERNAL = "external"
@@ -95,6 +101,7 @@ class ElementType(str, Enum):
 
 class STRIDECategory(str, Enum):
     """STRIDE threat categories for threat modeling."""
+
     SPOOFING = "Spoofing"
     TAMPERING = "Tampering"
     REPUDIATION = "Repudiation"
@@ -103,7 +110,7 @@ class STRIDECategory(str, Enum):
     ELEVATION_OF_PRIVILEGE = "Elevation of Privilege"
 
     @classmethod
-    def from_element_type(cls, element_type: ElementType) -> list['STRIDECategory']:
+    def from_element_type(cls, element_type: ElementType) -> list["STRIDECategory"]:
         """Get applicable STRIDE categories for an element type.
 
         Args:
@@ -115,24 +122,22 @@ class STRIDECategory(str, Enum):
         mapping = {
             ElementType.EXTERNAL: [cls.SPOOFING, cls.REPUDIATION],
             ElementType.PROCESS: [
-                cls.SPOOFING, cls.TAMPERING, cls.REPUDIATION,
-                cls.INFORMATION_DISCLOSURE, cls.DENIAL_OF_SERVICE,
-                cls.ELEVATION_OF_PRIVILEGE
+                cls.SPOOFING,
+                cls.TAMPERING,
+                cls.REPUDIATION,
+                cls.INFORMATION_DISCLOSURE,
+                cls.DENIAL_OF_SERVICE,
+                cls.ELEVATION_OF_PRIVILEGE,
             ],
-            ElementType.DATASTORE: [
-                cls.TAMPERING, cls.REPUDIATION,
-                cls.INFORMATION_DISCLOSURE, cls.DENIAL_OF_SERVICE
-            ],
-            ElementType.DATAFLOW: [
-                cls.TAMPERING, cls.INFORMATION_DISCLOSURE,
-                cls.DENIAL_OF_SERVICE
-            ],
+            ElementType.DATASTORE: [cls.TAMPERING, cls.REPUDIATION, cls.INFORMATION_DISCLOSURE, cls.DENIAL_OF_SERVICE],
+            ElementType.DATAFLOW: [cls.TAMPERING, cls.INFORMATION_DISCLOSURE, cls.DENIAL_OF_SERVICE],
         }
         return mapping.get(element_type, [])
 
 
 class BinaryVisualization(str, Enum):
     """Binary visualization types."""
+
     ENTROPY = "entropy"
     DISTRIBUTION = "distribution"
     WINDROSE = "windrose"
@@ -147,6 +152,7 @@ class BinaryVisualization(str, Enum):
 
 class ThreatModelEngine(str, Enum):
     """Available threat modeling engines."""
+
     USECVISLIB = "usecvislib"
     PYTM = "pytm"
 
@@ -161,33 +167,53 @@ EXTENSION_FORMAT_MAP: dict[str, ConfigFormat] = {
 }
 
 # Allowed configuration file extensions
-CONFIG_EXTENSIONS: list[str] = ['.toml', '.tml', '.json', '.yaml', '.yml']
+CONFIG_EXTENSIONS: list[str] = [".toml", ".tml", ".json", ".yaml", ".yml"]
 
 # Sensitive system paths that should not be written to
 # SECURITY: Comprehensive list of paths that should never be written to
 # NOTE: /var/tmp, /tmp, and /private/var/folders are excluded as they are temp dirs
 SENSITIVE_PATHS: list[str] = [
     # Core system directories
-    '/etc', '/usr', '/bin', '/sbin', '/root', '/boot', '/lib',
+    "/etc",
+    "/usr",
+    "/bin",
+    "/sbin",
+    "/root",
+    "/boot",
+    "/lib",
     # Linux kernel/process filesystems
-    '/proc', '/sys', '/dev',
+    "/proc",
+    "/sys",
+    "/dev",
     # Library directories
-    '/lib64', '/lib32',
+    "/lib64",
+    "/lib32",
     # Optional/third-party software
-    '/opt',
+    "/opt",
     # macOS-specific system paths (but not /private/var/folders which is temp)
-    '/private/etc', '/System', '/Library',
+    "/private/etc",
+    "/System",
+    "/Library",
     # Snap/Flatpak paths
-    '/snap',
+    "/snap",
     # Specific /var subdirectories (not /var itself to allow /var/tmp)
-    '/var/log', '/var/run', '/var/lib', '/var/spool', '/var/cache',
+    "/var/log",
+    "/var/run",
+    "/var/lib",
+    "/var/spool",
+    "/var/cache",
     # Specific /private/var subdirectories (not /private/var/folders which is temp)
-    '/private/var/log', '/private/var/run', '/private/var/db', '/private/var/root',
+    "/private/var/log",
+    "/private/var/run",
+    "/private/var/db",
+    "/private/var/root",
 ]
+
 
 # Visualization types for settings
 class VisualizationType(str, Enum):
     """Visualization types for display settings."""
+
     ATTACK_TREE = "attack_tree"
     ATTACK_GRAPH = "attack_graph"
     THREAT_MODEL = "threat_model"
@@ -219,8 +245,8 @@ DEFAULTS: dict[str, any] = {
         "privilege_gradient": "pg_default",
     },
     "max_file_sizes": {
-        "config": 10 * 1024 * 1024,       # 10 MB
-        "binary": 100 * 1024 * 1024,      # 100 MB
+        "config": 10 * 1024 * 1024,  # 10 MB
+        "binary": 100 * 1024 * 1024,  # 100 MB
     },
     "style_files": {
         "attack_tree": "config_attacktrees.tml",
@@ -296,9 +322,11 @@ COLORS: dict[str, dict[str, str]] = {
     },
 }
 
+
 # Risk levels
 class RiskLevel(str, Enum):
     """Risk level classifications."""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -313,6 +341,7 @@ RISK_COLORS: dict[RiskLevel, str] = {
     RiskLevel.LOW: "#27ae60",
     RiskLevel.INFO: "#3498db",
 }
+
 
 # CVSS score to risk level mapping
 def cvss_to_risk_level(cvss_score: float) -> RiskLevel:

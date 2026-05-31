@@ -24,6 +24,7 @@ from typing import Any, Optional
 
 class FieldType(Enum):
     """Supported field types for schema validation."""
+
     STRING = "string"
     NUMBER = "number"
     INTEGER = "integer"
@@ -35,6 +36,7 @@ class FieldType(Enum):
 
 class EdgeStyle(Enum):
     """Graphviz edge styles."""
+
     SOLID = "solid"
     DASHED = "dashed"
     DOTTED = "dotted"
@@ -44,6 +46,7 @@ class EdgeStyle(Enum):
 
 class ArrowStyle(Enum):
     """Graphviz arrowhead styles."""
+
     NORMAL = "normal"
     VEE = "vee"
     DOT = "dot"
@@ -71,6 +74,7 @@ class FieldSchema:
         description: Human-readable description
         validators: List of validation functions or patterns
     """
+
     name: str
     field_type: FieldType = FieldType.STRING
     required: bool = False
@@ -96,6 +100,7 @@ class NodeTypeSchema:
         field_types: Optional type annotations for fields
         description: Human-readable description
     """
+
     name: str
     shape: str
     required_fields: list[str] = field(default_factory=list)
@@ -152,6 +157,7 @@ class EdgeTypeSchema:
         penwidth: Line thickness
         description: Human-readable description
     """
+
     name: str
     style: str = "solid"
     color: str = "#333333"
@@ -212,6 +218,7 @@ class ClusterSchema:
         nodes: List of node IDs contained in this cluster
         style: Graphviz cluster style attributes
     """
+
     id: str
     label: str = ""
     nodes: list[str] = field(default_factory=list)
@@ -249,6 +256,7 @@ class DiagramSchema:
         edge_types: Dictionary of edge type schemas
         allow_unknown_types: Whether to allow undefined types
     """
+
     node_types: dict[str, NodeTypeSchema] = field(default_factory=dict)
     edge_types: dict[str, EdgeTypeSchema] = field(default_factory=dict)
     allow_unknown_types: bool = False
@@ -272,14 +280,8 @@ class DiagramSchema:
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary representation."""
         return {
-            "nodes": {
-                name: schema.to_dict()
-                for name, schema in self.node_types.items()
-            },
-            "edges": {
-                name: schema.to_dict()
-                for name, schema in self.edge_types.items()
-            },
+            "nodes": {name: schema.to_dict() for name, schema in self.node_types.items()},
+            "edges": {name: schema.to_dict() for name, schema in self.edge_types.items()},
         }
 
     @classmethod

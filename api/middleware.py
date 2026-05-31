@@ -21,6 +21,7 @@ logger = logging.getLogger("usecvislib.api")
 # Security Headers Middleware
 # =============================================================================
 
+
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to all responses.
 
@@ -96,6 +97,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 # Request Logging Middleware
 # =============================================================================
 
+
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Log all incoming requests with timing."""
 
@@ -114,16 +116,10 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             duration = (time.time() - start_time) * 1000
 
             # Log response
-            logger.info(
-                f"[{request_id}] <-- {response.status_code} "
-                f"duration={duration:.2f}ms"
-            )
+            logger.info(f"[{request_id}] <-- {response.status_code} duration={duration:.2f}ms")
             return response
 
         except Exception as e:
             duration = (time.time() - start_time) * 1000
-            logger.error(
-                f"[{request_id}] <-- ERROR {type(e).__name__}: {e!s} "
-                f"duration={duration:.2f}ms"
-            )
+            logger.error(f"[{request_id}] <-- ERROR {type(e).__name__}: {e!s} duration={duration:.2f}ms")
             raise

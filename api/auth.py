@@ -34,9 +34,11 @@ logger = logging.getLogger("usecvislib.api.auth")
 # Configuration
 # =============================================================================
 
+
 def is_auth_enabled() -> bool:
     """Check if authentication is enabled (runtime check for testing flexibility)."""
     return os.getenv("USECVISLIB_AUTH_ENABLED", "false").lower() == "true"
+
 
 # Legacy constant for backwards compatibility (use is_auth_enabled() for dynamic check)
 AUTH_ENABLED = is_auth_enabled()
@@ -48,8 +50,8 @@ AUTH_EXCLUDED_PATHS = {
     "/docs/oauth2-redirect",
     "/redoc",
     "/openapi.json",
-    "/health",            # Health check endpoint (required for orchestrator/Docker probes)
-    "/icons",             # Icon list endpoint (needed for gallery)
+    "/health",  # Health check endpoint (required for orchestrator/Docker probes)
+    "/icons",  # Icon list endpoint (needed for gallery)
     "/icons/categories",  # Icon categories endpoint (needed for gallery)
 }
 
@@ -70,6 +72,7 @@ API_KEY_ENV = os.getenv("USECVISLIB_API_KEY", "")
 # =============================================================================
 # Key Management
 # =============================================================================
+
 
 def get_configured_keys() -> list[str]:
     """Get list of configured API keys.
@@ -115,7 +118,7 @@ def _hash_key(key: str) -> str:
     Returns:
         SHA-256 hash of the key as a hex string (always 64 characters).
     """
-    return hashlib.sha256(key.encode('utf-8')).hexdigest()
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
 # Cache of hashed keys for efficient lookup (populated on first use)
@@ -154,6 +157,7 @@ def refresh_key_cache() -> None:
 # =============================================================================
 # Startup Validation
 # =============================================================================
+
 
 def validate_auth_config() -> None:
     """Validate authentication configuration on startup.
@@ -201,10 +205,7 @@ def validate_auth_config() -> None:
 api_key_header = APIKeyHeader(name=API_KEY_HEADER_NAME, auto_error=False)
 
 
-async def verify_api_key(
-    request: Request,
-    api_key: Optional[str] = Security(api_key_header)
-) -> Optional[str]:
+async def verify_api_key(request: Request, api_key: Optional[str] = Security(api_key_header)) -> Optional[str]:
     """Verify API key from request header.
 
     This is a FastAPI dependency that validates the API key on each request.
@@ -243,7 +244,7 @@ async def verify_api_key(
         raise HTTPException(
             status_code=401,
             detail="Missing API key. Include header: X-API-Key: <your-key>",
-            headers={"WWW-Authenticate": "ApiKey"}
+            headers={"WWW-Authenticate": "ApiKey"},
         )
 
     # SECURITY: Validate key using constant-time comparison with hashed keys
@@ -266,11 +267,7 @@ async def verify_api_key(
 
     if not key_valid:
         logger.warning(f"Auth failed: invalid API key | path={path} | client={client_ip}")
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid API key",
-            headers={"WWW-Authenticate": "ApiKey"}
-        )
+        raise HTTPException(status_code=401, detail="Invalid API key", headers={"WWW-Authenticate": "ApiKey"})
 
     # Log successful auth with key identifier (index only, not the key itself)
     key_id = f"key_{matched_key_index}" if matched_key_index >= 0 else "unknown"

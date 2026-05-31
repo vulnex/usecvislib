@@ -90,16 +90,12 @@ router = APIRouter()
 # Health Check
 # =============================================================================
 
-@router.get(
-    "/health",
-    response_model=HealthResponse,
-    tags=["System"],
-    summary="Health check endpoint"
-)
+
+@router.get("/health", response_model=HealthResponse, tags=["System"], summary="Health check endpoint")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def health_check(
     request: Request,
-    details: bool = Query(False, description="Include version and module details (may expose sensitive info)")
+    details: bool = Query(False, description="Include version and module details (may expose sensitive info)"),
 ):
     """Check API health and module availability.
 
@@ -140,7 +136,7 @@ async def health_check(
                 "binary_visualization": True,
                 "custom_diagrams": True,
                 **check_details,
-            }
+            },
         )
     else:
         # SECURITY: Minimal response to prevent information disclosure
@@ -151,11 +147,8 @@ async def health_check(
 # Styles, Formats, Engines
 # =============================================================================
 
-@router.get(
-    "/styles",
-    tags=["Configuration"],
-    summary="Get available styles"
-)
+
+@router.get("/styles", tags=["Configuration"], summary="Get available styles")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def get_available_styles(request: Request):
     """Get all available style presets for each visualization type."""
@@ -169,11 +162,7 @@ async def get_available_styles(request: Request):
     }
 
 
-@router.get(
-    "/formats",
-    tags=["Configuration"],
-    summary="Get supported output formats"
-)
+@router.get("/formats", tags=["Configuration"], summary="Get supported output formats")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def get_supported_formats(request: Request):
     """Get all supported output formats."""
@@ -183,11 +172,7 @@ async def get_supported_formats(request: Request):
     }
 
 
-@router.get(
-    "/engines",
-    tags=["Configuration"],
-    summary="Get available threat modeling engines"
-)
+@router.get("/engines", tags=["Configuration"], summary="Get available threat modeling engines")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def get_available_engines(request: Request):
     """Get all available threat modeling engines and their status."""
@@ -198,8 +183,9 @@ async def get_available_engines(request: Request):
         "pytm_available": pytm_available,
         "descriptions": {
             "usecvislib": "Native USecVisLib engine with custom styling support",
-            "pytm": "OWASP PyTM framework for comprehensive threat analysis" + (" (not installed)" if not pytm_available else "")
-        }
+            "pytm": "OWASP PyTM framework for comprehensive threat analysis"
+            + (" (not installed)" if not pytm_available else ""),
+        },
     }
 
 
@@ -207,11 +193,12 @@ async def get_available_engines(request: Request):
 # Format Conversion
 # =============================================================================
 
+
 @router.post(
     "/convert",
     response_model=ConvertResponse,
     tags=["Conversion"],
-    summary="Convert configuration file between formats"
+    summary="Convert configuration file between formats",
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def convert_config_format(
@@ -250,7 +237,7 @@ async def convert_config_format(
         source_format = detect_format(file.filename)
 
         # Read file content
-        with open(input_path, encoding='utf-8') as f:
+        with open(input_path, encoding="utf-8") as f:
             content = f.read()
 
         # Convert format
@@ -260,13 +247,15 @@ async def convert_config_format(
         base_name = os.path.splitext(file.filename)[0]
         suggested_filename = f"{base_name}{FORMAT_EXTENSIONS[target_format.value]}"
 
-        logger.info(f"Converted {sanitize_filename_for_log(file.filename)} from {source_format} to {target_format.value}")
+        logger.info(
+            f"Converted {sanitize_filename_for_log(file.filename)} from {source_format} to {target_format.value}"
+        )
 
         return ConvertResponse(
             content=converted_content,
             source_format=source_format,
             target_format=target_format.value,
-            filename=suggested_filename
+            filename=suggested_filename,
         )
 
     except (FileError, ConfigError) as e:
@@ -284,11 +273,9 @@ async def convert_config_format(
 # Report Generation
 # =============================================================================
 
+
 @router.post(
-    "/report/threat-model",
-    response_model=ReportResponse,
-    tags=["Reports"],
-    summary="Generate threat model report"
+    "/report/threat-model", response_model=ReportResponse, tags=["Reports"], summary="Generate threat model report"
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def generate_threat_model_report(
@@ -331,11 +318,7 @@ async def generate_threat_model_report(
 
         logger.info(f"Generated {format.value} report for {sanitize_filename_for_log(file.filename)}")
 
-        return ReportResponse(
-            content=content,
-            format=format.value,
-            filename=suggested_filename
-        )
+        return ReportResponse(content=content, format=format.value, filename=suggested_filename)
 
     except (FileError, ConfigError) as e:
         logger.warning(f"Report generation failed: {e}")
@@ -352,16 +335,16 @@ async def generate_threat_model_report(
 # Threat Library
 # =============================================================================
 
+
 @router.get(
-    "/threats/library",
-    response_model=ThreatLibraryResponse,
-    tags=["Threats"],
-    summary="Get PyTM threat library"
+    "/threats/library", response_model=ThreatLibraryResponse, tags=["Threats"], summary="Get PyTM threat library"
 )
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def get_threat_library(
     request: Request,
-    element_type: Optional[str] = Query(None, description="Filter by element type (Process, Server, Datastore, Dataflow, etc.)"),
+    element_type: Optional[str] = Query(
+        None, description="Filter by element type (Process, Server, Datastore, Dataflow, etc.)"
+    ),
     limit: int = Query(100, ge=1, le=500, description="Maximum number of threats to return"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
 ):
@@ -388,7 +371,7 @@ async def get_threat_library(
 
         # Apply pagination
         total = len(all_threats)
-        paginated = all_threats[offset:offset + limit]
+        paginated = all_threats[offset : offset + limit]
 
         # Convert to schema objects
         threat_items = []
@@ -400,22 +383,20 @@ async def get_threat_library(
             if isinstance(refs, str):
                 refs = [refs] if refs else []
 
-            threat_items.append(ThreatLibraryItem(
-                id=str(t.get("id", "")),
-                description=str(t.get("description", "")),
-                severity=str(t.get("severity", "Unknown")),
-                target=target,
-                condition=str(t.get("condition", "")),
-                prerequisites=str(t.get("prerequisites", "")),
-                mitigations=str(t.get("mitigations", "")),
-                references=refs
-            ))
+            threat_items.append(
+                ThreatLibraryItem(
+                    id=str(t.get("id", "")),
+                    description=str(t.get("description", "")),
+                    severity=str(t.get("severity", "Unknown")),
+                    target=target,
+                    condition=str(t.get("condition", "")),
+                    prerequisites=str(t.get("prerequisites", "")),
+                    mitigations=str(t.get("mitigations", "")),
+                    references=refs,
+                )
+            )
 
-        return ThreatLibraryResponse(
-            total=total,
-            threats=threat_items,
-            pytm_available=wrapper._pytm_available
-        )
+        return ThreatLibraryResponse(total=total, threats=threat_items, pytm_available=wrapper._pytm_available)
 
     except Exception as e:
         logger.error(f"Threat library error: {e}")
@@ -423,27 +404,14 @@ async def get_threat_library(
         raise HTTPException(status_code=500, detail="Failed to access threat library") from e
 
 
-@router.get(
-    "/threats/element-types",
-    tags=["Threats"],
-    summary="Get available element types for threat filtering"
-)
+@router.get("/threats/element-types", tags=["Threats"], summary="Get available element types for threat filtering")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def get_threat_element_types(request: Request):
     """
     Get list of element types that can be used to filter the threat library.
     """
     return {
-        "element_types": [
-            "Process",
-            "Server",
-            "Lambda",
-            "Datastore",
-            "Dataflow",
-            "Actor",
-            "ExternalEntity",
-            "Boundary"
-        ]
+        "element_types": ["Process", "Server", "Lambda", "Datastore", "Dataflow", "Actor", "ExternalEntity", "Boundary"]
     }
 
 
@@ -451,11 +419,12 @@ async def get_threat_element_types(request: Request):
 # Batch Processing
 # =============================================================================
 
+
 @router.post(
     "/batch/visualize",
     response_model=BatchResponse,
     tags=["Batch Processing"],
-    summary="Process multiple files in batch"
+    summary="Process multiple files in batch",
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def batch_visualize(
@@ -493,11 +462,7 @@ async def batch_visualize(
                 path = save_upload_file(file)
                 input_paths.append((file.filename, path))
             except HTTPException as e:
-                results.append(BatchItemResult(
-                    filename=file.filename,
-                    success=False,
-                    error=str(e.detail)
-                ))
+                results.append(BatchItemResult(filename=file.filename, success=False, error=str(e.detail)))
 
         # Determine module type from mode
         module_map = {
@@ -523,25 +488,19 @@ async def batch_visualize(
                 if mode == VisualizationMode.ATTACK_TREE:
                     viz = AttackTrees(input_path, output_base, format=format.value, styleid=style or "at_default")
                     await run_sync_with_timeout(
-                        viz.BuildAttackTree,
-                        REQUEST_TIMEOUT_VISUALIZE,
-                        f"batch attack tree ({filename})"
+                        viz.BuildAttackTree, REQUEST_TIMEOUT_VISUALIZE, f"batch attack tree ({filename})"
                     )
                     stats = viz.get_tree_stats() if collect_stats else None
                 elif mode == VisualizationMode.ATTACK_GRAPH:
                     viz = AttackGraphs(input_path, output_base, format=format.value, styleid=style or "ag_default")
                     await run_sync_with_timeout(
-                        viz.BuildAttackGraph,
-                        REQUEST_TIMEOUT_VISUALIZE,
-                        f"batch attack graph ({filename})"
+                        viz.BuildAttackGraph, REQUEST_TIMEOUT_VISUALIZE, f"batch attack graph ({filename})"
                     )
                     stats = viz.get_graph_stats() if collect_stats else None
                 elif mode == VisualizationMode.THREAT_MODEL:
                     viz = ThreatModeling(input_path, output_base, format=format.value, styleid=style or "tm_default")
                     await run_sync_with_timeout(
-                        viz.BuildThreatModel,
-                        REQUEST_TIMEOUT_VISUALIZE,
-                        f"batch threat model ({filename})"
+                        viz.BuildThreatModel, REQUEST_TIMEOUT_VISUALIZE, f"batch threat model ({filename})"
                     )
                     stats = viz.get_model_stats() if collect_stats else None
                 elif mode == VisualizationMode.CUSTOM_DIAGRAM:
@@ -551,12 +510,11 @@ async def batch_visualize(
                     if style and cd.settings:
                         cd.settings.style = style
                     await run_sync_with_timeout(
-                        lambda: cd.BuildCustomDiagram(
-                            output=output_base,
-                            output_format=format.value
+                        lambda cd=cd, output_base=output_base: cd.BuildCustomDiagram(
+                            output=output_base, output_format=format.value
                         ),
                         REQUEST_TIMEOUT_VISUALIZE,
-                        f"batch custom diagram ({filename})"
+                        f"batch custom diagram ({filename})",
                     )
                     stats = cd.get_stats() if collect_stats else None
                 else:
@@ -571,20 +529,14 @@ async def batch_visualize(
                     with open(output_path, "rb") as f:
                         image_data = base64.b64encode(f.read()).decode("utf-8")
 
-                results.append(BatchItemResult(
-                    filename=filename,
-                    success=True,
-                    output_file=output_file,
-                    stats=stats,
-                    image_data=image_data
-                ))
+                results.append(
+                    BatchItemResult(
+                        filename=filename, success=True, output_file=output_file, stats=stats, image_data=image_data
+                    )
+                )
 
             except Exception as e:
-                results.append(BatchItemResult(
-                    filename=filename,
-                    success=False,
-                    error=str(e)
-                ))
+                results.append(BatchItemResult(filename=filename, success=False, error=str(e)))
 
         # Calculate aggregate stats
         success_count = sum(1 for r in results if r.success)
@@ -613,7 +565,7 @@ async def batch_visualize(
             failure_count=failure_count,
             success_rate=success_rate,
             results=results,
-            aggregate_stats=aggregate_stats
+            aggregate_stats=aggregate_stats,
         )
 
     except Exception as e:
@@ -628,19 +580,24 @@ async def batch_visualize(
 # Export
 # =============================================================================
 
+
 @router.post(
     "/export/data",
     response_model=ExportResponse,
     tags=["Export"],
-    summary="Export visualization data to various formats"
+    summary="Export visualization data to various formats",
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def export_data(
     request: Request,
     file: UploadFile = File(..., description="Configuration file to export data from"),
-    mode: Optional[VisualizationMode] = Query(default=None, description="Visualization mode (auto-detected if not specified)"),
+    mode: Optional[VisualizationMode] = Query(
+        default=None, description="Visualization mode (auto-detected if not specified)"
+    ),
     format: ExportFormat = Query(default=ExportFormat.JSON, description="Export format"),
-    section: Optional[str] = Query(default=None, description="Specific section to export (e.g., 'hosts', 'vulnerabilities')"),
+    section: Optional[str] = Query(
+        default=None, description="Specific section to export (e.g., 'hosts', 'vulnerabilities')"
+    ),
     include_stats: bool = Query(default=True, description="Include statistics in export"),
 ):
     """
@@ -699,11 +656,8 @@ async def export_data(
         # Extract section if specified
         if section:
             if section not in data:
-                available = [k for k in data.keys() if isinstance(data[k], (list, dict))]
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Section '{section}' not found. Available: {available}"
-                )
+                available = [k for k in data if isinstance(data[k], (list, dict))]
+                raise HTTPException(status_code=400, detail=f"Section '{section}' not found. Available: {available}")
             export_data_content = data[section]
         else:
             export_data_content = {"data": data}
@@ -727,8 +681,7 @@ async def export_data(
                 csv_data = export_data_content if isinstance(export_data_content, list) else [export_data_content]
             else:
                 raise HTTPException(
-                    status_code=400,
-                    detail="CSV export requires a section with list data (e.g., 'hosts', 'nodes')"
+                    status_code=400, detail="CSV export requires a section with list data (e.g., 'hosts', 'nodes')"
                 )
             # Write to temp file and read back
             temp_csv = os.path.join(TEMP_DIR, f"export_{os.urandom(4).hex()}.csv")
@@ -757,6 +710,7 @@ async def export_data(
         elif format == ExportFormat.MERMAID:
             # Mermaid export - convert data to Mermaid diagram syntax
             from usecvislib.mermaid import detect_visualization_type, serialize_to_mermaid
+
             vis_type = detect_visualization_type(data)
             content = serialize_to_mermaid(data, diagram_type=vis_type)
             filename = f"{base_name}{section_suffix}.mmd"
@@ -765,12 +719,7 @@ async def export_data(
 
         logger.info(f"Exported {sanitize_filename_for_log(file.filename)} to {format.value}")
 
-        return ExportResponse(
-            content=content,
-            format=format.value,
-            filename=filename,
-            rows=rows
-        )
+        return ExportResponse(content=content, format=format.value, filename=filename, rows=rows)
 
     except HTTPException:
         raise
@@ -782,49 +731,49 @@ async def export_data(
         cleanup_files(input_path)
 
 
-@router.get(
-    "/export/sections",
-    tags=["Export"],
-    summary="Get available export sections for a visualization mode"
-)
-async def get_export_sections(
-    mode: VisualizationMode = Query(..., description="Visualization mode")
-):
+@router.get("/export/sections", tags=["Export"], summary="Get available export sections for a visualization mode")
+async def get_export_sections(mode: VisualizationMode = Query(..., description="Visualization mode")):
     """
     Get the available sections that can be exported for each visualization mode.
     """
     sections = {
         VisualizationMode.ATTACK_TREE: ["tree", "nodes", "edges"],
-        VisualizationMode.ATTACK_GRAPH: ["graph", "hosts", "vulnerabilities", "privileges", "services", "exploits", "network_edges"],
+        VisualizationMode.ATTACK_GRAPH: [
+            "graph",
+            "hosts",
+            "vulnerabilities",
+            "privileges",
+            "services",
+            "exploits",
+            "network_edges",
+        ],
         VisualizationMode.THREAT_MODEL: ["model", "processes", "datastores", "externals", "dataflows", "boundaries"],
         VisualizationMode.BINARY: [],
     }
-    return {
-        "mode": mode.value,
-        "sections": sections.get(mode, []),
-        "note": "Use section=null to export all data"
-    }
+    return {"mode": mode.value, "sections": sections.get(mode, []), "note": "Use section=null to export all data"}
 
 
 # =============================================================================
 # Diff/Comparison
 # =============================================================================
 
+
 @router.post(
-    "/diff/compare",
-    response_model=DiffResponse,
-    tags=["Comparison"],
-    summary="Compare two configuration files"
+    "/diff/compare", response_model=DiffResponse, tags=["Comparison"], summary="Compare two configuration files"
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def compare_configs(
     request: Request,
     old_file: UploadFile = File(..., description="Old/baseline configuration file"),
     new_file: UploadFile = File(..., description="New/updated configuration file"),
-    mode: Optional[VisualizationMode] = Query(default=None, description="Visualization mode (auto-detected if not provided)"),
+    mode: Optional[VisualizationMode] = Query(
+        default=None, description="Visualization mode (auto-detected if not provided)"
+    ),
     include_report: bool = Query(default=False, description="Include markdown report in response"),
     generate_report: bool = Query(default=False, description="Alias for include_report (for frontend compatibility)"),
-    ignore_paths: Optional[str] = Query(default=None, description="Comma-separated paths to ignore (e.g., 'metadata,timestamps')"),
+    ignore_paths: Optional[str] = Query(
+        default=None, description="Comma-separated paths to ignore (e.g., 'metadata,timestamps')"
+    ),
 ):
     """
     Compare two configuration files and identify changes.
@@ -858,6 +807,7 @@ async def compare_configs(
         # Auto-detect mode if not provided
         if mode is None:
             from usecvislib.mermaid import detect_visualization_type
+
             old_data = ReadConfigFile(old_path)
             detected_type = detect_visualization_type(old_data)
             logger.info(f"Auto-detected visualization type: {detected_type}")
@@ -871,7 +821,7 @@ async def compare_configs(
             else:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Could not auto-detect visualization type. Please specify 'mode' parameter. Detected: {detected_type}"
+                    detail=f"Could not auto-detect visualization type. Please specify 'mode' parameter. Detected: {detected_type}",
                 )
 
         # Create visualization instances based on mode
@@ -899,26 +849,30 @@ async def compare_configs(
         # Build response
         changes = []
         for change in result.changes:
-            changes.append(ChangeItem(
-                change_type=ChangeType(change.change_type.value),
-                path=change.path,
-                old_value=change.old_value,
-                new_value=change.new_value,
-                description=change.description
-            ))
+            changes.append(
+                ChangeItem(
+                    change_type=ChangeType(change.change_type.value),
+                    path=change.path,
+                    old_value=change.old_value,
+                    new_value=change.new_value,
+                    description=change.description,
+                )
+            )
 
         summary = DiffSummary(
             added=result.summary["added"],
             removed=result.summary["removed"],
             modified=result.summary["modified"],
-            total=result.summary["total"]
+            total=result.summary["total"],
         )
 
         report = None
         if should_include_report:
             report = diff.summary_report(include_details=True)
 
-        logger.info(f"Compared {sanitize_filename_for_log(old_file.filename)} vs {sanitize_filename_for_log(new_file.filename)}: {summary.total} changes")
+        logger.info(
+            f"Compared {sanitize_filename_for_log(old_file.filename)} vs {sanitize_filename_for_log(new_file.filename)}: {summary.total} changes"
+        )
 
         return DiffResponse(
             has_changes=result.has_changes,
@@ -926,7 +880,7 @@ async def compare_configs(
             old_source=old_file.filename,
             new_source=new_file.filename,
             changes=changes,
-            report=report
+            report=report,
         )
 
     except HTTPException:
@@ -942,6 +896,7 @@ async def compare_configs(
 # =============================================================================
 # Templates
 # =============================================================================
+
 
 def find_template_file(template_dir: str, template_id: str) -> Optional[str]:
     """Find a template file by ID, checking all supported extensions.
@@ -976,18 +931,11 @@ def find_template_file(template_dir: str, template_id: str) -> Optional[str]:
     return None
 
 
-@router.get(
-    "/templates",
-    tags=["Templates"],
-    summary="List available templates"
-)
+@router.get("/templates", tags=["Templates"], summary="List available templates")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def list_templates(request: Request):
     """List all available templates for attack trees and threat models."""
-    templates = {
-        "attack_trees": [],
-        "threat_models": []
-    }
+    templates = {"attack_trees": [], "threat_models": []}
 
     # Scan attack tree templates
     at_dir = os.path.join(TEMPLATES_DIR, "attack-trees")
@@ -996,13 +944,10 @@ async def list_templates(request: Request):
             if f.endswith(TEMPLATE_EXTENSIONS):
                 # Extract base name without extension
                 base_name = os.path.splitext(f)[0]
-                name = base_name.replace('_', ' ').title()
-                templates["attack_trees"].append({
-                    "id": base_name,
-                    "name": name,
-                    "filename": f,
-                    "format": get_template_format(f)
-                })
+                name = base_name.replace("_", " ").title()
+                templates["attack_trees"].append(
+                    {"id": base_name, "name": name, "filename": f, "format": get_template_format(f)}
+                )
 
     # Scan threat model templates
     tm_dir = os.path.join(TEMPLATES_DIR, "threat-models")
@@ -1010,23 +955,18 @@ async def list_templates(request: Request):
         for f in os.listdir(tm_dir):
             if f.endswith(TEMPLATE_EXTENSIONS):
                 base_name = os.path.splitext(f)[0]
-                name = base_name.replace('_', ' ').title()
-                templates["threat_models"].append({
-                    "id": base_name,
-                    "name": name,
-                    "filename": f,
-                    "format": get_template_format(f)
-                })
+                name = base_name.replace("_", " ").title()
+                templates["threat_models"].append(
+                    {"id": base_name, "name": name, "filename": f, "format": get_template_format(f)}
+                )
 
-    logger.info(f"Listed templates: {len(templates['attack_trees'])} attack trees, {len(templates['threat_models'])} threat models")
+    logger.info(
+        f"Listed templates: {len(templates['attack_trees'])} attack trees, {len(templates['threat_models'])} threat models"
+    )
     return templates
 
 
-@router.get(
-    "/templates/attack-tree/{template_id}",
-    tags=["Templates"],
-    summary="Get attack tree template"
-)
+@router.get("/templates/attack-tree/{template_id}", tags=["Templates"], summary="Get attack tree template")
 async def get_attack_tree_template(template_id: str):
     """Get a specific attack tree template by ID."""
     template_dir = os.path.join(TEMPLATES_DIR, "attack-trees")
@@ -1041,19 +981,10 @@ async def get_attack_tree_template(template_id: str):
 
     filename = os.path.basename(template_path)
     logger.info(f"Served attack tree template: {template_id} ({filename})")
-    return {
-        "id": template_id,
-        "type": "attack_tree",
-        "format": get_template_format(filename),
-        "content": content
-    }
+    return {"id": template_id, "type": "attack_tree", "format": get_template_format(filename), "content": content}
 
 
-@router.get(
-    "/templates/threat-model/{template_id}",
-    tags=["Templates"],
-    summary="Get threat model template"
-)
+@router.get("/templates/threat-model/{template_id}", tags=["Templates"], summary="Get threat model template")
 async def get_threat_model_template(template_id: str):
     """Get a specific threat model template by ID."""
     template_dir = os.path.join(TEMPLATES_DIR, "threat-models")
@@ -1068,17 +999,13 @@ async def get_threat_model_template(template_id: str):
 
     filename = os.path.basename(template_path)
     logger.info(f"Served threat model template: {template_id} ({filename})")
-    return {
-        "id": template_id,
-        "type": "threat_model",
-        "format": get_template_format(filename),
-        "content": content
-    }
+    return {"id": template_id, "type": "threat_model", "format": get_template_format(filename), "content": content}
 
 
 # =============================================================================
 # Progress Tracking (SSE)
 # =============================================================================
+
 
 async def progress_event_generator(job_id: str, timeout: int = 60):
     """Generate SSE events for job progress.
@@ -1109,11 +1036,7 @@ async def progress_event_generator(job_id: str, timeout: int = 60):
         await asyncio.sleep(0.5)
 
 
-@router.get(
-    "/progress/{job_id}",
-    tags=["System"],
-    summary="Stream job progress via SSE"
-)
+@router.get("/progress/{job_id}", tags=["System"], summary="Stream job progress via SSE")
 @limiter.limit("10/minute")
 async def stream_progress(request: Request, job_id: str):
     """
@@ -1134,19 +1057,11 @@ async def stream_progress(request: Request, job_id: str):
     return StreamingResponse(
         progress_event_generator(job_id),
         media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no"
-        }
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
     )
 
 
-@router.post(
-    "/jobs/start-demo",
-    tags=["System"],
-    summary="Start a demo job for testing progress"
-)
+@router.post("/jobs/start-demo", tags=["System"], summary="Start a demo job for testing progress")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def start_demo_job(request: Request, background_tasks: BackgroundTasks):
     """
@@ -1167,8 +1082,8 @@ async def start_demo_job(request: Request, background_tasks: BackgroundTasks):
         await asyncio.sleep(5)  # Keep result for 5 seconds
         clear_progress(job_id)
 
-    # Run in background
-    asyncio.create_task(demo_job())
+    # Run in background (fire-and-forget demo job)
+    asyncio.create_task(demo_job())  # noqa: RUF006
 
     logger.info(f"Started demo job: {job_id}")
     return {"job_id": job_id, "progress_url": f"/progress/{job_id}"}

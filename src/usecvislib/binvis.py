@@ -65,7 +65,7 @@ class BinVis:
         format: str = "",
         styleid: str = "",
         configfile: str = "",
-        validate_paths: bool = True
+        validate_paths: bool = True,
     ) -> None:
         """Initialize BinVis with input/output paths and styling options.
 
@@ -107,7 +107,7 @@ class BinVis:
             self._inputfile = utils.validate_input_path(
                 inputfile,
                 allowed_extensions=None,  # Binary files can have any extension
-                max_size_bytes=self.MAX_FILE_SIZE
+                max_size_bytes=self.MAX_FILE_SIZE,
             )
             self._outputfile = utils.validate_output_path(outputfile)
             self.inputfile = str(self._inputfile)
@@ -138,24 +138,10 @@ class BinVis:
     def _default_style(self) -> dict[str, Any]:
         """Return default style configuration."""
         return {
-            "entropy": {
-                "colormap": "viridis",
-                "figsize": [12, 4],
-                "linewidth": 1.0
-            },
-            "distribution": {
-                "colormap": "Blues",
-                "figsize": [12, 6],
-                "bar_color": "#3498db"
-            },
-            "windrose": {
-                "colormap": "plasma",
-                "figsize": [8, 8]
-            },
-            "heatmap": {
-                "colormap": "inferno",
-                "figsize": [12, 12]
-            }
+            "entropy": {"colormap": "viridis", "figsize": [12, 4], "linewidth": 1.0},
+            "distribution": {"colormap": "Blues", "figsize": [12, 6], "bar_color": "#3498db"},
+            "windrose": {"colormap": "plasma", "figsize": [8, 8]},
+            "heatmap": {"colormap": "inferno", "figsize": [12, 12]},
         }
 
     def _default_config(self) -> dict[str, Any]:
@@ -173,8 +159,8 @@ class BinVis:
                 "regions": [
                     {"start": 0, "end": 31, "color": "red", "alpha": 0.1, "label": "Control chars"},
                     {"start": 32, "end": 126, "color": "green", "alpha": 0.1, "label": "Printable ASCII"},
-                    {"start": 127, "end": 255, "color": "blue", "alpha": 0.1, "label": "Extended"}
-                ]
+                    {"start": 127, "end": 255, "color": "blue", "alpha": 0.1, "label": "Extended"},
+                ],
             },
             "entropy_analysis": {
                 "window_size": 256,
@@ -182,28 +168,29 @@ class BinVis:
                 "dpi": 150,
                 "show_thresholds": True,
                 "thresholds": [
-                    {"value": 7.5, "color": "r", "style": "--", "alpha": 0.5, "label": "High entropy (compressed/encrypted)"},
+                    {
+                        "value": 7.5,
+                        "color": "r",
+                        "style": "--",
+                        "alpha": 0.5,
+                        "label": "High entropy (compressed/encrypted)",
+                    },
                     {"value": 4.0, "color": "g", "style": "--", "alpha": 0.5, "label": "Medium entropy (code)"},
-                    {"value": 1.0, "color": "b", "style": "--", "alpha": 0.5, "label": "Low entropy (sparse data)"}
+                    {"value": 1.0, "color": "b", "style": "--", "alpha": 0.5, "label": "Low entropy (sparse data)"},
                 ],
                 "fill_alpha": 0.3,
                 "show_grid": True,
-                "grid_alpha": 0.3
+                "grid_alpha": 0.3,
             },
-            "wind_rose": {
-                "bar_alpha": 0.7,
-                "dpi": 150,
-                "rticks": [0.25, 0.5, 0.75, 1.0],
-                "rlabel_position": 0
-            },
+            "wind_rose": {"bar_alpha": 0.7, "dpi": 150, "rticks": [0.25, 0.5, 0.75, 1.0], "rlabel_position": 0},
             "heatmap": {
                 "block_size": 256,
                 "dpi": 150,
                 "interpolation": "nearest",
                 "aspect": "auto",
                 "show_colorbar": True,
-                "colorbar_label": "Byte Value"
-            }
+                "colorbar_label": "Byte Value",
+            },
         }
 
     def loadconfig(self, configfile: Optional[str] = None) -> None:
@@ -286,7 +273,7 @@ class BinVis:
             validated_path = utils.validate_input_path(
                 inputfile,
                 allowed_extensions=None,  # Binary files can have any extension
-                max_size_bytes=self.MAX_FILE_SIZE
+                max_size_bytes=self.MAX_FILE_SIZE,
             )
             self._inputfile = validated_path
             self.inputfile = str(validated_path)
@@ -298,7 +285,7 @@ class BinVis:
             raise FileNotFoundError(f"Input file not found: {self.inputfile}")
 
         try:
-            with open(self.inputfile, 'rb') as f:
+            with open(self.inputfile, "rb") as f:
                 self.data = f.read()
             self._loaded = True
             logger.debug(f"Loaded {len(self.data)} bytes from binary file")
@@ -335,12 +322,8 @@ class BinVis:
         if not os.path.isfile(self.inputfile):
             raise FileNotFoundError(f"Input file not found: {self.inputfile}")
 
-        self._file = open(self.inputfile, 'rb')
-        self._mmap = mmap.mmap(
-            self._file.fileno(),
-            0,
-            access=mmap.ACCESS_READ
-        )
+        self._file = open(self.inputfile, "rb")  # noqa: SIM115  (kept open for mmap; closed in cleanup)
+        self._mmap = mmap.mmap(self._file.fileno(), 0, access=mmap.ACCESS_READ)
         self.data = self._mmap
         self._loaded = True
 
@@ -382,17 +365,14 @@ class BinVis:
 
         logger.info(f"Reading file in {chunk_size} byte chunks: {self.inputfile}")
 
-        with open(self.inputfile, 'rb') as f:
+        with open(self.inputfile, "rb") as f:
             while True:
                 chunk = f.read(chunk_size)
                 if not chunk:
                     break
                 yield chunk
 
-    def calculate_entropy_streaming(
-        self,
-        chunk_size: Optional[int] = None
-    ) -> float:
+    def calculate_entropy_streaming(self, chunk_size: Optional[int] = None) -> float:
         """Calculate entropy without loading entire file into memory.
 
         Uses streaming byte counting to compute entropy for files
@@ -432,10 +412,7 @@ class BinVis:
         return float(entropy_value)
 
     def sliding_entropy_streaming(
-        self,
-        window_size: int = 256,
-        step: int = 64,
-        chunk_size: Optional[int] = None
+        self, window_size: int = 256, step: int = 64, chunk_size: Optional[int] = None
     ) -> Iterator[tuple[int, float]]:
         """Generator for sliding window entropy without loading entire file.
 
@@ -518,11 +495,7 @@ class BinVis:
 
         # Find most common bytes
         most_common_indices = np.argsort(byte_counts)[-10:][::-1]
-        most_common = [
-            (int(i), int(byte_counts[i]))
-            for i in most_common_indices
-            if byte_counts[i] > 0
-        ]
+        most_common = [(int(i), int(byte_counts[i])) for i in most_common_indices if byte_counts[i] > 0]
 
         return {
             "file_size": total_bytes,
@@ -530,12 +503,8 @@ class BinVis:
             "unique_bytes": int(np.sum(byte_counts > 0)),
             "most_common": most_common,
             "null_percentage": float(byte_counts[0] / total_bytes * 100),
-            "printable_percentage": float(
-                np.sum(byte_counts[32:127]) / total_bytes * 100
-            ),
-            "high_byte_percentage": float(
-                np.sum(byte_counts[128:256]) / total_bytes * 100
-            ),
+            "printable_percentage": float(np.sum(byte_counts[32:127]) / total_bytes * 100),
+            "high_byte_percentage": float(np.sum(byte_counts[128:256]) / total_bytes * 100),
         }
 
     def __del__(self):
@@ -578,7 +547,7 @@ class BinVis:
         entropies = []
 
         for i in range(0, len(data) - window_size + 1, step):
-            window = data[i:i + window_size]
+            window = data[i : i + window_size]
             positions.append(i)
             entropies.append(self.calculate_entropy(window))
 
@@ -599,9 +568,9 @@ class BinVis:
 
         return distribution / len(self.data) if self.data else distribution
 
-    def visualize_entropy(self, window_size: Optional[int] = None,
-                          step: Optional[int] = None,
-                          output: Optional[str] = None) -> None:
+    def visualize_entropy(
+        self, window_size: Optional[int] = None, step: Optional[int] = None, output: Optional[str] = None
+    ) -> None:
         """Create entropy visualization with sliding window.
 
         Args:
@@ -630,7 +599,7 @@ class BinVis:
 
         positions, entropies = self.sliding_entropy(window_size, step)
 
-        fig, ax = plt.subplots(figsize=style.get("figsize", [12, 4]))
+        _fig, ax = plt.subplots(figsize=style.get("figsize", [12, 4]))
 
         # Use config for fill alpha
         fill_alpha = config.get("fill_alpha", 0.3)
@@ -655,9 +624,9 @@ class BinVis:
                     color=threshold.get("color", "r"),
                     linestyle=threshold.get("style", "--"),
                     alpha=threshold.get("alpha", 0.5),
-                    label=threshold.get("label", "")
+                    label=threshold.get("label", ""),
                 )
-            ax.legend(loc='upper right', fontsize='small')
+            ax.legend(loc="upper right", fontsize="small")
 
         plt.tight_layout()
         plt.savefig(output, dpi=config.get("dpi", 150), format=self.format)
@@ -688,13 +657,16 @@ class BinVis:
 
         distribution = self.byte_distribution()
 
-        fig, ax = plt.subplots(figsize=style.get("figsize", [12, 6]))
+        _fig, ax = plt.subplots(figsize=style.get("figsize", [12, 6]))
 
         # Use config for bar parameters
-        ax.bar(range(256), distribution,
-                      color=style.get("bar_color", "#3498db"),
-                      alpha=config.get("bar_alpha", 0.7),
-                      width=config.get("bar_width", 1.0))
+        ax.bar(
+            range(256),
+            distribution,
+            color=style.get("bar_color", "#3498db"),
+            alpha=config.get("bar_alpha", 0.7),
+            width=config.get("bar_width", 1.0),
+        )
 
         ax.set_xlabel("Byte Value (0-255)")
         ax.set_ylabel("Frequency")
@@ -710,9 +682,9 @@ class BinVis:
                     region.get("end", 0),
                     alpha=region.get("alpha", 0.1),
                     color=region.get("color", "gray"),
-                    label=region.get("label", "")
+                    label=region.get("label", ""),
                 )
-            ax.legend(loc='upper right', fontsize='small')
+            ax.legend(loc="upper right", fontsize="small")
 
         plt.tight_layout()
         plt.savefig(output, dpi=config.get("dpi", 150), format=self.format)
@@ -754,12 +726,11 @@ class BinVis:
             pair_counts[pair] += 1
 
         # Create polar plot
-        fig, ax = plt.subplots(figsize=style.get("figsize", [8, 8]),
-                                subplot_kw=dict(projection='polar'))
+        _fig, ax = plt.subplots(figsize=style.get("figsize", [8, 8]), subplot_kw={"projection": "polar"})
 
         # Group by first byte (direction) and aggregate second byte (magnitude)
         directions = np.zeros(256)
-        for (b1, b2), count in pair_counts.items():
+        for (b1, _b2), count in pair_counts.items():
             directions[b1] += count
 
         # Normalize
@@ -790,8 +761,7 @@ class BinVis:
 
         logger.info(f"Saved windrose visualization to {output}")
 
-    def visualize_heatmap(self, block_size: Optional[int] = None,
-                          output: Optional[str] = None) -> None:
+    def visualize_heatmap(self, block_size: Optional[int] = None, output: Optional[str] = None) -> None:
         """Create a 2D heatmap visualization of the binary file.
 
         Displays the file as a 2D image where each pixel represents a byte.
@@ -825,18 +795,21 @@ class BinVis:
         data_array = np.frombuffer(self.data, dtype=np.uint8)
         padding = (block_size - len(data_array) % block_size) % block_size
         if padding:
-            data_array = np.pad(data_array, (0, padding), mode='constant', constant_values=0)
+            data_array = np.pad(data_array, (0, padding), mode="constant", constant_values=0)
 
         # Reshape to 2D
         height = len(data_array) // block_size
         image = data_array.reshape((height, block_size))
 
-        fig, ax = plt.subplots(figsize=style.get("figsize", [12, 12]))
+        _fig, ax = plt.subplots(figsize=style.get("figsize", [12, 12]))
 
         # Use config for interpolation and aspect
-        im = ax.imshow(image, cmap=style.get("colormap", "inferno"),
-                       aspect=config.get("aspect", "auto"),
-                       interpolation=config.get("interpolation", "nearest"))
+        im = ax.imshow(
+            image,
+            cmap=style.get("colormap", "inferno"),
+            aspect=config.get("aspect", "auto"),
+            interpolation=config.get("interpolation", "nearest"),
+        )
 
         ax.set_xlabel("Byte Offset in Block")
         ax.set_ylabel("Block Number")
@@ -969,7 +942,7 @@ class BinVis:
 
         return errors
 
-    def build(self, visualization: str = "all") -> 'BinVis':
+    def build(self, visualization: str = "all") -> "BinVis":
         """Build visualization with fluent interface.
 
         Args:

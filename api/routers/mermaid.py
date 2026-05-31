@@ -58,9 +58,9 @@ router = APIRouter(tags=["Mermaid Diagrams"])
                 "image/svg+xml": {},
                 "application/pdf": {},
             },
-            "description": "Generated visualization image"
+            "description": "Generated visualization image",
         }
-    }
+    },
 )
 @limiter.limit(RATE_LIMIT_VISUALIZE)
 async def visualize_mermaid(
@@ -105,8 +105,7 @@ async def visualize_mermaid(
         ext = os.path.splitext(file.filename)[1].lower() if file.filename else ""
         if ext not in {".mmd", ".toml", ".tml", ".json", ".yaml", ".yml"}:
             raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported file extension: {ext}. Use .mmd, .toml, .json, .yaml"
+                status_code=400, detail=f"Unsupported file extension: {ext}. Use .mmd, .toml, .json, .yaml"
             )
 
         # Save uploaded file
@@ -114,25 +113,16 @@ async def visualize_mermaid(
         output_base = os.path.join(TEMP_DIR, f"mermaid_{os.urandom(8).hex()}")
 
         # Create MermaidDiagrams instance
-        md = MermaidDiagrams(
-            theme=theme.value,
-            validate_cli=True
-        )
+        md = MermaidDiagrams(theme=theme.value, validate_cli=True)
 
         # Load the file
         md.load(input_path)
 
         # Render with timeout protection (pass width/height/background to render)
         await run_sync_with_timeout(
-            lambda: md.render(
-                output_base,
-                format=format.value,
-                width=width,
-                height=height,
-                background=background
-            ),
+            lambda: md.render(output_base, format=format.value, width=width, height=height, background=background),
             REQUEST_TIMEOUT_VISUALIZE,
-            "mermaid rendering"
+            "mermaid rendering",
         )
 
         output_path = f"{output_base}.{format.value}"
@@ -144,11 +134,7 @@ async def visualize_mermaid(
         # Schedule cleanup after response is sent
         background_tasks.add_task(cleanup_files, input_path, output_path)
 
-        content_types = {
-            "png": "image/png",
-            "svg": "image/svg+xml",
-            "pdf": "application/pdf"
-        }
+        content_types = {"png": "image/png", "svg": "image/svg+xml", "pdf": "application/pdf"}
 
         return FileResponse(
             path=output_path,
@@ -159,8 +145,7 @@ async def visualize_mermaid(
     except MermaidCLINotFoundError as e:
         cleanup_files(input_path, output_path)
         raise HTTPException(
-            status_code=503,
-            detail="Mermaid CLI (mmdc) not installed. Run: npm install -g @mermaid-js/mermaid-cli"
+            status_code=503, detail="Mermaid CLI (mmdc) not installed. Run: npm install -g @mermaid-js/mermaid-cli"
         ) from e
     except MermaidSyntaxError as e:
         cleanup_files(input_path, output_path)
@@ -175,11 +160,7 @@ async def visualize_mermaid(
         raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
-@router.post(
-    "/analyze/mermaid",
-    response_model=MermaidValidateResponse,
-    summary="Validate Mermaid diagram"
-)
+@router.post("/analyze/mermaid", response_model=MermaidValidateResponse, summary="Validate Mermaid diagram")
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_mermaid(
     request: Request,
@@ -197,8 +178,7 @@ async def analyze_mermaid(
         ext = os.path.splitext(file.filename)[1].lower() if file.filename else ""
         if ext not in {".mmd", ".toml", ".tml", ".json", ".yaml", ".yml"}:
             raise HTTPException(
-                status_code=400,
-                detail=f"Unsupported file extension: {ext}. Use .mmd, .toml, .json, .yaml"
+                status_code=400, detail=f"Unsupported file extension: {ext}. Use .mmd, .toml, .json, .yaml"
             )
 
         # Save uploaded file
@@ -231,8 +211,8 @@ async def analyze_mermaid(
                 line_count=stats.get("line_count", 0),
                 char_count=stats.get("char_count", 0),
                 non_empty_lines=stats.get("non_empty_lines", 0),
-                loaded=True
-            )
+                loaded=True,
+            ),
         )
 
     except MermaidError as e:
@@ -244,15 +224,10 @@ async def analyze_mermaid(
         raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
-@router.get(
-    "/mermaid/templates",
-    response_model=MermaidTemplateListResponse,
-    summary="List Mermaid templates"
-)
+@router.get("/mermaid/templates", response_model=MermaidTemplateListResponse, summary="List Mermaid templates")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def list_mermaid_templates(
-    request: Request,
-    category: Optional[str] = Query(default=None, description="Filter by category")
+    request: Request, category: Optional[str] = Query(default=None, description="Filter by category")
 ):
     """
     List available Mermaid diagram templates.
@@ -268,16 +243,12 @@ async def list_mermaid_templates(
                 name=t.get("name", ""),
                 category=t.get("category", ""),
                 path=t.get("path", ""),
-                diagram_type=t.get("diagram_type")
+                diagram_type=t.get("diagram_type"),
             )
             for t in all_templates
         ]
 
-        return MermaidTemplateListResponse(
-            templates=templates,
-            categories=categories,
-            total=len(templates)
-        )
+        return MermaidTemplateListResponse(templates=templates, categories=categories, total=len(templates))
     except Exception as e:
         logger.error(f"Error listing Mermaid templates: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="Failed to list templates") from e
@@ -286,14 +257,10 @@ async def list_mermaid_templates(
 @router.get(
     "/mermaid/template/{category}/{name}",
     response_model=MermaidTemplateContentResponse,
-    summary="Get Mermaid template content"
+    summary="Get Mermaid template content",
 )
 @limiter.limit(RATE_LIMIT_DEFAULT)
-async def get_mermaid_template(
-    request: Request,
-    category: str,
-    name: str
-):
+async def get_mermaid_template(request: Request, category: str, name: str):
     """
     Get the content of a specific Mermaid template.
 
@@ -337,10 +304,20 @@ async def get_mermaid_template(
         diagram_type = None
         if template_path.suffix == ".mmd":
             # Raw Mermaid file - detect type from content
-            first_line = content.strip().split('\n')[0] if content.strip() else ""
-            for dtype in ['flowchart', 'graph', 'sequenceDiagram', 'classDiagram',
-                         'stateDiagram', 'erDiagram', 'gantt', 'pie', 'mindmap',
-                         'timeline', 'gitGraph']:
+            first_line = content.strip().split("\n")[0] if content.strip() else ""
+            for dtype in [
+                "flowchart",
+                "graph",
+                "sequenceDiagram",
+                "classDiagram",
+                "stateDiagram",
+                "erDiagram",
+                "gantt",
+                "pie",
+                "mindmap",
+                "timeline",
+                "gitGraph",
+            ]:
                 if first_line.startswith(dtype):
                     diagram_type = dtype
                     break
@@ -348,13 +325,24 @@ async def get_mermaid_template(
             # TOML file - try to extract mermaid source and detect type
             try:
                 import tomllib
+
                 data = tomllib.loads(content)
-                source = data.get('mermaid', {}).get('source', '')
+                source = data.get("mermaid", {}).get("source", "")
                 if source:
-                    first_line = source.strip().split('\n')[0]
-                    for dtype in ['flowchart', 'graph', 'sequenceDiagram', 'classDiagram',
-                                 'stateDiagram', 'erDiagram', 'gantt', 'pie', 'mindmap',
-                                 'timeline', 'gitGraph']:
+                    first_line = source.strip().split("\n")[0]
+                    for dtype in [
+                        "flowchart",
+                        "graph",
+                        "sequenceDiagram",
+                        "classDiagram",
+                        "stateDiagram",
+                        "erDiagram",
+                        "gantt",
+                        "pie",
+                        "mindmap",
+                        "timeline",
+                        "gitGraph",
+                    ]:
                         if first_line.startswith(dtype):
                             diagram_type = dtype
                             break
@@ -367,7 +355,7 @@ async def get_mermaid_template(
             category=category,
             content=content,
             diagram_type=diagram_type,
-            filename=template_path.name
+            filename=template_path.name,
         )
 
     except HTTPException:
@@ -377,25 +365,16 @@ async def get_mermaid_template(
         raise HTTPException(status_code=500, detail="Failed to get template") from e
 
 
-@router.get(
-    "/mermaid/themes",
-    summary="List Mermaid themes"
-)
+@router.get("/mermaid/themes", summary="List Mermaid themes")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def list_mermaid_themes(request: Request):
     """
     List available Mermaid themes.
     """
-    return {
-        "themes": [t.value for t in MermaidTheme],
-        "default": MermaidTheme.DEFAULT.value
-    }
+    return {"themes": [t.value for t in MermaidTheme], "default": MermaidTheme.DEFAULT.value}
 
 
-@router.get(
-    "/mermaid/types",
-    summary="List Mermaid diagram types"
-)
+@router.get("/mermaid/types", summary="List Mermaid diagram types")
 @limiter.limit(RATE_LIMIT_DEFAULT)
 async def list_mermaid_types(request: Request):
     """
@@ -423,6 +402,6 @@ async def list_mermaid_types(request: Request):
             "block-beta": "Block diagrams",
             "packet-beta": "Packet diagrams",
             "kanban": "Kanban boards",
-            "architecture-beta": "Architecture diagrams"
-        }
+            "architecture-beta": "Architecture diagrams",
+        },
     }

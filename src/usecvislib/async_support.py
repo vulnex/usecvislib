@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class AsyncVisualization(Generic[T]):
@@ -63,12 +63,7 @@ class AsyncVisualization(Generic[T]):
         >>> await async_ag.draw()
     """
 
-    def __init__(
-        self,
-        sync_instance: T,
-        executor: Optional[ThreadPoolExecutor] = None,
-        max_workers: int = 4
-    ):
+    def __init__(self, sync_instance: T, executor: Optional[ThreadPoolExecutor] = None, max_workers: int = 4):
         """Initialize async wrapper.
 
         Args:
@@ -105,9 +100,9 @@ class AsyncVisualization(Generic[T]):
         """
         loop = asyncio.get_event_loop()
         # Handle different render method names
-        if hasattr(self._sync, 'Render'):
+        if hasattr(self._sync, "Render"):
             await loop.run_in_executor(self._executor, self._sync.Render)
-        elif hasattr(self._sync, 'render'):
+        elif hasattr(self._sync, "render"):
             await loop.run_in_executor(self._executor, self._sync.render)
         logger.debug("Async render completed")
         return self._sync
@@ -142,10 +137,7 @@ class AsyncVisualization(Generic[T]):
             List of validation errors.
         """
         loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(
-            self._executor,
-            self._sync.validate
-        )
+        result = await loop.run_in_executor(self._executor, self._sync.validate)
         logger.debug(f"Async validate completed with {len(result)} issues")
         return result
 
@@ -158,11 +150,11 @@ class AsyncVisualization(Generic[T]):
         loop = asyncio.get_event_loop()
 
         # Try different stats method names
-        if hasattr(self._sync, 'get_graph_stats'):
+        if hasattr(self._sync, "get_graph_stats"):
             method = self._sync.get_graph_stats
-        elif hasattr(self._sync, 'get_file_stats'):
+        elif hasattr(self._sync, "get_file_stats"):
             method = self._sync.get_file_stats
-        elif hasattr(self._sync, 'get_stats'):
+        elif hasattr(self._sync, "get_stats"):
             method = self._sync.get_stats
         else:
             return {}
@@ -181,11 +173,8 @@ class AsyncVisualization(Generic[T]):
             JSON string.
         """
         loop = asyncio.get_event_loop()
-        if hasattr(self._sync, 'export_json'):
-            result = await loop.run_in_executor(
-                self._executor,
-                partial(self._sync.export_json, output)
-            )
+        if hasattr(self._sync, "export_json"):
+            result = await loop.run_in_executor(self._executor, partial(self._sync.export_json, output))
             return result
         raise NotImplementedError("Instance does not support export_json")
 
@@ -239,7 +228,7 @@ class AsyncBatchProcessor:
         output_dir: str,
         format: str = "png",
         style: Optional[str] = None,
-        max_concurrent: int = 4
+        max_concurrent: int = 4,
     ):
         """Initialize async batch processor.
 
@@ -257,7 +246,7 @@ class AsyncBatchProcessor:
             output_dir,
             format=format,
             style=style,
-            max_workers=1  # Each task runs sequentially
+            max_workers=1,  # Each task runs sequentially
         )
         self._semaphore = asyncio.Semaphore(max_concurrent)
         self._executor = ThreadPoolExecutor(max_workers=max_concurrent)
@@ -267,7 +256,7 @@ class AsyncBatchProcessor:
         input_files: list[str],
         collect_stats: bool = True,
         validate: bool = True,
-        on_progress: Optional[Callable[[str, bool, Optional[str]], None]] = None
+        on_progress: Optional[Callable[[str, bool, Optional[str]], None]] = None,
     ) -> BatchResult:
         """Process multiple files concurrently.
 
@@ -289,13 +278,7 @@ class AsyncBatchProcessor:
                 loop = asyncio.get_event_loop()
                 try:
                     data = await loop.run_in_executor(
-                        self._executor,
-                        partial(
-                            self._sync_processor._process_single,
-                            filepath,
-                            collect_stats,
-                            validate
-                        )
+                        self._executor, partial(self._sync_processor._process_single, filepath, collect_stats, validate)
                     )
                     return filepath, True, data, None
                 except Exception as e:
@@ -323,12 +306,7 @@ class AsyncBatchProcessor:
 
 
 async def process_files_async(
-    module_type: str,
-    input_files: list[str],
-    output_dir: str,
-    format: str = "png",
-    max_concurrent: int = 4,
-    **kwargs
+    module_type: str, input_files: list[str], output_dir: str, format: str = "png", max_concurrent: int = 4, **kwargs
 ) -> BatchResult:
     """Convenience function for async batch processing.
 
@@ -350,12 +328,7 @@ async def process_files_async(
         ...     "/output"
         ... )
     """
-    processor = AsyncBatchProcessor(
-        module_type,
-        output_dir,
-        format=format,
-        max_concurrent=max_concurrent
-    )
+    processor = AsyncBatchProcessor(module_type, output_dir, format=format, max_concurrent=max_concurrent)
     try:
         return await processor.process_files(input_files, **kwargs)
     finally:

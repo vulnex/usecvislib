@@ -33,6 +33,7 @@ logger = logging.getLogger(__name__)
 
 class CustomShapeError(Exception):
     """Exception raised for custom shape loading errors."""
+
     pass
 
 
@@ -81,11 +82,7 @@ class CustomShapeLoader:
         """
         self.registry = registry
 
-    def load_custom_shapes(
-        self,
-        config: dict[str, Any],
-        base_path: Optional[Path] = None
-    ) -> int:
+    def load_custom_shapes(self, config: dict[str, Any], base_path: Optional[Path] = None) -> int:
         """Load custom shapes from configuration.
 
         Args:
@@ -120,10 +117,7 @@ class CustomShapeLoader:
         return count
 
     def _create_custom_shape(
-        self,
-        shape_id: str,
-        definition: dict[str, Any],
-        base_path: Optional[Path] = None
+        self, shape_id: str, definition: dict[str, Any], base_path: Optional[Path] = None
     ) -> Shape:
         """Create a custom shape from definition.
 
@@ -145,17 +139,9 @@ class CustomShapeLoader:
         elif shape_type == "dot":
             return self._create_dot_shape(shape_id, definition)
         else:
-            raise CustomShapeError(
-                f"Unknown custom shape type: {shape_type}. "
-                f"Supported types: svg, dot"
-            )
+            raise CustomShapeError(f"Unknown custom shape type: {shape_type}. Supported types: svg, dot")
 
-    def _create_svg_shape(
-        self,
-        shape_id: str,
-        definition: dict[str, Any],
-        base_path: Optional[Path] = None
-    ) -> Shape:
+    def _create_svg_shape(self, shape_id: str, definition: dict[str, Any], base_path: Optional[Path] = None) -> Shape:
         """Create an SVG-based custom shape.
 
         SVG shapes are rendered in Graphviz using the 'image' attribute.
@@ -177,9 +163,7 @@ class CustomShapeLoader:
             svg_path = definition["svg_path"]
             svg_data = self._load_svg_file(svg_path, base_path)
         else:
-            raise CustomShapeError(
-                f"SVG shape '{shape_id}' must specify 'svg_path' or 'svg_data'"
-            )
+            raise CustomShapeError(f"SVG shape '{shape_id}' must specify 'svg_path' or 'svg_data'")
 
         # Validate and process SVG
         svg_data = self._validate_svg(svg_data)
@@ -212,14 +196,10 @@ class CustomShapeLoader:
             ports=definition.get("ports", ["n", "s", "e", "w"]),
             tags=definition.get("tags", ["custom", "svg"]),
             custom=True,
-            svg_data=svg_data
+            svg_data=svg_data,
         )
 
-    def _create_dot_shape(
-        self,
-        shape_id: str,
-        definition: dict[str, Any]
-    ) -> Shape:
+    def _create_dot_shape(self, shape_id: str, definition: dict[str, Any]) -> Shape:
         """Create a DOT-based custom shape.
 
         DOT shapes use Graphviz's built-in shape system with custom
@@ -242,10 +222,7 @@ class CustomShapeLoader:
         else:
             # Default to a simple box if no definition provided
             graphviz_attrs = {"shape": "box"}
-            logger.warning(
-                f"Custom shape '{shape_id}' has no dot_definition or graphviz, "
-                f"defaulting to box shape"
-            )
+            logger.warning(f"Custom shape '{shape_id}' has no dot_definition or graphviz, defaulting to box shape")
 
         return Shape(
             id=shape_id,
@@ -257,14 +234,10 @@ class CustomShapeLoader:
             ports=definition.get("ports", ["n", "s", "e", "w"]),
             tags=definition.get("tags", ["custom", "dot"]),
             custom=True,
-            dot_definition=definition.get("dot_definition")
+            dot_definition=definition.get("dot_definition"),
         )
 
-    def _load_svg_file(
-        self,
-        svg_path: str,
-        base_path: Optional[Path] = None
-    ) -> str:
+    def _load_svg_file(self, svg_path: str, base_path: Optional[Path] = None) -> str:
         """Load SVG content from file.
 
         Args:
@@ -282,20 +255,20 @@ class CustomShapeLoader:
         """
         # SECURITY: Comprehensive path traversal validation
         # Check for null bytes first (can truncate paths in some systems)
-        if '\x00' in svg_path:
+        if "\x00" in svg_path:
             raise CustomShapeError("Invalid SVG path: null byte detected")
 
         # Check for URL-encoded path traversal patterns
         svg_path_lower = svg_path.lower()
-        if '%2e' in svg_path_lower or '%2f' in svg_path_lower or '%5c' in svg_path_lower:
+        if "%2e" in svg_path_lower or "%2f" in svg_path_lower or "%5c" in svg_path_lower:
             raise CustomShapeError("Invalid SVG path: URL-encoded characters not allowed")
 
         # Check for double URL-encoding
-        if '%25' in svg_path_lower:
+        if "%25" in svg_path_lower:
             raise CustomShapeError("Invalid SVG path: double-encoded characters not allowed")
 
         # Check for direct path traversal patterns
-        if '..' in svg_path:
+        if ".." in svg_path:
             raise CustomShapeError("Invalid SVG path: path traversal not allowed")
 
         # Resolve path - join with base_path if relative
@@ -314,13 +287,9 @@ class CustomShapeLoader:
             try:
                 resolved_base = base_path.resolve()
                 if not path.is_relative_to(resolved_base):
-                    raise CustomShapeError(
-                        "SVG path escapes base directory: access denied"
-                    )
+                    raise CustomShapeError("SVG path escapes base directory: access denied")
             except ValueError:
-                raise CustomShapeError(
-                    "SVG path escapes base directory: access denied"
-                ) from None
+                raise CustomShapeError("SVG path escapes base directory: access denied") from None
 
         # SECURITY: Reject symlinks to prevent symlink attacks
         if path.is_symlink():
@@ -335,10 +304,7 @@ class CustomShapeLoader:
 
         file_size = path.stat().st_size
         if file_size > self.MAX_SVG_SIZE:
-            raise CustomShapeError(
-                f"SVG file too large: {file_size} bytes "
-                f"(max: {self.MAX_SVG_SIZE} bytes)"
-            )
+            raise CustomShapeError(f"SVG file too large: {file_size} bytes (max: {self.MAX_SVG_SIZE} bytes)")
 
         # Read file
         try:
@@ -377,7 +343,6 @@ class CustomShapeLoader:
             (r"javascript:", "javascript protocol"),
             (r"vbscript:", "vbscript protocol"),
             (r"on\w+\s*=", "event handler attribute"),
-
             # External content loading (can bypass CSP, exfiltrate data)
             (r"<foreignObject", "foreignObject tag"),
             (r"<iframe", "iframe tag"),
@@ -385,22 +350,18 @@ class CustomShapeLoader:
             (r"<object", "object tag"),
             (r"<link", "link tag"),
             (r"<meta", "meta tag"),
-
             # SVG-specific dangerous elements
             (r"<image[^>]+href", "image tag with href"),
             (r"<use[^>]+href", "use tag with href"),
             (r"<feImage", "feImage filter"),
             (r"xlink:href\s*=\s*[\"'][^#]", "external xlink:href"),
-
             # Dangerous data URIs
             (r"data:text/html", "data:text/html URI"),
             (r"data:application/", "data:application URI"),
-
             # Style-based attacks (CSS injection, data exfiltration via url())
             (r"<style", "style tag"),
             (r"style\s*=\s*[\"'][^\"']*url\s*\(", "style with url() function"),
             (r"style\s*=\s*[\"'][^\"']*expression\s*\(", "style with expression()"),
-
             # Entity-based attacks
             (r"<!ENTITY", "XML entity declaration"),
             (r"<!DOCTYPE[^>]+\[", "DOCTYPE with internal subset"),
@@ -408,9 +369,7 @@ class CustomShapeLoader:
 
         for pattern, description in dangerous_patterns:
             if re.search(pattern, svg_data, re.IGNORECASE):
-                raise CustomShapeError(
-                    f"SVG contains potentially dangerous content: {description}"
-                )
+                raise CustomShapeError(f"SVG contains potentially dangerous content: {description}")
 
         return svg_data
 
@@ -428,16 +387,10 @@ class CustomShapeLoader:
             raise CustomShapeError("Width and height must be numbers")
 
         if width < self.MIN_DIMENSION or width > self.MAX_DIMENSION:
-            raise CustomShapeError(
-                f"Width must be between {self.MIN_DIMENSION} and "
-                f"{self.MAX_DIMENSION} pixels"
-            )
+            raise CustomShapeError(f"Width must be between {self.MIN_DIMENSION} and {self.MAX_DIMENSION} pixels")
 
         if height < self.MIN_DIMENSION or height > self.MAX_DIMENSION:
-            raise CustomShapeError(
-                f"Height must be between {self.MIN_DIMENSION} and "
-                f"{self.MAX_DIMENSION} pixels"
-            )
+            raise CustomShapeError(f"Height must be between {self.MIN_DIMENSION} and {self.MAX_DIMENSION} pixels")
 
     def _svg_to_data_uri(self, svg_data: str) -> str:
         """Convert SVG content to a data URI for Graphviz.
@@ -483,7 +436,7 @@ class CustomShapeLoader:
             if "=" in part:
                 key, value = part.split("=", 1)
                 key = key.strip()
-                value = value.strip().strip('"\'')
+                value = value.strip().strip("\"'")
                 if key:
                     attrs[key] = value
             else:
@@ -494,11 +447,7 @@ class CustomShapeLoader:
         return attrs
 
 
-def register_custom_shapes(
-    registry: ShapeRegistry,
-    config: dict[str, Any],
-    base_path: Optional[Path] = None
-) -> int:
+def register_custom_shapes(registry: ShapeRegistry, config: dict[str, Any], base_path: Optional[Path] = None) -> int:
     """Convenience function to register custom shapes.
 
     Args:
