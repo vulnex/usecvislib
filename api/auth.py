@@ -36,7 +36,7 @@ logger = logging.getLogger("usecvislib.api.auth")
 
 def is_auth_enabled() -> bool:
     """Check if authentication is enabled (runtime check for testing flexibility)."""
-    return os.getenv("USECVISLIB_AUTH_ENABLED", "true").lower() == "true"
+    return os.getenv("USECVISLIB_AUTH_ENABLED", "false").lower() == "true"
 
 # Legacy constant for backwards compatibility (use is_auth_enabled() for dynamic check)
 AUTH_ENABLED = is_auth_enabled()

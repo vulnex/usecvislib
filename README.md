@@ -105,11 +105,16 @@ cd usecvislib
 # If you already cloned without --recursive, initialize submodules:
 # git submodule update --init --recursive
 
-# Start with Docker Compose
+# Start with Docker Compose (API + web UI)
 docker-compose up -d
 
 # Access the web UI at http://localhost:3001
-# API documentation at http://localhost:8000/docs
+# API documentation at http://localhost:8003/docs
+
+# Optional: also start the MCP server (requires the usecvislib-mcp
+# sibling repo checked out at ../usecvislib-mcp):
+#   git clone https://github.com/vulnex/usecvislib-mcp.git ../usecvislib-mcp
+#   docker-compose --profile mcp up -d
 ```
 
 ### Manual Installation
@@ -606,13 +611,13 @@ usecvislib/
 │   ├── mermaid/              # Mermaid diagram templates
 │   ├── cloud/                # Cloud architecture templates
 │   ├── privilege-gradient/   # Privilege gradient templates
-│   ├── component-diagrams/   # Component diagram templates
-│   └── dependency-graphs/    # Dependency graph templates
-├── tests/                    # Unit tests (955+ tests)
+│   ├── architecture/         # Component diagram & dependency graph templates
+│   └── maestro/              # MAESTRO agentic threat model templates
+├── tests/                    # Unit tests (1500+ tests)
 ├── docker-compose.yml        # Docker Compose config
 ├── Dockerfile                # Docker image
 ├── requirements.txt          # Python dependencies
-└── setup.py                  # Package setup
+└── pyproject.toml            # Package metadata & build config
 ```
 
 ## Testing

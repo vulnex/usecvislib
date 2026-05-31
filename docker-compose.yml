@@ -11,9 +11,9 @@ services:
       - "8003:8000"
     environment:
       - PYTHONUNBUFFERED=1
-      # Authentication settings (enabled by default for security)
-      # To disable for local development: set USECVISLIB_AUTH_ENABLED=false in .env
-      - USECVISLIB_AUTH_ENABLED=${USECVISLIB_AUTH_ENABLED:-true}
+      # Authentication settings (disabled by default for easy local setup)
+      # For production: set USECVISLIB_AUTH_ENABLED=true and an API key in .env
+      - USECVISLIB_AUTH_ENABLED=${USECVISLIB_AUTH_ENABLED:-false}
       - USECVISLIB_API_KEY=${USECVISLIB_API_KEY:-}
       - USECVISLIB_API_KEYS=${USECVISLIB_API_KEYS:-}
       # Logging
@@ -107,6 +107,9 @@ services:
       args:
         BASE_IMAGE: usecvislib-usecvislib-api
     container_name: usecvislib-mcp
+    profiles:
+      - mcp  # Optional: requires the usecvislib-mcp sibling repo checked out at ../usecvislib-mcp
+             # Start with: docker-compose --profile mcp up -d
     ports:
       - "8002:8000"
     environment:
