@@ -43,7 +43,9 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Audit dependencies for vulnerabilities
-        run: pip-audit
+        # PYSEC-2024-270 (diagrams 0.25.1): no patched release exists upstream.
+        # diagrams only renders trusted local config files; re-evaluate when a fix ships.
+        run: pip-audit --ignore-vuln PYSEC-2024-270
 
   test:
     runs-on: ubuntu-latest
