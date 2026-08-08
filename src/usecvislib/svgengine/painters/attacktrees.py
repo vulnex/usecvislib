@@ -212,6 +212,123 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
     return scene, root_id, rankdir
 
 
+def _edge_endpoints(src, dst, horizontal: bool) -> tuple[float, float, float, float]:
+    """Border-to-border endpoints along the flow axis."""
+    if horizontal:
+        return (src.x + src.width / 2, src.y, dst.x - dst.width / 2, dst.y)
+    return (src.x, src.y + src.height / 2, dst.x, dst.y - dst.height / 2)
+
+
+def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], horizontal: bool) -> None:
+    """Paint edges as trunk + rail + drops (ortho) or fan-out curves.
+
+    Overlapping full parent->child paths produce a visible artifact at the
+    junction (mirrored corner curves + a straight drop superimpose into a
+    teardrop). Ortho routing therefore draws real plumbing per parent: one
+    trunk from the parent border to the bus, one rail across the children
+    with rounded corners only at its outer ends, and one clean T-junction
+    drop per child (which carries the edge's interactivity contract and
+    arrowhead). Edges with per-edge style overrides (color/dash) keep their
+    own full path so the override stays visible end to end.
+    """
+    width = float(edge_cfg["width"])
+    default_color = edge_cfg["color"]
+    corner = 10.0
+
+    def draw_edge(edge, d: str, color: str) -> None:
+        edge_group = shapes.group(["usv-edge", "usv-edge--tree"], {"from": edge.src, "to": edge.dst})
+        edge_group.append(shapes.edge_path(d, color, width, dashed=edge.dashed, marker_url=canvas.arrow_marker(color)))
+        canvas.add("edges", edge_group)
+
+    def full_path(edge, src, dst, mid: float | None) -> None:
+        x1, y1, x2, y2 = _edge_endpoints(src, dst, horizontal)
+        color = edge.color or default_color
+        if edge_cfg["routing"] == "curve":
+            d = shapes.curve_path_d(x1, y1, x2, y2, horizontal=horizontal)
+        else:
+            d = shapes.ortho_path_d(x1, y1, x2, y2, corner=corner, horizontal=horizontal, mid=mid)
+        draw_edge(edge, d, color)
+
+    edges_by_src: dict[str, list] = {}
+    for edge in scene.edges:
+        src = scene.node_by_id(edge.src)
+        dst = scene.node_by_id(edge.dst)
+        if src is None or dst is None:
+            logger.warning(f"Edge {edge.src} -> {edge.dst} references unknown node; skipped")
+            continue
+        edges_by_src.setdefault(edge.src, []).append((edge, src, dst))
+
+    for _src_id, group_edges in edges_by_src.items():
+        src = group_edges[0][1]
+        src_end = (src.x + src.width / 2) if horizontal else (src.y + src.height / 2)
+        src_cross = src.y if horizontal else src.x
+
+        def dst_start(dst) -> float:
+            return (dst.x - dst.width / 2) if horizontal else (dst.y - dst.height / 2)
+
+        def dst_cross(dst) -> float:
+            return dst.y if horizontal else dst.x
+
+        nearest = min(dst_start(dst) for _, _, dst in group_edges)
+        bus = (src_end + nearest) / 2 if nearest > src_end else None
+
+        # Curve routing fans out from one point (no junction artifact), and
+        # override-styled or upward edges keep their own full path.
+        if edge_cfg["routing"] == "curve" or bus is None:
+            for edge, edge_src, dst in group_edges:
+                full_path(edge, edge_src, dst, bus)
+            continue
+
+        plumbed = [(e, d) for e, _, d in group_edges if not e.color and not e.dashed and dst_start(d) > bus]
+        for edge, edge_src, dst in group_edges:
+            if not any(e is edge for e, _ in plumbed):
+                full_path(edge, edge_src, dst, bus)
+
+        if not plumbed:
+            continue
+        if len(plumbed) == 1:
+            full_path(plumbed[0][0], src, plumbed[0][1], bus)
+            continue
+
+        # Rail spanning the outermost drops (rounded down-turns at the ends),
+        # trunk from the parent into the rail.
+        crosses = sorted({round(dst_cross(d), 2) for _, d in plumbed} | {round(src_cross, 2)})
+        lo, hi = crosses[0], crosses[-1]
+        r = min(corner, (hi - lo) / 2, (min(dst_start(d) for _, d in plumbed) - bus))
+        r = max(0.0, r)
+        rail_group = shapes.group(["usv-rail"], {"from": group_edges[0][0].src})
+        if horizontal:
+            rail_d = (
+                f"M {shapes.fmt(bus + r)} {shapes.fmt(lo)} "
+                f"Q {shapes.fmt(bus)} {shapes.fmt(lo)} {shapes.fmt(bus)} {shapes.fmt(lo + r)} "
+                f"L {shapes.fmt(bus)} {shapes.fmt(hi - r)} "
+                f"Q {shapes.fmt(bus)} {shapes.fmt(hi)} {shapes.fmt(bus + r)} {shapes.fmt(hi)}"
+            )
+            trunk_d = f"M {shapes.fmt(src_end)} {shapes.fmt(src_cross)} L {shapes.fmt(bus)} {shapes.fmt(src_cross)}"
+        else:
+            rail_d = (
+                f"M {shapes.fmt(lo)} {shapes.fmt(bus + r)} "
+                f"Q {shapes.fmt(lo)} {shapes.fmt(bus)} {shapes.fmt(lo + r)} {shapes.fmt(bus)} "
+                f"L {shapes.fmt(hi - r)} {shapes.fmt(bus)} "
+                f"Q {shapes.fmt(hi)} {shapes.fmt(bus)} {shapes.fmt(hi)} {shapes.fmt(bus + r)}"
+            )
+            trunk_d = f"M {shapes.fmt(src_cross)} {shapes.fmt(src_end)} L {shapes.fmt(src_cross)} {shapes.fmt(bus)}"
+        rail_group.append(shapes.edge_path(rail_d, default_color, width))
+        rail_group.append(shapes.edge_path(trunk_d, default_color, width))
+        canvas.add("edges", rail_group)
+
+        # Drops: T-junction off the rail into each child; the outermost drops
+        # start below the rounded rail ends to continue their curve.
+        for edge, dst in plumbed:
+            cross = dst_cross(dst)
+            start = bus + r if round(cross, 2) in (lo, hi) else bus
+            if horizontal:
+                d = f"M {shapes.fmt(start)} {shapes.fmt(cross)} L {shapes.fmt(dst_start(dst))} {shapes.fmt(cross)}"
+            else:
+                d = f"M {shapes.fmt(cross)} {shapes.fmt(start)} L {shapes.fmt(cross)} {shapes.fmt(dst_start(dst))}"
+            draw_edge(edge, d, default_color)
+
+
 def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str, Any]) -> str:
     """Lay out and paint a scene; returns SVG text."""
     layout_cfg = theme["layout"]
@@ -263,57 +380,7 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
             shapes.title_text(min_x + pad * 0.5, min_y + pad * 0.55, title, float(title_cfg["size"]), page["text"]),
         )
 
-    # Shared bus per parent: all sibling connectors turn on ONE rail line,
-    # even when children have different heights (mixed icon/card rows would
-    # otherwise produce offset parallel segments).
-    bus: dict[str, float] = {}
-    edges_by_src: dict[str, list] = {}
-    for edge in scene.edges:
-        edges_by_src.setdefault(edge.src, []).append(edge)
-    for src_id, group_edges in edges_by_src.items():
-        src = scene.node_by_id(src_id)
-        if src is None:
-            continue
-        targets = [t for t in (scene.node_by_id(e.dst) for e in group_edges) if t is not None]
-        if not targets:
-            continue
-        if horizontal:
-            start = src.x + src.width / 2
-            nearest = min(t.x - t.width / 2 for t in targets)
-        else:
-            start = src.y + src.height / 2
-            nearest = min(t.y - t.height / 2 for t in targets)
-        if nearest > start:
-            bus[src_id] = (start + nearest) / 2
-
-    # Edges: from parent border to child border along the flow axis
-    for edge in scene.edges:
-        src = scene.node_by_id(edge.src)
-        dst = scene.node_by_id(edge.dst)
-        if src is None or dst is None:
-            logger.warning(f"Edge {edge.src} -> {edge.dst} references unknown node; skipped")
-            continue
-        if horizontal:
-            x1, y1 = src.x + src.width / 2, src.y
-            x2, y2 = dst.x - dst.width / 2, dst.y
-            valid_mid = bus.get(edge.src) is not None and x1 < bus[edge.src] < x2
-        else:
-            x1, y1 = src.x, src.y + src.height / 2
-            x2, y2 = dst.x, dst.y - dst.height / 2
-            valid_mid = bus.get(edge.src) is not None and y1 < bus[edge.src] < y2
-        mid = bus[edge.src] if valid_mid else None
-        color = edge.color or edge_cfg["color"]
-        if edge_cfg["routing"] == "curve":
-            d = shapes.curve_path_d(x1, y1, x2, y2, horizontal=horizontal)
-        else:
-            d = shapes.ortho_path_d(x1, y1, x2, y2, horizontal=horizontal, mid=mid)
-        edge_group = shapes.group(["usv-edge", "usv-edge--tree"], {"from": edge.src, "to": edge.dst})
-        edge_group.append(
-            shapes.edge_path(
-                d, color, float(edge_cfg["width"]), dashed=edge.dashed, marker_url=canvas.arrow_marker(color)
-            )
-        )
-        canvas.add("edges", edge_group)
+    _paint_edges(scene, canvas, edge_cfg, horizontal)
 
     # Nodes: card/pill/diamond/plain body + centered label block
     for node in scene.nodes:
