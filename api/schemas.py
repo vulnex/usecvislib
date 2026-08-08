@@ -36,6 +36,17 @@ class OutputFormat(str, Enum):
     SVG = "svg"
 
 
+class RenderEngine(str, Enum):
+    """Available rendering engines.
+
+    Named render_engine (not "engine") to avoid colliding with
+    ThreatModelRequest.engine, which selects usecvislib vs pytm.
+    """
+
+    GRAPHVIZ = "graphviz"
+    SVG = "svg"
+
+
 class AttackTreeStyle(str, Enum):
     """Available attack tree styles."""
 
@@ -57,6 +68,12 @@ class AttackTreeStyle(str, Enum):
     STEEL = "at_steel"
     GLACIER = "at_glacier"
     TERRA = "at_terra"
+    # SVG engine presets (require render_engine=svg)
+    SVG_DEFAULT = "sv_default"
+    SVG_DARK = "sv_dark"
+    SVG_NEON = "sv_neon"
+    SVG_CORPORATE = "sv_corporate"
+    SVG_MINIMAL = "sv_minimal"
 
 
 class ThreatModelStyle(str, Enum):

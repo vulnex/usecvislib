@@ -10,19 +10,20 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "vue": "^3.4.0",
-    "axios": "^1.7.9",
-    "@codemirror/state": "^6.4.0",
-    "@codemirror/view": "^6.23.0",
-    "@codemirror/language": "^6.10.0",
+    "@codemirror/commands": "^6.3.0",
     "@codemirror/lang-json": "^6.0.1",
     "@codemirror/lang-yaml": "^6.1.0",
-    "@codemirror/commands": "^6.3.0",
-    "@codemirror/search": "^6.5.0",
+    "@codemirror/language": "^6.10.0",
     "@codemirror/lint": "^6.5.0",
+    "@codemirror/search": "^6.5.0",
+    "@codemirror/state": "^6.4.0",
+    "@codemirror/view": "^6.23.0",
     "@lezer/highlight": "^1.2.0",
+    "axios": "^1.7.9",
+    "dompurify": "^3.4.13",
+    "js-yaml": "^4.1.0",
     "smol-toml": "^1.1.0",
-    "js-yaml": "^4.1.0"
+    "vue": "^3.4.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",

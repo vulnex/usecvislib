@@ -146,12 +146,12 @@ export async function getEngines() {
 /**
  * Generate attack tree visualization
  */
-export async function visualizeAttackTree(file, format = 'png', style = 'at_default') {
+export async function visualizeAttackTree(file, format = 'png', style = 'at_default', renderEngine = 'graphviz') {
   const formData = new FormData()
   formData.append('file', file)
 
   const response = await api.post(
-    `/visualize/attack-tree?format=${format}&style=${style}`,
+    `/visualize/attack-tree?format=${format}&style=${style}&render_engine=${renderEngine}`,
     formData,
     {
       responseType: 'blob',
@@ -340,9 +340,9 @@ function createFileFromContent(content, baseName = 'input', configFormat = 'toml
  * @param {string} style - Style preset
  * @param {string} configFormat - Configuration format (toml, json, yaml)
  */
-export async function visualizeAttackTreeFromContent(content, outputFormat = 'png', style = 'at_default', configFormat = 'toml') {
+export async function visualizeAttackTreeFromContent(content, outputFormat = 'png', style = 'at_default', configFormat = 'toml', renderEngine = 'graphviz') {
   const file = createFileFromContent(content, 'attack_tree', configFormat)
-  return visualizeAttackTree(file, outputFormat, style)
+  return visualizeAttackTree(file, outputFormat, style, renderEngine)
 }
 
 /**

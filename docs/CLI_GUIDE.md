@@ -115,6 +115,8 @@ usecvis [options]
 | `-r` | `--report` | Generate STRIDE report | No (mode 1 only) |
 | `-p` | `--paths <src,tgt>` | Find attack paths | No (mode 3 only) |
 | `-c` | `--critical` | Analyze critical nodes | No (mode 3 only) |
+| | `--render-engine <eng>` | Rendering engine: `graphviz` (default) or `svg` | No |
+| | `--shine` | Modernize Graphviz SVG output (fonts, shadows) | No (requires `-f svg`) |
 
 ### Visualization Modes
 
@@ -138,6 +140,28 @@ usecvis [options]
 | `pdf` | Portable Document Format | Documentation, printing |
 | `svg` | Scalable Vector Graphics | Web, high-quality scaling |
 | `dot` | Graphviz DOT language | Further processing, editing |
+
+### Rendering Engines
+
+USecVisLib has two rendering engines, selected with `--render-engine`:
+
+| Engine | Description |
+|--------|-------------|
+| `graphviz` | Default. Classic Graphviz rendering; all modes, all formats, all existing styles. |
+| `svg` | Modern hand-painted SVG: gradient cards, drop shadows, CVSS badges, hover-ready output. Formats: `png`, `pdf`, `svg` (not `dot`). Currently supports mode 0 (Attack Trees). |
+
+The SVG engine uses its own style presets: `sv_default`, `sv_dark`, `sv_neon`,
+`sv_corporate`, `sv_minimal`. Graphviz presets (`at_*`) and SVG presets are not
+interchangeable — mixing them produces a clear error. The SVG engine renders
+attack trees without requiring the Graphviz system binary.
+
+```bash
+# Modern SVG output with the dark preset
+usecvis -i attack.toml -o output -m 0 -f svg --render-engine svg -s sv_dark
+
+# Quick polish for classic Graphviz SVG output (any Graphviz mode)
+usecvis -i attack.toml -o output -m 0 -f svg --shine
+```
 
 ---
 

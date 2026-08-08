@@ -151,7 +151,13 @@ class BatchProcessor:
         return cls._MODULES
 
     def __init__(
-        self, module_type: str, output_dir: str, format: str = "png", style: Optional[str] = None, max_workers: int = 4
+        self,
+        module_type: str,
+        output_dir: str,
+        format: str = "png",
+        style: Optional[str] = None,
+        max_workers: int = 4,
+        render_engine: str = "graphviz",
     ):
         """Initialize batch processor.
 
@@ -176,6 +182,7 @@ class BatchProcessor:
         self.output_dir = Path(output_dir)
         self.format = format
         self.style = style
+        self.render_engine = render_engine
         self.max_workers = max_workers
 
         # Create output directory
@@ -267,6 +274,8 @@ class BatchProcessor:
         kwargs: dict[str, Any] = {"format": self.format}
         if self.style:
             kwargs["styleid"] = self.style
+        if self.render_engine != "graphviz":
+            kwargs["render_engine"] = self.render_engine
 
         # Create instance
         instance = self.module_class(input_file, output_path, **kwargs)

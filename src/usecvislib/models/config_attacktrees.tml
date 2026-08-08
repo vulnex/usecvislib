@@ -140,3 +140,80 @@ root = {margin = 0.15, fontcolor = "white", fillcolor = "#344E41", shape = "rect
 node = {margin = 0.12, fontcolor = "white", fillcolor = "#588157", shape = "rectangle", style = "filled,rounded", fontname = "Georgia", fontsize = "11"}
 edge = {color = "#A3B18A", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
 
+
+# =============================================================================
+# SVG ENGINE PRESETS (render_engine = "svg")
+# These presets target the hand-painted SVG engine and are NOT valid for the
+# Graphviz engine (marked via meta.engine; mixing raises a clear error).
+# Schema: devnotes/SVG_ENGINE_DESIGN.md - Theme System.
+# =============================================================================
+
+# SVG Default - Clean modern cards with soft depth
+[sv_default]
+meta = {engine = "svg"}
+page = {background = "#f8fafc", padding = 32}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 12, root_size = 14}
+card = {radius = 10, padding_x = 14, padding_y = 10, border_width = 1.0, min_width = 90, max_label_width = 260}
+node = {fill = "gradient:#3d5a80>#2b415d", border = "#1e3a5f", text = "#ffffff"}
+root = {fill = "gradient:#1e3a5f>#132743", border = "#0d1b2a", text = "#ffffff"}
+edge = {color = "#94a3b8", width = 1.6, routing = "ortho"}
+effects = {shadow = true, shadow_blur = 1.8, hover_glow = true}
+severity = {use_cvss_colors = true}
+badges = {cvss = true, fill = "#0f172a", text = "#ffffff"}
+layout = {h_gap = 28, v_gap = 60}
+
+# SVG Dark - Slate night theme with indigo root
+[sv_dark]
+meta = {engine = "svg"}
+page = {background = "#0f172a", padding = 32}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 12, root_size = 14}
+card = {radius = 10, padding_x = 14, padding_y = 10, border_width = 1.0, min_width = 90, max_label_width = 260}
+node = {fill = "gradient:#334155>#1e293b", border = "#475569", text = "#e2e8f0"}
+root = {fill = "gradient:#4f46e5>#3730a3", border = "#312e81", text = "#ffffff"}
+edge = {color = "#64748b", width = 1.6, routing = "ortho"}
+effects = {shadow = true, shadow_blur = 2.4, hover_glow = true}
+severity = {use_cvss_colors = true}
+badges = {cvss = true, fill = "#e2e8f0", text = "#0f172a"}
+layout = {h_gap = 28, v_gap = 60}
+
+# SVG Neon - Cyberpunk dark with electric accents
+[sv_neon]
+meta = {engine = "svg"}
+page = {background = "#050505", padding = 32}
+font = {family = "Menlo, Consolas, monospace", size = 12, root_size = 14}
+card = {radius = 6, padding_x = 14, padding_y = 10, border_width = 1.5, min_width = 90, max_label_width = 260}
+node = {fill = "#0d0d17", border = "#ff00ff", text = "#00ffd0"}
+root = {fill = "#10101f", border = "#00ff9f", text = "#00ff9f"}
+edge = {color = "#00d4ff", width = 1.8, routing = "ortho"}
+effects = {shadow = false, shadow_blur = 1.8, hover_glow = true}
+severity = {use_cvss_colors = true}
+badges = {cvss = true, fill = "#00ffd0", text = "#050505"}
+layout = {h_gap = 30, v_gap = 64}
+
+# SVG Corporate - Professional blue on white for reports
+[sv_corporate]
+meta = {engine = "svg"}
+page = {background = "#ffffff", padding = 36}
+font = {family = "Helvetica Neue, Arial, sans-serif", size = 12, root_size = 15}
+card = {radius = 8, padding_x = 16, padding_y = 11, border_width = 1.0, min_width = 100, max_label_width = 280}
+node = {fill = "gradient:#3d5a80>#33506f", border = "#1e3a5f", text = "#ffffff"}
+root = {fill = "gradient:#1e3a5f>#16324f", border = "#0d1b2a", text = "#ffffff"}
+edge = {color = "#6b7b8c", width = 1.5, routing = "curve"}
+effects = {shadow = true, shadow_blur = 1.5, hover_glow = false}
+severity = {use_cvss_colors = true}
+badges = {cvss = true, fill = "#0f172a", text = "#ffffff"}
+layout = {h_gap = 32, v_gap = 66}
+
+# SVG Minimal - Flat outline style, no depth effects
+[sv_minimal]
+meta = {engine = "svg"}
+page = {background = "#ffffff", padding = 28}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 12, root_size = 13}
+card = {radius = 4, padding_x = 12, padding_y = 8, border_width = 1.2, min_width = 80, max_label_width = 240}
+node = {fill = "#ffffff", border = "#333333", text = "#111111"}
+root = {fill = "#f5f5f5", border = "#111111", text = "#111111"}
+edge = {color = "#555555", width = 1.3, routing = "ortho"}
+effects = {shadow = false, shadow_blur = 0, hover_glow = false}
+severity = {use_cvss_colors = true}
+badges = {cvss = true, fill = "#0f172a", text = "#ffffff"}
+layout = {h_gap = 24, v_gap = 52}

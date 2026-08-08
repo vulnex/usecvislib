@@ -85,7 +85,13 @@ class AttackGraphs(VisualizationBase):
     NODE_TYPES = {"host": "H", "vulnerability": "V", "privilege": "P", "service": "S"}
 
     def __init__(
-        self, inputfile: str, outputfile: str, format: str = "", styleid: str = "", validate_paths: bool = True
+        self,
+        inputfile: str,
+        outputfile: str,
+        format: str = "",
+        styleid: str = "",
+        validate_paths: bool = True,
+        render_engine: str = "graphviz",
     ) -> None:
         """Initialize AttackGraphs with input/output paths and styling options.
 
@@ -109,7 +115,12 @@ class AttackGraphs(VisualizationBase):
 
         # Initialize base class
         super().__init__(
-            inputfile=inputfile, outputfile=outputfile, format=format, styleid=styleid, validate_paths=validate_paths
+            inputfile=inputfile,
+            outputfile=outputfile,
+            format=format,
+            styleid=styleid,
+            validate_paths=validate_paths,
+            render_engine=render_engine,
         )
 
         # Attack graph specific state

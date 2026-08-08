@@ -97,6 +97,11 @@ def Usage() -> None:
     print("                          (fonts, drop shadows, hover emphasis)")
     print("                          Requires -f svg; Graphviz modes only: 0, 1, 3, 6, 7, 8, 12")
     print("")
+    print("  --render-engine <eng>   Rendering engine: graphviz (default) or svg")
+    print("                          svg: modern hand-painted output, sv_* styles")
+    print("                          (sv_default, sv_dark, sv_neon, sv_corporate, sv_minimal)")
+    print("                          Currently supported for mode 0 (Attack Trees)")
+    print("")
     print("  --convert <format>      Convert input file to format: toml, json, yaml, mermaid")
     print("                          Output will be saved to <output>.<format_ext>")
     print("                          Mermaid output auto-detects visualization type")
@@ -182,6 +187,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     theme = "default"  # Mermaid theme
     direction = "TB"  # Cloud diagram direction
     shine = False  # Post-process SVG output with shine styling
+    render_engine = "graphviz"  # Rendering engine: graphviz or svg
 
     convert_format = ""  # Format to convert to: toml, json, yaml, mermaid
 
@@ -206,6 +212,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                 "theme=",
                 "direction=",
                 "shine",
+                "render-engine=",
             ],
         )
     except getopt.GetoptError as e:
@@ -246,6 +253,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             direction = arg.upper()
         elif opt == "--shine":
             shine = True
+        elif opt == "--render-engine":
+            render_engine = arg.lower()
         elif opt == "--convert":
             convert_format = arg.lower()
 
@@ -337,8 +346,19 @@ def main(argv: Optional[list[str]] = None) -> int:
     if not validate_mode(mode):
         error_exit(f"Invalid mode: {mode}. Must be 0-8 or 12.")
 
+    # Validate render engine
+    if render_engine not in ("graphviz", "svg"):
+        error_exit(f"Invalid render engine: {render_engine}. Must be graphviz or svg.")
+    if render_engine == "svg":
+        if mode != 0:
+            error_exit(f"Render engine 'svg' currently supports mode 0 (Attack Trees) only, got mode {mode}.")
+        if format == "dot":
+            error_exit("Format 'dot' is Graphviz-specific. Use png, pdf, or svg with --render-engine svg.")
+
     # Validate shine (Graphviz SVG post-processing only)
     if shine:
+        if render_engine != "graphviz":
+            error_exit("--shine post-processes Graphviz output. It cannot be combined with --render-engine svg.")
         if format != "svg":
             error_exit("--shine requires SVG output. Use -f svg.")
         if mode not in (0, 1, 3, 6, 7, 8, 12):
@@ -350,7 +370,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             # Attack Trees
             from . import attacktrees
 
-            at = attacktrees.AttackTrees(inputfile, outputfile, format, styleid)
+            at = attacktrees.AttackTrees(inputfile, outputfile, format, styleid, render_engine=render_engine)
             at.BuildAttackTree()
             print(f"Attack tree generated: {outputfile}.{format}")
 

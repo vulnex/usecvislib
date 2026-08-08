@@ -11,19 +11,99 @@
 # https://www.vulnex.com
 #
 
-"""SVG rendering engine package.
+"""SVG rendering engine: modern hand-painted SVG as a second engine.
 
-Phase 0 ships the shine pack: a post-processor that modernizes Graphviz SVG
-output (fonts, drop shadows, hover affordances) without touching layout.
+Selectable via ``render_engine="svg"`` on supported modules (Graphviz
+remains the default engine). The package also ships the Phase 0 shine
+pack, a post-processor for Graphviz SVG output.
 
-The full hand-painted SVG engine (canvas, layouts, painters, sv_* themes)
-lands in Phase 1. Design: devnotes/SVG_ENGINE_DESIGN.md.
+Design and task tracker: devnotes/SVG_ENGINE_DESIGN.md.
 """
 
+import importlib
+from pathlib import Path
+
+from .scene import EngineNotSupportedError, StyleEngineMismatchError
 from .shinepack import ShineError, apply_shine, apply_shine_file
 
 __all__ = [
+    "EngineNotSupportedError",
     "ShineError",
+    "StyleEngineMismatchError",
     "apply_shine",
     "apply_shine_file",
+    "is_supported",
+    "paint",
+    "register_painter",
+    "supported_modules",
 ]
+
+# Visualization class name -> painter module path
+_PAINTERS: dict[str, str] = {
+    "AttackTrees": "usecvislib.svgengine.painters.attacktrees",
+}
+
+
+def register_painter(class_name: str, module_path: str) -> None:
+    """Register a painter module for a visualization class name.
+
+    The module must expose ``render_svg(viz) -> str``.
+    """
+    _PAINTERS[class_name] = module_path
+
+
+def supported_modules() -> list[str]:
+    """Visualization class names the SVG engine can paint."""
+    return sorted(_PAINTERS)
+
+
+def is_supported(class_name: str) -> bool:
+    """Check whether a visualization class has a registered painter."""
+    return class_name in _PAINTERS
+
+
+def paint(viz, outputfile: str) -> str:
+    """Paint a visualization instance with the SVG engine.
+
+    Writes ``<outputfile>.<format>``: SVG natively, PNG/PDF via cairosvg
+    conversion of the same bytes.
+
+    Args:
+        viz: A loaded visualization instance (``render_engine="svg"``).
+        outputfile: Output path without extension.
+
+    Returns:
+        The written file path.
+
+    Raises:
+        EngineNotSupportedError: If the module has no painter or the
+            format is Graphviz-specific ("dot") / unknown.
+    """
+    class_name = type(viz).__name__
+    if not is_supported(class_name):
+        raise EngineNotSupportedError(
+            f"render_engine='svg' does not support {class_name} yet. Supported: {', '.join(supported_modules())}"
+        )
+    if viz.format not in ("svg", "png", "pdf"):
+        raise EngineNotSupportedError(
+            f"Format '{viz.format}' is not supported by render_engine='svg'. Use svg, png, or pdf."
+        )
+
+    painter = importlib.import_module(_PAINTERS[class_name])
+    svg_text = painter.render_svg(viz)
+
+    out_path = Path(f"{outputfile}.{viz.format}")
+    if viz.format == "svg":
+        out_path.write_text(svg_text, encoding="utf-8")
+    else:
+        try:
+            import cairosvg
+        except ImportError as e:
+            raise EngineNotSupportedError(
+                f"'{viz.format}' output with render_engine='svg' requires cairosvg "
+                f"(pip install cairosvg). SVG output works without it."
+            ) from e
+
+        convert = cairosvg.svg2png if viz.format == "png" else cairosvg.svg2pdf
+        convert(bytestring=svg_text.encode("utf-8"), write_to=str(out_path))
+    return str(out_path)

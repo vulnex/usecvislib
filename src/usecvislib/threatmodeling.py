@@ -690,6 +690,7 @@ class ThreatModeling(VisualizationBase):
         styleid: str = "",
         engine: str = "usecvislib",
         validate_paths: bool = True,
+        render_engine: str = "graphviz",
     ) -> None:
         """Initialize ThreatModeling with input/output paths and styling options.
 
@@ -716,7 +717,12 @@ class ThreatModeling(VisualizationBase):
 
         # Initialize base class
         super().__init__(
-            inputfile=inputfile, outputfile=outputfile, format=format, styleid=styleid, validate_paths=validate_paths
+            inputfile=inputfile,
+            outputfile=outputfile,
+            format=format,
+            styleid=styleid,
+            validate_paths=validate_paths,
+            render_engine=render_engine,
         )
 
         # Threat modeling specific state

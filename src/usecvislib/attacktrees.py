@@ -82,7 +82,13 @@ class AttackTrees(VisualizationBase):
     }
 
     def __init__(
-        self, inputfile: str, outputfile: str, format: str = "", styleid: str = "", validate_paths: bool = True
+        self,
+        inputfile: str,
+        outputfile: str,
+        format: str = "",
+        styleid: str = "",
+        validate_paths: bool = True,
+        render_engine: str = "graphviz",
     ) -> None:
         """Initialize AttackTrees with input/output paths and styling options.
 
@@ -90,9 +96,11 @@ class AttackTrees(VisualizationBase):
             inputfile: Path to the attack tree file (TOML, JSON, or YAML).
             outputfile: Path for the output visualization.
             format: Output format (png, pdf, svg, dot). Defaults to png.
-            styleid: Style identifier from config. Defaults to at_default.
+            styleid: Style identifier from config. Defaults to at_default
+                (sv_default when render_engine="svg").
             validate_paths: Whether to validate paths on initialization.
                 Set to False for deferred validation (e.g., API usage).
+            render_engine: Rendering engine, "graphviz" (default) or "svg".
 
         Raises:
             SecurityError: If path validation fails (when validate_paths=True).
@@ -106,7 +114,12 @@ class AttackTrees(VisualizationBase):
 
         # Initialize base class
         super().__init__(
-            inputfile=inputfile, outputfile=outputfile, format=format, styleid=styleid, validate_paths=validate_paths
+            inputfile=inputfile,
+            outputfile=outputfile,
+            format=format,
+            styleid=styleid,
+            validate_paths=validate_paths,
+            render_engine=render_engine,
         )
 
         # Attack tree specific state

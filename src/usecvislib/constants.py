@@ -237,6 +237,7 @@ DEFAULT_CVSS_DISPLAY: dict[str, bool] = {
 # Default values
 DEFAULTS: dict[str, any] = {
     "output_format": OutputFormat.PNG,
+    "render_engine": "graphviz",
     "styles": {
         "attack_tree": "at_default",
         "attack_graph": "ag_default",

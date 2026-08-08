@@ -37,6 +37,7 @@ from ..helpers import (
 from ..schemas import (
     AttackTreeStyle,
     OutputFormat,
+    RenderEngine,
     TemplateMetadata,
     TreeStats,
 )
@@ -68,6 +69,10 @@ async def visualize_attack_tree(
     file: UploadFile = File(..., description="TOML file containing attack tree definition"),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     style: AttackTreeStyle = Query(default=AttackTreeStyle.DEFAULT, description="Style preset"),
+    render_engine: RenderEngine = Query(
+        default=RenderEngine.GRAPHVIZ,
+        description="Rendering engine: graphviz (default) or svg (modern hand-painted output, sv_* styles)",
+    ),
 ):
     """
     Generate an attack tree visualization from an uploaded TOML file.
@@ -117,7 +122,13 @@ async def visualize_attack_tree(
 
         # Generate visualization with timeout protection
         # SECURITY: Prevents resource exhaustion from complex/slow visualizations
-        at = AttackTrees(input_for_viz, output_base, format=format.value, styleid=style.value)
+        # SVG engine defaults to sv_default when the Graphviz default style is requested
+        styleid = style.value
+        if render_engine == RenderEngine.SVG and style == AttackTreeStyle.DEFAULT:
+            styleid = ""
+        at = AttackTrees(
+            input_for_viz, output_base, format=format.value, styleid=styleid, render_engine=render_engine.value
+        )
         await run_sync_with_timeout(at.BuildAttackTree, REQUEST_TIMEOUT_VISUALIZE, "attack tree visualization")
 
         output_path = f"{output_base}.{format.value}"

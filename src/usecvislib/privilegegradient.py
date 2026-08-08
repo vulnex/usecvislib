@@ -137,7 +137,13 @@ class PrivilegeGradient(VisualizationBase):
     ]
 
     def __init__(
-        self, inputfile: str, outputfile: str, format: str = "", styleid: str = "", validate_paths: bool = True
+        self,
+        inputfile: str,
+        outputfile: str,
+        format: str = "",
+        styleid: str = "",
+        validate_paths: bool = True,
+        render_engine: str = "graphviz",
     ) -> None:
         if format == "":
             format = "png"
@@ -145,7 +151,12 @@ class PrivilegeGradient(VisualizationBase):
             styleid = None
 
         super().__init__(
-            inputfile=inputfile, outputfile=outputfile, format=format, styleid=styleid, validate_paths=validate_paths
+            inputfile=inputfile,
+            outputfile=outputfile,
+            format=format,
+            styleid=styleid,
+            validate_paths=validate_paths,
+            render_engine=render_engine,
         )
 
         self.graph: Optional[Digraph] = None

@@ -58,6 +58,7 @@ class VisualizationBase(ABC, Generic[T]):
     # Override in subclasses
     STYLE_FILE: str = ""
     DEFAULT_STYLE_ID: str = ""
+    SVG_DEFAULT_STYLE_ID: str = "sv_default"
     ALLOWED_EXTENSIONS: list[str] = [".toml", ".tml", ".json", ".yaml", ".yml"]
     MAX_INPUT_SIZE: int = 10 * 1024 * 1024  # 10 MB
 
@@ -68,6 +69,7 @@ class VisualizationBase(ABC, Generic[T]):
         format: str = "png",
         styleid: Optional[str] = None,
         validate_paths: bool = True,
+        render_engine: str = "graphviz",
     ) -> None:
         """Initialize visualization module.
 
@@ -78,12 +80,34 @@ class VisualizationBase(ABC, Generic[T]):
             styleid: Style identifier. Use "0" to disable styling.
             validate_paths: Whether to validate paths on initialization.
                 Set to False for deferred validation (e.g., API usage).
+            render_engine: Rendering engine, "graphviz" (default) or "svg".
+                The SVG engine requires a module painter and an sv_* style
+                preset; see devnotes/SVG_ENGINE_DESIGN.md.
 
         Raises:
             SecurityError: If path validation fails (when validate_paths=True).
             FileNotFoundError: If input file doesn't exist (when validate_paths=True).
+            EngineNotSupportedError: If render_engine="svg" and this module
+                has no painter, or the format is unsupported by the engine.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
+
+        # Engine selection (fail fast on unsupported combinations)
+        if render_engine not in ("graphviz", "svg"):
+            raise utils.ConfigError(f"Invalid render_engine: {render_engine!r}. Must be 'graphviz' or 'svg'.")
+        self.render_engine = render_engine
+        if render_engine == "svg":
+            from . import svgengine
+
+            if not svgengine.is_supported(self.__class__.__name__):
+                raise svgengine.EngineNotSupportedError(
+                    f"render_engine='svg' does not support {self.__class__.__name__} yet. "
+                    f"Supported: {', '.join(svgengine.supported_modules())}"
+                )
+            if (format or "png") not in ("svg", "png", "pdf"):
+                raise svgengine.EngineNotSupportedError(
+                    f"Format '{format}' is not supported by render_engine='svg'. Use svg, png, or pdf."
+                )
 
         # Validate and store paths
         if validate_paths:
@@ -101,7 +125,8 @@ class VisualizationBase(ABC, Generic[T]):
 
         # Format and style
         self.format = format or "png"
-        self.styleid = styleid or self.DEFAULT_STYLE_ID
+        default_styleid = self.SVG_DEFAULT_STYLE_ID if self.render_engine == "svg" else self.DEFAULT_STYLE_ID
+        self.styleid = styleid or default_styleid
 
         # State
         self.inputdata: dict[str, Any] = {}
@@ -128,6 +153,24 @@ class VisualizationBase(ABC, Generic[T]):
         except (KeyError, utils.FileError) as e:
             self.logger.warning(f"Style '{self.styleid}' not found, using defaults: {e}")
             self.style = self._default_style()
+
+        # Preset/engine mismatch is a config error, not silently broken output:
+        # Graphviz and SVG presets share key names with incompatible sub-keys.
+        marker = self.style.get("meta", {}).get("engine") if isinstance(self.style, dict) else None
+        if self.render_engine == "svg" and marker != "svg":
+            from .svgengine import StyleEngineMismatchError
+
+            raise StyleEngineMismatchError(
+                f"Style '{self.styleid}' is not an SVG-engine preset. "
+                f"Use an sv_* preset with render_engine='svg' (e.g. sv_default)."
+            )
+        if self.render_engine != "svg" and marker == "svg":
+            from .svgengine import StyleEngineMismatchError
+
+            raise StyleEngineMismatchError(
+                f"Style '{self.styleid}' is an SVG-engine preset and cannot be used with "
+                f"render_engine='graphviz'. Use a Graphviz preset or render_engine='svg'."
+            )
 
     @abstractmethod
     def _default_style(self) -> dict[str, Any]:
@@ -231,6 +274,12 @@ class VisualizationBase(ABC, Generic[T]):
         if not self._loaded:
             self.load()
 
+        if self.render_engine == "svg":
+            # The SVG engine paints from inputdata at draw() time; there is
+            # no intermediate Graphviz graph to build.
+            self._rendered = True
+            return self
+
         self.logger.info("Rendering visualization")
         self._render_impl()
         self._rendered = True
@@ -259,7 +308,12 @@ class VisualizationBase(ABC, Generic[T]):
             output = self.outputfile
 
         self.logger.info(f"Drawing to {output}.{self.format}")
-        self._draw_impl(output)
+        if self.render_engine == "svg":
+            from . import svgengine
+
+            svgengine.paint(self, output)
+        else:
+            self._draw_impl(output)
         return self
 
     def validate(self) -> list[str]:

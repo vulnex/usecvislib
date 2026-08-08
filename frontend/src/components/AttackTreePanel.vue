@@ -101,9 +101,16 @@
             </select>
           </div>
           <div class="option-group">
+            <label>Engine</label>
+            <select v-model="renderEngine">
+              <option value="graphviz">Graphviz</option>
+              <option value="svg">SVG (modern)</option>
+            </select>
+          </div>
+          <div class="option-group">
             <label>Style</label>
             <select v-model="style">
-              <option v-for="s in styles" :key="s" :value="s">{{ formatStyleName(s) }}</option>
+              <option v-for="s in availableStyles" :key="s" :value="s">{{ formatStyleName(s) }}</option>
             </select>
           </div>
         </div>
@@ -140,6 +147,8 @@
           <p>PDF generated successfully</p>
           <p class="pdf-hint">Click "Download" to save the PDF file</p>
         </div>
+        <!-- SVG-engine output is inlined for hover/click interactivity -->
+        <InteractiveSvg v-else-if="svgText" :svg-text="svgText" />
         <ZoomableImage v-else :src="imageUrl" alt="Attack Tree Visualization" />
       </div>
 
@@ -202,6 +211,7 @@
 <script setup>
 import { ref, inject, watch, computed } from 'vue'
 import ConfigEditor from './ConfigEditor.vue'
+import InteractiveSvg from './InteractiveSvg.vue'
 import ZoomableImage from './ZoomableImage.vue'
 import TemplateMetadata from './TemplateMetadata.vue'
 import ImageUploader from './ImageUploader.vue'
@@ -233,10 +243,23 @@ const fileName = ref('')
 const fileFormat = ref('toml')  // Detected file format: toml, json, yaml
 const format = ref('png')
 const style = ref('at_default')
+const renderEngine = ref('graphviz')
 const loading = ref(false)
 const error = ref(null)
 const imageUrl = ref(null)
 const imageBlob = ref(null)
+const svgText = ref(null)
+
+const SVG_ENGINE_STYLES = ['sv_default', 'sv_dark', 'sv_neon', 'sv_corporate', 'sv_minimal']
+
+// SVG-engine presets (sv_*) and Graphviz presets (at_*) are not interchangeable
+const availableStyles = computed(() =>
+  renderEngine.value === 'svg' ? SVG_ENGINE_STYLES : props.styles.filter((s) => !s.startsWith('sv_'))
+)
+
+watch(renderEngine, (engine) => {
+  style.value = engine === 'svg' ? 'sv_default' : 'at_default'
+})
 const stats = ref(null)
 const validation = ref(null)
 const isDragging = ref(false)
@@ -255,7 +278,7 @@ const canGenerate = computed(() => {
 
 // Methods
 function formatStyleName(s) {
-  return s.replace('at_', '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  return s.replace(/^(at_|sv_)/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 async function handleFileSelect(event) {
@@ -328,6 +351,7 @@ function clearResults() {
   error.value = null
   imageUrl.value = null
   imageBlob.value = null
+  svgText.value = null
   stats.value = null
   validation.value = null
 }
@@ -338,6 +362,7 @@ function resetPanel() {
   fileFormat.value = 'toml'
   format.value = 'png'
   style.value = 'at_default'
+  renderEngine.value = 'graphviz'
   isConfigValid.value = false
   showImageUploader.value = false
   selectedImageId.value = null
@@ -362,9 +387,17 @@ async function generateVisualization() {
   validation.value = null
 
   try {
-    const blob = await visualizeAttackTreeFromContent(editorContent.value, format.value, style.value, fileFormat.value)
+    const blob = await visualizeAttackTreeFromContent(
+      editorContent.value,
+      format.value,
+      style.value,
+      fileFormat.value,
+      renderEngine.value
+    )
     imageBlob.value = blob
     imageUrl.value = createImageUrl(blob)
+    // SVG-engine SVG is inlined (sanitized) for interactivity
+    svgText.value = renderEngine.value === 'svg' && format.value === 'svg' ? await blob.text() : null
   } catch (err) {
     error.value = err.response?.data?.detail || err.message || 'Failed to generate visualization'
   } finally {

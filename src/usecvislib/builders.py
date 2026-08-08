@@ -239,7 +239,9 @@ class AttackTreeBuilder:
             return json.dumps(self._data, indent=2)
         return json.dumps(self._data)
 
-    def to_attack_tree(self, outputfile: str, format: str = "png", styleid: str = "at_default") -> AttackTrees:
+    def to_attack_tree(
+        self, outputfile: str, format: str = "png", styleid: str = "", render_engine: str = "graphviz"
+    ) -> AttackTrees:
         """Create AttackTrees instance from builder data.
 
         Args:
@@ -257,7 +259,7 @@ class AttackTreeBuilder:
             json.dump(self._data, f)
             temp_path = f.name
 
-        at = AttackTrees(temp_path, outputfile, format=format, styleid=styleid)
+        at = AttackTrees(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
         at._temp_input = temp_path  # Mark for cleanup
         return at
 
@@ -454,7 +456,9 @@ class AttackGraphBuilder:
             return json.dumps(self._data, indent=2)
         return json.dumps(self._data)
 
-    def to_attack_graph(self, outputfile: str, format: str = "png", styleid: str = "ag_default") -> AttackGraphs:
+    def to_attack_graph(
+        self, outputfile: str, format: str = "png", styleid: str = "", render_engine: str = "graphviz"
+    ) -> AttackGraphs:
         """Create AttackGraphs instance from builder data.
 
         Args:
@@ -472,7 +476,7 @@ class AttackGraphBuilder:
             json.dump(self._data, f)
             temp_path = f.name
 
-        ag = AttackGraphs(temp_path, outputfile, format=format, styleid=styleid)
+        ag = AttackGraphs(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
         ag._temp_input = temp_path  # Mark for cleanup
         return ag
 
@@ -641,7 +645,9 @@ class ThreatModelBuilder:
             return json.dumps(self._data, indent=2)
         return json.dumps(self._data)
 
-    def to_threat_model(self, outputfile: str, format: str = "png", styleid: str = "tm_default") -> ThreatModeling:
+    def to_threat_model(
+        self, outputfile: str, format: str = "png", styleid: str = "", render_engine: str = "graphviz"
+    ) -> ThreatModeling:
         """Create ThreatModeling instance from builder data.
 
         Args:
@@ -659,7 +665,7 @@ class ThreatModelBuilder:
             json.dump(self._data, f)
             temp_path = f.name
 
-        tm = ThreatModeling(temp_path, outputfile, format=format, styleid=styleid)
+        tm = ThreatModeling(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
         tm._temp_input = temp_path  # Mark for cleanup
         return tm
 
@@ -957,7 +963,7 @@ class PrivilegeGradientBuilder:
         return json.dumps(self._data)
 
     def to_privilege_gradient(
-        self, outputfile: str, format: str = "png", styleid: str = "pg_default"
+        self, outputfile: str, format: str = "png", styleid: str = "", render_engine: str = "graphviz"
     ) -> PrivilegeGradient:
         """Create PrivilegeGradient instance from builder data.
 
@@ -975,7 +981,7 @@ class PrivilegeGradientBuilder:
             json.dump(self._data, f)
             temp_path = f.name
 
-        pg = PrivilegeGradient(temp_path, outputfile, format=format, styleid=styleid)
+        pg = PrivilegeGradient(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
         pg._temp_input = temp_path
         return pg
 
@@ -1092,7 +1098,7 @@ class ComponentDiagramBuilder:
         return json.dumps(self._data)
 
     def to_component_diagram(
-        self, outputfile: str, format: str = "png", styleid: str = "cd_default"
+        self, outputfile: str, format: str = "png", styleid: str = "", render_engine: str = "graphviz"
     ) -> ComponentDiagram:
         """Create ComponentDiagram instance from builder data."""
         from .componentdiagram import ComponentDiagram
@@ -1101,7 +1107,7 @@ class ComponentDiagramBuilder:
             json.dump(self._data, f)
             temp_path = f.name
 
-        cd = ComponentDiagram(temp_path, outputfile, format=format, styleid=styleid)
+        cd = ComponentDiagram(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
         cd._temp_input = temp_path
         return cd
 
@@ -1218,7 +1224,9 @@ class DependencyGraphBuilder:
             return json.dumps(self._data, indent=2)
         return json.dumps(self._data)
 
-    def to_dependency_graph(self, outputfile: str, format: str = "png", styleid: str = "dg_default") -> DependencyGraph:
+    def to_dependency_graph(
+        self, outputfile: str, format: str = "png", styleid: str = "", render_engine: str = "graphviz"
+    ) -> DependencyGraph:
         """Create DependencyGraph instance from builder data."""
         from .dependencygraph import DependencyGraph
 
@@ -1226,6 +1234,6 @@ class DependencyGraphBuilder:
             json.dump(self._data, f)
             temp_path = f.name
 
-        dg = DependencyGraph(temp_path, outputfile, format=format, styleid=styleid)
+        dg = DependencyGraph(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
         dg._temp_input = temp_path
         return dg
