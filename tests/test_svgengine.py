@@ -256,3 +256,156 @@ class TestGolden:
         at.build()
         golden = (GOLDEN_DIR / "enterattacktrees_sv_default_dejavu.svg").read_text(encoding="utf-8")
         assert (tmp_path / "out.svg").read_text(encoding="utf-8") == golden
+
+
+class TestLinearLayout:
+    def test_sequence_spacing_tb(self):
+        from usecvislib.svgengine.layout import LinearLayout
+
+        scene = _tree_scene({})
+        for i in range(3):
+            scene.nodes.append(SceneNode(id=f"n{i}", label=f"n{i}", width=80, height=40))
+        LinearLayout(gap=20).solve(scene, ["n0", "n1", "n2"])
+        n0, n1, n2 = (scene.node_by_id(f"n{i}") for i in range(3))
+        assert n0.y < n1.y < n2.y
+        assert n1.y - n0.y == pytest.approx(60)  # 40 height + 20 gap
+        assert n0.x == n1.x == n2.x == 0.0
+
+    def test_lr_orientation(self):
+        from usecvislib.svgengine.layout import LinearLayout
+
+        scene = _tree_scene({})
+        scene.nodes.append(SceneNode(id="a", label="a", width=80, height=40))
+        scene.nodes.append(SceneNode(id="b", label="b", width=120, height=40))
+        LinearLayout(gap=10, orientation="LR").solve(scene)
+        a, b = scene.node_by_id("a"), scene.node_by_id("b")
+        assert b.x - a.x == pytest.approx(80 / 2 + 10 + 120 / 2)
+        assert a.y == b.y == 0.0
+
+    def test_unknown_id_skipped_and_missing_appended(self):
+        from usecvislib.svgengine.layout import LinearLayout
+
+        scene = _tree_scene({})
+        scene.nodes.append(SceneNode(id="a", label="a", width=80, height=40))
+        scene.nodes.append(SceneNode(id="b", label="b", width=80, height=40))
+        LinearLayout().solve(scene, ["ghost", "b"])  # a not listed
+        assert scene.node_by_id("b").y < scene.node_by_id("a").y  # b first, a appended
+
+
+class TestStackLayout:
+    def test_bands_stack_and_items_row(self):
+        from usecvislib.svgengine.layout import StackLayout
+
+        scene = _tree_scene({})
+        for nid in ("a1", "a2", "b1"):
+            scene.nodes.append(SceneNode(id=nid, label=nid, width=100, height=40))
+        StackLayout(band_gap=30, item_gap=20).solve(scene, [["a1", "a2"], ["b1"]])
+        a1, a2, b1 = (scene.node_by_id(n) for n in ("a1", "a2", "b1"))
+        assert a1.y == a2.y  # same band
+        assert b1.y - a1.y == pytest.approx(40 + 30)  # band height + gap
+        assert a2.x - a1.x == pytest.approx(120)  # width + item gap
+        assert (a1.x + a2.x) / 2 == pytest.approx(0.0)  # band centered
+        assert b1.x == pytest.approx(0.0)
+
+    def test_unassigned_nodes_get_final_band(self):
+        from usecvislib.svgengine.layout import StackLayout
+
+        scene = _tree_scene({})
+        scene.nodes.append(SceneNode(id="a", label="a", width=100, height=40))
+        scene.nodes.append(SceneNode(id="stray", label="s", width=100, height=40))
+        StackLayout().solve(scene, [["a"]])
+        assert scene.node_by_id("stray").y > scene.node_by_id("a").y
+
+    def test_lr_orientation(self):
+        from usecvislib.svgengine.layout import StackLayout
+
+        scene = _tree_scene({})
+        scene.nodes.append(SceneNode(id="a", label="a", width=100, height=40))
+        scene.nodes.append(SceneNode(id="b", label="b", width=100, height=40))
+        StackLayout(orientation="LR").solve(scene, [["a"], ["b"]])
+        assert scene.node_by_id("b").x > scene.node_by_id("a").x
+
+
+class TestAxisLayout:
+    def test_values_scale_onto_axis(self):
+        from usecvislib.svgengine.layout import AxisLayout
+
+        scene = _tree_scene({})
+        for nid in ("t0", "t5", "t10"):
+            scene.nodes.append(SceneNode(id=nid, label=nid, width=10, height=20))
+        AxisLayout(axis_length=100).solve(scene, {"t0": 0, "t5": 5, "t10": 10})
+        assert scene.node_by_id("t0").x == pytest.approx(0)
+        assert scene.node_by_id("t5").x == pytest.approx(50)
+        assert scene.node_by_id("t10").x == pytest.approx(100)
+        # No overlap at width 10: all fit in one lane
+        assert scene.node_by_id("t0").y == scene.node_by_id("t10").y
+
+    def test_overlapping_values_use_lanes(self):
+        from usecvislib.svgengine.layout import AxisLayout
+
+        scene = _tree_scene({})
+        for nid in ("a", "b"):
+            scene.nodes.append(SceneNode(id=nid, label=nid, width=200, height=30))
+        AxisLayout(axis_length=100, lane_gap=10).solve(scene, {"a": 0, "b": 1})
+        a, b = scene.node_by_id("a"), scene.node_by_id("b")
+        assert a.y != b.y  # wide nodes at close values: second lane
+        assert b.y - a.y == pytest.approx(40)  # lane height 30 + gap 10
+
+    def test_equal_values_stack_deterministically(self):
+        from usecvislib.svgengine.layout import AxisLayout
+
+        scene = _tree_scene({})
+        for nid in ("first", "second"):
+            scene.nodes.append(SceneNode(id=nid, label=nid, width=50, height=20))
+        AxisLayout(axis_length=100).solve(scene, {"first": 3, "second": 3})
+        assert scene.node_by_id("first").y < scene.node_by_id("second").y
+
+    def test_missing_value_placed_at_start(self):
+        from usecvislib.svgengine.layout import AxisLayout
+
+        scene = _tree_scene({})
+        for nid in ("a", "novalue"):
+            scene.nodes.append(SceneNode(id=nid, label=nid, width=10, height=20))
+        AxisLayout(axis_length=100).solve(scene, {"a": 10})
+        assert scene.node_by_id("novalue").x == pytest.approx(0)
+
+    def test_single_value_span(self):
+        from usecvislib.svgengine.layout import AxisLayout
+
+        scene = _tree_scene({})
+        scene.nodes.append(SceneNode(id="only", label="o", width=10, height=20))
+        AxisLayout(axis_length=100).solve(scene, {"only": 42})
+        assert scene.node_by_id("only").x == pytest.approx(0)
+
+
+class TestImages:
+    def test_bundled_icon_embeds_as_data_uri(self):
+        from usecvislib.svgengine.images import resolve_data_uri
+
+        uri = resolve_data_uri("bundled:aws/Security-Identity-Compliance/Identity-and-Access-Management", "n1")
+        assert uri is not None
+        assert uri.startswith("data:image/")
+        assert ";base64," in uri
+
+    def test_unresolvable_reference_returns_none(self):
+        from usecvislib.svgengine.images import resolve_data_uri
+
+        assert resolve_data_uri("bundled:no/such/icon-xyz", "n1") is None
+        assert resolve_data_uri("/nonexistent/path/img.png", "n1") is None
+
+    def test_unsupported_extension_returns_none(self, tmp_path):
+        from usecvislib.svgengine.images import resolve_data_uri
+
+        bad = tmp_path / "img.webp"
+        bad.write_bytes(b"RIFF")
+        assert resolve_data_uri(str(bad), "n1") is None
+
+    def test_oversized_image_refused(self, tmp_path, monkeypatch):
+        from usecvislib import utils
+        from usecvislib.svgengine import images as images_mod
+
+        big = tmp_path / "big.png"
+        big.write_bytes(b"\x89PNG\r\n\x1a\n" + b"0" * 100)
+        monkeypatch.setattr(utils, "IMAGE_MAX_SIZE", 10)
+        monkeypatch.setattr(utils, "resolve_image_reference", lambda ref: big)
+        assert images_mod.resolve_data_uri(str(big), "n1") is None

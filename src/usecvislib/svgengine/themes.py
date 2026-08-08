@@ -28,7 +28,7 @@ from .scene import StyleEngineMismatchError
 # Engine-level defaults; presets override selectively.
 DEFAULTS: dict[str, Any] = {
     "meta": {"engine": "svg"},
-    "page": {"background": "#f8fafc", "padding": 32},
+    "page": {"background": "#f8fafc", "padding": 32, "text": "#111827"},
     "font": {"family": "Helvetica Neue, Helvetica, Arial, sans-serif", "size": 12, "root_size": 14},
     "card": {
         "radius": 10,
@@ -44,6 +44,7 @@ DEFAULTS: dict[str, Any] = {
     "effects": {"shadow": True, "shadow_blur": 1.8, "hover_glow": True},
     "severity": {"use_cvss_colors": True},
     "badges": {"cvss": True, "fill": "#0f172a", "text": "#ffffff"},
+    "images": {"size": 48},
     "layout": {"h_gap": 28, "v_gap": 60},
 }
 

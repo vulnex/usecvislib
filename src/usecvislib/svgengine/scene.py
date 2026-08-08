@@ -56,6 +56,7 @@ class SceneNode:
     text_color: Optional[str] = None
     severity: Optional[str] = None  # lowercase cvss_to_severity_label value
     cvss: Optional[float] = None
+    image_href: Optional[str] = None  # base64 data URI for an embedded icon
     data: dict[str, str] = field(default_factory=dict)  # extra data-* attributes
 
 

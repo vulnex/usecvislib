@@ -13,12 +13,19 @@
 
 """Layout algorithms for the SVG engine (native layouts, no Graphviz).
 
-Phase 1 ships TidyTreeLayout for tree-structured scenes. Linear, stack,
-axis, and Graphviz-JSON layouts follow in later phases (tasks T1.7, T3.1
+- TidyTreeLayout: tree-structured scenes (Attack Trees, Vuln Tree)
+- LinearLayout: ordered sequences (Kill Chain, Privilege Gradient)
+- StackLayout: fixed ordered bands (MAESTRO layered view)
+- AxisLayout: value-scaled axis with overlap lanes (Incident Timeline)
+
+The Graphviz-JSON layout for general graphs lands in Phase 3 (task T3.1
 in devnotes/SVG_ENGINE_DESIGN.md).
+
+All layouts write center coordinates to ``node.x`` / ``node.y``.
 """
 
 import logging
+from typing import Optional
 
 from .scene import Scene
 
@@ -157,3 +164,193 @@ class TidyTreeLayout:
                     node.x = offset + node.width / 2
                     node.y = main + node.height / 2
                     offset += node.width + self.h_gap
+
+
+class LinearLayout:
+    """Ordered sequence along one axis, centered on the other.
+
+    Used for linear structures: kill chain phases, privilege ladders.
+    Orientation "TB" flows top-down (sequence along y); "LR" flows
+    left-right (sequence along x).
+    """
+
+    def __init__(self, gap: float = 48.0, orientation: str = "TB") -> None:
+        """Configure the inter-node gap (SVG user units) and flow direction."""
+        self.gap = gap
+        self.orientation = "LR" if str(orientation).upper() == "LR" else "TB"
+
+    def solve(self, scene: Scene, order: Optional[list[str]] = None) -> None:
+        """Place nodes sequentially.
+
+        Args:
+            scene: Scene whose nodes are placed (centers written in place).
+            order: Node IDs in sequence order; defaults to scene node order.
+                IDs not present in the scene are skipped with a warning;
+                scene nodes missing from ``order`` are appended at the end.
+        """
+        nodes = {n.id: n for n in scene.nodes}
+        sequence = []
+        for node_id in order or [n.id for n in scene.nodes]:
+            if node_id in nodes:
+                sequence.append(nodes[node_id])
+            else:
+                logger.warning(f"LinearLayout: unknown node '{node_id}' in order; skipped")
+        placed = {n.id for n in sequence}
+        sequence.extend(n for n in scene.nodes if n.id not in placed)
+
+        cursor = 0.0
+        for node in sequence:
+            extent = node.height if self.orientation == "TB" else node.width
+            if self.orientation == "TB":
+                node.x = 0.0
+                node.y = cursor + extent / 2
+            else:
+                node.x = cursor + extent / 2
+                node.y = 0.0
+            cursor += extent + self.gap
+
+
+class StackLayout:
+    """Fixed ordered bands with items placed in a row inside each band.
+
+    Used for layered architectures (e.g. the MAESTRO 7-layer stack): each
+    band occupies the full cross-axis extent of the widest band, items are
+    centered as a group inside their band, and bands stack along the main
+    axis. Orientation "TB" stacks bands top-down; "LR" stacks left-right.
+    """
+
+    def __init__(self, band_gap: float = 36.0, item_gap: float = 24.0, orientation: str = "TB") -> None:
+        """Configure gaps between bands and between items within a band."""
+        self.band_gap = band_gap
+        self.item_gap = item_gap
+        self.orientation = "LR" if str(orientation).upper() == "LR" else "TB"
+
+    def solve(self, scene: Scene, bands: list[list[str]]) -> None:
+        """Place nodes band by band.
+
+        Args:
+            scene: Scene whose nodes are placed (centers written in place).
+            bands: Ordered list of bands, each an ordered list of node IDs.
+                Unknown IDs are skipped with a warning; scene nodes not
+                assigned to any band are appended as a final band.
+        """
+        nodes = {n.id: n for n in scene.nodes}
+        resolved: list[list] = []
+        assigned: set[str] = set()
+        for band in bands:
+            row = []
+            for node_id in band:
+                if node_id in nodes:
+                    row.append(nodes[node_id])
+                    assigned.add(node_id)
+                else:
+                    logger.warning(f"StackLayout: unknown node '{node_id}' in band; skipped")
+            resolved.append(row)
+        leftover = [n for n in scene.nodes if n.id not in assigned]
+        if leftover:
+            logger.warning(f"StackLayout: {len(leftover)} node(s) not assigned to a band; appended as final band")
+            resolved.append(leftover)
+
+        def cross_size(node) -> float:
+            return node.width if self.orientation == "TB" else node.height
+
+        def main_size(node) -> float:
+            return node.height if self.orientation == "TB" else node.width
+
+        main_cursor = 0.0
+        for row in resolved:
+            if not row:
+                continue
+            band_main = max(main_size(n) for n in row)
+            row_cross = sum(cross_size(n) for n in row) + self.item_gap * (len(row) - 1)
+            cross_cursor = -row_cross / 2  # bands centered on the cross axis
+            for node in row:
+                if self.orientation == "TB":
+                    node.x = cross_cursor + node.width / 2
+                    node.y = main_cursor + band_main / 2
+                else:
+                    node.x = main_cursor + band_main / 2
+                    node.y = cross_cursor + node.height / 2
+                cross_cursor += cross_size(node) + self.item_gap
+            main_cursor += band_main + self.band_gap
+
+
+class AxisLayout:
+    """Value-scaled placement along an axis with overlap-avoiding lanes.
+
+    Used for timelines: each node has a scalar value (e.g. a timestamp),
+    mapped linearly onto the axis. Nodes that would overlap on the axis
+    are pushed into additional lanes (greedy first-fit, stable for equal
+    values). Orientation "LR" runs the axis along x (lanes stack down);
+    "TB" runs it along y (lanes stack right).
+    """
+
+    def __init__(self, axis_length: float = 800.0, lane_gap: float = 24.0, orientation: str = "LR") -> None:
+        """Configure the axis span (SVG user units) and gap between lanes."""
+        self.axis_length = axis_length
+        self.lane_gap = lane_gap
+        self.orientation = "TB" if str(orientation).upper() == "TB" else "LR"
+
+    def solve(self, scene: Scene, values: dict[str, float]) -> None:
+        """Place nodes along the value axis.
+
+        Args:
+            scene: Scene whose nodes are placed (centers written in place).
+            values: Node ID -> scalar axis value. Nodes without a value are
+                placed at the axis start with a warning.
+        """
+        if not scene.nodes:
+            return
+
+        known = [values[n.id] for n in scene.nodes if n.id in values]
+        for node in scene.nodes:
+            if node.id not in values:
+                logger.warning(f"AxisLayout: node '{node.id}' has no axis value; placed at axis start")
+        lo = min(known) if known else 0.0
+        hi = max(known) if known else 0.0
+        span = hi - lo
+
+        def axis_pos(node) -> float:
+            value = values.get(node.id, lo)
+            return ((value - lo) / span * self.axis_length) if span > 0 else 0.0
+
+        def axis_size(node) -> float:
+            return node.width if self.orientation == "LR" else node.height
+
+        def lane_size(node) -> float:
+            return node.height if self.orientation == "LR" else node.width
+
+        # Greedy first-fit lanes: stable sort by value keeps input order
+        # for ties, so equal-value nodes stack deterministically.
+        ordered = sorted(scene.nodes, key=lambda n: axis_pos(n))
+        lane_ends: list[float] = []  # axis coordinate where each lane is free again
+        lane_of: dict[str, int] = {}
+        for node in ordered:
+            start = axis_pos(node) - axis_size(node) / 2
+            end = axis_pos(node) + axis_size(node) / 2
+            for lane, free_at in enumerate(lane_ends):
+                if start >= free_at:
+                    lane_of[node.id] = lane
+                    lane_ends[lane] = end + self.lane_gap
+                    break
+            else:
+                lane_of[node.id] = len(lane_ends)
+                lane_ends.append(end + self.lane_gap)
+
+        lane_extent = [0.0] * len(lane_ends)
+        for node in ordered:
+            lane = lane_of[node.id]
+            lane_extent[lane] = max(lane_extent[lane], lane_size(node))
+        lane_centers = []
+        cursor = 0.0
+        for extent in lane_extent:
+            lane_centers.append(cursor + extent / 2)
+            cursor += extent + self.lane_gap
+
+        for node in ordered:
+            if self.orientation == "LR":
+                node.x = axis_pos(node)
+                node.y = lane_centers[lane_of[node.id]]
+            else:
+                node.x = lane_centers[lane_of[node.id]]
+                node.y = axis_pos(node)

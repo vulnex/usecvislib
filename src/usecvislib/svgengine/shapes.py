@@ -208,6 +208,21 @@ def curve_path_d(x1: float, y1: float, x2: float, y2: float, horizontal: bool = 
     return f"M {fmt(x1)} {fmt(y1)} C {fmt(x1)} {fmt(y1 + dy)} {fmt(x2)} {fmt(y2 - dy)} {fmt(x2)} {fmt(y2)}"
 
 
+def image(x: float, y: float, width: float, height: float, href: str) -> ET.Element:
+    """Embedded image (data URI href), aspect-fit inside its box."""
+    return ET.Element(
+        "image",
+        {
+            "x": fmt(x),
+            "y": fmt(y),
+            "width": fmt(width),
+            "height": fmt(height),
+            "href": href,
+            "preserveAspectRatio": "xMidYMid meet",
+        },
+    )
+
+
 def edge_path(
     d: str,
     color: str,

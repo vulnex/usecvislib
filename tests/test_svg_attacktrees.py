@@ -170,3 +170,45 @@ class TestCli:
         with pytest.raises(SystemExit) as exc:
             usecvis.main(["-i", FIXTURE, "-o", str(tmp_path / "x"), "-f", "svg", "--render-engine", "svg", "--shine"])
         assert exc.value.code == 2
+
+
+class TestImageNodes:
+    ICONS_TEMPLATE = str(TESTS_DIR.parent / "templates" / "attack-trees" / "aws_cloud_security_icons.toml")
+
+    def test_icons_embedded_as_data_uris(self, tmp_path):
+        content = _render(self.ICONS_TEMPLATE, tmp_path)
+        assert content.count("data:image/") >= 3
+        # Self-contained: no local filesystem or external references leak
+        assert "/Users/" not in content and "file:" not in content and "url(http" not in content
+
+    def test_image_nodes_render_plain_with_page_text(self, tmp_path):
+        root = ET.fromstring(_render(self.ICONS_TEMPLATE, tmp_path))
+        image_nodes = [
+            g
+            for g in root.iter(f"{SVG_NS}g")
+            if "usv-node" in g.get("class", "").split() and g.find(f"{SVG_NS}image") is not None
+        ]
+        assert image_nodes
+        for g in image_nodes:
+            # Icon nodes have no card body (Graphviz parity: attrs cleared)
+            assert g.find(f"{SVG_NS}rect") is None
+            # Template fontcolor="white" is ignored for icon nodes; text
+            # uses the page contrast color instead
+            for text in g.iter(f"{SVG_NS}text"):
+                assert text.get("fill") != "white"
+
+    def test_image_failure_degrades_gracefully(self, tmp_path):
+        src = (
+            Path(FIXTURE)
+            .read_text(encoding="utf-8")
+            .replace(
+                '"Pick Lock" = { style="filled", shape="box",',
+                '"Pick Lock" = { image="bundled:no/such/icon", style="filled", shape="box",',
+                1,
+            )
+        )
+        broken = tmp_path / "broken_icon.tml"
+        broken.write_text(src)
+        content = _render(str(broken), tmp_path, name="broken")
+        assert "data:image/" not in content  # icon skipped, node still rendered
+        assert "Pick Lock" in content

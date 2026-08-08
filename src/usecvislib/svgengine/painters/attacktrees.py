@@ -30,7 +30,7 @@ from ... import utils
 from ...constants import cvss_to_color, cvss_to_severity_label
 from ...cvss_unified import get_cvss_score_unified as get_cvss_score
 from ...settings import is_cvss_enabled
-from .. import metrics, shapes, themes
+from .. import images, metrics, shapes, themes
 from ..canvas import SvgCanvas
 from ..layout import TidyTreeLayout
 from ..scene import Scene, SceneEdge, SceneNode
@@ -56,7 +56,10 @@ _SHAPE_MAP = {
 }
 
 # Per-node input keys the engine consumes; everything else is warn-and-ignore.
-_CONSUMED_KEYS = {"label", "fillcolor", "fontcolor", "color", "shape", "style", "cvss", "cvss_vector"}
+_CONSUMED_KEYS = {"label", "fillcolor", "fontcolor", "color", "shape", "style", "cvss", "cvss_vector", "image"}
+
+# Vertical gap between an embedded icon and its label
+_IMAGE_TEXT_GAP = 4.0
 
 
 def _node_shape(user_shape: str, node_id: str) -> str:
@@ -120,10 +123,16 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
         kind = "root" if name == root_id else "node"
         label = str(attrs.get("label", name))
 
+        # Image nodes render as plain icon + label, no card — mirroring the
+        # Graphviz path, which clears shape/style for image nodes.
+        image_href = images.resolve_data_uri(attrs["image"], name) if attrs.get("image") else None
+
         fill = border = text_color = None
         severity = None
         score = None
-        if honor_overrides:
+        # Image nodes ignore color overrides entirely — the Graphviz path
+        # clears all attributes (incl. fontcolor) when rendering an icon.
+        if honor_overrides and not image_href:
             user_style = str(attrs.get("style", ""))
             if attrs.get("fillcolor"):
                 fill = str(attrs["fillcolor"])
@@ -143,7 +152,9 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
             if score is not None and is_cvss_enabled("attack_tree"):
                 severity_label = cvss_to_severity_label(score)
                 severity = severity_label.lower()
-                if use_cvss_colors:
+                # Icon nodes have no card to color (Graphviz path skips
+                # fillcolor for images too); label annotation still applies.
+                if use_cvss_colors and not image_href:
                     fill = cvss_to_color(score)
                     if not attrs.get("fontcolor"):
                         text_color = "#ffffff"
@@ -154,8 +165,11 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
         size = font["root_size"] if kind == "root" else font["size"]
         lines = metrics.wrap_text(label, font["family"], size, card_cfg["max_label_width"])
         text_w, text_h = metrics.measure_block(lines, font["family"], size)
-        width = max(card_cfg["min_width"], text_w + 2 * card_cfg["padding_x"])
+        img_size = float(theme["images"]["size"]) if image_href else 0.0
+        width = max(card_cfg["min_width"], text_w + 2 * card_cfg["padding_x"], img_size + 2 * card_cfg["padding_x"])
         height = text_h + 2 * card_cfg["padding_y"]
+        if image_href:
+            height += img_size + _IMAGE_TEXT_GAP
 
         node_data = {"node-id": utils.sanitize_node_id(name), "label": name}
         if score is not None:
@@ -169,12 +183,13 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
                 lines=lines,
                 width=width,
                 height=height,
-                shape=_node_shape(attrs.get("shape", ""), name),
+                shape="plain" if image_href else _node_shape(attrs.get("shape", ""), name),
                 fill=fill,
                 border=border,
                 text_color=text_color,
                 severity=severity,
                 cvss=score,
+                image_href=image_href,
                 data=node_data,
             )
         )
@@ -272,7 +287,10 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
         fill_kind = themes.parse_fill(fill_value)
         fill = canvas.gradient(fill_kind[1], fill_kind[2]) if fill_kind[0] == "gradient" else fill_kind[1]
         border = node.border or role["border"]
-        text_color = node.text_color or role["text"]
+        # Plain nodes (incl. icon nodes) sit directly on the page background,
+        # so their text uses the page contrast color, not the card text color.
+        default_text = page["text"] if node.shape == "plain" else role["text"]
+        text_color = node.text_color or default_text
         size = font["root_size"] if node.kind == "root" else font["size"]
 
         classes = ["usv-node", f"usv-node--{node.kind}"]
@@ -303,9 +321,16 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
             )
 
         text_h = len(node.lines) * size * metrics.LINE_HEIGHT
-        node_group.extend(
-            shapes.text_lines(node.x, node.y - text_h / 2, node.lines, size, text_color, bold=node.kind == "root")
-        )
+        if node.image_href:
+            # Icon centered at the top, label block below it
+            img_size = float(theme["images"]["size"])
+            content_h = img_size + _IMAGE_TEXT_GAP + text_h
+            img_top = node.y - content_h / 2
+            node_group.append(shapes.image(node.x - img_size / 2, img_top, img_size, img_size, node.image_href))
+            text_top = img_top + img_size + _IMAGE_TEXT_GAP
+        else:
+            text_top = node.y - text_h / 2
+        node_group.extend(shapes.text_lines(node.x, text_top, node.lines, size, text_color, bold=node.kind == "root"))
         canvas.add("nodes", node_group)
 
         # CVSS badge at the card's top-right corner
