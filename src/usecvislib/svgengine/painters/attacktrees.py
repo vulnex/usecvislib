@@ -225,126 +225,335 @@ def _edge_endpoints(src, dst, horizontal: bool) -> tuple[float, float, float, fl
 
 
 def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], horizontal: bool) -> None:
-    """Paint edges as trunk + rail + drops (ortho) or fan-out curves.
+    """Paint edges as trunk + rail + drops plumbing (ortho) or fan-out curves.
 
-    Overlapping full parent->child paths produce a visible artifact at the
-    junction (mirrored corner curves + a straight drop superimpose into a
-    teardrop). Ortho routing therefore draws real plumbing per parent: one
-    trunk from the parent border to the bus, one rail across the children
-    with rounded corners only at its outer ends, and one clean T-junction
-    drop per child (which carries the edge's interactivity contract and
-    arrowhead). Edges with per-edge style overrides (color/dash) keep their
-    own full path so the override stays visible end to end.
+    Overlapping full parent->child paths superimpose into junction artifacts,
+    so ortho routing draws real plumbing per parent: one trunk, one rail with
+    rounded corners at its outer ends, and a T-junction drop per child (each
+    drop carries the edge's interactivity contract and arrowhead).
+
+    DAG-shaped input (attack trees allow shared subtrees) needs four extra
+    mechanisms to stay readable:
+
+    - Merge rails: many single-child parents converging on one sink collapse
+      into the inverse of a fan-out - each parent trunks down onto ONE shared
+      rail, which feeds a single arrowed stem into the sink (instead of a
+      harness of parallel paths).
+    - Rail staggering: rails that would overlap horizontally in the same row
+      gap get distinct heights (greedy interval coloring). Pure trees keep a
+      single shared height.
+    - Drop separation: remaining edges converging on a multi-parent child
+      land on distinct x-slots along its top edge (ordered by parent
+      position) instead of stacking on its center.
+    - Cross-links: lateral/upward edges are drawn as curves so derived
+      connections read differently from the structural plumbing; per-edge
+      color/dash overrides keep individual paths.
     """
     width = float(edge_cfg["width"])
     default_color = edge_cfg["color"]
     corner = 10.0
+    stagger_margin = 18.0  # min horizontal clearance before rails must split levels
 
-    def draw_edge(edge, d: str, color: str) -> None:
+    def draw_edge(edge, d: str, color: str, arrow: bool = True) -> None:
         edge_group = shapes.group(["usv-edge", "usv-edge--tree"], {"from": edge.src, "to": edge.dst})
-        edge_group.append(shapes.edge_path(d, color, width, dashed=edge.dashed, marker_url=canvas.arrow_marker(color)))
+        marker = canvas.arrow_marker(color) if arrow else ""
+        edge_group.append(shapes.edge_path(d, color, width, dashed=edge.dashed, marker_url=marker))
         canvas.add("edges", edge_group)
 
-    def full_path(edge, src, dst, mid: float | None) -> None:
-        x1, y1, x2, y2 = _edge_endpoints(src, dst, horizontal)
-        color = edge.color or default_color
-        if edge_cfg["routing"] == "curve":
-            d = shapes.curve_path_d(x1, y1, x2, y2, horizontal=horizontal)
-        else:
-            d = shapes.ortho_path_d(x1, y1, x2, y2, corner=corner, horizontal=horizontal, mid=mid)
-        draw_edge(edge, d, color)
+    def start_of(node) -> float:
+        return (node.x + node.width / 2) if horizontal else (node.y + node.height / 2)
 
-    edges_by_src: dict[str, list] = {}
+    def visual_top(node) -> float:
+        return (node.x - node.width / 2) if horizontal else (node.y - node.height / 2 + node.inset_top)
+
+    def bbox_top(node) -> float:
+        return (node.x - node.width / 2) if horizontal else (node.y - node.height / 2)
+
+    def cross_of(node) -> float:
+        return node.y if horizontal else node.x
+
+    def line(c1: float, m1: float, c2: float, m2: float) -> str:
+        """Straight segment in (cross, main) coordinates."""
+        if horizontal:
+            return f"M {shapes.fmt(m1)} {shapes.fmt(c1)} L {shapes.fmt(m2)} {shapes.fmt(c2)}"
+        return f"M {shapes.fmt(c1)} {shapes.fmt(m1)} L {shapes.fmt(c2)} {shapes.fmt(m2)}"
+
+    def ortho(c1: float, m1: float, c2: float, m2: float, mid) -> str:
+        if horizontal:
+            return shapes.ortho_path_d(m1, c1, m2, c2, corner=corner, horizontal=True, mid=mid)
+        return shapes.ortho_path_d(c1, m1, c2, m2, corner=corner, horizontal=False, mid=mid)
+
+    def curve(c1: float, m1: float, c2: float, m2: float) -> str:
+        if horizontal:
+            return shapes.curve_path_d(m1, c1, m2, c2, horizontal=True)
+        return shapes.curve_path_d(c1, m1, c2, m2, horizontal=False)
+
+    def rail_path(lo: float, hi: float, bus: float, r_lo: float, r_hi: float) -> str:
+        """Rail along ``bus`` from lo to hi; end radii signed: >0 turns toward
+        the children side, <0 toward the parents side, 0 square end."""
+        if horizontal:
+            if r_lo:
+                a, side = abs(r_lo), (1 if r_lo > 0 else -1)
+                head = (
+                    f"M {shapes.fmt(bus + side * a)} {shapes.fmt(lo)} "
+                    f"Q {shapes.fmt(bus)} {shapes.fmt(lo)} {shapes.fmt(bus)} {shapes.fmt(lo + a)}"
+                )
+            else:
+                head = f"M {shapes.fmt(bus)} {shapes.fmt(lo)}"
+            if r_hi:
+                a, side = abs(r_hi), (1 if r_hi > 0 else -1)
+                tail = (
+                    f"L {shapes.fmt(bus)} {shapes.fmt(hi - a)} "
+                    f"Q {shapes.fmt(bus)} {shapes.fmt(hi)} {shapes.fmt(bus + side * a)} {shapes.fmt(hi)}"
+                )
+            else:
+                tail = f"L {shapes.fmt(bus)} {shapes.fmt(hi)}"
+            return f"{head} {tail}"
+        if r_lo:
+            a, side = abs(r_lo), (1 if r_lo > 0 else -1)
+            head = (
+                f"M {shapes.fmt(lo)} {shapes.fmt(bus + side * a)} "
+                f"Q {shapes.fmt(lo)} {shapes.fmt(bus)} {shapes.fmt(lo + a)} {shapes.fmt(bus)}"
+            )
+        else:
+            head = f"M {shapes.fmt(lo)} {shapes.fmt(bus)}"
+        if r_hi:
+            a, side = abs(r_hi), (1 if r_hi > 0 else -1)
+            tail = (
+                f"L {shapes.fmt(hi - a)} {shapes.fmt(bus)} "
+                f"Q {shapes.fmt(hi)} {shapes.fmt(bus)} {shapes.fmt(hi)} {shapes.fmt(bus + side * a)}"
+            )
+        else:
+            tail = f"L {shapes.fmt(hi)} {shapes.fmt(bus)}"
+        return f"{head} {tail}"
+
+    valid = []
     for edge in scene.edges:
         src = scene.node_by_id(edge.src)
         dst = scene.node_by_id(edge.dst)
         if src is None or dst is None:
             logger.warning(f"Edge {edge.src} -> {edge.dst} references unknown node; skipped")
             continue
-        edges_by_src.setdefault(edge.src, []).append((edge, src, dst))
+        valid.append((edge, src, dst))
 
-    for _src_id, group_edges in edges_by_src.items():
-        src = group_edges[0][1]
-        src_end = (src.x + src.width / 2) if horizontal else (src.y + src.height / 2)
-        src_cross = src.y if horizontal else src.x
+    if edge_cfg["routing"] == "curve":
+        for edge, src, dst in valid:
+            d = curve(cross_of(src), start_of(src), cross_of(dst), visual_top(dst))
+            draw_edge(edge, d, edge.color or default_color)
+        return
 
-        def dst_start(dst) -> float:
-            return (dst.x - dst.width / 2) if horizontal else (dst.y - dst.height / 2 + dst.inset_top)
+    # ---- Pass 1: per-parent groups, split into plumbable drops vs cross-links
+    groups = []
+    for edge, src, dst in valid:
+        for record in groups:
+            if record["src"] is src:
+                break
+        else:
+            record = {"src": src, "plumbed": [], "others": []}
+            groups.append(record)
+        if visual_top(dst) > start_of(src) and not edge.color and not edge.dashed:
+            record["plumbed"].append((edge, dst))
+        else:
+            record["others"].append((edge, dst))
 
-        def dst_cross(dst) -> float:
-            return dst.y if horizontal else dst.x
-
-        nearest = min(dst_start(dst) for _, _, dst in group_edges)
-        bus = (src_end + nearest) / 2 if nearest > src_end else None
-
-        # Curve routing fans out from one point (no junction artifact), and
-        # override-styled or upward edges keep their own full path.
-        if edge_cfg["routing"] == "curve" or bus is None:
-            for edge, edge_src, dst in group_edges:
-                full_path(edge, edge_src, dst, bus)
+    # ---- Pass 2: extract merge rails (>=2 single-child parents on one sink)
+    single_by_sink: dict[str, list] = {}
+    for record in groups:
+        if len(record["plumbed"]) == 1:
+            single_by_sink.setdefault(record["plumbed"][0][1].id, []).append(record)
+    merges = []
+    for _sink_id, sink_records in single_by_sink.items():
+        if len(sink_records) < 2:
             continue
+        sink = sink_records[0]["plumbed"][0][1]
+        members = []
+        for record in sink_records:
+            edge, _ = record["plumbed"].pop()
+            members.append((edge, record["src"]))
+        members.sort(key=lambda m: cross_of(m[1]))
+        merges.append({"sink": sink, "members": members})
 
-        plumbed = [(e, d) for e, _, d in group_edges if not e.color and not e.dashed and dst_start(d) > bus]
-        for edge, edge_src, dst in group_edges:
-            if not any(e is edge for e, _ in plumbed):
-                full_path(edge, edge_src, dst, bus)
+    # ---- Pass 3: drop x-slots for remaining multi-parent children
+    incoming: dict[str, list] = {}
+    for record in groups:
+        for edge, dst in record["plumbed"]:
+            incoming.setdefault(dst.id, []).append((cross_of(record["src"]), edge, dst))
+    drop_crosses: dict[int, float] = {}
+    for _dst_id, arrivals in incoming.items():
+        if len(arrivals) == 1:
+            drop_crosses[id(arrivals[0][1])] = cross_of(arrivals[0][2])
+            continue
+        arrivals.sort(key=lambda a: a[0])
+        dst = arrivals[0][2]
+        extent = dst.height if horizontal else dst.width
+        spacing = min(22.0, extent / (len(arrivals) + 1))
+        for slot, (_, edge, _) in enumerate(arrivals):
+            drop_crosses[id(edge)] = cross_of(dst) + (slot - (len(arrivals) - 1) / 2) * spacing
 
-        if not plumbed:
+    # Snap single-incoming drops that land almost under their trunk.
+    for record in groups:
+        src_cross = cross_of(record["src"])
+        best = None
+        for edge, dst in record["plumbed"]:
+            if len(incoming.get(dst.id, [])) != 1:
+                continue
+            offset = abs(drop_crosses[id(edge)] - src_cross)
+            limit = min(24.0, (dst.height if horizontal else dst.width) / 4)
+            if 0.01 < offset <= limit and (best is None or offset < best[1]):
+                best = (edge, offset)
+        if best:
+            drop_crosses[id(best[0])] = src_cross
+
+    # ---- Pass 4: rail heights - stagger overlapping rails in each row gap
+    rail_records = []
+    for record in groups:
+        if not record["plumbed"]:
+            continue
+        crosses = [drop_crosses[id(e)] for e, _ in record["plumbed"]] + [cross_of(record["src"])]
+        record["lo"], record["hi"] = min(crosses), max(crosses)
+        record["nearest"] = min(visual_top(d) for _, d in record["plumbed"])
+        record["row_key"] = round(min(bbox_top(d) for _, d in record["plumbed"]), 1)
+        record["parents_end"] = start_of(record["src"])
+        rail_records.append(record)
+    for merge in merges:
+        sink = merge["sink"]
+        # Sink stem snaps onto a member trunk when nearly aligned.
+        merge["stem"] = cross_of(sink)
+        limit = min(24.0, (sink.height if horizontal else sink.width) / 4)
+        aligned = min((cross_of(s) for _, s in merge["members"]), key=lambda c: abs(c - merge["stem"]))
+        if abs(aligned - merge["stem"]) <= limit:
+            merge["stem"] = aligned
+        crosses = [cross_of(s) for _, s in merge["members"]] + [merge["stem"]]
+        merge["lo"], merge["hi"] = min(crosses), max(crosses)
+        merge["nearest"] = visual_top(sink)
+        merge["row_key"] = round(bbox_top(sink), 1)
+        merge["parents_end"] = max(start_of(s) for _, s in merge["members"])
+        rail_records.append(merge)
+
+    buckets: dict[float, list] = {}
+    for record in rail_records:
+        buckets.setdefault(record["row_key"], []).append(record)
+    for bucket in buckets.values():
+        band_start = max(record["parents_end"] for record in bucket)
+        band_end = min(record["nearest"] for record in bucket)
+        if band_end <= band_start:
+            for record in bucket:
+                record["bus"] = (record["parents_end"] + record["nearest"]) / 2
+            continue
+        levels: list[list] = []
+        bucket.sort(key=lambda g: g["lo"])
+        for record in bucket:
+            for index, placed in enumerate(levels):
+                if all(record["lo"] > hi + stagger_margin or lo > record["hi"] + stagger_margin for lo, hi in placed):
+                    placed.append((record["lo"], record["hi"]))
+                    record["level"] = index
+                    break
+            else:
+                levels.append([(record["lo"], record["hi"])])
+                record["level"] = len(levels) - 1
+        for record in bucket:
+            record["bus"] = band_start + (record["level"] + 1) * (band_end - band_start) / (len(levels) + 1)
+
+    # ---- Pass 5: draw fan-out plumbing and cross-links
+    for record in groups:
+        src = record["src"]
+        src_cross, src_end = cross_of(src), start_of(src)
+        bus = record.get("bus")
+
+        for edge, dst in record["others"]:
+            c2, m2 = cross_of(dst), visual_top(dst)
+            color = edge.color or default_color
+            if m2 > src_end:
+                mid = bus if bus is not None and src_end < bus < m2 else None
+                draw_edge(edge, ortho(src_cross, src_end, c2, m2, mid), color)
+            elif start_of(dst) > bbox_top(src):
+                # Lateral (same-row) cross-link: arc below the row into the
+                # target's bottom edge - a straight diagonal would slice
+                # between the cards with no readable direction.
+                dst_end = start_of(dst)
+                dip = max(src_end, dst_end) + 30.0
+                if horizontal:
+                    d = (
+                        f"M {shapes.fmt(src_end)} {shapes.fmt(src_cross)} "
+                        f"C {shapes.fmt(dip)} {shapes.fmt(src_cross)} "
+                        f"{shapes.fmt(dip)} {shapes.fmt(c2)} "
+                        f"{shapes.fmt(dst_end)} {shapes.fmt(c2)}"
+                    )
+                else:
+                    d = (
+                        f"M {shapes.fmt(src_cross)} {shapes.fmt(src_end)} "
+                        f"C {shapes.fmt(src_cross)} {shapes.fmt(dip)} "
+                        f"{shapes.fmt(c2)} {shapes.fmt(dip)} "
+                        f"{shapes.fmt(c2)} {shapes.fmt(dst_end)}"
+                    )
+                draw_edge(edge, d, color)
+            else:
+                draw_edge(edge, curve(src_cross, src_end, c2, m2), color)
+
+        plumbed = record["plumbed"]
+        if not plumbed or bus is None:
             continue
         if len(plumbed) == 1:
-            full_path(plumbed[0][0], src, plumbed[0][1], bus)
+            edge, dst = plumbed[0]
+            draw_edge(edge, ortho(src_cross, src_end, drop_crosses[id(edge)], visual_top(dst), bus), default_color)
             continue
 
-        # A drop landing almost (but not exactly) under the trunk reads as a
-        # broken jog across the rail. Snap the nearest such drop onto the
-        # trunk line: parent -> rail -> child becomes one continuous line,
-        # and the arrow lands a few px off the child's center (invisible).
-        snap_edge = None
-        best_offset = None
-        for edge, dst in plumbed:
-            offset = abs(dst_cross(dst) - src_cross)
-            limit = min(24.0, (dst.height if horizontal else dst.width) / 4)
-            if 0.01 < offset <= limit and (best_offset is None or offset < best_offset):
-                best_offset, snap_edge = offset, edge
-        drop_crosses = {id(edge): (src_cross if edge is snap_edge else dst_cross(dst)) for edge, dst in plumbed}
-
-        # Rail spanning the outermost drops (rounded down-turns at the ends),
-        # trunk from the parent into the rail.
-        crosses = sorted({round(c, 2) for c in drop_crosses.values()} | {round(src_cross, 2)})
-        lo, hi = crosses[0], crosses[-1]
-        r = min(corner, (hi - lo) / 2, (min(dst_start(d) for _, d in plumbed) - bus))
-        r = max(0.0, r)
-        rail_group = shapes.group(["usv-rail"], {"from": group_edges[0][0].src})
-        if horizontal:
-            rail_d = (
-                f"M {shapes.fmt(bus + r)} {shapes.fmt(lo)} "
-                f"Q {shapes.fmt(bus)} {shapes.fmt(lo)} {shapes.fmt(bus)} {shapes.fmt(lo + r)} "
-                f"L {shapes.fmt(bus)} {shapes.fmt(hi - r)} "
-                f"Q {shapes.fmt(bus)} {shapes.fmt(hi)} {shapes.fmt(bus + r)} {shapes.fmt(hi)}"
-            )
-            trunk_d = f"M {shapes.fmt(src_end)} {shapes.fmt(src_cross)} L {shapes.fmt(bus)} {shapes.fmt(src_cross)}"
-        else:
-            rail_d = (
-                f"M {shapes.fmt(lo)} {shapes.fmt(bus + r)} "
-                f"Q {shapes.fmt(lo)} {shapes.fmt(bus)} {shapes.fmt(lo + r)} {shapes.fmt(bus)} "
-                f"L {shapes.fmt(hi - r)} {shapes.fmt(bus)} "
-                f"Q {shapes.fmt(hi)} {shapes.fmt(bus)} {shapes.fmt(hi)} {shapes.fmt(bus + r)}"
-            )
-            trunk_d = f"M {shapes.fmt(src_cross)} {shapes.fmt(src_end)} L {shapes.fmt(src_cross)} {shapes.fmt(bus)}"
-        rail_group.append(shapes.edge_path(rail_d, default_color, width))
-        rail_group.append(shapes.edge_path(trunk_d, default_color, width))
+        lo, hi = record["lo"], record["hi"]
+        r = max(0.0, min(corner, (hi - lo) / 2, record["nearest"] - bus))
+        rail_group = shapes.group(["usv-rail"], {"from": plumbed[0][0].src})
+        rail_group.append(shapes.edge_path(rail_path(lo, hi, bus, r, r), default_color, width))
+        rail_group.append(shapes.edge_path(line(src_cross, src_end, src_cross, bus), default_color, width))
         canvas.add("edges", rail_group)
 
-        # Drops: T-junction off the rail into each child; the outermost drops
-        # start below the rounded rail ends to continue their curve.
+        rounded_ends = (round(lo, 2), round(hi, 2))
         for edge, dst in plumbed:
             cross = drop_crosses[id(edge)]
-            start = bus + r if round(cross, 2) in (lo, hi) else bus
-            if horizontal:
-                d = f"M {shapes.fmt(start)} {shapes.fmt(cross)} L {shapes.fmt(dst_start(dst))} {shapes.fmt(cross)}"
+            start = bus + r if round(cross, 2) in rounded_ends else bus
+            draw_edge(edge, line(cross, start, cross, visual_top(dst)), default_color)
+
+    # ---- Pass 6: draw merge rails
+    for merge in merges:
+        sink = merge["sink"]
+        bus = merge["bus"]
+        stem = merge["stem"]
+        lo, hi = merge["lo"], merge["hi"]
+        member_crosses = {round(cross_of(s), 2) for _, s in merge["members"]}
+        r = max(0.0, min(corner, (hi - lo) / 2, merge["nearest"] - bus, bus - merge["parents_end"]))
+        stem_on_member = round(stem, 2) in member_crosses
+
+        # End radii: turn down (+r) toward the sink stem, up (-r) toward a
+        # member trunk, square (0) when a through-line crosses at that end.
+        radii = []
+        for end in (lo, hi):
+            if abs(end - stem) < 0.01:
+                radii.append(0.0 if stem_on_member else r)
             else:
-                d = f"M {shapes.fmt(cross)} {shapes.fmt(start)} L {shapes.fmt(cross)} {shapes.fmt(dst_start(dst))}"
-            draw_edge(edge, d, default_color)
+                radii.append(-r)
+
+        rail_group = shapes.group(["usv-rail", "usv-rail--merge"], {"to": sink.id})
+        rail_group.append(shapes.edge_path(rail_path(lo, hi, bus, radii[0], radii[1]), default_color, width))
+        stem_start = bus
+        if not stem_on_member and (abs(stem - lo) < 0.01 or abs(stem - hi) < 0.01):
+            stem_start = bus + r  # continue the down-turning end curve
+        rail_group.append(
+            shapes.edge_path(
+                line(stem, stem_start, stem, visual_top(sink)),
+                default_color,
+                width,
+                marker_url=canvas.arrow_marker(default_color),
+            )
+        )
+        canvas.add("edges", rail_group)
+
+        # Member trunks carry the per-edge interactivity contract; the shared
+        # stem carries the single arrowhead.
+        for edge, member in merge["members"]:
+            member_cross = cross_of(member)
+            trunk_end = bus
+            at_end = abs(member_cross - lo) < 0.01 or abs(member_cross - hi) < 0.01
+            if at_end and abs(member_cross - stem) > 0.01:
+                trunk_end = bus - r  # meets the upward-turning rail corner
+            draw_edge(edge, line(member_cross, start_of(member), member_cross, trunk_end), default_color, arrow=False)
 
 
 def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str, Any]) -> str:
