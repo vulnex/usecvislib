@@ -104,6 +104,9 @@ def paint(viz, outputfile: str) -> str:
                 f"(pip install cairosvg). SVG output works without it."
             ) from e
 
-        convert = cairosvg.svg2png if viz.format == "png" else cairosvg.svg2pdf
-        convert(bytestring=svg_text.encode("utf-8"), write_to=str(out_path))
+        if viz.format == "png":
+            # 2x raster for crisp display on high-DPI screens
+            cairosvg.svg2png(bytestring=svg_text.encode("utf-8"), write_to=str(out_path), scale=2.0)
+        else:
+            cairosvg.svg2pdf(bytestring=svg_text.encode("utf-8"), write_to=str(out_path))
     return str(out_path)

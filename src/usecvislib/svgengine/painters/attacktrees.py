@@ -254,6 +254,15 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
         shapes.card(min_x, min_y, width, height, 0, fill=page["background"], stroke="none", stroke_width=0),
     )
 
+    # Muted diagram title in the top padding band
+    title_cfg = theme["title"]
+    title = str(scene.meta.get("name", "")).strip()
+    if title_cfg["show"] and title:
+        canvas.add(
+            "labels",
+            shapes.title_text(min_x + pad * 0.5, min_y + pad * 0.55, title, float(title_cfg["size"]), page["text"]),
+        )
+
     # Edges: from parent border to child border along the flow axis
     for edge in scene.edges:
         src = scene.node_by_id(edge.src)
@@ -333,21 +342,31 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
         node_group.extend(shapes.text_lines(node.x, text_top, node.lines, size, text_color, bold=node.kind == "root"))
         canvas.add("nodes", node_group)
 
-        # CVSS badge at the card's top-right corner
+        # CVSS badge docked on the top-right corner (cutout ring in the
+        # page color makes it read as a floating chip)
         if node.cvss is not None and theme["badges"]["cvss"]:
-            badge_size = size * 0.8
+            badge_size = size * 0.78
             badge_label = str(node.cvss)
             badge_w = metrics.measure_text(badge_label, font["family"], badge_size)
+            if node.image_href:
+                img_size = float(theme["images"]["size"])
+                content_h = img_size + _IMAGE_TEXT_GAP + len(node.lines) * size * metrics.LINE_HEIGHT
+                corner_x = node.x + img_size / 2
+                corner_y = node.y - content_h / 2 + 2
+            else:
+                corner_x = node.x + node.width / 2 - float(card_cfg["radius"]) * 0.4
+                corner_y = y
             canvas.add(
                 "badges",
                 shapes.badge(
-                    node.x + node.width / 2 + badge_size,
-                    y,
+                    corner_x,
+                    corner_y,
                     badge_label,
                     badge_w,
                     fill=theme["badges"]["fill"],
                     text_color=theme["badges"]["text"],
                     size=badge_size,
+                    ring=page["background"],
                 ),
             )
 

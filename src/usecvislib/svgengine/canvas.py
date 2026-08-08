@@ -92,7 +92,7 @@ class SvgCanvas:
             self._defs.append(grad)
         return f"url(#{def_id})"
 
-    def shadow(self, blur: float = 1.8, dy: float = 1.5, opacity: float = 0.35) -> str:
+    def shadow(self, blur: float = 2.2, dy: float = 1.2, opacity: float = 0.28) -> str:
         """Register a drop-shadow filter def; returns a url() reference."""
         def_id, created = self._def_id(("shadow", fmt(blur), fmt(dy), fmt(opacity)), "shadow")
         if created:

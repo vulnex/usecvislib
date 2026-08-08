@@ -28,24 +28,25 @@ from .scene import StyleEngineMismatchError
 # Engine-level defaults; presets override selectively.
 DEFAULTS: dict[str, Any] = {
     "meta": {"engine": "svg"},
-    "page": {"background": "#f8fafc", "padding": 32, "text": "#111827"},
-    "font": {"family": "Helvetica Neue, Helvetica, Arial, sans-serif", "size": 12, "root_size": 14},
+    "page": {"background": "#f8fafc", "padding": 44, "text": "#111827"},
+    "font": {"family": "Helvetica Neue, Helvetica, Arial, sans-serif", "size": 13, "root_size": 16},
     "card": {
         "radius": 10,
-        "padding_x": 14,
-        "padding_y": 10,
+        "padding_x": 16,
+        "padding_y": 11,
         "border_width": 1.0,
-        "min_width": 90,
-        "max_label_width": 260,
+        "min_width": 104,
+        "max_label_width": 280,
     },
+    "title": {"show": True, "size": 15},
     "node": {"fill": "#3d5a80", "border": "#1e3a5f", "text": "#ffffff"},
     "root": {"fill": "#1e3a5f", "border": "#0d1b2a", "text": "#ffffff"},
     "edge": {"color": "#94a3b8", "width": 1.6, "routing": "ortho"},
-    "effects": {"shadow": True, "shadow_blur": 1.8, "hover_glow": True},
+    "effects": {"shadow": True, "shadow_blur": 2.2, "hover_glow": True},
     "severity": {"use_cvss_colors": True},
     "badges": {"cvss": True, "fill": "#0f172a", "text": "#ffffff"},
     "images": {"size": 48},
-    "layout": {"h_gap": 28, "v_gap": 60},
+    "layout": {"h_gap": 40, "v_gap": 76},
 }
 
 

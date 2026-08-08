@@ -120,36 +120,40 @@ def text_lines(
 
 
 def badge(
-    right_x: float,
+    center_x: float,
     center_y: float,
     label: str,
     label_width: float,
     fill: str,
     text_color: str,
     size: float,
+    ring: str = "",
 ) -> ET.Element:
-    """Small pill badge (e.g. a CVSS score), right-aligned at (right_x, center_y)."""
-    pad = size * 0.5
-    height = size * 1.5
+    """Small pill badge (e.g. a CVSS score) centered at (center_x, center_y).
+
+    ``ring`` draws a cutout stroke in the page background color, so a badge
+    docked on a card corner reads as a floating chip.
+    """
+    pad = size * 0.55
+    height = size * 1.6
     width = label_width + 2 * pad
     g = ET.Element("g", {"class": "usv-badge usv-badge--cvss", "data-value": label})
-    g.append(
-        ET.Element(
-            "rect",
-            {
-                "x": fmt(right_x - width),
-                "y": fmt(center_y - height / 2),
-                "width": fmt(width),
-                "height": fmt(height),
-                "rx": fmt(height / 2),
-                "fill": fill,
-            },
-        )
-    )
+    rect_attrs = {
+        "x": fmt(center_x - width / 2),
+        "y": fmt(center_y - height / 2),
+        "width": fmt(width),
+        "height": fmt(height),
+        "rx": fmt(height / 2),
+        "fill": fill,
+    }
+    if ring:
+        rect_attrs["stroke"] = ring
+        rect_attrs["stroke-width"] = fmt(size * 0.16)
+    g.append(ET.Element("rect", rect_attrs))
     text = ET.Element(
         "text",
         {
-            "x": fmt(right_x - width / 2),
+            "x": fmt(center_x),
             "y": fmt(center_y + size * 0.36),
             "text-anchor": "middle",
             "font-size": fmt(size),
@@ -162,7 +166,26 @@ def badge(
     return g
 
 
-def ortho_path_d(x1: float, y1: float, x2: float, y2: float, corner: float = 8.0, horizontal: bool = False) -> str:
+def title_text(x: float, baseline_y: float, text: str, size: float, fill: str) -> ET.Element:
+    """Muted diagram title, left-anchored."""
+    element = ET.Element(
+        "text",
+        {
+            "x": fmt(x),
+            "y": fmt(baseline_y),
+            "text-anchor": "start",
+            "font-size": fmt(size),
+            "font-weight": "600",
+            "fill": fill,
+            "opacity": "0.65",
+            "letter-spacing": "0.4",
+        },
+    )
+    element.text = text
+    return element
+
+
+def ortho_path_d(x1: float, y1: float, x2: float, y2: float, corner: float = 10.0, horizontal: bool = False) -> str:
     """Orthogonal parent->child connector with rounded corners.
 
     Top-down by default: runs vertically from (x1, y1), turns at the
