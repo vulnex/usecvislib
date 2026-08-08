@@ -112,10 +112,13 @@ class TidyTreeLayout:
         row_size = [0.0] * (max_depth + 1)
         for node_id, d in depth.items():
             row_size[d] = max(row_size[d], depth_size(node_id))
-        row_center = []
+        # Rows are TOP-aligned (leading-edge aligned in LR): with mixed node
+        # heights in a row, top alignment keeps every parent->child drop the
+        # same length so arrowheads land on one line.
+        row_start = []
         cursor = 0.0
         for d in range(max_depth + 1):
-            row_center.append(cursor + row_size[d] / 2)
+            row_start.append(cursor)
             cursor += row_size[d] + self.v_gap
 
         # Pre-order placement: children packed inside the parent extent,
@@ -143,11 +146,11 @@ class TidyTreeLayout:
         for node_id in order:
             node = nodes[node_id]
             if self.orientation == "LR":
-                node.x = row_center[depth[node_id]]
+                node.x = row_start[depth[node_id]] + node.width / 2
                 node.y = cross[node_id]
             else:
                 node.x = cross[node_id]
-                node.y = row_center[depth[node_id]]
+                node.y = row_start[depth[node_id]] + node.height / 2
 
         # Orphans: a row below (TB) / right of (LR) the tree.
         orphans = [n for n in scene.nodes if n.id not in reachable]

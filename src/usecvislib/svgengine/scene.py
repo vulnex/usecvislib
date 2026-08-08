@@ -57,6 +57,7 @@ class SceneNode:
     severity: Optional[str] = None  # lowercase cvss_to_severity_label value
     cvss: Optional[float] = None
     image_href: Optional[str] = None  # base64 data URI for an embedded icon
+    inset_top: float = 0.0  # visual content inset from bbox top (plain/icon nodes)
     data: dict[str, str] = field(default_factory=dict)  # extra data-* attributes
 
 

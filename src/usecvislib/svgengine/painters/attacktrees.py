@@ -184,6 +184,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
                 width=width,
                 height=height,
                 shape="plain" if image_href else _node_shape(attrs.get("shape", ""), name),
+                inset_top=float(card_cfg["padding_y"]) if image_href else 0.0,
                 fill=fill,
                 border=border,
                 text_color=text_color,
@@ -213,10 +214,14 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
 
 
 def _edge_endpoints(src, dst, horizontal: bool) -> tuple[float, float, float, float]:
-    """Border-to-border endpoints along the flow axis."""
+    """Border-to-border endpoints along the flow axis.
+
+    Top-down edges land on the node's visual content (``inset_top`` skips
+    the invisible padding of plain/icon nodes so arrows touch the icon).
+    """
     if horizontal:
         return (src.x + src.width / 2, src.y, dst.x - dst.width / 2, dst.y)
-    return (src.x, src.y + src.height / 2, dst.x, dst.y - dst.height / 2)
+    return (src.x, src.y + src.height / 2, dst.x, dst.y - dst.height / 2 + dst.inset_top)
 
 
 def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], horizontal: bool) -> None:
@@ -264,7 +269,7 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], hori
         src_cross = src.y if horizontal else src.x
 
         def dst_start(dst) -> float:
-            return (dst.x - dst.width / 2) if horizontal else (dst.y - dst.height / 2)
+            return (dst.x - dst.width / 2) if horizontal else (dst.y - dst.height / 2 + dst.inset_top)
 
         def dst_cross(dst) -> float:
             return dst.y if horizontal else dst.x
