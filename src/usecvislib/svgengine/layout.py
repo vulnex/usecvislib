@@ -152,21 +152,100 @@ class TidyTreeLayout:
                 node.x = cross[node_id]
                 node.y = row_start[depth[node_id]] + node.height / 2
 
+        self._barycenter_multi_parent(scene, nodes, children, reachable, depth)
+
         # Orphans: a row below (TB) / right of (LR) the tree.
         orphans = [n for n in scene.nodes if n.id not in reachable]
-        if orphans:
-            logger.warning(f"{len(orphans)} node(s) unreachable from root '{root_id}'; placed apart")
-            main = cursor + self.v_gap
-            offset = 0.0
-            for node in orphans:
-                if self.orientation == "LR":
-                    node.x = main + node.width / 2
-                    node.y = offset + node.height / 2
-                    offset += node.height + self.h_gap
-                else:
-                    node.x = offset + node.width / 2
-                    node.y = main + node.height / 2
-                    offset += node.width + self.h_gap
+        self._place_orphans(scene, orphans, root_id)
+
+    def _barycenter_multi_parent(self, scene: Scene, nodes: dict, children: dict, reachable: set, depth: dict) -> None:
+        """Center multi-parent nodes under ALL their parents (Graphviz-style).
+
+        The tidy tree attaches a shared node under its first parent only, so
+        a convergence sink (e.g. one impact node fed by nine techniques) ends
+        up far to one side with a merge rail spanning the whole diagram.
+        Each multi-parent node is moved toward the barycenter of its parents'
+        positions - together with its tree descendants - clamped so it keeps
+        clear of its row neighbors. Rows are processed top-down so deeper
+        nodes see their parents' corrected positions.
+        """
+        is_lr = self.orientation == "LR"
+
+        def get_cross(node) -> float:
+            return node.y if is_lr else node.x
+
+        def half_of(node) -> float:
+            return (node.height if is_lr else node.width) / 2
+
+        parents_of: dict[str, list[str]] = {}
+        for edge in scene.edges:
+            if edge.src in reachable and edge.dst in reachable and edge.src != edge.dst:
+                parents = parents_of.setdefault(edge.dst, [])
+                if edge.src not in parents:
+                    parents.append(edge.src)
+
+        rows: dict[int, list[str]] = {}
+        for node_id, d in depth.items():
+            rows.setdefault(d, []).append(node_id)
+
+        for d in sorted(rows):
+            for node_id in rows[d]:
+                parents = parents_of.get(node_id, [])
+                if len(parents) < 2:
+                    continue
+                node = nodes[node_id]
+                bary = sum(get_cross(nodes[p]) for p in parents) / len(parents)
+                # Clamp against current row neighbors on either side
+                current = get_cross(node)
+                half = half_of(node)
+                lo_limit, hi_limit = float("-inf"), float("inf")
+                for other_id in rows[d]:
+                    if other_id == node_id:
+                        continue
+                    other = nodes[other_id]
+                    other_cross = get_cross(other)
+                    if other_cross < current:
+                        lo_limit = max(lo_limit, other_cross + half_of(other) + self.h_gap + half)
+                    elif other_cross > current:
+                        hi_limit = min(hi_limit, other_cross - half_of(other) - self.h_gap - half)
+                delta = min(max(bary, lo_limit), hi_limit) - current
+                if abs(delta) < 1.0:
+                    continue
+                # Shift the node together with its tree descendants
+                stack = [node_id]
+                shifted: set[str] = set()
+                while stack:
+                    shift_id = stack.pop()
+                    if shift_id in shifted:
+                        continue
+                    shifted.add(shift_id)
+                    target = nodes[shift_id]
+                    if is_lr:
+                        target.y += delta
+                    else:
+                        target.x += delta
+                    stack.extend(k for k in children.get(shift_id, []) if k in reachable)
+
+    def _place_orphans(self, scene: Scene, orphans: list, root_id: str) -> None:
+        """Place nodes unreachable from the root in a row past the tree."""
+        if not orphans:
+            return
+        logger.warning(f"{len(orphans)} node(s) unreachable from root '{root_id}'; placed apart")
+        placed = [n for n in scene.nodes if n not in orphans]
+        if self.orientation == "LR":
+            main = max((n.x + n.width / 2 for n in placed), default=0.0) + self.v_gap
+        else:
+            main = max((n.y + n.height / 2 for n in placed), default=0.0) + self.v_gap
+        offset = 0.0
+        for node in orphans:
+            if self.orientation == "LR":
+                node.x = main + node.width / 2
+                node.y = offset + node.height / 2
+                offset += node.height + self.h_gap
+            else:
+                node.x = offset + node.width / 2
+                node.y = main + node.height / 2
+                offset += node.width + self.h_gap
 
 
 class LinearLayout:

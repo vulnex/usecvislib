@@ -409,3 +409,11 @@ class TestImages:
         monkeypatch.setattr(utils, "IMAGE_MAX_SIZE", 10)
         monkeypatch.setattr(utils, "resolve_image_reference", lambda ref: big)
         assert images_mod.resolve_data_uri(str(big), "n1") is None
+
+    def test_multi_parent_barycenter(self):
+        # A shared child (DAG) centers under ALL its parents, not just the
+        # tree-attachment parent (Graphviz-style barycenter placement).
+        scene = _tree_scene({"r": ["a", "b", "c"], "a": ["shared"], "c": ["shared"]})
+        TidyTreeLayout().solve(scene, "r")
+        a, c, shared = scene.node_by_id("a"), scene.node_by_id("c"), scene.node_by_id("shared")
+        assert shared.x == pytest.approx((a.x + c.x) / 2)
