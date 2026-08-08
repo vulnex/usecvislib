@@ -295,9 +295,22 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], hori
             full_path(plumbed[0][0], src, plumbed[0][1], bus)
             continue
 
+        # A drop landing almost (but not exactly) under the trunk reads as a
+        # broken jog across the rail. Snap the nearest such drop onto the
+        # trunk line: parent -> rail -> child becomes one continuous line,
+        # and the arrow lands a few px off the child's center (invisible).
+        snap_edge = None
+        best_offset = None
+        for edge, dst in plumbed:
+            offset = abs(dst_cross(dst) - src_cross)
+            limit = min(24.0, (dst.height if horizontal else dst.width) / 4)
+            if 0.01 < offset <= limit and (best_offset is None or offset < best_offset):
+                best_offset, snap_edge = offset, edge
+        drop_crosses = {id(edge): (src_cross if edge is snap_edge else dst_cross(dst)) for edge, dst in plumbed}
+
         # Rail spanning the outermost drops (rounded down-turns at the ends),
         # trunk from the parent into the rail.
-        crosses = sorted({round(dst_cross(d), 2) for _, d in plumbed} | {round(src_cross, 2)})
+        crosses = sorted({round(c, 2) for c in drop_crosses.values()} | {round(src_cross, 2)})
         lo, hi = crosses[0], crosses[-1]
         r = min(corner, (hi - lo) / 2, (min(dst_start(d) for _, d in plumbed) - bus))
         r = max(0.0, r)
@@ -325,7 +338,7 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], hori
         # Drops: T-junction off the rail into each child; the outermost drops
         # start below the rounded rail ends to continue their curve.
         for edge, dst in plumbed:
-            cross = dst_cross(dst)
+            cross = drop_crosses[id(edge)]
             start = bus + r if round(cross, 2) in (lo, hi) else bus
             if horizontal:
                 d = f"M {shapes.fmt(start)} {shapes.fmt(cross)} L {shapes.fmt(dst_start(dst))} {shapes.fmt(cross)}"
