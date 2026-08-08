@@ -93,6 +93,10 @@ def Usage() -> None:
     print("  -t, --theme <theme>     Mermaid theme: default, dark, forest, neutral, base")
     print("  -d, --direction <dir>   Cloud diagram direction: TB, BT, LR, RL")
     print("")
+    print("  --shine                 Post-process SVG output with modern styling")
+    print("                          (fonts, drop shadows, hover emphasis)")
+    print("                          Requires -f svg; Graphviz modes only: 0, 1, 3, 6, 7, 8, 12")
+    print("")
     print("  --convert <format>      Convert input file to format: toml, json, yaml, mermaid")
     print("                          Output will be saved to <output>.<format_ext>")
     print("                          Mermaid output auto-detects visualization type")
@@ -177,6 +181,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     analyze_critical = False
     theme = "default"  # Mermaid theme
     direction = "TB"  # Cloud diagram direction
+    shine = False  # Post-process SVG output with shine styling
 
     convert_format = ""  # Format to convert to: toml, json, yaml, mermaid
 
@@ -200,6 +205,7 @@ def main(argv: Optional[list[str]] = None) -> int:
                 "convert=",
                 "theme=",
                 "direction=",
+                "shine",
             ],
         )
     except getopt.GetoptError as e:
@@ -238,6 +244,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             theme = arg
         elif opt in ("-d", "--direction"):
             direction = arg.upper()
+        elif opt == "--shine":
+            shine = True
         elif opt == "--convert":
             convert_format = arg.lower()
 
@@ -328,6 +336,13 @@ def main(argv: Optional[list[str]] = None) -> int:
     # Validate mode
     if not validate_mode(mode):
         error_exit(f"Invalid mode: {mode}. Must be 0-8 or 12.")
+
+    # Validate shine (Graphviz SVG post-processing only)
+    if shine:
+        if format != "svg":
+            error_exit("--shine requires SVG output. Use -f svg.")
+        if mode not in (0, 1, 3, 6, 7, 8, 12):
+            error_exit(f"--shine is not supported for mode {mode}. Supported modes: 0, 1, 3, 6, 7, 8, 12.")
 
     # Execute based on mode
     try:
@@ -584,6 +599,12 @@ def main(argv: Optional[list[str]] = None) -> int:
                 print("\nWarnings:")
                 for w in stats["warnings"]:
                     print(f"  - {w}")
+
+        if shine:
+            from .svgengine import apply_shine_file
+
+            shined_path = apply_shine_file(f"{outputfile}.{format}")
+            print(f"Shine applied: {shined_path}")
 
     except FileNotFoundError as e:
         error_exit(str(e), show_usage=False)
