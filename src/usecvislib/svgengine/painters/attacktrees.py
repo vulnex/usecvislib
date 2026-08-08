@@ -263,6 +263,29 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
             shapes.title_text(min_x + pad * 0.5, min_y + pad * 0.55, title, float(title_cfg["size"]), page["text"]),
         )
 
+    # Shared bus per parent: all sibling connectors turn on ONE rail line,
+    # even when children have different heights (mixed icon/card rows would
+    # otherwise produce offset parallel segments).
+    bus: dict[str, float] = {}
+    edges_by_src: dict[str, list] = {}
+    for edge in scene.edges:
+        edges_by_src.setdefault(edge.src, []).append(edge)
+    for src_id, group_edges in edges_by_src.items():
+        src = scene.node_by_id(src_id)
+        if src is None:
+            continue
+        targets = [t for t in (scene.node_by_id(e.dst) for e in group_edges) if t is not None]
+        if not targets:
+            continue
+        if horizontal:
+            start = src.x + src.width / 2
+            nearest = min(t.x - t.width / 2 for t in targets)
+        else:
+            start = src.y + src.height / 2
+            nearest = min(t.y - t.height / 2 for t in targets)
+        if nearest > start:
+            bus[src_id] = (start + nearest) / 2
+
     # Edges: from parent border to child border along the flow axis
     for edge in scene.edges:
         src = scene.node_by_id(edge.src)
@@ -273,14 +296,17 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
         if horizontal:
             x1, y1 = src.x + src.width / 2, src.y
             x2, y2 = dst.x - dst.width / 2, dst.y
+            valid_mid = bus.get(edge.src) is not None and x1 < bus[edge.src] < x2
         else:
             x1, y1 = src.x, src.y + src.height / 2
             x2, y2 = dst.x, dst.y - dst.height / 2
+            valid_mid = bus.get(edge.src) is not None and y1 < bus[edge.src] < y2
+        mid = bus[edge.src] if valid_mid else None
         color = edge.color or edge_cfg["color"]
         if edge_cfg["routing"] == "curve":
             d = shapes.curve_path_d(x1, y1, x2, y2, horizontal=horizontal)
         else:
-            d = shapes.ortho_path_d(x1, y1, x2, y2, horizontal=horizontal)
+            d = shapes.ortho_path_d(x1, y1, x2, y2, horizontal=horizontal, mid=mid)
         edge_group = shapes.group(["usv-edge", "usv-edge--tree"], {"from": edge.src, "to": edge.dst})
         edge_group.append(
             shapes.edge_path(

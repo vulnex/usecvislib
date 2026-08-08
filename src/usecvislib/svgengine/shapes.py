@@ -185,19 +185,29 @@ def title_text(x: float, baseline_y: float, text: str, size: float, fill: str) -
     return element
 
 
-def ortho_path_d(x1: float, y1: float, x2: float, y2: float, corner: float = 10.0, horizontal: bool = False) -> str:
+def ortho_path_d(
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    corner: float = 10.0,
+    horizontal: bool = False,
+    mid: Optional[float] = None,
+) -> str:
     """Orthogonal parent->child connector with rounded corners.
 
-    Top-down by default: runs vertically from (x1, y1), turns at the
-    midpoint toward x2, and drops into (x2, y2). With ``horizontal=True``
-    (left-right orientation) the roles of the axes are mirrored. Collinear
-    endpoints produce a straight line.
+    Top-down by default: runs vertically from (x1, y1), turns at ``mid``
+    (defaults to the midpoint) toward x2, and drops into (x2, y2). Passing
+    the same ``mid`` for all edges of one parent aligns sibling connectors
+    on a single bus line even when children have different heights. With
+    ``horizontal=True`` (left-right orientation) the roles of the axes are
+    mirrored. Collinear endpoints produce a straight line.
     """
     if horizontal:
         if abs(y1 - y2) < 0.5:
             return f"M {fmt(x1)} {fmt(y1)} L {fmt(x2)} {fmt(y2)}"
-        mid_x = (x1 + x2) / 2
-        r = min(corner, abs(y2 - y1) / 2, abs(x2 - x1) / 2)
+        mid_x = mid if mid is not None else (x1 + x2) / 2
+        r = max(0.0, min(corner, abs(y2 - y1) / 2, abs(mid_x - x1), abs(x2 - mid_x)))
         direction = 1 if y2 > y1 else -1
         return (
             f"M {fmt(x1)} {fmt(y1)} "
@@ -209,8 +219,8 @@ def ortho_path_d(x1: float, y1: float, x2: float, y2: float, corner: float = 10.
         )
     if abs(x1 - x2) < 0.5:
         return f"M {fmt(x1)} {fmt(y1)} L {fmt(x2)} {fmt(y2)}"
-    mid_y = (y1 + y2) / 2
-    r = min(corner, abs(x2 - x1) / 2, abs(y2 - y1) / 2)
+    mid_y = mid if mid is not None else (y1 + y2) / 2
+    r = max(0.0, min(corner, abs(x2 - x1) / 2, abs(mid_y - y1), abs(y2 - mid_y)))
     direction = 1 if x2 > x1 else -1
     return (
         f"M {fmt(x1)} {fmt(y1)} "
