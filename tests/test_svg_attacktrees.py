@@ -228,8 +228,12 @@ class TestDagRoutingAndLayout:
             if "usv-node" not in g.get("class", "").split():
                 continue
             rect = g.find(f"{SVG_NS}rect")
+            polygon = g.find(f"{SVG_NS}polygon")
             if rect is not None:
                 centers[g.get("data-label")] = float(rect.get("x")) + float(rect.get("width")) / 2
+            elif polygon is not None:  # chamfer/diamond bodies
+                xs = [float(point.split(",")[0]) for point in polygon.get("points").split()]
+                centers[g.get("data-label")] = (min(xs) + max(xs)) / 2
         return centers
 
     def test_one_collector_rail_and_one_arrow_per_sink(self, tmp_path):
@@ -280,3 +284,44 @@ class TestDagRoutingAndLayout:
             assert len(texts) == 2 and texts[0].text == texts[1].text
             seen.append(texts[1].text)
         assert sorted(seen) == ["CRITICAL", "CRITICAL", "HIGH", "HIGH", "HIGH", "HIGH", "MEDIUM", "OR", "OR", "OR"]
+
+    def test_gate_chips_rendered(self, tmp_path):
+        root = ET.fromstring(_render(self.NETINFRA, tmp_path))
+        chips = [g for g in root.iter(f"{SVG_NS}g") if "usv-badge--gate" in g.get("class", "").split()]
+        assert [g.get("data-value") for g in chips] == ["OR", "OR", "OR"]  # the three tier nodes
+
+    def test_octagon_maps_to_chamfer_card(self, tmp_path):
+        root = ET.fromstring(_render(self.INSIDER, tmp_path))
+        chamfers = [
+            g
+            for g in root.iter(f"{SVG_NS}g")
+            if "usv-node" in g.get("class", "").split() and g.find(f"{SVG_NS}polygon") is not None
+        ]
+        # The three octagon outcome nodes keep a distinct (cut-corner) body
+        assert sorted(g.get("data-label") for g in chamfers) == [
+            "Business Disruption",
+            "Competitor Advantage",
+            "Sell Data",
+        ]
+
+    def test_row_gaps_adapt_to_band_complexity(self, tmp_path):
+        root = ET.fromstring(_render(self.RANSOMWARE, tmp_path))
+        tops: dict = {}
+        bottoms: dict = {}
+        for g in root.iter(f"{SVG_NS}g"):
+            if "usv-node" not in g.get("class", "").split():
+                continue
+            body = g.find(f"{SVG_NS}rect")
+            if body is None:
+                body = g.find(f"{SVG_NS}polygon")
+                ys = [float(p.split(",")[1]) for p in body.get("points").split()]
+                top, bottom = min(ys), max(ys)
+            else:
+                top = float(body.get("y"))
+                bottom = top + float(body.get("height"))
+            tops[g.get("data-label")] = top
+            bottoms[g.get("data-label")] = bottom
+        # Simple chain band: one track, compressed well below the 76px v_gap
+        assert tops["Encrypt Files"] - bottoms["Data Exfiltration"] < 60
+        # Merge band into Execution still gets room for its rail
+        assert tops["Execution"] - bottoms["Malicious Attachment"] >= 36

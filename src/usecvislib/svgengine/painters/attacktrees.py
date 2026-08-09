@@ -24,7 +24,7 @@ ignored per the Feature Subset Contract (devnotes/SVG_ENGINE_DESIGN.md).
 """
 
 import logging
-from typing import Any
+from typing import Any, Optional
 
 from ... import utils
 from ...constants import cvss_to_color, cvss_to_severity_label
@@ -51,12 +51,15 @@ _SHAPE_MAP = {
     "oval": "pill",
     "circle": "pill",
     "diamond": "diamond",
+    "octagon": "chamfer",
+    "doubleoctagon": "chamfer",
+    "hexagon": "chamfer",
     "none": "plain",
     "plaintext": "plain",
 }
 
 # Per-node input keys the engine consumes; everything else is warn-and-ignore.
-_CONSUMED_KEYS = {"label", "fillcolor", "fontcolor", "color", "shape", "style", "cvss", "cvss_vector", "image"}
+_CONSUMED_KEYS = {"label", "fillcolor", "fontcolor", "color", "shape", "style", "cvss", "cvss_vector", "image", "gate"}
 
 # Vertical gap between an embedded icon and its label
 _IMAGE_TEXT_GAP = 4.0
@@ -185,9 +188,16 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
             # widen so the text stays clear of the rounded ends.
             width = max(width, text_w + height)
 
+        gate = str(attrs.get("gate", "")).upper() if attrs.get("gate") else None
+        if gate and gate not in ("AND", "OR"):
+            logger.warning(f"Node '{name}': gate '{gate}' not supported (AND|OR); ignored")
+            gate = None
+
         node_data = {"node-id": utils.sanitize_node_id(name), "label": name}
         if score is not None:
             node_data["cvss"] = str(score)
+        if gate:
+            node_data["gate"] = gate
 
         scene.nodes.append(
             SceneNode(
@@ -204,6 +214,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
                 text_color=text_color,
                 severity=severity,
                 cvss=score,
+                gate=gate,
                 image_href=image_href,
                 data=node_data,
             )
@@ -240,8 +251,13 @@ def _edge_endpoints(src, dst, horizontal: bool) -> tuple[float, float, float, fl
 
 
 def _paint_edges(
-    scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], horizontal: bool, page_bg: str = ""
-) -> None:
+    scene: Scene,
+    canvas: SvgCanvas,
+    edge_cfg: dict[str, Any],
+    horizontal: bool,
+    page_bg: str = "",
+    sizing: bool = False,
+) -> Optional[dict[float, float]]:
     """Paint edges as trunk + rail + drops plumbing (ortho) or fan-out curves.
 
     Overlapping full parent->child paths superimpose into junction artifacts,
@@ -363,11 +379,13 @@ def _paint_edges(
         valid.append((edge, src, dst))
 
     if edge_cfg["routing"] == "curve":
+        if sizing:
+            return {}  # curves keep the layout's uniform row gap
         for edge, src, dst in valid:
             d = curve(cross_of(src), start_of(src), cross_of(dst), visual_top(dst))
             draw_edge(edge, d, edge.color or default_color)
             add_label(edge, (cross_of(src) + cross_of(dst)) / 2, (start_of(src) + visual_top(dst)) / 2)
-        return
+        return None
 
     # ---- Pass 1: per-parent groups, split into plumbable drops vs cross-links
     groups = []
@@ -468,6 +486,23 @@ def _paint_edges(
                 record["level"] = len(levels) - 1
         for record in bucket:
             record["bus"] = band_start + (record["level"] + 1) * (band_end - band_start) / (len(levels) + 1)
+
+    if sizing:
+        # Clearance each child row needs from the row above: room for the
+        # rail track levels running through that band (stagger count is
+        # purely cross-axis, so respacing rows cannot change it), plus a
+        # little extra when drops carry labels.
+        requirements: dict[float, float] = {}
+        for row_key, bucket in buckets.items():
+            track_count = max(record.get("level", 0) for record in bucket) + 1
+            labeled = any(
+                edge.label
+                for record in bucket
+                for edge, _ in (record.get("plumbed") or []) + (record.get("members") or [])
+            )
+            need = 12.0 + 16.0 * track_count + 16.0 + (10.0 if labeled else 0.0)
+            requirements[row_key] = max(requirements.get(row_key, 0.0), need)
+        return requirements
 
     # ---- Pass 5: draw fan-out plumbing and cross-links
     for record in groups:
@@ -603,6 +638,38 @@ def _paint_edges(
             add_label(edge, member_cross, (start_of(member) + bus) / 2)
 
 
+_MIN_ROW_GAP = 36.0  # bands with no rail tracks: just a trunk + arrowhead
+
+
+def _respace_rows(scene: Scene, requirements: dict[float, float], horizontal: bool) -> None:
+    """Resize the gap between rows to what their edge bands actually need.
+
+    The layout spaces rows uniformly with the theme's v_gap, sized for the
+    worst case; most bands hold a single track or none (plain chains), so
+    uniform spacing makes tall diagrams. Requirements are keyed by the
+    child row's leading edge as produced by the layout.
+    """
+    rows: dict[float, list] = {}
+    for node in scene.nodes:
+        top = (node.x - node.width / 2) if horizontal else (node.y - node.height / 2)
+        rows.setdefault(round(top, 1), []).append(node)
+
+    prev_bottom = None
+    for row_top in sorted(rows):
+        row_nodes = rows[row_top]
+        new_top = row_top if prev_bottom is None else prev_bottom + requirements.get(row_top, _MIN_ROW_GAP)
+        delta = new_top - row_top
+        row_size = 0.0
+        for node in row_nodes:
+            if horizontal:
+                node.x += delta
+                row_size = max(row_size, node.width)
+            else:
+                node.y += delta
+                row_size = max(row_size, node.height)
+        prev_bottom = new_top + row_size
+
+
 def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str, Any]) -> str:
     """Lay out and paint a scene; returns SVG text."""
     layout_cfg = theme["layout"]
@@ -633,6 +700,12 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
             f"{{ stroke-width: {shapes.fmt(float(card_cfg['border_width']) + 1.2)}; }}"
         )
     canvas.set_css("\n".join(css))
+
+    # Tighten row gaps to what each edge band actually needs (must happen
+    # before the canvas is sized from the scene bounds)
+    requirements = _paint_edges(scene, canvas, edge_cfg, horizontal, sizing=True)
+    if requirements is not None:
+        _respace_rows(scene, requirements, horizontal)
 
     # Page background sized to content + padding
     pad = float(page["padding"])
@@ -688,6 +761,13 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
                     shadow_url,
                 )
             )
+        elif node.shape == "chamfer":
+            cut = min(12.0, node.height / 3)
+            node_group.append(
+                shapes.chamfer_card(
+                    x, y, node.width, node.height, cut, fill, border, float(card_cfg["border_width"]), shadow_url
+                )
+            )
         elif node.shape != "plain":
             radius = node.height / 2 if node.shape == "pill" else float(card_cfg["radius"])
             node_group.append(
@@ -734,6 +814,33 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
                     text_color=theme["badges"]["text"],
                     size=badge_size,
                     ring=page["background"],
+                ),
+            )
+
+        # AND/OR gate chip docked bottom-center, where the trunk leaves the
+        # node - states how this node's children combine
+        if node.gate and theme["badges"]["gate"]:
+            gate_size = size * 0.68
+            gate_w = metrics.measure_text(node.gate, font["family"], gate_size, bold=True)
+            if node.image_href:
+                # Icon nodes have no card border to straddle; drop the chip
+                # a touch so its ring clears the label descenders.
+                content_h = float(theme["images"]["size"]) + _IMAGE_TEXT_GAP + text_h
+                gate_y = node.y + content_h / 2 + 3
+            else:
+                gate_y = y + node.height
+            canvas.add(
+                "badges",
+                shapes.badge(
+                    node.x,
+                    gate_y,
+                    node.gate,
+                    gate_w,
+                    fill=theme["badges"]["fill"],
+                    text_color=theme["badges"]["text"],
+                    size=gate_size,
+                    ring=page["background"],
+                    variant="gate",
                 ),
             )
 

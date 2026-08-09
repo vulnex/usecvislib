@@ -89,6 +89,41 @@ def diamond(
     return ET.Element("polygon", attrs)
 
 
+def chamfer_card(
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    cut: float,
+    fill: str,
+    stroke: str,
+    stroke_width: float,
+    filter_url: str = "",
+) -> ET.Element:
+    """Cut-corner (chamfered) node body - the octagon family's card variant.
+
+    Keeps goal/outcome nodes (Graphviz octagon/doubleoctagon/hexagon)
+    visually distinct from regular rounded cards without leaving the
+    card aesthetic.
+    """
+    points = (
+        f"{fmt(x + cut)},{fmt(y)} {fmt(x + width - cut)},{fmt(y)} "
+        f"{fmt(x + width)},{fmt(y + cut)} {fmt(x + width)},{fmt(y + height - cut)} "
+        f"{fmt(x + width - cut)},{fmt(y + height)} {fmt(x + cut)},{fmt(y + height)} "
+        f"{fmt(x)},{fmt(y + height - cut)} {fmt(x)},{fmt(y + cut)}"
+    )
+    attrs = {
+        "points": points,
+        "fill": fill,
+        "stroke": stroke,
+        "stroke-width": fmt(stroke_width),
+        "stroke-linejoin": "round",
+    }
+    if filter_url:
+        attrs["filter"] = filter_url
+    return ET.Element("polygon", attrs)
+
+
 def text_lines(
     cx: float,
     top_y: float,
@@ -128,16 +163,18 @@ def badge(
     text_color: str,
     size: float,
     ring: str = "",
+    variant: str = "cvss",
 ) -> ET.Element:
     """Small pill badge (e.g. a CVSS score) centered at (center_x, center_y).
 
     ``ring`` draws a cutout stroke in the page background color, so a badge
-    docked on a card corner reads as a floating chip.
+    docked on a card corner reads as a floating chip. ``variant`` names the
+    badge kind in its CSS class (cvss score chip, AND/OR gate chip, ...).
     """
     pad = size * 0.55
     height = size * 1.6
     width = label_width + 2 * pad
-    g = ET.Element("g", {"class": "usv-badge usv-badge--cvss", "data-value": label})
+    g = ET.Element("g", {"class": f"usv-badge usv-badge--{variant}", "data-value": label})
     rect_attrs = {
         "x": fmt(center_x - width / 2),
         "y": fmt(center_y - height / 2),
