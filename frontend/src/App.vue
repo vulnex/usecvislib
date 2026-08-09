@@ -105,6 +105,7 @@ import CustomDiagramPanel from './components/CustomDiagramPanel.vue'
 import MermaidDiagramPanel from './components/MermaidDiagramPanel.vue'
 import CloudDiagramPanel from './components/CloudDiagramPanel.vue'
 import PrivilegeGradientPanel from './components/PrivilegeGradientPanel.vue'
+import KillChainPanel from './components/KillChainPanel.vue'
 import ArchitecturePanel from './components/ArchitecturePanel.vue'
 import ThreatModelsPanel from './components/ThreatModelsPanel.vue'
 import DocumentationPanel from './components/DocumentationPanel.vue'
@@ -124,7 +125,8 @@ const styles = ref({
   attack_graph: [],
   threat_model: [],
   custom_diagram: [],
-  binary_visualization: []
+  binary_visualization: [],
+  kill_chain: []
 })
 const formats = ref([])
 const engines = ref([
@@ -141,6 +143,7 @@ const primaryTabs = [
   { id: 'attack-tree', name: 'Attack Trees', icon: '🌳' },
   { id: 'attack-graph', name: 'Attack Graphs', icon: '🕸️' },
   { id: 'threat-model', name: 'Threat Modeling', icon: '🔍' },
+  { id: 'kill-chain', name: 'Kill Chain', icon: '⛓️' },
   { id: 'custom-diagram', name: 'Custom Diagrams', icon: '🎨' },
   { id: 'mermaid', name: 'Mermaid', icon: '🧜' },
   { id: 'cloud', name: 'Cloud', icon: '☁️' },
@@ -188,6 +191,7 @@ const componentMap = {
   'attack-tree': AttackTreePanel,
   'attack-graph': AttackGraphPanel,
   'threat-model': ThreatModelsPanel,
+  'kill-chain': KillChainPanel,
   'custom-diagram': CustomDiagramPanel,
   'mermaid': MermaidDiagramPanel,
   'cloud': CloudDiagramPanel,
@@ -235,6 +239,12 @@ const currentProps = computed(() => {
         styles: styles.value.threat_model || [],
         formats: formats.value,
         engines: engines.value
+      }
+    case 'kill-chain':
+      return {
+        ...baseProps,
+        styles: styles.value.kill_chain || [],
+        formats: formats.value
       }
     case 'custom-diagram':
       return {

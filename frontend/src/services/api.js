@@ -188,6 +188,50 @@ export async function validateAttackTree(file) {
 }
 
 /**
+ * Generate kill chain / MITRE ATT&CK visualization
+ */
+export async function visualizeKillChain(file, format = 'png', style = 'kc_default', renderEngine = 'graphviz') {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post(
+    `/visualize/kill-chain?format=${format}&style=${style}&render_engine=${renderEngine}`,
+    formData,
+    {
+      responseType: 'blob',
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }
+  )
+  return response.data
+}
+
+/**
+ * Analyze kill chain coverage
+ */
+export async function analyzeKillChain(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/analyze/kill-chain', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Validate kill chain structure
+ */
+export async function validateKillChain(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/validate/kill-chain', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
  * Generate threat model visualization
  */
 export async function visualizeThreatModel(file, format = 'png', style = 'tm_default', engine = 'usecvislib') {
@@ -363,6 +407,35 @@ export async function analyzeAttackTreeFromContent(content, configFormat = 'toml
 export async function validateAttackTreeFromContent(content, configFormat = 'toml') {
   const file = createFileFromContent(content, 'attack_tree', configFormat)
   return validateAttackTree(file)
+}
+
+/**
+ * Generate kill chain visualization from text content
+ * @param {string} content - Configuration content
+ * @param {string} outputFormat - Output format (png, svg, pdf)
+ * @param {string} style - Style preset
+ * @param {string} configFormat - Configuration format (toml, json, yaml)
+ * @param {string} renderEngine - Rendering engine (graphviz, svg)
+ */
+export async function visualizeKillChainFromContent(content, outputFormat = 'png', style = 'kc_default', configFormat = 'toml', renderEngine = 'graphviz') {
+  const file = createFileFromContent(content, 'kill_chain', configFormat)
+  return visualizeKillChain(file, outputFormat, style, renderEngine)
+}
+
+/**
+ * Analyze kill chain from text content
+ */
+export async function analyzeKillChainFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'kill_chain', configFormat)
+  return analyzeKillChain(file)
+}
+
+/**
+ * Validate kill chain from text content
+ */
+export async function validateKillChainFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'kill_chain', configFormat)
+  return validateKillChain(file)
 }
 
 /**

@@ -70,6 +70,7 @@ from ..schemas import (
     ExportFormat,
     ExportResponse,
     HealthResponse,
+    KillChainStyle,
     OutputFormat,
     PrivilegeGradientStyle,
     ReportFormat,
@@ -159,6 +160,7 @@ async def get_available_styles(request: Request):
         "custom_diagram": [s.value for s in CustomDiagramStyle],
         "binary_visualization": [s.value for s in BinVisStyle],
         "privilege_gradient": [s.value for s in PrivilegeGradientStyle],
+        "kill_chain": [s.value for s in KillChainStyle],
     }
 
 

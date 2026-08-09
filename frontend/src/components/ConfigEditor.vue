@@ -86,7 +86,7 @@ const props = defineProps({
   validationType: {
     type: String,
     default: 'syntax',
-    validator: (v) => ['syntax', 'attack-tree', 'threat-model'].includes(v)
+    validator: (v) => ['syntax', 'attack-tree', 'threat-model', 'kill-chain'].includes(v)
   },
   readOnly: { type: Boolean, default: false },
   minHeight: { type: String, default: '300px' },

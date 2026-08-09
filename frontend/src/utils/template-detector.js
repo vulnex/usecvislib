@@ -27,6 +27,7 @@ export const TemplateType = {
   PRIVILEGE_GRADIENT: 'privilege-gradient',
   COMPONENT_DIAGRAM: 'component-diagram',
   DEPENDENCY_GRAPH: 'dependency-graph',
+  KILL_CHAIN: 'kill-chain',
   UNKNOWN: 'unknown'
 }
 
@@ -41,6 +42,7 @@ export const TemplateTypeNames = {
   [TemplateType.PRIVILEGE_GRADIENT]: 'Privilege Gradient',
   [TemplateType.COMPONENT_DIAGRAM]: 'Component Diagram',
   [TemplateType.DEPENDENCY_GRAPH]: 'Dependency Graph',
+  [TemplateType.KILL_CHAIN]: 'Kill Chain',
   [TemplateType.UNKNOWN]: 'Unknown'
 }
 
@@ -55,6 +57,7 @@ export const TemplateTypePanels = {
   [TemplateType.PRIVILEGE_GRADIENT]: 'Privilege Gradient',
   [TemplateType.COMPONENT_DIAGRAM]: 'Architecture',
   [TemplateType.DEPENDENCY_GRAPH]: 'Architecture',
+  [TemplateType.KILL_CHAIN]: 'Kill Chain',
   [TemplateType.UNKNOWN]: null
 }
 
@@ -118,6 +121,11 @@ function detectFormat(content) {
  * @param {object} obj - Parsed configuration object
  * @returns {boolean}
  */
+function isKillChain(obj) {
+  // Kill chains have a [killchain] section and a [techniques] table
+  return Boolean(obj.killchain && obj.techniques)
+}
+
 function isAttackTree(obj) {
   // Must have tree section with root
   if (obj.tree && obj.tree.root) {
@@ -290,6 +298,11 @@ export function detectTemplateType(content, format = null) {
   // Privilege Gradient is very specific (has gradient, zones, components)
   if (isPrivilegeGradient(obj)) {
     return { type: TemplateType.PRIVILEGE_GRADIENT, confidence: 'high', detectedFormat }
+  }
+
+  // Kill Chain is very specific (has killchain + techniques)
+  if (isKillChain(obj)) {
+    return { type: TemplateType.KILL_CHAIN, confidence: 'high', detectedFormat }
   }
 
   // Attack Graph is most specific (has unique fields like hosts, vulnerabilities)
