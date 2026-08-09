@@ -163,13 +163,27 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
                     label = f"{label}\n(CVSS: {score} - {severity_label}){marker}"
 
         size = font["root_size"] if kind == "root" else font["size"]
-        lines = metrics.wrap_text(label, font["family"], size, card_cfg["max_label_width"])
-        text_w, text_h = metrics.measure_block(lines, font["family"], size)
+        bold = kind == "root"
+        lines = metrics.wrap_text(label, font["family"], size, card_cfg["max_label_width"], bold=bold)
+        text_w, text_h = metrics.measure_block(lines, font["family"], size, bold=bold)
+        if bold:
+            # Rasterizers draw the real bold face slightly wider than the
+            # measured fallback font; guard so titles keep their padding.
+            text_w *= 1.04
         img_size = float(theme["images"]["size"]) if image_href else 0.0
-        width = max(card_cfg["min_width"], text_w + 2 * card_cfg["padding_x"], img_size + 2 * card_cfg["padding_x"])
-        height = text_h + 2 * card_cfg["padding_y"]
+        # Padding scales with the font (the root's larger, bolder title
+        # needs proportionally more breathing room than a 13px node label).
+        pad_x = card_cfg["padding_x"] * size / font["size"]
+        pad_y = card_cfg["padding_y"] * size / font["size"]
+        width = max(card_cfg["min_width"], text_w + 2 * pad_x, img_size + 2 * pad_x)
+        height = text_h + 2 * pad_y
         if image_href:
             height += img_size + _IMAGE_TEXT_GAP
+        shape = "plain" if image_href else _node_shape(attrs.get("shape", ""), name)
+        if shape == "pill":
+            # Pill end-caps (radius = height/2) curve into the padding zone;
+            # widen so the text stays clear of the rounded ends.
+            width = max(width, text_w + height)
 
         node_data = {"node-id": utils.sanitize_node_id(name), "label": name}
         if score is not None:
@@ -183,7 +197,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
                 lines=lines,
                 width=width,
                 height=height,
-                shape="plain" if image_href else _node_shape(attrs.get("shape", ""), name),
+                shape=shape,
                 inset_top=float(card_cfg["padding_y"]) if image_href else 0.0,
                 fill=fill,
                 border=border,
@@ -700,7 +714,7 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
         if node.cvss is not None and theme["badges"]["cvss"]:
             badge_size = size * 0.78
             badge_label = str(node.cvss)
-            badge_w = metrics.measure_text(badge_label, font["family"], badge_size)
+            badge_w = metrics.measure_text(badge_label, font["family"], badge_size, bold=True)
             if node.image_href:
                 img_size = float(theme["images"]["size"])
                 content_h = img_size + _IMAGE_TEXT_GAP + len(node.lines) * size * metrics.LINE_HEIGHT

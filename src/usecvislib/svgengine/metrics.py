@@ -41,13 +41,15 @@ def _font_families(family: str) -> tuple[str, ...]:
 
 
 @lru_cache(maxsize=8192)
-def measure_text(text: str, family: str, size: float) -> float:
+def measure_text(text: str, family: str, size: float, bold: bool = False) -> float:
     """Measure the rendered width of a single line of text.
 
     Args:
         text: The text to measure (single line, no newlines).
         family: CSS-style font stack, e.g. "Helvetica, Arial, sans-serif".
         size: Font size in SVG user units (px).
+        bold: Measure the bold weight. Text drawn bold but measured
+            regular under-reports by ~5-8%, eating the card padding.
 
     Returns:
         Width in SVG user units.
@@ -58,7 +60,7 @@ def measure_text(text: str, family: str, size: float) -> float:
     from matplotlib.font_manager import FontProperties
     from matplotlib.textpath import TextPath
 
-    prop = FontProperties(family=list(_font_families(family)), size=size)
+    prop = FontProperties(family=list(_font_families(family)), size=size, weight="bold" if bold else "normal")
     # findfont logs a warning per missing family in the stack; falling back
     # through the stack (ultimately to DejaVu) is intended, so silence it.
     findfont_logger = logging.getLogger("matplotlib.font_manager")
@@ -71,7 +73,7 @@ def measure_text(text: str, family: str, size: float) -> float:
     return float(path.get_extents().width)
 
 
-def wrap_text(text: str, family: str, size: float, max_width: float) -> list[str]:
+def wrap_text(text: str, family: str, size: float, max_width: float, bold: bool = False) -> list[str]:
     """Greedy word-wrap of text against a maximum line width.
 
     Explicit newlines (both ``\\n`` escapes and literal newlines) are
@@ -90,7 +92,7 @@ def wrap_text(text: str, family: str, size: float, max_width: float) -> list[str
         current = words[0]
         for word in words[1:]:
             candidate = f"{current} {word}"
-            if measure_text(candidate, family, size) <= max_width:
+            if measure_text(candidate, family, size, bold) <= max_width:
                 current = candidate
             else:
                 lines.append(current)
@@ -99,13 +101,13 @@ def wrap_text(text: str, family: str, size: float, max_width: float) -> list[str
     return lines or [""]
 
 
-def measure_block(lines: list[str], family: str, size: float) -> tuple[float, float]:
+def measure_block(lines: list[str], family: str, size: float, bold: bool = False) -> tuple[float, float]:
     """Measure the bounding box of a block of wrapped lines.
 
     Returns:
         (width, height) in SVG user units. Height uses the engine line
         height rather than glyph extents, for cross-font stability.
     """
-    width = max((measure_text(line, family, size) for line in lines), default=0.0)
+    width = max((measure_text(line, family, size, bold) for line in lines), default=0.0)
     height = len(lines) * size * LINE_HEIGHT
     return (width, height)
