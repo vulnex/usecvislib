@@ -41,7 +41,7 @@ DEFAULTS: dict[str, Any] = {
     "title": {"show": True, "size": 15},
     "node": {"fill": "#3d5a80", "border": "#1e3a5f", "text": "#ffffff"},
     "root": {"fill": "#1e3a5f", "border": "#0d1b2a", "text": "#ffffff"},
-    "edge": {"color": "#94a3b8", "width": 1.6, "routing": "ortho"},
+    "edge": {"color": "#94a3b8", "width": 1.6, "routing": "ortho", "label_size": 10, "label_color": "#64748b"},
     "effects": {"shadow": True, "shadow_blur": 2.2, "hover_glow": True},
     "severity": {"use_cvss_colors": True},
     "badges": {"cvss": True, "fill": "#0f172a", "text": "#ffffff"},

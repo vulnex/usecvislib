@@ -70,6 +70,7 @@ class SceneEdge:
     kind: str = "edge"
     color: Optional[str] = None
     dashed: bool = False
+    label: Optional[str] = None
     points: list[tuple[float, float]] = field(default_factory=list)
 
 

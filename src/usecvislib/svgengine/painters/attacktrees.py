@@ -207,6 +207,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
                     dst=child["to"],
                     color=str(child["color"]) if child.get("color") else None,
                     dashed="dashed" in str(child.get("style", "")).lower(),
+                    label=str(child["label"]) if child.get("label") else None,
                 )
             )
 
@@ -224,7 +225,9 @@ def _edge_endpoints(src, dst, horizontal: bool) -> tuple[float, float, float, fl
     return (src.x, src.y + src.height / 2, dst.x, dst.y - dst.height / 2 + dst.inset_top)
 
 
-def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], horizontal: bool) -> None:
+def _paint_edges(
+    scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], horizontal: bool, page_bg: str = ""
+) -> None:
     """Paint edges as trunk + rail + drops plumbing (ortho) or fan-out curves.
 
     Overlapping full parent->child paths superimpose into junction artifacts,
@@ -251,6 +254,8 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], hori
     """
     width = float(edge_cfg["width"])
     default_color = edge_cfg["color"]
+    label_size = float(edge_cfg["label_size"])
+    label_color = edge_cfg["label_color"]
     corner = 10.0
     stagger_margin = 18.0  # min horizontal clearance before rails must split levels
 
@@ -259,6 +264,13 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], hori
         marker = canvas.arrow_marker(color) if arrow else ""
         edge_group.append(shapes.edge_path(d, color, width, dashed=edge.dashed, marker_url=marker))
         canvas.add("edges", edge_group)
+
+    def add_label(edge, cross: float, main: float) -> None:
+        """Label an edge at (cross, main) - Graphviz renders edge label= too."""
+        if not edge.label:
+            return
+        x, y = (main, cross) if horizontal else (cross, main)
+        canvas.add("labels", shapes.edge_label(x, y, str(edge.label), label_size, label_color, page_bg))
 
     def start_of(node) -> float:
         return (node.x + node.width / 2) if horizontal else (node.y + node.height / 2)
@@ -340,6 +352,7 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], hori
         for edge, src, dst in valid:
             d = curve(cross_of(src), start_of(src), cross_of(dst), visual_top(dst))
             draw_edge(edge, d, edge.color or default_color)
+            add_label(edge, (cross_of(src) + cross_of(dst)) / 2, (start_of(src) + visual_top(dst)) / 2)
         return
 
     # ---- Pass 1: per-parent groups, split into plumbable drops vs cross-links
@@ -356,53 +369,41 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], hori
         else:
             record["others"].append((edge, dst))
 
-    # ---- Pass 2: extract merge rails (>=2 single-child parents on one sink)
-    single_by_sink: dict[str, list] = {}
+    # ---- Pass 2: merge rails - one collector per sink fed by >=2 plumbed
+    # parents. Covers single-child parents AND multi-child parents whose
+    # child sets overlap: without the latter, N parents sharing the same two
+    # sinks each draw a private full-span rail (N stacked parallel lines)
+    # and every sink collects N arrowheads on its top edge. A collector
+    # rail per sink keeps it to one line and one arrow.
+    arrivals_by_sink: dict[str, list] = {}
     for record in groups:
-        if len(record["plumbed"]) == 1:
-            single_by_sink.setdefault(record["plumbed"][0][1].id, []).append(record)
+        for edge, dst in record["plumbed"]:
+            arrivals_by_sink.setdefault(dst.id, []).append((edge, record, dst))
     merges = []
-    for _sink_id, sink_records in single_by_sink.items():
-        if len(sink_records) < 2:
+    for _sink_id, arrivals in arrivals_by_sink.items():
+        if len(arrivals) < 2:
             continue
-        sink = sink_records[0]["plumbed"][0][1]
+        sink = arrivals[0][2]
         members = []
-        for record in sink_records:
-            edge, _ = record["plumbed"].pop()
+        for edge, record, _ in arrivals:
+            record["plumbed"] = [(e, d) for e, d in record["plumbed"] if e is not edge]
             members.append((edge, record["src"]))
         members.sort(key=lambda m: cross_of(m[1]))
         merges.append({"sink": sink, "members": members})
 
-    # ---- Pass 3: drop x-slots for remaining multi-parent children
-    incoming: dict[str, list] = {}
-    for record in groups:
-        for edge, dst in record["plumbed"]:
-            incoming.setdefault(dst.id, []).append((cross_of(record["src"]), edge, dst))
+    # ---- Pass 3: drop positions - every remaining plumbed sink has exactly
+    # one arrival (multi-arrival sinks were extracted into merge rails).
+    # Drops that land almost under their trunk snap onto the trunk line.
     drop_crosses: dict[int, float] = {}
-    for _dst_id, arrivals in incoming.items():
-        if len(arrivals) == 1:
-            drop_crosses[id(arrivals[0][1])] = cross_of(arrivals[0][2])
-            continue
-        arrivals.sort(key=lambda a: a[0])
-        dst = arrivals[0][2]
-        extent = dst.height if horizontal else dst.width
-        spacing = min(22.0, extent / (len(arrivals) + 1))
-        for slot, (_, edge, _) in enumerate(arrivals):
-            drop_crosses[id(edge)] = cross_of(dst) + (slot - (len(arrivals) - 1) / 2) * spacing
-
-    # Snap single-incoming drops that land almost under their trunk.
     for record in groups:
         src_cross = cross_of(record["src"])
-        best = None
         for edge, dst in record["plumbed"]:
-            if len(incoming.get(dst.id, [])) != 1:
-                continue
-            offset = abs(drop_crosses[id(edge)] - src_cross)
+            cross = cross_of(dst)
+            offset = abs(cross - src_cross)
             limit = min(24.0, (dst.height if horizontal else dst.width) / 4)
-            if 0.01 < offset <= limit and (best is None or offset < best[1]):
-                best = (edge, offset)
-        if best:
-            drop_crosses[id(best[0])] = src_cross
+            if 0.01 < offset <= limit:
+                cross = src_cross
+            drop_crosses[id(edge)] = cross
 
     # ---- Pass 4: rail heights - stagger overlapping rails in each row gap
     rail_records = []
@@ -466,6 +467,7 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], hori
             if m2 > src_end:
                 mid = bus if bus is not None and src_end < bus < m2 else None
                 draw_edge(edge, ortho(src_cross, src_end, c2, m2, mid), color)
+                add_label(edge, c2, ((mid if mid is not None else (src_end + m2) / 2) + m2) / 2)
             elif start_of(dst) > bbox_top(src):
                 # Lateral (same-row) cross-link: arc below the row into the
                 # target's bottom edge - a straight diagonal would slice
@@ -487,8 +489,11 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], hori
                         f"{shapes.fmt(c2)} {shapes.fmt(dst_end)}"
                     )
                 draw_edge(edge, d, color)
+                # Bezier midpoint of the arc (t=0.5) with both controls at dip
+                add_label(edge, (src_cross + c2) / 2, 0.125 * (src_end + dst_end) + 0.75 * dip)
             else:
                 draw_edge(edge, curve(src_cross, src_end, c2, m2), color)
+                add_label(edge, (src_cross + c2) / 2, (src_end + m2) / 2)
 
         plumbed = record["plumbed"]
         if not plumbed or bus is None:
@@ -496,20 +501,47 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], hori
         if len(plumbed) == 1:
             edge, dst = plumbed[0]
             draw_edge(edge, ortho(src_cross, src_end, drop_crosses[id(edge)], visual_top(dst), bus), default_color)
+            add_label(edge, drop_crosses[id(edge)], (bus + visual_top(dst)) / 2)
             continue
 
         lo, hi = record["lo"], record["hi"]
-        r = max(0.0, min(corner, (hi - lo) / 2, record["nearest"] - bus))
+        r = max(0.0, min(corner, (hi - lo) / 2, record["nearest"] - bus, bus - record["parents_end"]))
+        drop_ends = {round(drop_crosses[id(e)], 2) for e, _ in plumbed}
+
+        # End radii: turn down (+r) toward a drop, up (-r) where the rail
+        # ends at the parent trunk (which arrives from above - a downward
+        # cap there dangles into empty space), square (0) when a snapped
+        # drop continues straight through the trunk end.
+        radii = []
+        for end in (lo, hi):
+            at_trunk = abs(end - src_cross) < 0.01
+            at_drop = round(end, 2) in drop_ends
+            if at_trunk and at_drop:
+                radii.append(0.0)
+            elif at_trunk:
+                radii.append(-r)
+            else:
+                radii.append(r)
+
+        trunk_end = bus
+        if (abs(lo - src_cross) < 0.01 or abs(hi - src_cross) < 0.01) and round(src_cross, 2) not in drop_ends:
+            trunk_end = bus - r  # meets the upward-turning rail corner
+
         rail_group = shapes.group(["usv-rail"], {"from": plumbed[0][0].src})
-        rail_group.append(shapes.edge_path(rail_path(lo, hi, bus, r, r), default_color, width))
-        rail_group.append(shapes.edge_path(line(src_cross, src_end, src_cross, bus), default_color, width))
+        rail_group.append(shapes.edge_path(rail_path(lo, hi, bus, radii[0], radii[1]), default_color, width))
+        rail_group.append(shapes.edge_path(line(src_cross, src_end, src_cross, trunk_end), default_color, width))
         canvas.add("edges", rail_group)
 
-        rounded_ends = (round(lo, 2), round(hi, 2))
         for edge, dst in plumbed:
             cross = drop_crosses[id(edge)]
-            start = bus + r if round(cross, 2) in rounded_ends else bus
+            end_r = 0.0
+            if abs(cross - lo) < 0.01:
+                end_r = radii[0]
+            elif abs(cross - hi) < 0.01:
+                end_r = radii[1]
+            start = bus + r if end_r > 0 else bus
             draw_edge(edge, line(cross, start, cross, visual_top(dst)), default_color)
+            add_label(edge, cross, (bus + visual_top(dst)) / 2)
 
     # ---- Pass 6: draw merge rails
     for merge in merges:
@@ -554,6 +586,7 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, edge_cfg: dict[str, Any], hori
             if at_end and abs(member_cross - stem) > 0.01:
                 trunk_end = bus - r  # meets the upward-turning rail corner
             draw_edge(edge, line(member_cross, start_of(member), member_cross, trunk_end), default_color, arrow=False)
+            add_label(edge, member_cross, (start_of(member) + bus) / 2)
 
 
 def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str, Any]) -> str:
@@ -607,7 +640,7 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
             shapes.title_text(min_x + pad * 0.5, min_y + pad * 0.55, title, float(title_cfg["size"]), page["text"]),
         )
 
-    _paint_edges(scene, canvas, edge_cfg, horizontal)
+    _paint_edges(scene, canvas, edge_cfg, horizontal, page_bg=page["background"])
 
     # Nodes: card/pill/diamond/plain body + centered label block
     for node in scene.nodes:

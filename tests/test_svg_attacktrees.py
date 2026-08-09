@@ -212,3 +212,71 @@ class TestImageNodes:
         content = _render(str(broken), tmp_path, name="broken")
         assert "data:image/" not in content  # icon skipped, node still rendered
         assert "Pick Lock" in content
+
+
+class TestDagRoutingAndLayout:
+    """Collector rails, barycenter placement, chain alignment, edge labels."""
+
+    INSIDER = str(TESTS_DIR.parent / "templates" / "attack-trees" / "insider_threat.tml")
+    RANSOMWARE = str(TESTS_DIR.parent / "templates" / "attack-trees" / "ransomware_attack.tml")
+    NETINFRA = str(TESTS_DIR.parent / "templates" / "attack-trees" / "network_infrastructure_with_icons.toml")
+
+    @staticmethod
+    def _node_centers(root) -> dict:
+        centers = {}
+        for g in root.iter(f"{SVG_NS}g"):
+            if "usv-node" not in g.get("class", "").split():
+                continue
+            rect = g.find(f"{SVG_NS}rect")
+            if rect is not None:
+                centers[g.get("data-label")] = float(rect.get("x")) + float(rect.get("width")) / 2
+        return centers
+
+    def test_one_collector_rail_and_one_arrow_per_sink(self, tmp_path):
+        root = ET.fromstring(_render(self.INSIDER, tmp_path))
+        merges = [g for g in root.iter(f"{SVG_NS}g") if "usv-rail--merge" in g.get("class", "").split()]
+        assert sorted(g.get("data-to") for g in merges) == [
+            "Business Disruption",
+            "Competitor Advantage",
+            "Sell Data",
+        ]
+        for g in merges:
+            arrowed = [p for p in g.iter(f"{SVG_NS}path") if p.get("marker-end")]
+            assert len(arrowed) == 1, "each sink gets exactly one arrowed stem"
+        # Parents whose children all feed shared sinks must not keep private
+        # per-parent rails (the old behavior stacked four parallel rails)
+        plain_rails = {g.get("data-from") for g in root.iter(f"{SVG_NS}g") if g.get("class") == "usv-rail"}
+        assert plain_rails.isdisjoint({"Copy to USB", "Email to Personal", "Cloud Upload", "Screenshot/Photo"})
+
+    def test_multi_parent_sinks_sit_at_parent_barycenter(self, tmp_path):
+        from usecvislib import utils
+
+        data = utils.ReadConfigFile(self.INSIDER)
+        parents: dict = {}
+        for parent, kids in data["edges"].items():
+            for kid in kids:
+                parents.setdefault(kid["to"], []).append(parent)
+        centers = self._node_centers(ET.fromstring(_render(self.INSIDER, tmp_path)))
+        for sink, sink_parents in parents.items():
+            if len(sink_parents) < 2:
+                continue
+            bary = sum(centers[p] for p in sink_parents) / len(sink_parents)
+            assert abs(centers[sink] - bary) < 1.0, f"{sink} not centered under its parents"
+
+    def test_single_child_chain_stays_straight(self, tmp_path):
+        centers = self._node_centers(ET.fromstring(_render(self.RANSOMWARE, tmp_path)))
+        assert abs(centers["Deploy Ransomware"] - centers["Initial Access"]) < 0.01
+        spine = [centers[n] for n in ("Execution", "Lateral Movement", "Data Exfiltration", "Encrypt Files")]
+        assert max(spine) - min(spine) < 0.01
+
+    def test_edge_labels_rendered_with_halo(self, tmp_path):
+        root = ET.fromstring(_render(self.NETINFRA, tmp_path))
+        labels = [g for g in root.iter(f"{SVG_NS}g") if g.get("class") == "usv-edge-label"]
+        assert len(labels) == 10  # 3x OR + 7 severity labels in the template
+        seen = []
+        for g in labels:
+            texts = list(g.iter(f"{SVG_NS}text"))
+            # Halo copy under the fill copy (paint-order is not portable)
+            assert len(texts) == 2 and texts[0].text == texts[1].text
+            seen.append(texts[1].text)
+        assert sorted(seen) == ["CRITICAL", "CRITICAL", "HIGH", "HIGH", "HIGH", "HIGH", "MEDIUM", "OR", "OR", "OR"]

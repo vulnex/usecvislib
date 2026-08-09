@@ -166,6 +166,43 @@ def badge(
     return g
 
 
+def edge_label(x: float, y: float, text: str, size: float, fill: str, halo: str) -> ET.Element:
+    """Small edge annotation centered on the line it labels.
+
+    ``halo`` (the page background color) is painted as a stroked copy of
+    the text UNDER the filled copy, so the label stays readable where it
+    sits on an edge stroke. Two elements, not paint-order="stroke": the
+    cairosvg rasterizer ignores paint-order and would stroke over the
+    fill, leaving an invisible page-colored blob that breaks the line.
+    """
+    g = ET.Element("g", {"class": "usv-edge-label"})
+    base = {
+        "x": fmt(x),
+        "y": fmt(y + size * 0.36),
+        "text-anchor": "middle",
+        "font-size": fmt(size),
+        "font-weight": "600",
+        "letter-spacing": "0.3",
+    }
+    if halo:
+        halo_attrs = dict(base)
+        halo_attrs.update(
+            {
+                "fill": halo,
+                "stroke": halo,
+                "stroke-width": fmt(size * 0.32),
+                "stroke-linejoin": "round",
+            }
+        )
+        halo_text = ET.Element("text", halo_attrs)
+        halo_text.text = text
+        g.append(halo_text)
+    element = ET.Element("text", dict(base, fill=fill))
+    element.text = text
+    g.append(element)
+    return g
+
+
 def title_text(x: float, baseline_y: float, text: str, size: float, fill: str) -> ET.Element:
     """Muted diagram title, left-anchored."""
     element = ET.Element(
