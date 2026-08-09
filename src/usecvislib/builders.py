@@ -43,6 +43,7 @@ if TYPE_CHECKING:
     from .attacktrees import AttackTrees
     from .componentdiagram import ComponentDiagram
     from .dependencygraph import DependencyGraph
+    from .killchain import KillChain
     from .privilegegradient import PrivilegeGradient
     from .threatmodeling import ThreatModeling
 
@@ -1237,3 +1238,104 @@ class DependencyGraphBuilder:
         dg = DependencyGraph(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
         dg._temp_input = temp_path
         return dg
+
+
+class KillChainBuilder:
+    """Builder for programmatically creating kill chain / ATT&CK models.
+
+    Example:
+        >>> builder = KillChainBuilder("APT Intrusion", framework="kill_chain")
+        >>> builder.add_technique("T1566", "Spearphishing", "Delivery", detected=True)
+        >>> builder.add_incident("INC-1", ["T1566"], name="Campaign")
+        >>> kc = builder.to_kill_chain("output", render_engine="svg")
+    """
+
+    def __init__(self, name: str, framework: str = "kill_chain", phases: Optional[list[str]] = None):
+        """Initialize the builder.
+
+        Args:
+            name: Kill chain name.
+            framework: "kill_chain", "attack", or "custom".
+            phases: Ordered phase list (required for the custom framework).
+        """
+        killchain: dict[str, Any] = {"name": name, "framework": framework}
+        if phases is not None:
+            killchain["phases"] = list(phases)
+        self._data: dict[str, Any] = {"killchain": killchain, "techniques": {}, "incidents": []}
+
+    def add_technique(
+        self,
+        tech_id: str,
+        name: str,
+        phase: str,
+        severity: str = "medium",
+        detected: bool = False,
+        mitigated: bool = False,
+        **attrs: Any,
+    ) -> KillChainBuilder:
+        """Add a technique mapped to a phase.
+
+        Args:
+            tech_id: Technique identifier (e.g. "T1566").
+            name: Human-readable technique name.
+            phase: Phase/tactic this technique belongs to.
+            severity: critical | high | medium | low | none | info.
+            detected: Whether detection coverage exists.
+            mitigated: Whether mitigation coverage exists.
+            **attrs: Extra fields (description, detection, mitigation).
+
+        Returns:
+            Self for method chaining.
+        """
+        self._data["techniques"][tech_id] = {
+            "name": name,
+            "phase": phase,
+            "severity": severity,
+            "detected": detected,
+            "mitigated": mitigated,
+            **attrs,
+        }
+        return self
+
+    def add_incident(
+        self,
+        incident_id: str,
+        techniques: list[str],
+        name: Optional[str] = None,
+        threat_actor: Optional[str] = None,
+        campaign: Optional[str] = None,
+    ) -> KillChainBuilder:
+        """Add an ordered technique path (one incident).
+
+        Returns:
+            Self for method chaining.
+        """
+        incident: dict[str, Any] = {"id": incident_id, "name": name or incident_id, "techniques": list(techniques)}
+        if threat_actor:
+            incident["threat_actor"] = threat_actor
+        if campaign:
+            incident["campaign"] = campaign
+        self._data["incidents"].append(incident)
+        return self
+
+    def build(self) -> dict[str, Any]:
+        """Return the kill chain data as a dictionary."""
+        return self._data.copy()
+
+    def to_json(self, pretty: bool = True) -> str:
+        """Convert to a JSON string."""
+        return json.dumps(self._data, indent=2) if pretty else json.dumps(self._data)
+
+    def to_kill_chain(
+        self, outputfile: str, format: str = "png", styleid: str = "", render_engine: str = "graphviz"
+    ) -> KillChain:
+        """Create a KillChain instance from the builder data."""
+        from .killchain import KillChain
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(self._data, f)
+            temp_path = f.name
+
+        kc = KillChain(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
+        kc._temp_input = temp_path
+        return kc

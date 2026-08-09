@@ -1,0 +1,88 @@
+#
+# VULNEX -Universal Security Visualization Library-
+#
+# Kill Chain template: ransomware campaign mapped to MITRE ATT&CK
+# Enterprise tactics. Framework = "attack" lays techniques out across
+# the 14-tactic axis.
+#
+
+[killchain]
+name = "Ransomware Campaign - MITRE ATT&CK"
+framework = "attack"
+
+[techniques."T1566.001"]
+name = "Spearphishing Attachment"
+phase = "Initial Access"
+severity = "high"
+detected = true
+mitigated = true
+
+[techniques."T1059.001"]
+name = "PowerShell"
+phase = "Execution"
+severity = "high"
+detected = true
+mitigated = false
+
+[techniques."T1547.001"]
+name = "Registry Run Keys"
+phase = "Persistence"
+severity = "medium"
+detected = true
+mitigated = false
+
+[techniques."T1055"]
+name = "Process Injection"
+phase = "Privilege Escalation"
+severity = "high"
+detected = false
+mitigated = false
+
+[techniques."T1562.001"]
+name = "Disable Security Tools"
+phase = "Defense Evasion"
+severity = "critical"
+detected = false
+mitigated = false
+
+[techniques."T1003"]
+name = "OS Credential Dumping"
+phase = "Credential Access"
+severity = "critical"
+detected = true
+mitigated = false
+
+[techniques."T1018"]
+name = "Remote System Discovery"
+phase = "Discovery"
+severity = "low"
+detected = false
+mitigated = false
+
+[techniques."T1021.002"]
+name = "SMB/Windows Admin Shares"
+phase = "Lateral Movement"
+severity = "high"
+detected = true
+mitigated = false
+
+[techniques."T1490"]
+name = "Inhibit System Recovery"
+phase = "Impact"
+severity = "critical"
+detected = false
+mitigated = false
+
+[techniques."T1486"]
+name = "Data Encrypted for Impact"
+phase = "Impact"
+severity = "critical"
+detected = true
+mitigated = false
+
+[[incidents]]
+id = "INC-2026-031"
+name = "LockChain Ransomware"
+threat_actor = "FIN-Locker"
+campaign = "LockChain"
+techniques = ["T1566.001", "T1059.001", "T1055", "T1562.001", "T1003", "T1021.002", "T1486"]

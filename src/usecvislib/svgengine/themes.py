@@ -44,9 +44,11 @@ DEFAULTS: dict[str, Any] = {
     "edge": {"color": "#94a3b8", "width": 1.6, "routing": "ortho", "label_size": 10, "label_color": "#64748b"},
     "effects": {"shadow": True, "shadow_blur": 2.2, "hover_glow": True},
     "severity": {"use_cvss_colors": True},
-    "badges": {"cvss": True, "gate": True, "fill": "#0f172a", "text": "#ffffff"},
+    "badges": {"cvss": True, "gate": True, "coverage": True, "fill": "#0f172a", "text": "#ffffff"},
     "images": {"size": 48},
     "layout": {"h_gap": 40, "v_gap": 76},
+    # Kill Chain (mode 9) swimlane: phase-header and flow-arrow colors.
+    "killchain": {"phase_fill": "#1e3a5f", "phase_text": "#ffffff", "flow_color": "#94a3b8"},
 }
 
 

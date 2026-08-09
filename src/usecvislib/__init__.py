@@ -79,6 +79,7 @@ from .builders import (
     AttackTreeBuilder,
     ComponentDiagramBuilder,
     DependencyGraphBuilder,
+    KillChainBuilder,
     PrivilegeGradientBuilder,
     ThreatModelBuilder,
 )
@@ -151,6 +152,12 @@ from .exporters import (
     Exporter,
     ExportMixin,
     ReportGenerator,
+)
+from .killchain import (
+    IncidentMapping,
+    KillChain,
+    KillChainError,
+    Technique,
 )
 from .maestro import (
     Agent as MaestroAgent,
@@ -317,6 +324,12 @@ __all__ = [
     "FileError",
     "GateType",
     "IconNotFoundError",
+    # Kill Chain support classes
+    "IncidentMapping",
+    "KillChain",
+    "KillChainBuilder",
+    "KillChainError",
+    "Technique",
     # MAESTRO support classes
     "MaestroAgent",
     "MaestroAsset",

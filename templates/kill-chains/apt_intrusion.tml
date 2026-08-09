@@ -1,0 +1,87 @@
+#
+# VULNEX -Universal Security Visualization Library-
+#
+# Kill Chain template: APT intrusion mapped to the Lockheed Martin
+# Cyber Kill Chain (7 phases). Detection/mitigation coverage set per
+# technique drives the coverage heat coloring and the D/M chips.
+#
+
+[killchain]
+name = "APT Intrusion - Cyber Kill Chain"
+framework = "kill_chain"
+
+[techniques."T1595"]
+name = "Active Scanning"
+phase = "Reconnaissance"
+severity = "low"
+detected = true
+mitigated = false
+
+[techniques."T1589"]
+name = "Gather Victim Identity Info"
+phase = "Reconnaissance"
+severity = "low"
+detected = false
+mitigated = false
+
+[techniques."T1587"]
+name = "Develop Malware"
+phase = "Weaponization"
+severity = "medium"
+detected = false
+mitigated = false
+
+[techniques."T1566"]
+name = "Spearphishing Attachment"
+phase = "Delivery"
+severity = "high"
+detected = true
+mitigated = true
+
+[techniques."T1204"]
+name = "User Execution"
+phase = "Exploitation"
+severity = "high"
+detected = true
+mitigated = false
+
+[techniques."T1203"]
+name = "Exploitation for Client Execution"
+phase = "Exploitation"
+severity = "critical"
+detected = false
+mitigated = false
+
+[techniques."T1547"]
+name = "Boot/Logon Autostart"
+phase = "Installation"
+severity = "high"
+detected = true
+mitigated = true
+
+[techniques."T1071"]
+name = "Application Layer Protocol"
+phase = "Command and Control"
+severity = "high"
+detected = true
+mitigated = false
+
+[techniques."T1041"]
+name = "Exfiltration Over C2 Channel"
+phase = "Actions on Objectives"
+severity = "critical"
+detected = false
+mitigated = false
+
+[techniques."T1486"]
+name = "Data Encrypted for Impact"
+phase = "Actions on Objectives"
+severity = "critical"
+detected = true
+mitigated = false
+
+[[incidents]]
+id = "INC-2026-014"
+name = "Operation Nightfall"
+threat_actor = "APT-Nightfall"
+techniques = ["T1595", "T1566", "T1204", "T1547", "T1071", "T1041"]

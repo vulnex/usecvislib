@@ -1,0 +1,129 @@
+# =============================================================================
+# VULNEX -Universal Security Visualization Library-
+#
+# File: config_killchain.tml
+# Kill Chain / MITRE ATT&CK visualization style presets (CLI mode 9).
+#
+# Two engine families share this file:
+#   - Graphviz presets (kc_*): ranked phase clusters, drawn by graphviz.
+#   - SVG-engine presets (sv_*): hand-painted swimlane, marked meta.engine.
+# Mixing an sv_* preset with the Graphviz engine (or vice versa) raises a
+# clear StyleEngineMismatchError.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# GRAPHVIZ ENGINE PRESETS (render_engine = "graphviz", default)
+# -----------------------------------------------------------------------------
+
+# Kill Chain Default - dark security ops palette
+[kc_default]
+graph = {rankdir = "LR", bgcolor = "#1a1a2e", fontname = "Helvetica", pad = "0.5", nodesep = "0.3", ranksep = "0.6"}
+phase = {fillcolor = "#16213e", fontcolor = "#ffffff", color = "#0f3460", fontsize = "13", fontname = "Helvetica-Bold"}
+technique = {shape = "box", style = "rounded,filled", fillcolor = "#34495e", fontcolor = "#ffffff", fontsize = "10"}
+edge = {color = "#7f8c8d", penwidth = "2", arrowhead = "vee"}
+detected = {fillcolor = "#27ae60", fontcolor = "#ffffff"}
+not_detected = {fillcolor = "#e74c3c", fontcolor = "#ffffff"}
+
+# Kill Chain Light - clean report palette on white
+[kc_light]
+graph = {rankdir = "LR", bgcolor = "#ffffff", fontname = "Helvetica", pad = "0.5", nodesep = "0.3", ranksep = "0.6"}
+phase = {fillcolor = "#2c3e50", fontcolor = "#ffffff", color = "#1b2631", fontsize = "13", fontname = "Helvetica-Bold"}
+technique = {shape = "box", style = "rounded,filled", fillcolor = "#5d6d7e", fontcolor = "#ffffff", fontsize = "10"}
+edge = {color = "#566573", penwidth = "2", arrowhead = "vee"}
+detected = {fillcolor = "#229954", fontcolor = "#ffffff"}
+not_detected = {fillcolor = "#cb4335", fontcolor = "#ffffff"}
+
+# Kill Chain Coverage - emphasis on detection heat
+[kc_coverage]
+graph = {rankdir = "LR", bgcolor = "#0d1117", fontname = "Helvetica", pad = "0.5", nodesep = "0.3", ranksep = "0.7"}
+phase = {fillcolor = "#161b22", fontcolor = "#c9d1d9", color = "#30363d", fontsize = "13", fontname = "Helvetica-Bold"}
+technique = {shape = "box", style = "rounded,filled", fillcolor = "#e0a53f", fontcolor = "#101010", fontsize = "10"}
+edge = {color = "#8b949e", penwidth = "2", arrowhead = "vee"}
+detected = {fillcolor = "#2ea043", fontcolor = "#ffffff"}
+not_detected = {fillcolor = "#da3633", fontcolor = "#ffffff"}
+
+# -----------------------------------------------------------------------------
+# SVG ENGINE PRESETS (render_engine = "svg")
+# Swimlane painter: phase headers + stacked technique cards heat-colored by
+# detection/mitigation coverage. Card fills are set by coverage, not theme.
+# -----------------------------------------------------------------------------
+
+# SVG Default - clean modern swimlane with soft depth
+[sv_default]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#f8fafc", padding = 44, text = "#111827"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 10, padding_x = 15, padding_y = 10, border_width = 1.0, min_width = 132, max_label_width = 190}
+node = {fill = "#334155", border = "#1e293b", text = "#ffffff"}
+root = {fill = "#1e3a5f", border = "#0d1b2a", text = "#ffffff"}
+edge = {color = "#94a3b8", width = 1.6, routing = "curve"}
+effects = {shadow = true, shadow_blur = 2.2, hover_glow = true}
+severity = {use_cvss_colors = false}
+badges = {coverage = true, fill = "#0f172a", text = "#ffffff"}
+killchain = {phase_fill = "#1e3a5f", phase_text = "#ffffff", flow_color = "#64748b"}
+layout = {h_gap = 40, v_gap = 76}
+
+# SVG Dark - slate night ops board
+[sv_dark]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#0f172a", padding = 44, text = "#e2e8f0"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 10, padding_x = 15, padding_y = 10, border_width = 1.0, min_width = 132, max_label_width = 190}
+node = {fill = "#334155", border = "#475569", text = "#e2e8f0"}
+root = {fill = "#4f46e5", border = "#312e81", text = "#ffffff"}
+edge = {color = "#64748b", width = 1.6, routing = "curve"}
+effects = {shadow = true, shadow_blur = 2.6, hover_glow = true}
+severity = {use_cvss_colors = false}
+badges = {coverage = true, fill = "#e2e8f0", text = "#0f172a"}
+killchain = {phase_fill = "#312e81", phase_text = "#e0e7ff", flow_color = "#64748b"}
+layout = {h_gap = 40, v_gap = 76}
+
+# SVG Neon - cyberpunk ops
+[sv_neon]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#050505", padding = 44, text = "#00ffd0"}
+font = {family = "Menlo, Consolas, monospace", size = 13, root_size = 16}
+card = {radius = 6, padding_x = 15, padding_y = 10, border_width = 1.4, min_width = 132, max_label_width = 190}
+node = {fill = "#0d0d17", border = "#ff00ff", text = "#00ffd0"}
+root = {fill = "#10101f", border = "#00ff9f", text = "#00ff9f"}
+edge = {color = "#00d4ff", width = 1.8, routing = "curve"}
+effects = {shadow = false, shadow_blur = 1.8, hover_glow = true}
+severity = {use_cvss_colors = false}
+badges = {coverage = true, fill = "#00ffd0", text = "#050505"}
+killchain = {phase_fill = "#10101f", phase_text = "#00ff9f", flow_color = "#00d4ff"}
+layout = {h_gap = 42, v_gap = 80}
+
+# SVG Corporate - professional blue on white for reports
+[sv_corporate]
+meta = {engine = "svg"}
+title = {show = true, size = 16}
+page = {background = "#ffffff", padding = 48, text = "#111827"}
+font = {family = "Helvetica Neue, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 8, padding_x = 16, padding_y = 11, border_width = 1.0, min_width = 140, max_label_width = 200}
+node = {fill = "#3d5a80", border = "#1e3a5f", text = "#ffffff"}
+root = {fill = "#1e3a5f", border = "#0d1b2a", text = "#ffffff"}
+edge = {color = "#6b7b8c", width = 1.5, routing = "curve"}
+effects = {shadow = true, shadow_blur = 2.0, hover_glow = false}
+severity = {use_cvss_colors = false}
+badges = {coverage = true, fill = "#0f172a", text = "#ffffff"}
+killchain = {phase_fill = "#16324f", phase_text = "#ffffff", flow_color = "#6b7b8c"}
+layout = {h_gap = 44, v_gap = 82}
+
+# SVG Minimal - flat outline, no depth
+[sv_minimal]
+meta = {engine = "svg"}
+title = {show = false, size = 14}
+page = {background = "#ffffff", padding = 40, text = "#111111"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 15}
+card = {radius = 4, padding_x = 13, padding_y = 9, border_width = 1.2, min_width = 124, max_label_width = 180}
+node = {fill = "#ffffff", border = "#333333", text = "#111111"}
+root = {fill = "#f5f5f5", border = "#111111", text = "#111111"}
+edge = {color = "#555555", width = 1.3, routing = "curve"}
+effects = {shadow = false, shadow_blur = 0, hover_glow = false}
+severity = {use_cvss_colors = false}
+badges = {coverage = true, fill = "#0f172a", text = "#ffffff"}
+killchain = {phase_fill = "#333333", phase_text = "#ffffff", flow_color = "#555555"}
+layout = {h_gap = 34, v_gap = 66}

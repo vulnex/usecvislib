@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Kill Chain / MITRE ATT&CK visualization (CLI mode 9)** — first-class module for mapping attack progression through a standardized framework
+  - Frameworks: Lockheed Martin Cyber Kill Chain (7 phases), MITRE ATT&CK Enterprise (14 tactics), and custom phase axes declared in the input file
+  - Techniques carry `detected` / `mitigated` coverage flags that drive detection-gap heat coloring (green = both, amber = one, red = neither) and a per-card D/M coverage chip, plus `analyze_coverage_gaps()` for undetected/unmitigated/critical-gap lists
+  - Incidents declare ordered technique paths, drawn as cross-column connectors
+  - SVG-native swimlane render on the engine's `LinearLayout` (phase-column headers + stacked technique cards + phase-progression flow arrow), selectable with `--render-engine svg` and the `sv_*` presets; Graphviz path renders ranked phase clusters (`kc_default`, `kc_light`, `kc_coverage`)
+  - `KillChain` core class, `KillChainBuilder` fluent API, `config_killchain.tml` styles, 3 templates in `templates/kill-chains/`, and API endpoints `POST /visualize|/analyze|/validate/kill-chain`
+  - 33 tests in `tests/test_killchain.py` + `tests/test_api_killchain.py`
+
+### Changed
+
+- **SVG engine (Attack Trees) layout and routing polish**, driven by a Graphviz-vs-SVG comparison across templates:
+  - Per-sink collector rails: parents sharing a sink now feed one collector rail with a single arrowhead instead of stacked private rails
+  - Symmetric barycenter collision resolution (weighted pool-adjacent-violators) so convergence sinks sit centered under their parents instead of shoved to the margin
+  - Single-child chains render straight (parents centered over children's final positions); rail end-caps meet the parent trunk instead of dangling
+  - Edge `label=` values (e.g. AND/OR, likelihood) now render as halo text on the connectors
+  - `gate="AND|OR"` node chips, adaptive inter-row spacing (7–22% shorter output), chamfered card variant for octagon-family goal nodes, and font-size-scaled card padding so bold titles keep their margins
+
 ## [0.4.1] - 2026-05-12
 
 ### Added

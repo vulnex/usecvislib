@@ -47,6 +47,7 @@ def Usage() -> None:
     print("                            6 - Privilege Gradient Graphs")
     print("                            7 - Component Diagrams")
     print("                            8 - Dependency Graphs")
+    print("                            9 - Kill Chain / MITRE ATT&CK")
     print("                            12 - MAESTRO Agentic Threat Model")
     print("  -s, --styleid <id>      Style ID (per mode):")
     print("                          Attack Trees (mode 0):")
@@ -74,6 +75,8 @@ def Usage() -> None:
     print("                            cd_default, cd_blueprint, cd_minimal, cd_dark")
     print("                          Dependency Graphs (mode 8):")
     print("                            dg_default, dg_dark, dg_minimal, dg_coupling")
+    print("                          Kill Chain (mode 9):")
+    print("                            kc_default, kc_light, kc_coverage")
     print("                          MAESTRO Threat Model (mode 12):")
     print("                            ma_default")
     print("                          Binary Visualization (mode 2):")
@@ -100,7 +103,7 @@ def Usage() -> None:
     print("  --render-engine <eng>   Rendering engine: graphviz (default) or svg")
     print("                          svg: modern hand-painted output, sv_* styles")
     print("                          (sv_default, sv_dark, sv_neon, sv_corporate, sv_minimal)")
-    print("                          Currently supported for mode 0 (Attack Trees)")
+    print("                          Currently supported for modes 0 (Attack Trees), 9 (Kill Chain)")
     print("")
     print("  --convert <format>      Convert input file to format: toml, json, yaml, mermaid")
     print("                          Output will be saved to <output>.<format_ext>")
@@ -145,7 +148,7 @@ def validate_mode(mode: int) -> bool:
     Returns:
         True if mode is valid, False otherwise.
     """
-    return mode in [0, 1, 2, 3, 4, 5, 6, 7, 8, 12]
+    return mode in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12]
 
 
 def error_exit(message: str, show_usage: bool = True) -> NoReturn:
@@ -232,7 +235,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             try:
                 mode = int(arg)
             except ValueError:
-                error_exit(f"Invalid mode: {arg}. Must be 0-8 or 12.")
+                error_exit(f"Invalid mode: {arg}. Must be 0-9 or 12.")
         elif opt in ("-s", "--styleid"):
             styleid = arg
         elif opt in ("-S", "--stylefile"):
@@ -344,14 +347,14 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     # Validate mode
     if not validate_mode(mode):
-        error_exit(f"Invalid mode: {mode}. Must be 0-8 or 12.")
+        error_exit(f"Invalid mode: {mode}. Must be 0-9 or 12.")
 
     # Validate render engine
     if render_engine not in ("graphviz", "svg"):
         error_exit(f"Invalid render engine: {render_engine}. Must be graphviz or svg.")
     if render_engine == "svg":
-        if mode != 0:
-            error_exit(f"Render engine 'svg' currently supports mode 0 (Attack Trees) only, got mode {mode}.")
+        if mode not in (0, 9):
+            error_exit(f"Render engine 'svg' currently supports modes 0 (Attack Trees), 9 (Kill Chain); got mode {mode}.")
         if format == "dot":
             error_exit("Format 'dot' is Graphviz-specific. Use png, pdf, or svg with --render-engine svg.")
 
@@ -590,6 +593,35 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  External: {stats['external_count']}")
             if stats["groups"]:
                 print(f"  Groups: {', '.join(stats['groups'])}")
+
+        elif mode == 9:
+            # Kill Chain / MITRE ATT&CK
+            from . import killchain
+
+            kc = killchain.KillChain(inputfile, outputfile, format, styleid, render_engine=render_engine)
+            kc.BuildKillChain()
+            print(f"Kill chain generated: {outputfile}.{format}")
+
+            stats = kc.get_stats()
+            print("\nKill Chain Statistics:")
+            print(f"  Name: {stats['name']}")
+            print(f"  Framework: {stats['framework']}")
+            print(f"  Techniques: {stats['total_techniques']}")
+            print(f"  Incidents: {stats['total_incidents']}")
+            print(
+                f"  Detection coverage: {stats['detection_coverage']:.0%} "
+                f"({stats['detected_techniques']}/{stats['total_techniques']})"
+            )
+            print(
+                f"  Mitigation coverage: {stats['mitigation_coverage']:.0%} "
+                f"({stats['mitigated_techniques']}/{stats['total_techniques']})"
+            )
+            if stats["active_phases"]:
+                print(f"  Active phases: {', '.join(stats['active_phases'])}")
+            if stats["warnings"]:
+                print("\nWarnings:")
+                for w in stats["warnings"]:
+                    print(f"  - {w}")
 
         elif mode == 12:
             # MAESTRO Agentic Threat Model

@@ -296,6 +296,20 @@ class DependencyGraphStyle(str, Enum):
     COUPLING = "dg_coupling"
 
 
+class KillChainStyle(str, Enum):
+    """Available kill chain styles (Graphviz kc_* and SVG-engine sv_*)."""
+
+    DEFAULT = "kc_default"
+    LIGHT = "kc_light"
+    COVERAGE = "kc_coverage"
+    # SVG engine presets (require render_engine=svg)
+    SVG_DEFAULT = "sv_default"
+    SVG_DARK = "sv_dark"
+    SVG_NEON = "sv_neon"
+    SVG_CORPORATE = "sv_corporate"
+    SVG_MINIMAL = "sv_minimal"
+
+
 class VisualizationMode(str, Enum):
     """Visualization modes."""
 
@@ -437,6 +451,23 @@ class TreeStats(BaseModel):
     max_cvss: float = Field(default=0.0, description="Maximum CVSS score in tree")
     critical_nodes: int = Field(default=0, description="Number of critical severity nodes (CVSS >= 9.0)")
     high_risk_nodes: int = Field(default=0, description="Number of high risk nodes (CVSS >= 7.0)")
+    metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
+
+
+class KillChainStats(BaseModel):
+    """Kill chain / MITRE ATT&CK statistics response."""
+
+    name: str
+    framework: str
+    total_techniques: int
+    total_incidents: int
+    detected_techniques: int
+    mitigated_techniques: int
+    detection_coverage: float = Field(description="Fraction of techniques with detection (0.0-1.0)")
+    mitigation_coverage: float = Field(description="Fraction of techniques with mitigation (0.0-1.0)")
+    active_phases: list[str] = Field(default_factory=list)
+    techniques_per_phase: dict[str, int] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
     metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
 
 

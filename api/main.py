@@ -53,6 +53,7 @@ from .routers import (
     custom_diagrams,
     icons,
     images,
+    killchain,
     maestro,
     mermaid,
     privilege_gradient,
@@ -212,6 +213,7 @@ app.include_router(settings.router)
 app.include_router(privilege_gradient.router)
 app.include_router(architecture.router)
 app.include_router(maestro.router)
+app.include_router(killchain.router)
 
 
 # =============================================================================

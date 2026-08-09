@@ -1,0 +1,65 @@
+#
+# VULNEX -Universal Security Visualization Library-
+#
+# Kill Chain template: insider data exfiltration on a custom phase axis.
+# framework = "custom" takes the phase order from killchain.phases.
+#
+
+[killchain]
+name = "Insider Data Exfiltration"
+framework = "custom"
+phases = ["Access", "Collection", "Staging", "Exfiltration", "Cover Tracks"]
+
+[techniques."IN-01"]
+name = "Legitimate Credential Use"
+phase = "Access"
+severity = "medium"
+detected = false
+mitigated = false
+
+[techniques."IN-02"]
+name = "Privileged Share Access"
+phase = "Access"
+severity = "high"
+detected = true
+mitigated = false
+
+[techniques."IN-03"]
+name = "Bulk File Collection"
+phase = "Collection"
+severity = "high"
+detected = true
+mitigated = false
+
+[techniques."IN-04"]
+name = "Archive to Local Store"
+phase = "Staging"
+severity = "medium"
+detected = false
+mitigated = false
+
+[techniques."IN-05"]
+name = "Cloud Upload"
+phase = "Exfiltration"
+severity = "critical"
+detected = true
+mitigated = true
+
+[techniques."IN-06"]
+name = "Removable Media Copy"
+phase = "Exfiltration"
+severity = "high"
+detected = false
+mitigated = false
+
+[techniques."IN-07"]
+name = "Log Deletion"
+phase = "Cover Tracks"
+severity = "high"
+detected = true
+mitigated = false
+
+[[incidents]]
+id = "INC-2026-047"
+name = "Departing Employee Exfil"
+techniques = ["IN-01", "IN-03", "IN-04", "IN-05", "IN-07"]
