@@ -25,6 +25,7 @@ All layouts write center coordinates to ``node.x`` / ``node.y``.
 """
 
 import logging
+from itertools import pairwise
 from typing import Optional
 
 from .scene import Scene
@@ -121,27 +122,38 @@ class TidyTreeLayout:
             row_start.append(cursor)
             cursor += row_size[d] + self.v_gap
 
-        # Pre-order placement: children packed inside the parent extent,
-        # then the parent centered over them (iterative).
-        place_stack: list[tuple[str, float]] = [(root_id, 0.0)]
-        cross: dict[str, float] = {}
-        while place_stack:
-            node_id, left = place_stack.pop()
+        # Placement, two passes. Pre-order assigns each subtree's left edge
+        # inside its parent extent; post-order then centers every parent
+        # over its children's FINAL positions. (An internal child recenters
+        # over its own kids, so its extent midpoint is not a valid
+        # prediction of where it lands - predicting from extents kinks a
+        # single-child chain the moment grandchild extents are asymmetric.)
+        left: dict[str, float] = {root_id: 0.0}
+        kids_of: dict[str, list[str]] = {}
+        pre_stack: list[str] = [root_id]
+        while pre_stack:
+            node_id = pre_stack.pop()
             kids = [k for k in children.get(node_id, []) if k in reachable and depth.get(k) == depth[node_id] + 1]
-            if kids:
-                kids_extent = sum(extent[k] for k in kids) + self.h_gap * (len(kids) - 1)
-                kid_left = left + (extent[node_id] - kids_extent) / 2
-                first_center = last_center = 0.0
-                for i, kid in enumerate(kids):
-                    center = kid_left + extent[kid] / 2
-                    if i == 0:
-                        first_center = center
-                    last_center = center
-                    place_stack.append((kid, kid_left))
-                    kid_left += extent[kid] + self.h_gap
-                cross[node_id] = (first_center + last_center) / 2
+            kids_of[node_id] = kids
+            kids_extent = sum(extent[k] for k in kids) + self.h_gap * (len(kids) - 1)
+            kid_left = left[node_id] + (extent[node_id] - kids_extent) / 2
+            for kid in kids:
+                left[kid] = kid_left
+                kid_left += extent[kid] + self.h_gap
+                pre_stack.append(kid)
+
+        cross: dict[str, float] = {}
+        post_stack: list[tuple[str, bool]] = [(root_id, False)]
+        while post_stack:
+            node_id, processed = post_stack.pop()
+            kids = kids_of[node_id]
+            if not kids:
+                cross[node_id] = left[node_id] + extent[node_id] / 2
+            elif processed:
+                cross[node_id] = (cross[kids[0]] + cross[kids[-1]]) / 2
             else:
-                cross[node_id] = left + extent[node_id] / 2
+                post_stack.append((node_id, True))
+                post_stack.extend((k, False) for k in kids)
 
         for node_id in order:
             node = nodes[node_id]
@@ -158,16 +170,26 @@ class TidyTreeLayout:
         orphans = [n for n in scene.nodes if n.id not in reachable]
         self._place_orphans(scene, orphans, root_id)
 
+    # Weight of a single-parent (tree) node in the row solve: sticky against
+    # displacement, but still movable when a sink needs to squeeze past.
+    _FIXED_WEIGHT = 6.0
+
     def _barycenter_multi_parent(self, scene: Scene, nodes: dict, children: dict, reachable: set, depth: dict) -> None:
         """Center multi-parent nodes under ALL their parents (Graphviz-style).
 
         The tidy tree attaches a shared node under its first parent only, so
         a convergence sink (e.g. one impact node fed by nine techniques) ends
         up far to one side with a merge rail spanning the whole diagram.
-        Each multi-parent node is moved toward the barycenter of its parents'
-        positions - together with its tree descendants - clamped so it keeps
-        clear of its row neighbors. Rows are processed top-down so deeper
-        nodes see their parents' corrected positions.
+
+        Per row (top-down, so deeper rows see corrected parents): every
+        multi-parent node's desired position is the barycenter of its
+        parents in the rows above; tree nodes want to stay put. The row is
+        re-ordered by desired position (sinks may swap past each other -
+        a one-pass clamp would pin the leftmost sink against a neighbor
+        that itself is about to move away) and solved as an ordered
+        min-displacement chain (weighted pool-adjacent-violators), so
+        conflicting sinks split the difference instead of one being shoved
+        to the margin. Nodes move together with their tree descendants.
         """
         is_lr = self.orientation == "LR"
 
@@ -189,26 +211,48 @@ class TidyTreeLayout:
             rows.setdefault(d, []).append(node_id)
 
         for d in sorted(rows):
+            desired: dict[str, float] = {}
+            movers: set[str] = set()
             for node_id in rows[d]:
-                parents = parents_of.get(node_id, [])
-                if len(parents) < 2:
-                    continue
-                node = nodes[node_id]
-                bary = sum(get_cross(nodes[p]) for p in parents) / len(parents)
-                # Clamp against current row neighbors on either side
-                current = get_cross(node)
-                half = half_of(node)
-                lo_limit, hi_limit = float("-inf"), float("inf")
-                for other_id in rows[d]:
-                    if other_id == node_id:
-                        continue
-                    other = nodes[other_id]
-                    other_cross = get_cross(other)
-                    if other_cross < current:
-                        lo_limit = max(lo_limit, other_cross + half_of(other) + self.h_gap + half)
-                    elif other_cross > current:
-                        hi_limit = min(hi_limit, other_cross - half_of(other) - self.h_gap - half)
-                delta = min(max(bary, lo_limit), hi_limit) - current
+                # Barycenter over parents already placed in rows above;
+                # same-row parents (lateral links) would skew it.
+                upper = [p for p in parents_of.get(node_id, []) if depth.get(p, d) < d]
+                if len(upper) >= 2:
+                    desired[node_id] = sum(get_cross(nodes[p]) for p in upper) / len(upper)
+                    movers.add(node_id)
+                else:
+                    desired[node_id] = get_cross(nodes[node_id])
+            if not movers:
+                continue
+
+            # Order by desired position; ties keep current order (tree nodes
+            # all desire their current spot, so their relative order holds).
+            ordered = sorted(rows[d], key=lambda n: (desired[n], get_cross(nodes[n])))
+            weights = [1.0 if n in movers else self._FIXED_WEIGHT for n in ordered]
+
+            # Minimum-separation chain: offset[i] = required distance from
+            # item 0; subtracting it turns the separation constraints into a
+            # plain monotonicity constraint solved by weighted PAVA.
+            offsets = [0.0]
+            for prev, cur in pairwise(ordered):
+                offsets.append(offsets[-1] + half_of(nodes[prev]) + self.h_gap + half_of(nodes[cur]))
+            targets = [desired[n] - off for n, off in zip(ordered, offsets, strict=False)]
+
+            # Weighted pool-adjacent-violators: merge blocks until monotone.
+            blocks: list[tuple[float, float, int]] = []  # (value, weight, count)
+            for value, weight in zip(targets, weights, strict=False):
+                blocks.append((value, weight, 1))
+                while len(blocks) > 1 and blocks[-2][0] >= blocks[-1][0]:
+                    v2, w2, c2 = blocks.pop()
+                    v1, w1, c1 = blocks.pop()
+                    blocks.append(((v1 * w1 + v2 * w2) / (w1 + w2), w1 + w2, c1 + c2))
+
+            solved: list[float] = []
+            for value, _, count in blocks:
+                solved.extend([value] * count)
+
+            for node_id, base, off in zip(ordered, solved, offsets, strict=False):
+                delta = (base + off) - get_cross(nodes[node_id])
                 if abs(delta) < 1.0:
                     continue
                 # Shift the node together with its tree descendants
