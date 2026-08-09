@@ -518,28 +518,29 @@ def _paint_edges(
                 draw_edge(edge, ortho(src_cross, src_end, c2, m2, mid), color)
                 add_label(edge, c2, ((mid if mid is not None else (src_end + m2) / 2) + m2) / 2)
             elif start_of(dst) > bbox_top(src):
-                # Lateral (same-row) cross-link: arc below the row into the
-                # target's bottom edge - a straight diagonal would slice
-                # between the cards with no readable direction.
-                dst_end = start_of(dst)
-                dip = max(src_end, dst_end) + 30.0
-                if horizontal:
-                    d = (
-                        f"M {shapes.fmt(src_end)} {shapes.fmt(src_cross)} "
-                        f"C {shapes.fmt(dip)} {shapes.fmt(src_cross)} "
-                        f"{shapes.fmt(dip)} {shapes.fmt(c2)} "
-                        f"{shapes.fmt(dst_end)} {shapes.fmt(c2)}"
-                    )
-                else:
-                    d = (
-                        f"M {shapes.fmt(src_cross)} {shapes.fmt(src_end)} "
-                        f"C {shapes.fmt(src_cross)} {shapes.fmt(dip)} "
-                        f"{shapes.fmt(c2)} {shapes.fmt(dip)} "
-                        f"{shapes.fmt(c2)} {shapes.fmt(dst_end)}"
-                    )
+                # Lateral (same-row) cross-link: swing below the source and
+                # enter the target's NEAR SIDE at mid-height - a bottom
+                # entry reads as an upward edge in a top-down tree, and a
+                # straight diagonal would slice between the cards with no
+                # readable direction.
+                direction = 1.0 if c2 < src_cross else -1.0  # +1: enter dst's right side
+                entry_cross = c2 + direction * ((dst.height if horizontal else dst.width) / 2)
+                entry_main = dst.x if horizontal else dst.y
+                dip = max(src_end, start_of(dst)) + 24.0
+                approach = entry_cross + direction * 38.0
+
+                def pt(c: float, m: float) -> str:
+                    return f"{shapes.fmt(m)} {shapes.fmt(c)}" if horizontal else f"{shapes.fmt(c)} {shapes.fmt(m)}"
+
+                d = (
+                    f"M {pt(src_cross, src_end)} "
+                    f"C {pt(src_cross, dip)} {pt(approach, entry_main)} {pt(entry_cross, entry_main)}"
+                )
                 draw_edge(edge, d, color)
-                # Bezier midpoint of the arc (t=0.5) with both controls at dip
-                add_label(edge, (src_cross + c2) / 2, 0.125 * (src_end + dst_end) + 0.75 * dip)
+                # Cubic midpoint (t=0.5) of the swing
+                mid_cross = 0.125 * src_cross + 0.375 * src_cross + 0.375 * approach + 0.125 * entry_cross
+                mid_main = 0.125 * src_end + 0.375 * dip + 0.375 * entry_main + 0.125 * entry_main
+                add_label(edge, mid_cross, mid_main)
             else:
                 draw_edge(edge, curve(src_cross, src_end, c2, m2), color)
                 add_label(edge, (src_cross + c2) / 2, (src_end + m2) / 2)
@@ -796,9 +797,12 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
             badge_label = str(node.cvss)
             badge_w = metrics.measure_text(badge_label, font["family"], badge_size, bold=True)
             if node.image_href:
+                # No card corner to dock on; sit the chip beside the icon's
+                # top-right so it stays clear of the glyph itself.
                 img_size = float(theme["images"]["size"])
                 content_h = img_size + _IMAGE_TEXT_GAP + len(node.lines) * size * metrics.LINE_HEIGHT
-                corner_x = node.x + img_size / 2
+                chip_w = badge_w + 1.1 * badge_size
+                corner_x = node.x + img_size / 2 + chip_w / 2 - 4
                 corner_y = node.y - content_h / 2 + 2
             else:
                 corner_x = node.x + node.width / 2 - float(card_cfg["radius"]) * 0.4
