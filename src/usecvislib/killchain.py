@@ -113,6 +113,11 @@ _PHASE_ALIASES = {
 _VALID_SEVERITIES = {"critical", "high", "medium", "low", "none", "info"}
 
 
+def _html_escape(text: str) -> str:
+    """Escape text for use inside a Graphviz HTML-like label."""
+    return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 @dataclass
 class Technique:
     """A single technique/step mapped to a phase."""
@@ -216,14 +221,40 @@ class KillChain(VisualizationBase):
     # --------------------------------------------------------- VisualizationBase
 
     def _default_style(self) -> dict[str, Any]:
-        """Fallback style if the config file is unavailable."""
+        """Fallback style if the config file is unavailable (clean, light)."""
         return {
-            "graph": {"rankdir": "LR", "bgcolor": "#ffffff", "fontname": "Helvetica"},
-            "phase": {"fillcolor": "#2c3e50", "fontcolor": "#ffffff"},
-            "technique": {"fillcolor": "#34495e", "fontcolor": "#ffffff"},
-            "edge": {"color": "#7f8c8d", "penwidth": "2"},
-            "detected": {"fillcolor": "#27ae60"},
-            "not_detected": {"fillcolor": "#e74c3c"},
+            "graph": {
+                "rankdir": "LR",
+                "bgcolor": "#f8fafc",
+                "fontname": "Helvetica",
+                "fontcolor": "#334155",
+                "fontsize": "16",
+                "pad": "0.4",
+                "nodesep": "0.28",
+                "ranksep": "0.6",
+                "labelloc": "t",
+            },
+            "phase": {
+                "style": "filled,rounded",
+                "fillcolor": "#eef2f7",
+                "color": "#cbd5e1",
+                "fontcolor": "#1e3a5f",
+                "fontname": "Helvetica-Bold",
+                "fontsize": "13",
+                "penwidth": "1",
+            },
+            "technique": {
+                "fontname": "Helvetica",
+                "fontcolor": "#ffffff",
+                "fillcolor": "#e0a53f",
+                "color": "#64748b",
+                "fontsize": "10",
+                "penwidth": "1",
+            },
+            "edge": {"color": "#94a3b8", "penwidth": "1.6", "arrowhead": "vee", "arrowsize": "0.7"},
+            "detected": {"fillcolor": "#27ae60", "fontcolor": "#ffffff"},
+            "partial": {"fillcolor": "#e0a53f", "fontcolor": "#1a2733"},
+            "not_detected": {"fillcolor": "#e74c3c", "fontcolor": "#ffffff"},
         }
 
     def _load_impl(self) -> dict[str, Any]:
@@ -311,19 +342,20 @@ class KillChain(VisualizationBase):
         grouped = self.techniques_by_phase()
         phases = self.active_phases() or self.phase_order
 
-        # One cluster per phase, ranked left to right; a hidden anchor node
-        # per phase keeps empty phases ordered and gives the flow arrow a
-        # start/end even when a phase has no techniques.
+        # One cluster per phase, ranked left to right. Technique nodes are
+        # added to the CLUSTER (not the root graph) so each lands under its
+        # phase header; a hidden anchor per phase orders the columns via
+        # invisible anchor->anchor edges (works even for empty phases).
         prev_anchor = None
         for phase in phases:
             key = utils.sanitize_node_id(phase)
             with self.dot.subgraph(name=f"cluster_{key}") as sub:
                 attrs = utils.stringify_dict(dict(phase_style))
-                sub.attr(label=phase, style="filled,rounded", **{k: v for k, v in attrs.items() if k != "label"})
+                sub.attr(label=f"  {phase}  ", **{k: v for k, v in attrs.items() if k != "label"})
                 anchor = f"__anchor_{key}"
                 sub.node(anchor, "", shape="point", width="0", height="0", style="invis")
                 for tech in grouped.get(phase, []):
-                    self.dot.node(tech.id, label=self._graphviz_label(tech), **self._graphviz_tech_style(tech, style))
+                    sub.node(tech.id, label=self._graphviz_label(tech), **self._graphviz_tech_style(tech, style))
             if prev_anchor is not None:
                 self.dot.edge(prev_anchor, anchor, style="invis")
             prev_anchor = anchor
@@ -335,19 +367,47 @@ class KillChain(VisualizationBase):
                 if src in self.techniques and dst in self.techniques:
                     self.dot.edge(src, dst, **edge_style)
 
+    @staticmethod
+    def _coverage_state(tech: Technique) -> str:
+        if tech.detected and tech.mitigated:
+            return "covered"
+        if tech.detected or tech.mitigated:
+            return "partial"
+        return "gap"
+
     def _graphviz_label(self, tech: Technique) -> str:
-        coverage = "D" if tech.detected else "-"
-        coverage += "M" if tech.mitigated else "-"
-        return f"{tech.id}\\n{tech.name}\\n[{coverage}]"
+        """HTML-like node label: id (bold) / name / a readable coverage line.
+
+        Beats raw ``[D-]`` bracket text jammed into a plain label - the
+        coverage reads as words, and HTML tables keep the card tidy.
+        """
+        state = self._coverage_state(tech)
+        if state == "covered":
+            coverage = "Detected + Mitigated"
+        elif state == "partial":
+            coverage = "Detected" if tech.detected else "Mitigated"
+        else:
+            coverage = "No coverage"
+        name = _html_escape(tech.name)
+        rows = ""
+        if tech.id and tech.id != tech.name:
+            rows += f"<TR><TD><B>{_html_escape(tech.id)}</B></TD></TR>"
+        rows += f"<TR><TD>{name}</TD></TR>"
+        rows += f'<TR><TD><FONT POINT-SIZE="9">{coverage}</FONT></TD></TR>'
+        return f'<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1">{rows}</TABLE>>'
 
     def _graphviz_tech_style(self, tech: Technique, style: dict[str, Any]) -> dict[str, str]:
         base = dict(style.get("technique", self._default_style()["technique"]))
-        if tech.detected and tech.mitigated:
-            base["fillcolor"] = style.get("detected", {}).get("fillcolor", "#27ae60")
-        elif not tech.detected and not tech.mitigated:
-            base["fillcolor"] = style.get("not_detected", {}).get("fillcolor", "#e74c3c")
+        # 3-state coverage palette: covered=green, partial=amber, gap=red.
+        key = {"covered": "detected", "partial": "partial", "gap": "not_detected"}[self._coverage_state(tech)]
+        override = style.get(key, {})
+        if override.get("fillcolor"):
+            base["fillcolor"] = override["fillcolor"]
+        if override.get("fontcolor"):
+            base["fontcolor"] = override["fontcolor"]
         base.setdefault("shape", "box")
         base.setdefault("style", "rounded,filled")
+        base.setdefault("margin", "0.14,0.07")
         return utils.stringify_dict(base)
 
     def _draw_impl(self, outputfile: str) -> None:

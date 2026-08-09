@@ -15,32 +15,35 @@
 # GRAPHVIZ ENGINE PRESETS (render_engine = "graphviz", default)
 # -----------------------------------------------------------------------------
 
-# Kill Chain Default - dark security ops palette
+# Kill Chain Default - clean light swimlane, navy phase headers
 [kc_default]
-graph = {rankdir = "LR", bgcolor = "#1a1a2e", fontname = "Helvetica", pad = "0.5", nodesep = "0.3", ranksep = "0.6"}
-phase = {fillcolor = "#16213e", fontcolor = "#ffffff", color = "#0f3460", fontsize = "13", fontname = "Helvetica-Bold"}
-technique = {shape = "box", style = "rounded,filled", fillcolor = "#34495e", fontcolor = "#ffffff", fontsize = "10"}
-edge = {color = "#7f8c8d", penwidth = "2", arrowhead = "vee"}
+graph = {rankdir = "LR", bgcolor = "#f8fafc", fontname = "Helvetica", fontcolor = "#334155", fontsize = "16", pad = "0.4", nodesep = "0.28", ranksep = "0.6", labelloc = "t"}
+phase = {style = "filled,rounded", fillcolor = "#eef2f7", color = "#cbd5e1", fontcolor = "#1e3a5f", fontname = "Helvetica-Bold", fontsize = "13", penwidth = "1"}
+technique = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", fillcolor = "#e0a53f", color = "#64748b", fontsize = "10", penwidth = "1"}
+edge = {color = "#94a3b8", penwidth = "1.6", arrowhead = "vee", arrowsize = "0.7"}
 detected = {fillcolor = "#27ae60", fontcolor = "#ffffff"}
+partial = {fillcolor = "#e0a53f", fontcolor = "#1a2733"}
 not_detected = {fillcolor = "#e74c3c", fontcolor = "#ffffff"}
 
-# Kill Chain Light - clean report palette on white
+# Kill Chain Light - minimal white, hairline borders
 [kc_light]
-graph = {rankdir = "LR", bgcolor = "#ffffff", fontname = "Helvetica", pad = "0.5", nodesep = "0.3", ranksep = "0.6"}
-phase = {fillcolor = "#2c3e50", fontcolor = "#ffffff", color = "#1b2631", fontsize = "13", fontname = "Helvetica-Bold"}
-technique = {shape = "box", style = "rounded,filled", fillcolor = "#5d6d7e", fontcolor = "#ffffff", fontsize = "10"}
-edge = {color = "#566573", penwidth = "2", arrowhead = "vee"}
-detected = {fillcolor = "#229954", fontcolor = "#ffffff"}
-not_detected = {fillcolor = "#cb4335", fontcolor = "#ffffff"}
+graph = {rankdir = "LR", bgcolor = "#ffffff", fontname = "Helvetica", fontcolor = "#475569", fontsize = "16", pad = "0.4", nodesep = "0.26", ranksep = "0.58", labelloc = "t"}
+phase = {style = "filled,rounded", fillcolor = "#f1f5f9", color = "#e2e8f0", fontcolor = "#334155", fontname = "Helvetica-Bold", fontsize = "13", penwidth = "1"}
+technique = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", fillcolor = "#e0a53f", color = "#cbd5e1", fontsize = "10", penwidth = "1"}
+edge = {color = "#cbd5e1", penwidth = "1.4", arrowhead = "vee", arrowsize = "0.7"}
+detected = {fillcolor = "#2fa84f", fontcolor = "#ffffff"}
+partial = {fillcolor = "#eab24a", fontcolor = "#1a2733"}
+not_detected = {fillcolor = "#e15b4c", fontcolor = "#ffffff"}
 
-# Kill Chain Coverage - emphasis on detection heat
+# Kill Chain Coverage - light board with bold saturated coverage heat
 [kc_coverage]
-graph = {rankdir = "LR", bgcolor = "#0d1117", fontname = "Helvetica", pad = "0.5", nodesep = "0.3", ranksep = "0.7"}
-phase = {fillcolor = "#161b22", fontcolor = "#c9d1d9", color = "#30363d", fontsize = "13", fontname = "Helvetica-Bold"}
-technique = {shape = "box", style = "rounded,filled", fillcolor = "#e0a53f", fontcolor = "#101010", fontsize = "10"}
-edge = {color = "#8b949e", penwidth = "2", arrowhead = "vee"}
-detected = {fillcolor = "#2ea043", fontcolor = "#ffffff"}
-not_detected = {fillcolor = "#da3633", fontcolor = "#ffffff"}
+graph = {rankdir = "LR", bgcolor = "#f5f7fa", fontname = "Helvetica", fontcolor = "#1e293b", fontsize = "16", pad = "0.4", nodesep = "0.3", ranksep = "0.68", labelloc = "t"}
+phase = {style = "filled,rounded", fillcolor = "#e2e8f0", color = "#94a3b8", fontcolor = "#0f172a", fontname = "Helvetica-Bold", fontsize = "13", penwidth = "1"}
+technique = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", fillcolor = "#e0a53f", color = "#475569", fontsize = "10", penwidth = "1.4"}
+edge = {color = "#64748b", penwidth = "1.8", arrowhead = "vee", arrowsize = "0.7"}
+detected = {fillcolor = "#1f9d4d", fontcolor = "#ffffff"}
+partial = {fillcolor = "#f0a92e", fontcolor = "#1a2733"}
+not_detected = {fillcolor = "#dc2f2f", fontcolor = "#ffffff"}
 
 # -----------------------------------------------------------------------------
 # SVG ENGINE PRESETS (render_engine = "svg")

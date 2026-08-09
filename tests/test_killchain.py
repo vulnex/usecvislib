@@ -171,6 +171,28 @@ class TestGraphvizEngine:
         assert src.count("subgraph cluster_") == 7
         assert "T1566" in src
 
+    def test_technique_nodes_live_inside_their_cluster(self, tmp_path):
+        # Regression: nodes were added to the root graph, so every technique
+        # piled into one column instead of its phase cluster.
+        kc = KillChain(APT, str(tmp_path / "o"), format="svg", styleid="kc_default")
+        kc.load()
+        kc.render()
+        src = kc.dot.source
+        # The Delivery technique T1566 must appear within the Delivery cluster
+        # block, not at the root graph level.
+        delivery_start = src.index("subgraph cluster_Delivery")
+        next_cluster = src.index("subgraph cluster_", delivery_start + 1)
+        assert "T1566" in src[delivery_start:next_cluster]
+
+    def test_labels_are_html_and_not_bracket_codes(self, tmp_path):
+        kc = KillChain(APT, str(tmp_path / "o"), format="svg", styleid="kc_default")
+        kc.load()
+        kc.render()
+        src = kc.dot.source
+        assert "<TABLE" in src  # HTML-like labels
+        assert "Detected + Mitigated" in src  # readable coverage line
+        assert "[D-]" not in src and "[DM]" not in src  # no cryptic codes
+
     def test_svg_preset_rejected_on_graphviz(self, tmp_path):
         from usecvislib.svgengine import StyleEngineMismatchError
 
