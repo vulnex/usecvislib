@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>USecVisLib — Project Overview</title>
+<style>
+  :root {
+    --bg: #0f1419;
+    --panel: #1a212b;
+    --panel-2: #212a36;
+    --border: #2c3744;
+    --text: #d7dee7;
+    --muted: #8a97a8;
+    --accent: #e0382b;       /* VULNEX red */
+    --accent-2: #4aa3ff;
+    --accent-soft: rgba(224,56,43,0.12);
+    --code-bg: #0b0f14;
+    --green: #3fb56b;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 24px 80px; }
+
+  /* Header */
+  header {
+    background: linear-gradient(160deg, #1a212b 0%, #141a22 100%);
+    border-bottom: 3px solid var(--accent);
+    padding: 56px 0 40px;
+    margin-bottom: 8px;
+  }
+  header .wrap { padding-bottom: 0; }
+  .eyebrow {
+    color: var(--accent);
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    font-size: 12px;
+    margin: 0 0 10px;
+  }
+  h1 { font-size: 2.5rem; margin: 0 0 6px; line-height: 1.1; letter-spacing: -.02em; }
+  .subtitle { color: var(--muted); font-size: 1.15rem; margin: 0 0 22px; }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+  .chip {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .chip b { color: var(--text); font-weight: 600; }
+
+  /* Sections */
+  section { margin-top: 44px; }
+  h2 {
+    font-size: 1.55rem;
+    margin: 0 0 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: -.01em;
+  }
+  h2 .num { color: var(--accent); font-weight: 700; margin-right: 10px; }
+  h3 { font-size: 1.15rem; margin: 28px 0 10px; color: #fff; }
+  h4 { font-size: 1rem; margin: 22px 0 6px; color: var(--accent-2); }
+  p { margin: 0 0 14px; }
+  a { color: var(--accent-2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  strong { color: #fff; }
+  blockquote {
+    margin: 0 0 18px;
+    padding: 14px 18px;
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 18px; font-size: 14.5px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th { background: var(--panel-2); color: #fff; font-weight: 600; border-bottom: 2px solid var(--border); }
+  tbody tr:hover { background: rgba(255,255,255,0.02); }
+  td strong { color: var(--accent-2); }
+
+  /* Lists */
+  ul, ol { margin: 0 0 16px; padding-left: 22px; }
+  li { margin: 6px 0; }
+  li strong { color: #fff; }
+
+  /* Code */
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font-size: 13.5px;
+    line-height: 1.55;
+    margin: 0 0 18px;
+  }
+  code {
+    font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    font-size: 0.92em;
+  }
+  p code, li code, td code {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: #e6c07b;
+  }
+  pre code { background: none; border: none; padding: 0; color: #cdd6e3; }
+  .ascii { color: #8aa0b6; }
+
+  /* Cards */
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 8px 0 18px; }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  .card h4 { margin: 0 0 6px; color: #fff; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+  .spotlight {
+    background: linear-gradient(150deg, rgba(224,56,43,0.10), rgba(74,163,255,0.06));
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 18px 0;
+  }
+  .spotlight h3 { margin-top: 0; }
+
+  /* Feedback */
+  .feedback {
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 24px 26px;
+  }
+  .feedback h2 { border: none; padding: 0; margin-bottom: 10px; }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 22px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
+  @media (max-width: 640px) {
+    h1 { font-size: 2rem; }
+    .cards { grid-template-columns: 1fr; }
+    pre { font-size: 12.5px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <p class="eyebrow">VULNEX · Project Overview</p>
+    <h1>USecVisLib</h1>
+    <p class="subtitle">Universal Security Visualization Library</p>
+    <div class="meta">
+      <span class="chip"><b>Version</b> 0.5.0</span>
+      <span class="chip"><b>License</b> Apache 2.0</span>
+      <span class="chip"><b>Stack</b> Python 3.10+ · Vue 3</span>
+      <span class="chip"><b>Author</b> Simon Roses Femerling</span>
+      <span class="chip"><a href="https://github.com/vulnex/usecvislib">github.com/vulnex/usecvislib</a></span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <blockquote>This document is a high-level overview intended to be shared for feedback. It describes what USecVisLib is, how it works, and what it can do.</blockquote>
+
+  <!-- 1 -->
+  <section>
+    <h2><span class="num">1</span>What Is USecVisLib?</h2>
+    <p><strong>USecVisLib</strong> is a comprehensive library and web application for creating <strong>security visualizations</strong>. It gives security professionals, architects, and developers a single, unified platform to turn security concepts — attack scenarios, threat models, network vulnerabilities, trust boundaries, and cloud architectures — into clear, professional diagrams.</p>
+    <p>Instead of hand-drawing diagrams in generic tools, users describe their security model in a simple text configuration file (TOML, JSON, or YAML) and USecVisLib renders a polished, consistent visualization automatically. The same model can be analyzed, scored, exported, and re-styled without redrawing anything.</p>
+    <p>It is designed to be used four ways, depending on the user:</p>
+    <ul>
+      <li><strong>Web application</strong> — a point-and-click interface for interactive use</li>
+      <li><strong>Command-line tool</strong> (<code>usecvis</code>) — for scripting and automation</li>
+      <li><strong>Python library</strong> — for embedding in tools and pipelines</li>
+      <li><strong>REST API</strong> — for integration with other applications and services</li>
+    </ul>
+
+    <h3>Who It's For</h3>
+    <ul>
+      <li><strong>Security engineers &amp; pentesters</strong> — attack trees, attack graphs, kill-chain analysis</li>
+      <li><strong>Threat modelers &amp; architects</strong> — STRIDE data-flow diagrams, MAESTRO agentic-AI threat models</li>
+      <li><strong>DevSecOps &amp; cloud teams</strong> — cloud architecture diagrams, component &amp; dependency graphs</li>
+      <li><strong>Reverse engineers &amp; malware analysts</strong> — binary file visualizations</li>
+      <li><strong>Anyone writing security documentation</strong> — consistent, reproducible, version-controllable diagrams</li>
+    </ul>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <h2><span class="num">2</span>Visualization Modules</h2>
+    <p>USecVisLib provides <strong>fourteen</strong> distinct visualization types, each purpose-built for a security use case:</p>
+    <table>
+      <thead><tr><th>Module</th><th>What It Does</th><th>Highlights</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Attack Trees</strong></td><td>Hierarchical attack-scenario diagrams</td><td>AND/OR gates, leaf nodes, CVSS scoring, 18 style presets</td></tr>
+        <tr><td><strong>Attack Graphs</strong></td><td>Network attack-path visualization</td><td>Path finding, critical-node analysis, CVSS 3.x/4.0</td></tr>
+        <tr><td><strong>Threat Modeling</strong></td><td>Data Flow Diagrams with STRIDE analysis</td><td>OWASP PyTM integration, trust boundaries, auto reports</td></tr>
+        <tr><td><strong>MAESTRO Threat Models</strong></td><td>Threat modeling for <strong>agentic AI systems</strong></td><td>7-layer framework, threat catalog, layered + heatmap + graph views</td></tr>
+        <tr><td><strong>Kill Chain / MITRE ATT&amp;CK</strong></td><td>Attack progression through a standard framework</td><td>Cyber Kill Chain / ATT&amp;CK / custom axes, detection-gap coverage heat, Graphviz + SVG engines</td></tr>
+        <tr><td><strong>Incident Timeline</strong></td><td>Chronology of a security incident for IR</td><td>Swimlane / gantt / vertical / compact modes, response-phase bands, MTTD/MTTC/MTTR metrics</td></tr>
+        <tr><td><strong>Vulnerability Dependency Tree</strong></td><td>Software supply-chain / SCA analysis</td><td>CVE-annotated dependency tree, severity heat, exploited-edge highlighting, impact propagation</td></tr>
+        <tr><td><strong>Custom Diagrams</strong></td><td>Flexible, schema-driven diagrams</td><td>100+ shapes, custom schemas, reusable templates</td></tr>
+        <tr><td><strong>Mermaid Diagrams</strong></td><td>Render Mermaid syntax to images</td><td>Flowcharts, sequence, class, state, ER, Gantt, pie</td></tr>
+        <tr><td><strong>Cloud Diagrams</strong></td><td>Cloud architecture visualization</td><td>AWS, Azure, GCP, Kubernetes icons; clusters</td></tr>
+        <tr><td><strong>Privilege Gradient</strong></td><td>Trust-zone &amp; privilege-level visualization</td><td>Zone-inversion detection, escalation pathways</td></tr>
+        <tr><td><strong>Component Diagrams</strong></td><td>Software component architecture</td><td>Layered architecture, sync/async/event connections</td></tr>
+        <tr><td><strong>Dependency Graphs</strong></td><td>Module/package dependency mapping</td><td>SLOC-based sizing, circular-dependency detection</td></tr>
+        <tr><td><strong>Binary Analysis</strong></td><td>Binary file pattern visualization</td><td>Entropy, byte distribution, wind rose, heatmap</td></tr>
+      </tbody>
+    </table>
+
+    <div class="spotlight">
+      <h3>Spotlight: MAESTRO — Threat Modeling for Agentic AI</h3>
+      <p>As AI agents move into production, traditional threat models don't fully capture their risks. The <strong>MAESTRO</strong> module models threats across the seven layers of an agentic AI system (foundation models, data, agent frameworks, deployment, observability, compliance, and the cross-cutting security layer). It ships with a curated threat catalog mapped to industry frameworks (MITRE ATT&amp;CK, OWASP, and NIST AI RMF), multiple rendering views (layered diagram, heatmap, and agent-centric graph), and the ability to cross-reference findings into STRIDE, attack-graph, and privilege-gradient views.</p>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <h2><span class="num">3</span>How It Works</h2>
+    <h3>Architecture</h3>
+    <p>USecVisLib is built as three clean layers, so each can be used independently:</p>
+<pre class="ascii"><code>┌─────────────────────────────────────────────────────────────┐
+│                     Vue.js 3 Web Frontend                     │
+│     Dark-theme UI · live code editor · zoom/pan output        │
+├─────────────────────────────────────────────────────────────┤
+│                       FastAPI REST API                        │
+│   OpenAPI docs · rate limiting · optional key authentication  │
+├─────────────────────────────────────────────────────────────┤
+│                      Python Core Library                      │
+│      Graphviz · NetworkX · Matplotlib · Diagrams · Mermaid    │
+└─────────────────────────────────────────────────────────────┘</code></pre>
+
+    <h3>The Workflow</h3>
+    <ol>
+      <li><strong>Describe</strong> your security model in a configuration file — TOML, JSON, or YAML (format auto-detected). The schema is human-readable and version-control friendly.</li>
+      <li><strong>Choose a style</strong> from dozens of built-in presets (dark, neon, corporate, blueprint, hacker, and more).</li>
+      <li><strong>Render</strong> to an image (PNG, SVG, PDF) or to source formats (DOT, Mermaid) via the web UI, CLI, Python, or API.</li>
+      <li><strong>Analyze</strong> the model — find attack paths, score with CVSS, run STRIDE, detect critical nodes or privilege inversions.</li>
+      <li><strong>Export &amp; share</strong> the diagram, the analysis report, or the model in another format.</li>
+    </ol>
+
+    <h3>Configuration-Driven by Design</h3>
+    <p>Every diagram is just text. A short attack-tree definition looks like this:</p>
+<pre><code>[tree]
+name = "Web Application Attack"
+root = "Compromise App"
+
+[nodes]
+"Compromise App"  = { style = "filled", fillcolor = "red" }
+"SQL Injection"   = { style = "filled", fillcolor = "orange" }
+"XSS Attack"      = { style = "filled", fillcolor = "orange" }
+
+[edges]
+"Compromise App" = [
+  { to = "SQL Injection", label = "OR" },
+  { to = "XSS Attack",    label = "OR" }
+]</code></pre>
+    <p>Because the model is plain text, diagrams are <strong>reproducible, diffable, and reviewable</strong> — they live alongside code in a repository and update automatically.</p>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <h2><span class="num">4</span>Key Features</h2>
+    <div class="cards">
+      <div class="card">
+        <h4>Security Analysis</h4>
+        <p>CVSS 3.1 &amp; 4.0 scoring · STRIDE analysis · attack-path finding · critical-node detection · privilege-inversion detection · agentic-AI (MAESTRO) threat modeling · kill-chain coverage-gap analysis · incident-response timelines (MTTD/MTTC/MTTR) · supply-chain / SCA dependency trees.</p>
+      </div>
+      <div class="card">
+        <h4>Developer Experience</h4>
+        <p>TOML / JSON / YAML configs · rich template library · dozens of style presets · PNG/SVG/PDF/DOT/Mermaid output · format conversion · fluent Python API with builders &amp; async.</p>
+      </div>
+      <div class="card">
+        <h4>Web Interface</h4>
+        <p>Live editor with syntax highlighting &amp; real-time validation · drag-and-drop upload · zoom &amp; pan · batch processing · built-in format converter · responsive on mobile.</p>
+      </div>
+      <div class="card">
+        <h4>Cloud &amp; Icons</h4>
+        <p>Thousands of bundled AWS, Azure &amp; Bootstrap icons · multi-cloud support (AWS, Azure, GCP, Kubernetes) · cluster grouping for organizing components.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <h2><span class="num">5</span>Interfaces &amp; Integration</h2>
+
+    <h4>Web Application</h4>
+    <p>A Vue.js 3 single-page app with a dark-theme UI, organized into tabs per visualization type plus a tools menu (CVSS calculator, format converter, batch processing, export, compare).</p>
+
+    <h4>Command Line</h4>
+<pre><code># Attack tree
+usecvis -m 0 -i config.toml -o output -f png -s at_default
+
+# Threat model with a STRIDE report
+usecvis -m 1 -i threat.toml -o diagram -f png -r
+
+# MAESTRO agentic-AI threat model
+usecvis -m 12 -i agent.toml -o output -f png -v graph</code></pre>
+
+    <h4>Python Library</h4>
+<pre><code>from usecvislib import AttackGraphs
+
+ag = AttackGraphs("network.toml", "graph", format="png", styleid="ag_security")
+ag.BuildAttackGraph()
+paths    = ag.find_attack_paths("attacker", "database_root")
+critical = ag.analyze_critical_nodes(top_n=5)</code></pre>
+
+    <h4>REST API</h4>
+    <p>A FastAPI service exposing visualize / analyze / validate endpoints for every module, with interactive OpenAPI (Swagger UI and ReDoc) documentation, configurable rate limiting, and optional API-key authentication.</p>
+
+    <h4>AI Assistant Integration (MCP)</h4>
+    <p>A companion Model Context Protocol server lets AI assistants drive USecVisLib directly — generating and analyzing security visualizations through natural-language tooling.</p>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <h2><span class="num">6</span>Technology Stack</h2>
+    <table>
+      <thead><tr><th>Layer</th><th>Technologies</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Frontend</strong></td><td>Vue.js 3, Vite, CodeMirror 6</td></tr>
+        <tr><td><strong>Backend</strong></td><td>FastAPI, Uvicorn, Pydantic</td></tr>
+        <tr><td><strong>Visualization</strong></td><td>Graphviz, NetworkX, Matplotlib, Diagrams</td></tr>
+        <tr><td><strong>Mermaid</strong></td><td>mermaid-cli, Puppeteer, Chromium</td></tr>
+        <tr><td><strong>Threat modeling</strong></td><td>OWASP PyTM</td></tr>
+        <tr><td><strong>Deployment</strong></td><td>Docker, Docker Compose</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 7 -->
+  <section>
+    <h2><span class="num">7</span>Getting Started</h2>
+    <p>The fastest path is Docker Compose, which brings up the API and the web UI together:</p>
+<pre><code>git clone --recursive https://github.com/vulnex/usecvislib.git
+cd usecvislib
+docker-compose up -d
+
+# Web UI:   http://localhost:3001
+# API docs: http://localhost:8003/docs</code></pre>
+    <p>Manual installation (Python package + frontend) and a CLI-only setup are also supported. The only system prerequisite beyond Python 3.10+ and Node.js 18+ is <strong>Graphviz</strong> for graph rendering.</p>
+  </section>
+
+  <!-- 8 -->
+  <section>
+    <h2><span class="num">8</span>Why It Matters</h2>
+    <ul>
+      <li><strong>Consistency</strong> — every diagram follows the same professional styling, regardless of who made it.</li>
+      <li><strong>Reproducibility</strong> — diagrams are defined as text, so they're versioned, reviewed, and regenerated like code.</li>
+      <li><strong>Breadth</strong> — one tool covers attack trees, threat models, cloud architecture, agentic-AI threats, and more.</li>
+      <li><strong>Analysis, not just drawing</strong> — CVSS scoring, STRIDE, attack-path finding, and privilege analysis come built in.</li>
+      <li><strong>Open</strong> — Apache 2.0 licensed, with a documented API and an extensible, modular core.</li>
+    </ul>
+  </section>
+
+  <!-- Feedback -->
+  <section class="feedback">
+    <h2>We'd Love Your Feedback</h2>
+    <p>This overview is being shared to gather input. A few questions we're especially interested in:</p>
+    <ol>
+      <li>Which visualization modules are most (and least) useful for your work?</li>
+      <li>Is anything missing that would make this part of your day-to-day workflow?</li>
+      <li>How would you prefer to use it — web UI, CLI, Python library, API, or AI assistant?</li>
+      <li>Does the agentic-AI (MAESTRO) threat modeling resonate with where you see security heading?</li>
+    </ol>
+    <p>Thank you for taking the time to review USecVisLib.</p>
+  </section>
+
+  <footer>
+    USecVisLib · Universal Security Visualization Library · v0.5.0 · © VULNEX · Apache License 2.0
+  </footer>
+
+</div>
+</body>
+</html>
