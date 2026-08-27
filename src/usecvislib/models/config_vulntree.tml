@@ -1,0 +1,55 @@
+# =============================================================================
+# VULNEX -Universal Security Visualization Library-
+#
+# File: config_vulntree.tml
+# Vulnerability Dependency Tree visualization style presets (CLI mode 11).
+#
+# Graphviz-based. Node fill is driven by the dependency's highest CVE
+# severity (critical=purple, high=red, medium=orange, low=yellow,
+# none=green), so `node.fillcolor` here is only the pre-severity default.
+# =============================================================================
+
+# Vuln Tree Default - clean light board
+[vt_default]
+graph = {rankdir = "TB", bgcolor = "#f8fafc", fontname = "Helvetica", fontcolor = "#334155", fontsize = "16", pad = "0.4", nodesep = "0.3", ranksep = "0.55", labelloc = "t"}
+node = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", color = "#64748b", fontsize = "10", penwidth = "1"}
+clean = {fillcolor = "#4caf50", fontcolor = "#ffffff"}
+edge = {color = "#94a3b8", penwidth = "1.4", arrowhead = "vee", arrowsize = "0.7"}
+direct = {penwidth = "2.2", color = "#1e293b"}
+exploited = {color = "#000000", penwidth = "2.6"}
+
+# Vuln Tree Dark - slate supply-chain board
+[vt_dark]
+graph = {rankdir = "TB", bgcolor = "#0f172a", fontname = "Helvetica", fontcolor = "#e2e8f0", fontsize = "16", pad = "0.4", nodesep = "0.3", ranksep = "0.55", labelloc = "t"}
+node = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", color = "#475569", fontsize = "10", penwidth = "1"}
+clean = {fillcolor = "#2e7d32", fontcolor = "#ffffff"}
+edge = {color = "#64748b", penwidth = "1.4", arrowhead = "vee", arrowsize = "0.7"}
+direct = {penwidth = "2.2", color = "#e2e8f0"}
+exploited = {color = "#f8fafc", penwidth = "2.6"}
+
+# Vuln Tree Security - high-contrast, bold severity heat
+[vt_security]
+graph = {rankdir = "TB", bgcolor = "#f5f7fa", fontname = "Helvetica", fontcolor = "#1e293b", fontsize = "16", pad = "0.4", nodesep = "0.32", ranksep = "0.62", labelloc = "t"}
+node = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", color = "#475569", fontsize = "10", penwidth = "1.4"}
+clean = {fillcolor = "#1f9d4d", fontcolor = "#ffffff"}
+edge = {color = "#64748b", penwidth = "1.8", arrowhead = "vee", arrowsize = "0.7"}
+direct = {penwidth = "2.6", color = "#0f172a"}
+exploited = {color = "#000000", penwidth = "3.0"}
+
+# Vuln Tree Corporate - professional blue-on-white for reports
+[vt_corporate]
+graph = {rankdir = "TB", bgcolor = "#ffffff", fontname = "Helvetica", fontcolor = "#16324f", fontsize = "16", pad = "0.5", nodesep = "0.3", ranksep = "0.6", labelloc = "t"}
+node = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", color = "#3d5a80", fontsize = "10", penwidth = "1"}
+clean = {fillcolor = "#2f855a", fontcolor = "#ffffff"}
+edge = {color = "#6b7b8c", penwidth = "1.5", arrowhead = "vee", arrowsize = "0.7"}
+direct = {penwidth = "2.2", color = "#16324f"}
+exploited = {color = "#111827", penwidth = "2.6"}
+
+# Vuln Tree Minimal - flat, hairline borders
+[vt_minimal]
+graph = {rankdir = "TB", bgcolor = "#ffffff", fontname = "Helvetica", fontcolor = "#475569", fontsize = "16", pad = "0.4", nodesep = "0.26", ranksep = "0.5", labelloc = "t"}
+node = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", color = "#cbd5e1", fontsize = "10", penwidth = "1"}
+clean = {fillcolor = "#66bb6a", fontcolor = "#ffffff"}
+edge = {color = "#cbd5e1", penwidth = "1.3", arrowhead = "vee", arrowsize = "0.6"}
+direct = {penwidth = "1.8", color = "#94a3b8"}
+exploited = {color = "#334155", penwidth = "2.2"}

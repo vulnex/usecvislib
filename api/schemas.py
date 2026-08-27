@@ -471,6 +471,89 @@ class KillChainStats(BaseModel):
     metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
 
 
+class TimelineStyle(str, Enum):
+    """Available incident timeline styles (Matplotlib tl_* presets)."""
+
+    DEFAULT = "tl_default"
+    LIGHT = "tl_light"
+    DARK = "tl_dark"
+    PRINT = "tl_print"
+    MINIMAL = "tl_minimal"
+    CORPORATE = "tl_corporate"
+
+
+class TimelineMode(str, Enum):
+    """Incident timeline render modes."""
+
+    SWIMLANE = "swimlane"
+    GANTT = "gantt"
+    VERTICAL = "vertical"
+    COMPACT = "compact"
+
+
+class TimelineResponseMetrics(BaseModel):
+    """Response-time deltas derived from IR phase boundaries."""
+
+    time_to_detect: Optional[str] = Field(default=None, description="Incident start -> end of Detection phase")
+    time_to_contain: Optional[str] = Field(default=None, description="Incident start -> end of Containment phase")
+    time_to_resolve: Optional[str] = Field(default=None, description="Incident start -> end of Recovery phase")
+
+
+class TimelineStats(BaseModel):
+    """Incident timeline statistics response."""
+
+    name: str
+    total_events: int
+    total_phases: int
+    lanes: list[str] = Field(default_factory=list)
+    severity_distribution: dict[str, int] = Field(default_factory=dict)
+    events_per_lane: dict[str, int] = Field(default_factory=dict)
+    start_time: str = ""
+    end_time: str = ""
+    time_span: str = ""
+    tagged_events: int = Field(default=0, description="Events carrying an ATT&CK technique tag")
+    response_metrics: TimelineResponseMetrics = Field(default_factory=TimelineResponseMetrics)
+    warnings: list[str] = Field(default_factory=list)
+    metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
+
+
+class VulnTreeStyle(str, Enum):
+    """Available vulnerability dependency tree styles (Graphviz vt_* presets)."""
+
+    DEFAULT = "vt_default"
+    DARK = "vt_dark"
+    SECURITY = "vt_security"
+    CORPORATE = "vt_corporate"
+    MINIMAL = "vt_minimal"
+
+
+class VulnTreeMode(str, Enum):
+    """Vulnerability dependency tree render modes."""
+
+    TREE = "tree"
+    VULNERABLE_ONLY = "vulnerable_only"
+    CRITICAL_PATH = "critical_path"
+
+
+class VulnTreeStats(BaseModel):
+    """Vulnerability dependency tree statistics response."""
+
+    name: str
+    total_dependencies: int
+    direct_dependencies: int
+    transitive_dependencies: int
+    vulnerable_dependencies: int
+    total_vulnerabilities: int
+    exploited_vulnerabilities: int
+    severity_distribution: dict[str, int] = Field(default_factory=dict)
+    max_cvss: float = Field(default=0.0, description="Highest CVSS score across all CVEs")
+    root_packages: list[str] = Field(default_factory=list)
+    impacted_roots: list[str] = Field(default_factory=list, description="Roots exposed to a transitive CVE")
+    remediation_available: int = Field(default=0, description="CVEs with a known fixed version")
+    warnings: list[str] = Field(default_factory=list)
+    metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
+
+
 class GraphStats(BaseModel):
     """Attack graph statistics response."""
 

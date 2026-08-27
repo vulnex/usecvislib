@@ -28,6 +28,8 @@ export const TemplateType = {
   COMPONENT_DIAGRAM: 'component-diagram',
   DEPENDENCY_GRAPH: 'dependency-graph',
   KILL_CHAIN: 'kill-chain',
+  TIMELINE: 'timeline',
+  VULN_TREE: 'vuln-tree',
   UNKNOWN: 'unknown'
 }
 
@@ -43,6 +45,8 @@ export const TemplateTypeNames = {
   [TemplateType.COMPONENT_DIAGRAM]: 'Component Diagram',
   [TemplateType.DEPENDENCY_GRAPH]: 'Dependency Graph',
   [TemplateType.KILL_CHAIN]: 'Kill Chain',
+  [TemplateType.TIMELINE]: 'Incident Timeline',
+  [TemplateType.VULN_TREE]: 'Vulnerability Tree',
   [TemplateType.UNKNOWN]: 'Unknown'
 }
 
@@ -58,6 +62,8 @@ export const TemplateTypePanels = {
   [TemplateType.COMPONENT_DIAGRAM]: 'Architecture',
   [TemplateType.DEPENDENCY_GRAPH]: 'Architecture',
   [TemplateType.KILL_CHAIN]: 'Kill Chain',
+  [TemplateType.TIMELINE]: 'Timeline',
+  [TemplateType.VULN_TREE]: 'Vuln Tree',
   [TemplateType.UNKNOWN]: null
 }
 
@@ -124,6 +130,23 @@ function detectFormat(content) {
 function isKillChain(obj) {
   // Kill chains have a [killchain] section and a [techniques] table
   return Boolean(obj.killchain && obj.techniques)
+}
+
+function isTimeline(obj) {
+  // Incident timelines have an [incident] section and an events list
+  return Boolean(obj.incident && Array.isArray(obj.events))
+}
+
+function isVulnTree(obj) {
+  // Vulnerability trees have a [dependencies] table (object of packages)
+  if (!obj.dependencies || typeof obj.dependencies !== 'object' || Array.isArray(obj.dependencies)) {
+    return false
+  }
+  // Distinguish from other formats: dep entries look like packages
+  // (have a name/version or nested dependencies/vulnerabilities)
+  return Object.values(obj.dependencies).some(
+    (d) => d && typeof d === 'object' && ('version' in d || 'vulnerabilities' in d || 'dependencies' in d || 'name' in d)
+  )
 }
 
 function isAttackTree(obj) {
@@ -303,6 +326,16 @@ export function detectTemplateType(content, format = null) {
   // Kill Chain is very specific (has killchain + techniques)
   if (isKillChain(obj)) {
     return { type: TemplateType.KILL_CHAIN, confidence: 'high', detectedFormat }
+  }
+
+  // Incident Timeline is very specific (has incident + events[])
+  if (isTimeline(obj)) {
+    return { type: TemplateType.TIMELINE, confidence: 'high', detectedFormat }
+  }
+
+  // Vulnerability Tree is very specific (has a [dependencies] package table)
+  if (isVulnTree(obj)) {
+    return { type: TemplateType.VULN_TREE, confidence: 'high', detectedFormat }
   }
 
   // Attack Graph is most specific (has unique fields like hosts, vulnerabilities)

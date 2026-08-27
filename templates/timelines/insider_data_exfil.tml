@@ -1,0 +1,83 @@
+#
+# VULNEX -Universal Security Visualization Library-
+#
+# Incident Timeline template: insider data exfiltration spanning several
+# days, showing a longer time span and durable staging activity. Suited to
+# the "gantt" render mode where event durations dominate.
+#
+
+[incident]
+name = "Insider Data Exfiltration"
+id = "INC-2026-0121"
+analyst = "Insider Threat Team"
+
+[[phases]]
+name = "Detection"
+start = "2026-03-12T09:00:00Z"
+end = "2026-03-12T17:00:00Z"
+color = "#e74c3c"
+
+[[phases]]
+name = "Containment"
+start = "2026-03-12T17:00:00Z"
+end = "2026-03-13T12:00:00Z"
+color = "#27ae60"
+
+[[events]]
+id = "EVT-001"
+timestamp = "2026-03-10T18:20:00Z"
+title = "After-hours access to file share"
+severity = "medium"
+lane = "Departing Employee"
+technique = "T1078.002"
+duration = "1h"
+
+[[events]]
+id = "EVT-002"
+timestamp = "2026-03-11T02:15:00Z"
+title = "Bulk copy to staging folder"
+severity = "high"
+lane = "Departing Employee"
+technique = "T1074.001"
+duration = "2h"
+
+[[events]]
+id = "EVT-003"
+timestamp = "2026-03-11T21:00:00Z"
+title = "Archive created and encrypted"
+severity = "high"
+lane = "Endpoint"
+technique = "T1560.001"
+duration = "45m"
+
+[[events]]
+id = "EVT-004"
+timestamp = "2026-03-12T01:30:00Z"
+title = "Upload to personal cloud storage"
+severity = "critical"
+lane = "Network"
+technique = "T1567.002"
+duration = "1h30m"
+
+[[events]]
+id = "EVT-005"
+timestamp = "2026-03-12T09:30:00Z"
+title = "DLP alert: large egress volume"
+severity = "high"
+lane = "SOC"
+source = "DLP"
+
+[[events]]
+id = "EVT-006"
+timestamp = "2026-03-12T16:45:00Z"
+title = "Accounts disabled, endpoint seized"
+severity = "medium"
+lane = "SOC"
+
+[[events]]
+id = "EVT-007"
+timestamp = "2026-03-13T10:00:00Z"
+title = "Forensic image and legal hold"
+severity = "info"
+lane = "Forensics"
+duration = "3h"

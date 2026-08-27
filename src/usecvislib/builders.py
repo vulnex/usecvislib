@@ -46,6 +46,8 @@ if TYPE_CHECKING:
     from .killchain import KillChain
     from .privilegegradient import PrivilegeGradient
     from .threatmodeling import ThreatModeling
+    from .timeline import IncidentTimeline
+    from .vulntree import VulnDependencyTree
 
 
 class AttackTreeBuilder:
@@ -1339,3 +1341,217 @@ class KillChainBuilder:
         kc = KillChain(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
         kc._temp_input = temp_path
         return kc
+
+
+class TimelineBuilder:
+    """Builder for programmatically creating incident timelines.
+
+    Example:
+        >>> builder = TimelineBuilder("Ransomware Incident", incident_id="INC-1")
+        >>> builder.add_phase("Detection", "2026-01-15T08:00:00Z", "2026-01-15T10:00:00Z")
+        >>> builder.add_event("EVT-1", "2026-01-15T08:32:00Z", "Phishing opened", severity="high")
+        >>> tl = builder.to_timeline("output", mode="swimlane")
+    """
+
+    def __init__(self, name: str, incident_id: Optional[str] = None, analyst: Optional[str] = None):
+        """Initialize the builder.
+
+        Args:
+            name: Incident/timeline name.
+            incident_id: Optional incident identifier.
+            analyst: Optional analyst/team name.
+        """
+        incident: dict[str, Any] = {"name": name}
+        if incident_id is not None:
+            incident["id"] = incident_id
+        if analyst is not None:
+            incident["analyst"] = analyst
+        self._data: dict[str, Any] = {"incident": incident, "phases": [], "events": []}
+
+    def add_event(
+        self,
+        event_id: str,
+        timestamp: str,
+        title: str,
+        severity: str = "info",
+        lane: str = "Events",
+        duration: Optional[str] = None,
+        technique: Optional[str] = None,
+        **attrs: Any,
+    ) -> TimelineBuilder:
+        """Add an event to the timeline.
+
+        Args:
+            event_id: Event identifier (e.g. "EVT-001").
+            timestamp: ISO-8601 timestamp.
+            title: Human-readable event title.
+            severity: critical | high | medium | low | info.
+            lane: Swimlane grouping (asset/actor).
+            duration: Optional compact duration (e.g. "2m", "1h30m").
+            technique: Optional ATT&CK technique id.
+            **attrs: Extra fields (description, source, indicators).
+
+        Returns:
+            Self for method chaining.
+        """
+        event: dict[str, Any] = {
+            "id": event_id,
+            "timestamp": timestamp,
+            "title": title,
+            "severity": severity,
+            "lane": lane,
+        }
+        if duration is not None:
+            event["duration"] = duration
+        if technique is not None:
+            event["technique"] = technique
+        event.update(attrs)
+        self._data["events"].append(event)
+        return self
+
+    def add_phase(
+        self,
+        name: str,
+        start: str,
+        end: str,
+        color: Optional[str] = None,
+        description: Optional[str] = None,
+    ) -> TimelineBuilder:
+        """Add a response phase band.
+
+        Returns:
+            Self for method chaining.
+        """
+        phase: dict[str, Any] = {"name": name, "start": start, "end": end}
+        if color is not None:
+            phase["color"] = color
+        if description is not None:
+            phase["description"] = description
+        self._data["phases"].append(phase)
+        return self
+
+    def build(self) -> dict[str, Any]:
+        """Return the timeline data as a dictionary."""
+        return self._data.copy()
+
+    def to_json(self, pretty: bool = True) -> str:
+        """Convert to a JSON string."""
+        return json.dumps(self._data, indent=2) if pretty else json.dumps(self._data)
+
+    def to_timeline(
+        self, outputfile: str, format: str = "png", styleid: str = "", mode: str = "swimlane"
+    ) -> IncidentTimeline:
+        """Create an IncidentTimeline instance from the builder data."""
+        from .timeline import IncidentTimeline
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(self._data, f)
+            temp_path = f.name
+
+        tl = IncidentTimeline(temp_path, outputfile, format=format, styleid=styleid, mode=mode)
+        tl._temp_input = temp_path
+        return tl
+
+
+class VulnTreeBuilder:
+    """Builder for programmatically creating vulnerability dependency trees.
+
+    Example:
+        >>> builder = VulnTreeBuilder("my-app", root_packages=["app"])
+        >>> builder.add_dependency("app", "app", "1.0.0", dependencies=["lodash"])
+        >>> builder.add_dependency("lodash", "lodash", "4.17.20", direct=False)
+        >>> builder.add_vulnerability("lodash", "CVE-2021-23337", "high", cvss=7.2, fixed_version="4.17.21")
+        >>> vt = builder.to_vuln_tree("output", mode="vulnerable_only")
+    """
+
+    def __init__(self, name: str, root_packages: Optional[list[str]] = None):
+        """Initialize the builder.
+
+        Args:
+            name: Tree/project name.
+            root_packages: Optional explicit list of root dependency ids.
+        """
+        vulntree: dict[str, Any] = {"name": name}
+        if root_packages is not None:
+            vulntree["root_packages"] = list(root_packages)
+        self._data: dict[str, Any] = {"vulntree": vulntree, "dependencies": {}}
+
+    def add_dependency(
+        self,
+        dep_id: str,
+        name: str,
+        version: str = "",
+        direct: bool = True,
+        dependencies: Optional[list[str]] = None,
+        license: str = "",
+    ) -> VulnTreeBuilder:
+        """Add a dependency (package) node.
+
+        Returns:
+            Self for method chaining.
+        """
+        self._data["dependencies"][dep_id] = {
+            "name": name,
+            "version": version,
+            "direct": direct,
+            "dependencies": list(dependencies) if dependencies else [],
+            "license": license,
+            "vulnerabilities": [],
+        }
+        return self
+
+    def add_vulnerability(
+        self,
+        dep_id: str,
+        cve_id: str,
+        severity: str = "none",
+        cvss: float = 0.0,
+        fixed_version: Optional[str] = None,
+        exploited: bool = False,
+        **attrs: Any,
+    ) -> VulnTreeBuilder:
+        """Attach a vulnerability (CVE) to an existing dependency.
+
+        Args:
+            dep_id: Id of a dependency added via ``add_dependency``.
+            cve_id: CVE identifier.
+            severity: critical | high | medium | low | none.
+            cvss: CVSS base score.
+            fixed_version: Version that remediates the CVE, if any.
+            exploited: Whether the CVE is known-exploited.
+            **attrs: Extra fields (description, cwe).
+
+        Returns:
+            Self for method chaining.
+
+        Raises:
+            KeyError: If ``dep_id`` has not been added yet.
+        """
+        vuln: dict[str, Any] = {"id": cve_id, "severity": severity, "cvss": cvss, "exploited": exploited}
+        if fixed_version is not None:
+            vuln["fixed_version"] = fixed_version
+        vuln.update(attrs)
+        self._data["dependencies"][dep_id]["vulnerabilities"].append(vuln)
+        return self
+
+    def build(self) -> dict[str, Any]:
+        """Return the vulnerability tree data as a dictionary."""
+        return self._data.copy()
+
+    def to_json(self, pretty: bool = True) -> str:
+        """Convert to a JSON string."""
+        return json.dumps(self._data, indent=2) if pretty else json.dumps(self._data)
+
+    def to_vuln_tree(
+        self, outputfile: str, format: str = "png", styleid: str = "", mode: str = "tree"
+    ) -> VulnDependencyTree:
+        """Create a VulnDependencyTree instance from the builder data."""
+        from .vulntree import VulnDependencyTree
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(self._data, f)
+            temp_path = f.name
+
+        vt = VulnDependencyTree(temp_path, outputfile, format=format, styleid=styleid, mode=mode)
+        vt._temp_input = temp_path
+        return vt

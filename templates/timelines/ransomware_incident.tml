@@ -1,0 +1,118 @@
+#
+# VULNEX -Universal Security Visualization Library-
+#
+# Incident Timeline template: ransomware incident response, from initial
+# phishing access through encryption and recovery. Phases model the IR
+# lifecycle (Detection -> Containment -> Eradication -> Recovery) so the
+# MTTD/MTTR response metrics populate.
+#
+
+[incident]
+name = "Ransomware Incident - INC-2026-0042"
+id = "INC-2026-0042"
+analyst = "SOC Team"
+
+[[phases]]
+name = "Detection"
+start = "2026-01-15T08:30:00Z"
+end = "2026-01-15T10:15:00Z"
+color = "#e74c3c"
+
+[[phases]]
+name = "Containment"
+start = "2026-01-15T10:15:00Z"
+end = "2026-01-15T12:00:00Z"
+color = "#e0a53f"
+
+[[phases]]
+name = "Eradication"
+start = "2026-01-15T12:00:00Z"
+end = "2026-01-15T15:00:00Z"
+color = "#3498db"
+
+[[phases]]
+name = "Recovery"
+start = "2026-01-15T15:00:00Z"
+end = "2026-01-15T19:00:00Z"
+color = "#27ae60"
+
+[[events]]
+id = "EVT-001"
+timestamp = "2026-01-15T08:32:00Z"
+title = "Phishing email opened"
+severity = "high"
+lane = "User Workstation"
+technique = "T1566.001"
+duration = "2m"
+
+[[events]]
+id = "EVT-002"
+timestamp = "2026-01-15T08:40:00Z"
+title = "Malicious macro executed"
+severity = "high"
+lane = "User Workstation"
+technique = "T1059.001"
+
+[[events]]
+id = "EVT-003"
+timestamp = "2026-01-15T09:05:00Z"
+title = "C2 beacon established"
+severity = "critical"
+lane = "Network"
+technique = "T1071.001"
+duration = "30m"
+
+[[events]]
+id = "EVT-004"
+timestamp = "2026-01-15T09:50:00Z"
+title = "Credential dumping (LSASS)"
+severity = "critical"
+lane = "Domain Controller"
+technique = "T1003.001"
+
+[[events]]
+id = "EVT-005"
+timestamp = "2026-01-15T10:10:00Z"
+title = "SIEM alert: mass file rename"
+severity = "high"
+lane = "SOC"
+source = "SIEM"
+
+[[events]]
+id = "EVT-006"
+timestamp = "2026-01-15T10:20:00Z"
+title = "Host isolated from network"
+severity = "medium"
+lane = "SOC"
+technique = "T1531"
+
+[[events]]
+id = "EVT-007"
+timestamp = "2026-01-15T11:30:00Z"
+title = "Ransomware encryption on file server"
+severity = "critical"
+lane = "File Server"
+technique = "T1486"
+duration = "45m"
+
+[[events]]
+id = "EVT-008"
+timestamp = "2026-01-15T13:15:00Z"
+title = "Malware artifacts removed"
+severity = "medium"
+lane = "SOC"
+
+[[events]]
+id = "EVT-009"
+timestamp = "2026-01-15T16:00:00Z"
+title = "Restore from backup"
+severity = "low"
+lane = "File Server"
+duration = "2h"
+
+[[events]]
+id = "EVT-010"
+timestamp = "2026-01-15T18:45:00Z"
+title = "Services restored, monitoring"
+severity = "info"
+lane = "SOC"

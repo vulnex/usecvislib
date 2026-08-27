@@ -1,0 +1,77 @@
+#
+# VULNEX -Universal Security Visualization Library-
+#
+# Incident Timeline template: business email compromise via phishing,
+# a compact chronology suited to the "compact" or "vertical" render modes.
+#
+
+[incident]
+name = "Phishing Compromise - BEC"
+id = "INC-2026-0088"
+analyst = "IR Team"
+
+[[phases]]
+name = "Detection"
+start = "2026-02-03T14:00:00Z"
+end = "2026-02-03T14:45:00Z"
+color = "#e74c3c"
+
+[[phases]]
+name = "Containment"
+start = "2026-02-03T14:45:00Z"
+end = "2026-02-03T16:00:00Z"
+color = "#27ae60"
+
+[[events]]
+id = "EVT-001"
+timestamp = "2026-02-03T13:10:00Z"
+title = "Credential phishing link clicked"
+severity = "high"
+lane = "Finance User"
+technique = "T1566.002"
+
+[[events]]
+id = "EVT-002"
+timestamp = "2026-02-03T13:14:00Z"
+title = "Credentials submitted to fake portal"
+severity = "critical"
+lane = "Finance User"
+technique = "T1078"
+
+[[events]]
+id = "EVT-003"
+timestamp = "2026-02-03T13:40:00Z"
+title = "Anomalous OAuth mailbox login"
+severity = "high"
+lane = "Cloud Identity"
+technique = "T1114.002"
+
+[[events]]
+id = "EVT-004"
+timestamp = "2026-02-03T14:05:00Z"
+title = "Inbox rule created to hide replies"
+severity = "medium"
+lane = "Cloud Identity"
+technique = "T1564.008"
+
+[[events]]
+id = "EVT-005"
+timestamp = "2026-02-03T14:20:00Z"
+title = "UEBA alert: impossible travel"
+severity = "high"
+lane = "SOC"
+source = "UEBA"
+
+[[events]]
+id = "EVT-006"
+timestamp = "2026-02-03T14:50:00Z"
+title = "Session revoked, password reset"
+severity = "low"
+lane = "SOC"
+
+[[events]]
+id = "EVT-007"
+timestamp = "2026-02-03T15:30:00Z"
+title = "MFA enforced, rule removed"
+severity = "info"
+lane = "SOC"

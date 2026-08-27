@@ -48,6 +48,8 @@ def Usage() -> None:
     print("                            7 - Component Diagrams")
     print("                            8 - Dependency Graphs")
     print("                            9 - Kill Chain / MITRE ATT&CK")
+    print("                            10 - Incident Timeline")
+    print("                            11 - Vulnerability Dependency Tree")
     print("                            12 - MAESTRO Agentic Threat Model")
     print("  -s, --styleid <id>      Style ID (per mode):")
     print("                          Attack Trees (mode 0):")
@@ -77,6 +79,11 @@ def Usage() -> None:
     print("                            dg_default, dg_dark, dg_minimal, dg_coupling")
     print("                          Kill Chain (mode 9):")
     print("                            kc_default, kc_light, kc_coverage")
+    print("                          Incident Timeline (mode 10):")
+    print("                            tl_default, tl_light, tl_dark, tl_print,")
+    print("                            tl_minimal, tl_corporate")
+    print("                          Vulnerability Tree (mode 11):")
+    print("                            vt_default, vt_dark, vt_security, vt_corporate, vt_minimal")
     print("                          MAESTRO Threat Model (mode 12):")
     print("                            ma_default")
     print("                          Binary Visualization (mode 2):")
@@ -88,6 +95,10 @@ def Usage() -> None:
     print("                            all, entropy, distribution, windrose, heatmap")
     print("                          MAESTRO view (mode 12):")
     print("                            layered (default), graph, heatmap")
+    print("                          Incident Timeline mode (mode 10):")
+    print("                            swimlane (default), gantt, vertical, compact")
+    print("                          Vulnerability Tree mode (mode 11):")
+    print("                            tree (default), vulnerable_only, critical_path")
     print("  -C, --config <file>     Configuration file for binary visualization parameters")
     print("                          (TOML format, controls entropy/distribution/windrose/heatmap settings)")
     print("  -r, --report            Generate STRIDE report (threat modeling only)")
@@ -148,7 +159,7 @@ def validate_mode(mode: int) -> bool:
     Returns:
         True if mode is valid, False otherwise.
     """
-    return mode in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 12]
+    return mode in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 
 
 def error_exit(message: str, show_usage: bool = True) -> NoReturn:
@@ -618,6 +629,66 @@ def main(argv: Optional[list[str]] = None) -> int:
             )
             if stats["active_phases"]:
                 print(f"  Active phases: {', '.join(stats['active_phases'])}")
+            if stats["warnings"]:
+                print("\nWarnings:")
+                for w in stats["warnings"]:
+                    print(f"  - {w}")
+
+        elif mode == 10:
+            # Incident Timeline
+            from . import timeline
+
+            # The -v flag selects the render mode (reused as with binvis/MAESTRO).
+            tl_mode = visualization if visualization in ("swimlane", "gantt", "vertical", "compact") else "swimlane"
+            tl = timeline.IncidentTimeline(inputfile, outputfile, format, styleid, mode=tl_mode)
+            tl.BuildTimeline()
+            print(f"Incident timeline generated: {outputfile}.{format}")
+
+            stats = tl.get_stats()
+            print("\nTimeline Statistics:")
+            print(f"  Name: {stats['name']}")
+            print(f"  Events: {stats['total_events']}")
+            print(f"  Phases: {stats['total_phases']}")
+            print(f"  Lanes: {len(stats['lanes'])}")
+            print(f"  Time span: {stats['time_span']}")
+            if stats["severity_distribution"]:
+                sev_summary = ", ".join(
+                    f"{k}={v}" for k, v in stats["severity_distribution"].items() if v
+                )
+                print(f"  Severity breakdown: {sev_summary}")
+            rm = stats["response_metrics"]
+            if any(rm.values()):
+                parts = [f"{k.replace('time_to_', 'TT')}={v}" for k, v in rm.items() if v]
+                print(f"  Response metrics: {', '.join(parts)}")
+            if stats["warnings"]:
+                print("\nWarnings:")
+                for w in stats["warnings"]:
+                    print(f"  - {w}")
+
+        elif mode == 11:
+            # Vulnerability Dependency Tree
+            from . import vulntree
+
+            # The -v flag selects the render mode.
+            vt_mode = visualization if visualization in ("tree", "vulnerable_only", "critical_path") else "tree"
+            vt = vulntree.VulnDependencyTree(inputfile, outputfile, format, styleid, mode=vt_mode)
+            vt.BuildVulnTree()
+            print(f"Vulnerability tree generated: {outputfile}.{format}")
+
+            stats = vt.get_stats()
+            print("\nVulnerability Tree Statistics:")
+            print(f"  Name: {stats['name']}")
+            print(f"  Dependencies: {stats['total_dependencies']} "
+                  f"({stats['direct_dependencies']} direct, {stats['transitive_dependencies']} transitive)")
+            print(f"  Vulnerable: {stats['vulnerable_dependencies']} "
+                  f"({stats['total_vulnerabilities']} CVEs, {stats['exploited_vulnerabilities']} exploited)")
+            print(f"  Max CVSS: {stats['max_cvss']:g}")
+            if stats["severity_distribution"]:
+                sev_summary = ", ".join(f"{k}={v}" for k, v in stats["severity_distribution"].items() if v)
+                print(f"  Severity breakdown: {sev_summary}")
+            if stats["impacted_roots"]:
+                print(f"  Impacted roots: {', '.join(stats['impacted_roots'])}")
+            print(f"  Remediation available: {stats['remediation_available']} CVEs have a fixed version")
             if stats["warnings"]:
                 print("\nWarnings:")
                 for w in stats["warnings"]:

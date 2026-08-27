@@ -59,7 +59,9 @@ from .routers import (
     privilege_gradient,
     settings,
     threat_models,
+    timeline,
     utilities,
+    vulntree,
 )
 from .schemas import ErrorResponse
 
@@ -157,7 +159,7 @@ To disable authentication for local development:
 export USECVISLIB_AUTH_ENABLED=false
 ```
     """,
-    version="0.4.1",
+    version="0.5.0",
     lifespan=lifespan,
     root_path=API_ROOT_PATH,
     dependencies=[Depends(verify_api_key)],
@@ -214,6 +216,8 @@ app.include_router(privilege_gradient.router)
 app.include_router(architecture.router)
 app.include_router(maestro.router)
 app.include_router(killchain.router)
+app.include_router(timeline.router)
+app.include_router(vulntree.router)
 
 
 # =============================================================================

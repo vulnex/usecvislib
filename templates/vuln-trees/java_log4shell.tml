@@ -1,0 +1,65 @@
+#
+# VULNEX -Universal Security Visualization Library-
+#
+# Vulnerability Dependency Tree template: a Java application transitively
+# pulling in the Log4Shell (CVE-2021-44228) chain. Highlights how a deep
+# transitive dependency exposes the root package to a known-exploited RCE.
+# Best viewed with mode = critical_path.
+#
+
+[vulntree]
+name = "payments-svc - Log4Shell exposure"
+root_packages = ["payments-svc"]
+
+[dependencies."payments-svc"]
+name = "payments-svc"
+version = "3.1.0"
+direct = true
+dependencies = ["spring-boot", "commons-io"]
+
+[dependencies."spring-boot"]
+name = "spring-boot-starter"
+version = "2.4.0"
+direct = true
+dependencies = ["spring-boot-logging"]
+
+[dependencies."spring-boot-logging"]
+name = "spring-boot-starter-logging"
+version = "2.4.0"
+direct = false
+dependencies = ["log4j-core"]
+
+[dependencies."log4j-core"]
+name = "log4j-core"
+version = "2.14.1"
+direct = false
+dependencies = ["log4j-api"]
+
+[[dependencies."log4j-core".vulnerabilities]]
+id = "CVE-2021-44228"
+severity = "critical"
+cvss = 10.0
+description = "Log4Shell: JNDI RCE via crafted log messages"
+fixed_version = "2.17.1"
+exploited = true
+cwe = "CWE-502"
+
+[[dependencies."log4j-core".vulnerabilities]]
+id = "CVE-2021-45046"
+severity = "high"
+cvss = 9.0
+description = "Incomplete Log4Shell fix, DoS and RCE"
+fixed_version = "2.17.1"
+cwe = "CWE-917"
+
+[dependencies."log4j-api"]
+name = "log4j-api"
+version = "2.14.1"
+direct = false
+dependencies = []
+
+[dependencies."commons-io"]
+name = "commons-io"
+version = "2.8.0"
+direct = true
+dependencies = []

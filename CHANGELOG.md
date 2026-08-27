@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-08-27
+
 ### Added
 
 - **Kill Chain / MITRE ATT&CK visualization (CLI mode 9)** — first-class module for mapping attack progression through a standardized framework
@@ -16,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - SVG-native swimlane render on the engine's `LinearLayout` (phase-column headers + stacked technique cards + phase-progression flow arrow), selectable with `--render-engine svg` and the `sv_*` presets; Graphviz path renders ranked phase clusters (`kc_default`, `kc_light`, `kc_coverage`)
   - `KillChain` core class, `KillChainBuilder` fluent API, `config_killchain.tml` styles, 3 templates in `templates/kill-chains/`, and API endpoints `POST /visualize|/analyze|/validate/kill-chain`
   - 33 tests in `tests/test_killchain.py` + `tests/test_api_killchain.py`
+- **Incident Timeline visualization (CLI mode 10)** — first-class module rendering the chronology of a security incident for IR workflows
+  - Matplotlib-based with four render modes selectable via `-v` (CLI) / `mode=` (API): `swimlane` (default, lanes by asset/actor with a label de-collision packer), `gantt` (one duration bar per event), `vertical` (top-down with alternating annotations), and `compact` (single strip)
+  - Events carry `severity` (drives marker/bar coloring), an optional `duration`, an optional ATT&CK `technique` tag, and a `lane`; response `[[phases]]` (Detection → Containment → Eradication → Recovery) shade the background and drive MTTD/MTTC/MTTR response metrics
+  - `analyze` reports severity distribution, per-lane counts, time span, tagged-event count and response metrics; `IncidentTimeline` core class, `TimelineBuilder` fluent API, `config_timeline.tml` (6 presets: `tl_default/light/dark/print/minimal/corporate`), 3 templates in `templates/timelines/`, and API endpoints `POST /visualize|/analyze|/validate/timeline`
+  - `TimelinePanel.vue` frontend tab, and 54 tests in `tests/test_timeline.py` + `tests/test_api_timeline.py`
+- **Vulnerability Dependency Tree visualization (CLI mode 11)** — first-class module for software supply-chain / SCA analysis
+  - Graphviz-based top-down tree with three render modes selectable via `-v` (CLI) / `mode=` (API): `tree` (default, full dependency tree), `vulnerable_only` (prune to packages that are vulnerable or lead to one), and `critical_path` (prune to paths reaching a critical/high CVE)
+  - Node fill is driven by each package's highest CVE severity (critical = purple, high = red, medium = orange, low = yellow, none = green); direct dependencies get a bolder border and known-exploited CVEs draw a bold edge into the affected package
+  - `analyze` reports direct/transitive counts, vulnerable/exploited counts, severity distribution, max CVSS, impact propagation (which root packages are exposed by a transitive CVE) and remediation availability (CVEs with a known fixed version); cycle-safe traversal with root inference when `root_packages` is omitted
+  - `VulnDependencyTree` core class, `VulnTreeBuilder` fluent API, `config_vulntree.tml` (5 presets: `vt_default/dark/security/corporate/minimal`), 3 templates in `templates/vuln-trees/`, and API endpoints `POST /visualize|/analyze|/validate/vuln-tree`
+  - `VulnTreePanel.vue` frontend tab, and 42 tests in `tests/test_vulntree.py` + `tests/test_api_vulntree.py`
 
 ### Changed
 

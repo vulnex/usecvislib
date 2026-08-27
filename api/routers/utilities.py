@@ -79,7 +79,9 @@ from ..schemas import (
     ThreatLibraryResponse,
     ThreatModelEngine,
     ThreatModelStyle,
+    TimelineStyle,
     VisualizationMode,
+    VulnTreeStyle,
 )
 
 logger = logging.getLogger("usecvislib.api")
@@ -161,6 +163,8 @@ async def get_available_styles(request: Request):
         "binary_visualization": [s.value for s in BinVisStyle],
         "privilege_gradient": [s.value for s in PrivilegeGradientStyle],
         "kill_chain": [s.value for s in KillChainStyle],
+        "timeline": [s.value for s in TimelineStyle],
+        "vuln_tree": [s.value for s in VulnTreeStyle],
     }
 
 

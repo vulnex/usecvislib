@@ -1,0 +1,80 @@
+#
+# VULNEX -Universal Security Visualization Library-
+#
+# Vulnerability Dependency Tree template: a Python service's pinned
+# requirements with a mix of clean and vulnerable transitive packages.
+#
+
+[vulntree]
+name = "api-service - Python requirements"
+root_packages = ["api-service"]
+
+[dependencies."api-service"]
+name = "api-service"
+version = "1.4.2"
+direct = true
+dependencies = ["requests", "flask", "pyyaml"]
+
+[dependencies."requests"]
+name = "requests"
+version = "2.25.0"
+direct = true
+dependencies = ["urllib3", "certifi"]
+
+[dependencies."flask"]
+name = "flask"
+version = "2.0.1"
+direct = true
+dependencies = ["werkzeug", "jinja2"]
+
+[dependencies."pyyaml"]
+name = "pyyaml"
+version = "5.3.1"
+direct = true
+dependencies = []
+
+[[dependencies."pyyaml".vulnerabilities]]
+id = "CVE-2020-14343"
+severity = "critical"
+cvss = 9.8
+description = "Arbitrary code execution via full_load"
+fixed_version = "5.4"
+cwe = "CWE-20"
+
+[dependencies."urllib3"]
+name = "urllib3"
+version = "1.26.4"
+direct = false
+dependencies = []
+
+[[dependencies."urllib3".vulnerabilities]]
+id = "CVE-2021-33503"
+severity = "high"
+cvss = 7.5
+fixed_version = "1.26.5"
+cwe = "CWE-400"
+
+[dependencies."certifi"]
+name = "certifi"
+version = "2021.5.30"
+direct = false
+dependencies = []
+
+[dependencies."werkzeug"]
+name = "werkzeug"
+version = "2.0.1"
+direct = false
+dependencies = []
+
+[[dependencies."werkzeug".vulnerabilities]]
+id = "CVE-2023-25577"
+severity = "medium"
+cvss = 5.3
+fixed_version = "2.2.3"
+cwe = "CWE-400"
+
+[dependencies."jinja2"]
+name = "jinja2"
+version = "3.0.1"
+direct = false
+dependencies = []

@@ -232,6 +232,94 @@ export async function validateKillChain(file) {
 }
 
 /**
+ * Generate incident timeline visualization
+ */
+export async function visualizeTimeline(file, format = 'png', style = 'tl_default', mode = 'swimlane') {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post(
+    `/visualize/timeline?format=${format}&style=${style}&mode=${mode}`,
+    formData,
+    {
+      responseType: 'blob',
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }
+  )
+  return response.data
+}
+
+/**
+ * Analyze incident timeline
+ */
+export async function analyzeTimeline(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/analyze/timeline', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Validate incident timeline structure
+ */
+export async function validateTimeline(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/validate/timeline', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Generate vulnerability dependency tree visualization
+ */
+export async function visualizeVulnTree(file, format = 'png', style = 'vt_default', mode = 'tree') {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post(
+    `/visualize/vuln-tree?format=${format}&style=${style}&mode=${mode}`,
+    formData,
+    {
+      responseType: 'blob',
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }
+  )
+  return response.data
+}
+
+/**
+ * Analyze vulnerability dependency tree
+ */
+export async function analyzeVulnTree(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/analyze/vuln-tree', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
+ * Validate vulnerability dependency tree structure
+ */
+export async function validateVulnTree(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await api.post('/validate/vuln-tree', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  return response.data
+}
+
+/**
  * Generate threat model visualization
  */
 export async function visualizeThreatModel(file, format = 'png', style = 'tm_default', engine = 'usecvislib') {
@@ -436,6 +524,54 @@ export async function analyzeKillChainFromContent(content, configFormat = 'toml'
 export async function validateKillChainFromContent(content, configFormat = 'toml') {
   const file = createFileFromContent(content, 'kill_chain', configFormat)
   return validateKillChain(file)
+}
+
+/**
+ * Generate incident timeline from text content
+ */
+export async function visualizeTimelineFromContent(content, outputFormat = 'png', style = 'tl_default', configFormat = 'toml', mode = 'swimlane') {
+  const file = createFileFromContent(content, 'timeline', configFormat)
+  return visualizeTimeline(file, outputFormat, style, mode)
+}
+
+/**
+ * Analyze incident timeline from text content
+ */
+export async function analyzeTimelineFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'timeline', configFormat)
+  return analyzeTimeline(file)
+}
+
+/**
+ * Validate incident timeline from text content
+ */
+export async function validateTimelineFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'timeline', configFormat)
+  return validateTimeline(file)
+}
+
+/**
+ * Generate vulnerability dependency tree from text content
+ */
+export async function visualizeVulnTreeFromContent(content, outputFormat = 'png', style = 'vt_default', configFormat = 'toml', mode = 'tree') {
+  const file = createFileFromContent(content, 'vuln_tree', configFormat)
+  return visualizeVulnTree(file, outputFormat, style, mode)
+}
+
+/**
+ * Analyze vulnerability dependency tree from text content
+ */
+export async function analyzeVulnTreeFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'vuln_tree', configFormat)
+  return analyzeVulnTree(file)
+}
+
+/**
+ * Validate vulnerability dependency tree from text content
+ */
+export async function validateVulnTreeFromContent(content, configFormat = 'toml') {
+  const file = createFileFromContent(content, 'vuln_tree', configFormat)
+  return validateVulnTree(file)
 }
 
 /**

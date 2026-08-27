@@ -1,0 +1,84 @@
+#
+# VULNEX -Universal Security Visualization Library-
+#
+# Vulnerability Dependency Tree template: a Node.js application's dependency
+# graph with transitive CVEs. Demonstrates severity heat, exploited edges,
+# and impact propagation from the root package down to vulnerable transitives.
+#
+
+[vulntree]
+name = "web-app - npm supply chain"
+root_packages = ["web-app"]
+
+[dependencies."web-app"]
+name = "web-app"
+version = "2.3.0"
+direct = true
+dependencies = ["express", "lodash", "axios"]
+
+[dependencies."express"]
+name = "express"
+version = "4.17.1"
+direct = true
+dependencies = ["qs", "body-parser"]
+
+[dependencies."lodash"]
+name = "lodash"
+version = "4.17.19"
+direct = true
+dependencies = []
+
+[[dependencies."lodash".vulnerabilities]]
+id = "CVE-2021-23337"
+severity = "high"
+cvss = 7.2
+description = "Command injection via template"
+fixed_version = "4.17.21"
+cwe = "CWE-77"
+
+[dependencies."axios"]
+name = "axios"
+version = "0.21.0"
+direct = true
+dependencies = ["follow-redirects"]
+
+[[dependencies."axios".vulnerabilities]]
+id = "CVE-2021-3749"
+severity = "medium"
+cvss = 5.9
+fixed_version = "0.21.2"
+cwe = "CWE-400"
+
+[dependencies."qs"]
+name = "qs"
+version = "6.7.0"
+direct = false
+dependencies = []
+
+[[dependencies."qs".vulnerabilities]]
+id = "CVE-2022-24999"
+severity = "high"
+cvss = 7.5
+fixed_version = "6.10.3"
+cwe = "CWE-1321"
+
+[dependencies."body-parser"]
+name = "body-parser"
+version = "1.19.0"
+direct = false
+dependencies = ["qs"]
+
+[dependencies."follow-redirects"]
+name = "follow-redirects"
+version = "1.13.0"
+direct = false
+dependencies = []
+
+[[dependencies."follow-redirects".vulnerabilities]]
+id = "CVE-2022-0155"
+severity = "critical"
+cvss = 9.1
+description = "Exposure of sensitive information via cookies on redirect"
+fixed_version = "1.14.7"
+exploited = true
+cwe = "CWE-200"

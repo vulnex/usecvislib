@@ -56,7 +56,7 @@ Example usage:
     >>> cloud.render("output", format="png")
 """
 
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 __author__ = "VULNEX"
 
 from .async_support import (
@@ -82,6 +82,8 @@ from .builders import (
     KillChainBuilder,
     PrivilegeGradientBuilder,
     ThreatModelBuilder,
+    TimelineBuilder,
+    VulnTreeBuilder,
 )
 from .clouddiagrams import (
     CloudCluster,
@@ -158,6 +160,19 @@ from .killchain import (
     KillChain,
     KillChainError,
     Technique,
+)
+from .timeline import (
+    IncidentTimeline,
+    TimelineError,
+    TimelineEvent,
+    TimelinePhase,
+)
+from .vulntree import (
+    Dependency,
+    Vulnerability,
+    VulnDependencyTree,
+    VulnSeverity,
+    VulnTreeError,
 )
 from .maestro import (
     Agent as MaestroAgent,
@@ -330,6 +345,19 @@ __all__ = [
     "KillChainBuilder",
     "KillChainError",
     "Technique",
+    # Incident Timeline support classes
+    "IncidentTimeline",
+    "TimelineBuilder",
+    "TimelineError",
+    "TimelineEvent",
+    "TimelinePhase",
+    # Vulnerability Dependency Tree support classes
+    "Dependency",
+    "Vulnerability",
+    "VulnDependencyTree",
+    "VulnSeverity",
+    "VulnTreeBuilder",
+    "VulnTreeError",
     # MAESTRO support classes
     "MaestroAgent",
     "MaestroAsset",
