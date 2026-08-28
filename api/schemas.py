@@ -472,7 +472,7 @@ class KillChainStats(BaseModel):
 
 
 class TimelineStyle(str, Enum):
-    """Available incident timeline styles (Matplotlib tl_* presets)."""
+    """Available incident timeline styles (Matplotlib tl_* and SVG-engine sv_*)."""
 
     DEFAULT = "tl_default"
     LIGHT = "tl_light"
@@ -480,6 +480,12 @@ class TimelineStyle(str, Enum):
     PRINT = "tl_print"
     MINIMAL = "tl_minimal"
     CORPORATE = "tl_corporate"
+    # SVG engine presets (require render_engine=svg)
+    SVG_DEFAULT = "sv_default"
+    SVG_DARK = "sv_dark"
+    SVG_PRINT = "sv_print"
+    SVG_CORPORATE = "sv_corporate"
+    SVG_MINIMAL = "sv_minimal"
 
 
 class TimelineMode(str, Enum):
@@ -518,13 +524,19 @@ class TimelineStats(BaseModel):
 
 
 class VulnTreeStyle(str, Enum):
-    """Available vulnerability dependency tree styles (Graphviz vt_* presets)."""
+    """Available vulnerability dependency tree styles (Graphviz vt_* and SVG-engine sv_*)."""
 
     DEFAULT = "vt_default"
     DARK = "vt_dark"
     SECURITY = "vt_security"
     CORPORATE = "vt_corporate"
     MINIMAL = "vt_minimal"
+    # SVG engine presets (require render_engine=svg)
+    SVG_DEFAULT = "sv_default"
+    SVG_DARK = "sv_dark"
+    SVG_SECURITY = "sv_security"
+    SVG_CORPORATE = "sv_corporate"
+    SVG_MINIMAL = "sv_minimal"
 
 
 class VulnTreeMode(str, Enum):

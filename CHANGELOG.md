@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **SVG engine support for the Incident Timeline (mode 10), all four render modes** — the SVG rendering engine (`--render-engine svg` / `render_engine="svg"`) now paints incident timelines natively, completing SVG Engine Phase 2 across every Tier-1 module (see `devnotes/SVG_ENGINE_DESIGN.md`, T2.3).
+  - New `svgengine/painters/timeline.py` reimplements all four Matplotlib modes as native SVG: `swimlane` (lanes × time axis with duration bars), `gantt` (one bar per event), `vertical` (center-line with alternating annotations), and `compact` (single strip). Events are placed by scaling timestamps onto a pixel axis (pure `timedelta` math — no Matplotlib, no Graphviz), response `[[phases]]` shade the background, and labels are greedily staggered into tiers to avoid overlap. Severity marker colors come from the module (fixed), so SVG output stays color-consistent with the Matplotlib engine.
+  - Adds `dot` / `band` / `anchored_text` primitives to the engine's `shapes` module and a `timeline` block to the engine theme defaults (lane/phase/axis colors).
+  - 5 `sv_*` presets (`sv_default/dark/print/corporate/minimal`) in `config_timeline.tml`.
+  - Emitted SVG carries the interactivity contract (`data-node-id`, `data-severity`, `data-timestamp`, `usv-sev--*` classes, `usv-phase` bands, severity legend) with no active content; PNG/PDF via cairosvg.
+  - Wired through the CLI (`-m 10 --render-engine svg -v <mode>`), the REST API (`render_engine` on `POST /visualize/timeline`, `sv_*` values on `TimelineStyle`), and the frontend `TimelinePanel.vue` (engine toggle + inlined `InteractiveSvg` for the SVG engine; Matplotlib output stays an `<img>`).
+  - 39 tests in `tests/test_svg_timeline.py` (contract, all templates × 4 modes, severity/phase semantics, empty-timeline fallback, engine-mismatch guards, cairosvg raster per mode, CLI end-to-end per mode).
+- **SVG engine support for the Vulnerability Dependency Tree (mode 11)** — the SVG rendering engine (`--render-engine svg` / `render_engine="svg"`) now paints supply-chain trees natively, joining Attack Trees (mode 0) and Kill Chain (mode 9). Continues SVG Engine Phase 2 (see `devnotes/SVG_ENGINE_DESIGN.md`, T2.4).
+  - New `svgengine/painters/vulntree.py` builds the scene on the engine's `TidyTreeLayout` (Reingold–Tilford), so the tree renders without the system Graphviz binary. Node fill is driven by each package's highest CVE severity, direct dependencies get a bolder border, and an edge into a known-exploited package is drawn bold and dark — mirroring the Graphviz path's semantics. All three render modes (`tree` / `vulnerable_only` / `critical_path`) are honoured through the module's own `_visible_nodes()`, and multi-root supply chains lay out under a hidden synthetic root.
+  - 5 `sv_*` presets (`sv_default/dark/security/corporate/minimal`) added to `config_vulntree.tml`; a `vulntree` theme block (direct-border + exploited-edge styling) added to the engine defaults.
+  - Emitted SVG carries the full interactivity contract (`data-node-id`, `usv-sev--*` / `usv-node--direct` / `usv-edge--exploited` classes, per-package CVSS badge) with no active content; PNG/PDF via cairosvg.
+  - Wired through the CLI (`-m 11 --render-engine svg`), the REST API (`render_engine` on `POST /visualize/vuln-tree`, `sv_*` values on `VulnTreeStyle`), and the frontend `VulnTreePanel.vue` (engine toggle + inlined `InteractiveSvg` display path).
+  - 30 tests in `tests/test_svg_vulntree.py` (contract, all templates × modes, exploited/direct semantics, engine-mismatch guards, cairosvg raster, CLI end-to-end).
+
 ## [0.5.0] - 2026-08-27
 
 ### Added

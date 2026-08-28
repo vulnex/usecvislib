@@ -178,6 +178,7 @@ class IncidentTimeline(VisualizationBase):
 
     STYLE_FILE = "config_timeline.tml"
     DEFAULT_STYLE_ID = "tl_default"
+    SVG_DEFAULT_STYLE_ID = "sv_default"
     ALLOWED_FORMATS = ("png", "pdf", "svg")
 
     def __init__(
@@ -188,15 +189,17 @@ class IncidentTimeline(VisualizationBase):
         styleid: Optional[str] = None,
         validate_paths: bool = True,
         mode: str = "swimlane",
+        render_engine: str = "graphviz",
     ) -> None:
-        # Timeline is Matplotlib-only; it never uses the SVG paint engine.
+        # Default path is Matplotlib; render_engine="svg" routes to the native
+        # SVG painter (all four modes) via the engine's paint dispatch.
         super().__init__(
             inputfile,
             outputfile,
             format=format or "png",
             styleid=styleid,
             validate_paths=validate_paths,
-            render_engine="graphviz",
+            render_engine=render_engine,
         )
         if (self.format or "png") == "dot":
             raise TimelineError("Format 'dot' is not supported by the timeline renderer. Use png, pdf, or svg.")

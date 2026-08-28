@@ -147,6 +147,7 @@ class VulnDependencyTree(VisualizationBase):
 
     STYLE_FILE = "config_vulntree.tml"
     DEFAULT_STYLE_ID = "vt_default"
+    SVG_DEFAULT_STYLE_ID = "sv_default"
 
     def __init__(
         self,
@@ -156,6 +157,7 @@ class VulnDependencyTree(VisualizationBase):
         styleid: Optional[str] = None,
         validate_paths: bool = True,
         mode: str = "tree",
+        render_engine: str = "graphviz",
     ) -> None:
         super().__init__(
             inputfile,
@@ -163,7 +165,7 @@ class VulnDependencyTree(VisualizationBase):
             format=format or "png",
             styleid=styleid,
             validate_paths=validate_paths,
-            render_engine="graphviz",
+            render_engine=render_engine,
         )
         self.mode = mode if mode in SUPPORTED_MODES else "tree"
         self.dot: Optional[Any] = None

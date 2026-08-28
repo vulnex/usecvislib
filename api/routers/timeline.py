@@ -33,6 +33,7 @@ from ..helpers import (
 )
 from ..schemas import (
     OutputFormat,
+    RenderEngine,
     TemplateMetadata,
     TimelineMode,
     TimelineStats,
@@ -63,6 +64,10 @@ async def visualize_timeline(
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     style: TimelineStyle = Query(default=TimelineStyle.DEFAULT, description="Style preset"),
     mode: TimelineMode = Query(default=TimelineMode.SWIMLANE, description="Render mode"),
+    render_engine: RenderEngine = Query(
+        default=RenderEngine.GRAPHVIZ,
+        description="Rendering engine: graphviz (Matplotlib, default) or svg (modern, sv_* styles)",
+    ),
 ):
     """Generate an incident timeline visualization from an uploaded file.
 
@@ -78,7 +83,18 @@ async def visualize_timeline(
         input_path = save_upload_file(file)
         output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
 
-        tl = IncidentTimeline(input_path, output_base, format=format.value, styleid=style.value, mode=mode.value)
+        styleid = style.value
+        if render_engine == RenderEngine.SVG and style == TimelineStyle.DEFAULT:
+            styleid = ""  # let the engine pick sv_default
+
+        tl = IncidentTimeline(
+            input_path,
+            output_base,
+            format=format.value,
+            styleid=styleid,
+            mode=mode.value,
+            render_engine=render_engine.value,
+        )
         await run_sync_with_timeout(tl.build, REQUEST_TIMEOUT_VISUALIZE, "timeline visualization")
 
         output_path = f"{output_base}.{format.value}"

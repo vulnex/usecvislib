@@ -234,12 +234,12 @@ export async function validateKillChain(file) {
 /**
  * Generate incident timeline visualization
  */
-export async function visualizeTimeline(file, format = 'png', style = 'tl_default', mode = 'swimlane') {
+export async function visualizeTimeline(file, format = 'png', style = 'tl_default', mode = 'swimlane', renderEngine = 'graphviz') {
   const formData = new FormData()
   formData.append('file', file)
 
   const response = await api.post(
-    `/visualize/timeline?format=${format}&style=${style}&mode=${mode}`,
+    `/visualize/timeline?format=${format}&style=${style}&mode=${mode}&render_engine=${renderEngine}`,
     formData,
     {
       responseType: 'blob',
@@ -278,12 +278,12 @@ export async function validateTimeline(file) {
 /**
  * Generate vulnerability dependency tree visualization
  */
-export async function visualizeVulnTree(file, format = 'png', style = 'vt_default', mode = 'tree') {
+export async function visualizeVulnTree(file, format = 'png', style = 'vt_default', mode = 'tree', renderEngine = 'graphviz') {
   const formData = new FormData()
   formData.append('file', file)
 
   const response = await api.post(
-    `/visualize/vuln-tree?format=${format}&style=${style}&mode=${mode}`,
+    `/visualize/vuln-tree?format=${format}&style=${style}&mode=${mode}&render_engine=${renderEngine}`,
     formData,
     {
       responseType: 'blob',
@@ -529,9 +529,9 @@ export async function validateKillChainFromContent(content, configFormat = 'toml
 /**
  * Generate incident timeline from text content
  */
-export async function visualizeTimelineFromContent(content, outputFormat = 'png', style = 'tl_default', configFormat = 'toml', mode = 'swimlane') {
+export async function visualizeTimelineFromContent(content, outputFormat = 'png', style = 'tl_default', configFormat = 'toml', mode = 'swimlane', renderEngine = 'graphviz') {
   const file = createFileFromContent(content, 'timeline', configFormat)
-  return visualizeTimeline(file, outputFormat, style, mode)
+  return visualizeTimeline(file, outputFormat, style, mode, renderEngine)
 }
 
 /**
@@ -553,9 +553,9 @@ export async function validateTimelineFromContent(content, configFormat = 'toml'
 /**
  * Generate vulnerability dependency tree from text content
  */
-export async function visualizeVulnTreeFromContent(content, outputFormat = 'png', style = 'vt_default', configFormat = 'toml', mode = 'tree') {
+export async function visualizeVulnTreeFromContent(content, outputFormat = 'png', style = 'vt_default', configFormat = 'toml', mode = 'tree', renderEngine = 'graphviz') {
   const file = createFileFromContent(content, 'vuln_tree', configFormat)
-  return visualizeVulnTree(file, outputFormat, style, mode)
+  return visualizeVulnTree(file, outputFormat, style, mode, renderEngine)
 }
 
 /**

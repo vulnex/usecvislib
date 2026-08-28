@@ -62,3 +62,80 @@ axis = {fontsize = 10, color = "#3d5a80", gridcolor = "#dbe4ee"}
 lane = {fontsize = 10, color = "#16324f", band_alpha = 0.07}
 event = {marker_size = 130, fontsize = 8, text_color = "#1e3a5f", edgecolor = "#16324f"}
 phase = {alpha = 0.12, fontsize = 9, color = "#3d5a80"}
+
+# =============================================================================
+# SVG-engine presets (render_engine="svg"). Selected via `--render-engine svg`
+# (CLI) or `render_engine="svg"` (API/library). Cover all four render modes
+# (swimlane/gantt/vertical/compact). Severity marker colors are fixed in the
+# module; the `timeline.*` block themes lanes, phase shading, and the axis.
+# =============================================================================
+
+# SVG Default - clean modern time chart
+[sv_default]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#f8fafc", padding = 40, text = "#1e293b"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 8, padding_x = 12, padding_y = 8, border_width = 1.0, min_width = 90, max_label_width = 150}
+node = {fill = "#334155", border = "#334155", text = "#ffffff"}
+edge = {color = "#94a3b8", width = 1.4, routing = "curve"}
+effects = {shadow = false, shadow_blur = 0, hover_glow = true}
+severity = {use_cvss_colors = false}
+badges = {cvss = false, fill = "#0f172a", text = "#ffffff"}
+timeline = {axis_length = 920, lane_height = 58, row_height = 34, marker_radius = 6.5, axis_color = "#94a3b8", grid_color = "#e2e8f0", axis_text = "#64748b", lane_band = "#1e3a5f", lane_band_alpha = 0.06, lane_text = "#1e3a5f", phase_alpha = 0.14, connector = "#cbd5e1", duration_alpha = 0.5}
+
+# SVG Dark - slate night-ops board
+[sv_dark]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#0f172a", padding = 40, text = "#e2e8f0"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 8, padding_x = 12, padding_y = 8, border_width = 1.0, min_width = 90, max_label_width = 150}
+node = {fill = "#334155", border = "#94a3b8", text = "#ffffff"}
+edge = {color = "#64748b", width = 1.4, routing = "curve"}
+effects = {shadow = false, shadow_blur = 0, hover_glow = true}
+severity = {use_cvss_colors = false}
+badges = {cvss = false, fill = "#e2e8f0", text = "#0f172a"}
+timeline = {axis_length = 920, lane_height = 58, row_height = 34, marker_radius = 6.5, axis_color = "#475569", grid_color = "#1e293b", axis_text = "#94a3b8", lane_band = "#93c5fd", lane_band_alpha = 0.06, lane_text = "#cbd5e1", phase_alpha = 0.18, connector = "#475569", duration_alpha = 0.5}
+
+# SVG Print - high-contrast for report export
+[sv_print]
+meta = {engine = "svg"}
+title = {show = true, size = 16}
+page = {background = "#ffffff", padding = 42, text = "#111827"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 6, padding_x = 12, padding_y = 8, border_width = 1.0, min_width = 90, max_label_width = 160}
+node = {fill = "#1f2937", border = "#111827", text = "#ffffff"}
+edge = {color = "#6b7280", width = 1.5, routing = "curve"}
+effects = {shadow = false, shadow_blur = 0, hover_glow = false}
+severity = {use_cvss_colors = false}
+badges = {cvss = false, fill = "#111827", text = "#ffffff"}
+timeline = {axis_length = 960, lane_height = 60, row_height = 36, marker_radius = 6.5, axis_color = "#6b7280", grid_color = "#d1d5db", axis_text = "#374151", lane_band = "#111827", lane_band_alpha = 0.05, lane_text = "#111827", phase_alpha = 0.16, connector = "#9ca3af", duration_alpha = 0.55}
+
+# SVG Corporate - professional blue-on-white for stakeholders
+[sv_corporate]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#ffffff", padding = 44, text = "#16324f"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 6, padding_x = 12, padding_y = 8, border_width = 1.0, min_width = 90, max_label_width = 155}
+node = {fill = "#3d5a80", border = "#16324f", text = "#ffffff"}
+edge = {color = "#6b7b8c", width = 1.4, routing = "curve"}
+effects = {shadow = false, shadow_blur = 0, hover_glow = false}
+severity = {use_cvss_colors = false}
+badges = {cvss = false, fill = "#16324f", text = "#ffffff"}
+timeline = {axis_length = 940, lane_height = 58, row_height = 34, marker_radius = 6.5, axis_color = "#6b7b8c", grid_color = "#dbe4ee", axis_text = "#3d5a80", lane_band = "#16324f", lane_band_alpha = 0.07, lane_text = "#16324f", phase_alpha = 0.14, connector = "#c3d0de", duration_alpha = 0.5}
+
+# SVG Minimal - flat, hairline, small markers
+[sv_minimal]
+meta = {engine = "svg"}
+title = {show = false, size = 14}
+page = {background = "#ffffff", padding = 36, text = "#475569"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 12, root_size = 15}
+card = {radius = 4, padding_x = 10, padding_y = 7, border_width = 1.0, min_width = 80, max_label_width = 140}
+node = {fill = "#64748b", border = "#cbd5e1", text = "#ffffff"}
+edge = {color = "#cbd5e1", width = 1.2, routing = "curve"}
+effects = {shadow = false, shadow_blur = 0, hover_glow = true}
+severity = {use_cvss_colors = false}
+badges = {cvss = false, fill = "#334155", text = "#ffffff"}
+timeline = {axis_length = 880, lane_height = 50, row_height = 30, marker_radius = 5.5, axis_color = "#cbd5e1", grid_color = "#eef2f6", axis_text = "#94a3b8", lane_band = "#94a3b8", lane_band_alpha = 0.05, lane_text = "#64748b", phase_alpha = 0.1, connector = "#e2e8f0", duration_alpha = 0.45}

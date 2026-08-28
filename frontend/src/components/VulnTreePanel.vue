@@ -76,6 +76,13 @@
             </select>
           </div>
           <div class="option-group">
+            <label>Engine</label>
+            <select v-model="renderEngine">
+              <option value="graphviz">Graphviz</option>
+              <option value="svg">SVG (modern)</option>
+            </select>
+          </div>
+          <div class="option-group">
             <label>Mode</label>
             <select v-model="mode">
               <option value="tree">Full Tree</option>
@@ -229,6 +236,7 @@ const fileFormat = ref('toml')
 const format = ref('png')
 const style = ref('vt_default')
 const mode = ref('tree')
+const renderEngine = ref('graphviz')
 const loading = ref(false)
 const error = ref(null)
 const imageUrl = ref(null)
@@ -243,6 +251,7 @@ const isConfigValid = ref(false)
 const templateMismatch = ref(null)
 
 const VULNTREE_STYLES = ['vt_default', 'vt_dark', 'vt_security', 'vt_corporate', 'vt_minimal']
+const SVG_ENGINE_STYLES = ['sv_default', 'sv_dark', 'sv_security', 'sv_corporate', 'sv_minimal']
 const SEVERITY_COLORS = {
   critical: '#7b1fa2',
   high: '#c62828',
@@ -251,9 +260,15 @@ const SEVERITY_COLORS = {
   none: '#4caf50'
 }
 
+// SVG-engine presets (sv_*) and Graphviz presets (vt_*) are not interchangeable
 const availableStyles = computed(() => {
+  if (renderEngine.value === 'svg') return SVG_ENGINE_STYLES
   const fromProps = (props.styles || []).filter((s) => s.startsWith('vt_'))
   return fromProps.length ? fromProps : VULNTREE_STYLES
+})
+
+watch(renderEngine, (engine) => {
+  style.value = engine === 'svg' ? 'sv_default' : 'vt_default'
 })
 
 const canGenerate = computed(() => editorContent.value && editorContent.value.trim() && isConfigValid.value)
@@ -284,7 +299,7 @@ function cvssClass(v) {
 }
 
 function formatStyleName(s) {
-  return s.replace(/^vt_/, '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  return s.replace(/^(vt_|sv_)/, '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 async function handleFileSelect(event) {
@@ -362,6 +377,7 @@ function resetPanel() {
   format.value = 'png'
   style.value = 'vt_default'
   mode.value = 'tree'
+  renderEngine.value = 'graphviz'
   isConfigValid.value = false
   templateMismatch.value = null
   clearResults()
@@ -383,11 +399,14 @@ async function generateVisualization() {
       format.value,
       style.value,
       fileFormat.value,
-      mode.value
+      mode.value,
+      renderEngine.value
     )
     imageBlob.value = blob
     imageUrl.value = createImageUrl(blob)
-    svgText.value = format.value === 'svg' ? await blob.text() : null
+    // SVG-engine SVG is inlined (sanitized) for hover/click interactivity;
+    // Graphviz SVG stays an <img> (its own zoom/pan path).
+    svgText.value = renderEngine.value === 'svg' && format.value === 'svg' ? await blob.text() : null
   } catch (err) {
     error.value = err.response?.data?.detail || err.message || 'Failed to generate visualization'
   } finally {

@@ -42,6 +42,8 @@ __all__ = [
 _PAINTERS: dict[str, str] = {
     "AttackTrees": "usecvislib.svgengine.painters.attacktrees",
     "KillChain": "usecvislib.svgengine.painters.killchain",
+    "VulnDependencyTree": "usecvislib.svgengine.painters.vulntree",
+    "IncidentTimeline": "usecvislib.svgengine.painters.timeline",
 }
 
 

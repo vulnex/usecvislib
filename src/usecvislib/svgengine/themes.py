@@ -49,6 +49,25 @@ DEFAULTS: dict[str, Any] = {
     "layout": {"h_gap": 40, "v_gap": 76},
     # Kill Chain (mode 9) swimlane: phase-header and flow-arrow colors.
     "killchain": {"phase_fill": "#1e3a5f", "phase_text": "#ffffff", "flow_color": "#94a3b8"},
+    # Vuln Dependency Tree (mode 11): direct-dependency border + exploited-edge accent.
+    "vulntree": {"direct_border": "#1e293b", "direct_border_width": 2.2, "exploited_color": "#0f172a", "exploited_width": 2.6},
+    # Incident Timeline (mode 10): time-chart lane/phase/axis colors (severity
+    # marker colors are fixed in the module, not themed).
+    "timeline": {
+        "axis_length": 920,
+        "lane_height": 58,
+        "row_height": 34,
+        "marker_radius": 6.5,
+        "axis_color": "#94a3b8",
+        "grid_color": "#e2e8f0",
+        "axis_text": "#64748b",
+        "lane_band": "#1e3a5f",
+        "lane_band_alpha": 0.06,
+        "lane_text": "#1e3a5f",
+        "phase_alpha": 0.14,
+        "connector": "#cbd5e1",
+        "duration_alpha": 0.5,
+    },
 }
 
 

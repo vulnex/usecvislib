@@ -124,6 +124,61 @@ def chamfer_card(
     return ET.Element("polygon", attrs)
 
 
+def dot(
+    cx: float,
+    cy: float,
+    radius: float,
+    fill: str,
+    stroke: str = "none",
+    stroke_width: float = 0.0,
+    filter_url: str = "",
+) -> ET.Element:
+    """Filled circle marker (e.g. a timeline event point)."""
+    attrs = {"cx": fmt(cx), "cy": fmt(cy), "r": fmt(radius), "fill": fill}
+    if stroke and stroke != "none":
+        attrs["stroke"] = stroke
+        attrs["stroke-width"] = fmt(stroke_width)
+    if filter_url:
+        attrs["filter"] = filter_url
+    return ET.Element("circle", attrs)
+
+
+def band(
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    fill: str,
+    opacity: float = 1.0,
+    radius: float = 0.0,
+) -> ET.Element:
+    """Flat rectangle for lane / phase / gantt background bands and bars."""
+    attrs = {"x": fmt(x), "y": fmt(y), "width": fmt(width), "height": fmt(height), "fill": fill}
+    if radius:
+        attrs["rx"] = fmt(radius)
+    if opacity != 1.0:
+        attrs["fill-opacity"] = fmt(opacity)
+    return ET.Element("rect", attrs)
+
+
+def anchored_text(
+    x: float,
+    baseline_y: float,
+    text: str,
+    size: float,
+    fill: str,
+    anchor: str = "start",
+    bold: bool = False,
+) -> ET.Element:
+    """Single line of text with an explicit anchor (start / middle / end)."""
+    attrs = {"x": fmt(x), "y": fmt(baseline_y), "text-anchor": anchor, "font-size": fmt(size), "fill": fill}
+    if bold:
+        attrs["font-weight"] = "bold"
+    element = ET.Element("text", attrs)
+    element.text = text
+    return element
+
+
 def text_lines(
     cx: float,
     top_y: float,

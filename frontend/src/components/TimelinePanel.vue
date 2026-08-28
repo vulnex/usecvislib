@@ -76,6 +76,13 @@
             </select>
           </div>
           <div class="option-group">
+            <label>Engine</label>
+            <select v-model="renderEngine">
+              <option value="graphviz">Matplotlib</option>
+              <option value="svg">SVG (modern)</option>
+            </select>
+          </div>
+          <div class="option-group">
             <label>Mode</label>
             <select v-model="mode">
               <option value="swimlane">Swimlane</option>
@@ -228,6 +235,7 @@ const fileFormat = ref('toml')
 const format = ref('png')
 const style = ref('tl_default')
 const mode = ref('swimlane')
+const renderEngine = ref('graphviz')
 const loading = ref(false)
 const error = ref(null)
 const imageUrl = ref(null)
@@ -242,6 +250,7 @@ const isConfigValid = ref(false)
 const templateMismatch = ref(null)
 
 const TIMELINE_STYLES = ['tl_default', 'tl_light', 'tl_dark', 'tl_print', 'tl_minimal', 'tl_corporate']
+const SVG_ENGINE_STYLES = ['sv_default', 'sv_dark', 'sv_print', 'sv_corporate', 'sv_minimal']
 const SEVERITY_COLORS = {
   critical: '#c0392b',
   high: '#e74c3c',
@@ -250,9 +259,15 @@ const SEVERITY_COLORS = {
   info: '#3498db'
 }
 
+// SVG-engine presets (sv_*) and Matplotlib presets (tl_*) are not interchangeable
 const availableStyles = computed(() => {
+  if (renderEngine.value === 'svg') return SVG_ENGINE_STYLES
   const fromProps = (props.styles || []).filter((s) => s.startsWith('tl_'))
   return fromProps.length ? fromProps : TIMELINE_STYLES
+})
+
+watch(renderEngine, (engine) => {
+  style.value = engine === 'svg' ? 'sv_default' : 'tl_default'
 })
 
 const canGenerate = computed(() => editorContent.value && editorContent.value.trim() && isConfigValid.value)
@@ -279,7 +294,7 @@ const responseMetrics = computed(() => {
 })
 
 function formatStyleName(s) {
-  return s.replace(/^tl_/, '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  return s.replace(/^(tl_|sv_)/, '').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
 async function handleFileSelect(event) {
@@ -357,6 +372,7 @@ function resetPanel() {
   format.value = 'png'
   style.value = 'tl_default'
   mode.value = 'swimlane'
+  renderEngine.value = 'graphviz'
   isConfigValid.value = false
   templateMismatch.value = null
   clearResults()
@@ -378,11 +394,14 @@ async function generateVisualization() {
       format.value,
       style.value,
       fileFormat.value,
-      mode.value
+      mode.value,
+      renderEngine.value
     )
     imageBlob.value = blob
     imageUrl.value = createImageUrl(blob)
-    svgText.value = format.value === 'svg' ? await blob.text() : null
+    // Only the SVG engine emits the interactivity contract; inline+sanitize it.
+    // Matplotlib SVG stays an <img> via ZoomableImage.
+    svgText.value = renderEngine.value === 'svg' && format.value === 'svg' ? await blob.text() : null
   } catch (err) {
     error.value = err.response?.data?.detail || err.message || 'Failed to generate visualization'
   } finally {

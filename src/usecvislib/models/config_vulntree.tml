@@ -53,3 +53,86 @@ clean = {fillcolor = "#66bb6a", fontcolor = "#ffffff"}
 edge = {color = "#cbd5e1", penwidth = "1.3", arrowhead = "vee", arrowsize = "0.6"}
 direct = {penwidth = "1.8", color = "#94a3b8"}
 exploited = {color = "#334155", penwidth = "2.2"}
+
+# =============================================================================
+# SVG-engine presets (render_engine="svg"). Selected via `--render-engine svg`
+# (CLI) or `render_engine="svg"` (API/library). Node fill is still driven by
+# each package's highest CVE severity; `node.fill` here is only the fallback
+# for clean packages. `vulntree.*` styles the direct-dependency border and the
+# bold edge drawn into a known-exploited package.
+# =============================================================================
+
+# SVG Default - clean modern tree with soft depth
+[sv_default]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#f8fafc", padding = 44, text = "#111827"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 10, padding_x = 15, padding_y = 10, border_width = 1.0, min_width = 132, max_label_width = 200}
+node = {fill = "#4caf50", border = "#94a3b8", text = "#ffffff"}
+edge = {color = "#94a3b8", width = 1.6, routing = "ortho"}
+effects = {shadow = true, shadow_blur = 2.2, hover_glow = true}
+severity = {use_cvss_colors = true}
+badges = {cvss = true, fill = "#0f172a", text = "#ffffff"}
+vulntree = {direct_border = "#1e293b", direct_border_width = 2.2, exploited_color = "#0f172a", exploited_width = 2.6}
+layout = {h_gap = 40, v_gap = 76}
+
+# SVG Dark - slate night-ops supply-chain board
+[sv_dark]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#0f172a", padding = 44, text = "#e2e8f0"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 10, padding_x = 15, padding_y = 10, border_width = 1.0, min_width = 132, max_label_width = 200}
+node = {fill = "#2e7d32", border = "#475569", text = "#ffffff"}
+edge = {color = "#64748b", width = 1.6, routing = "ortho"}
+effects = {shadow = true, shadow_blur = 2.6, hover_glow = true}
+severity = {use_cvss_colors = true}
+badges = {cvss = true, fill = "#e2e8f0", text = "#0f172a"}
+vulntree = {direct_border = "#e2e8f0", direct_border_width = 2.2, exploited_color = "#f8fafc", exploited_width = 2.6}
+layout = {h_gap = 40, v_gap = 76}
+
+# SVG Security - high-contrast, bold severity heat
+[sv_security]
+meta = {engine = "svg"}
+title = {show = true, size = 16}
+page = {background = "#f5f7fa", padding = 46, text = "#0f172a"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 8, padding_x = 16, padding_y = 11, border_width = 1.4, min_width = 140, max_label_width = 210}
+node = {fill = "#1f9d4d", border = "#475569", text = "#ffffff"}
+edge = {color = "#64748b", width = 1.9, routing = "ortho"}
+effects = {shadow = true, shadow_blur = 2.4, hover_glow = true}
+severity = {use_cvss_colors = true}
+badges = {cvss = true, fill = "#000000", text = "#ffffff"}
+vulntree = {direct_border = "#0f172a", direct_border_width = 2.6, exploited_color = "#000000", exploited_width = 3.0}
+layout = {h_gap = 44, v_gap = 82}
+
+# SVG Corporate - professional blue-on-white for reports
+[sv_corporate]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#ffffff", padding = 48, text = "#16324f"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 6, padding_x = 15, padding_y = 10, border_width = 1.0, min_width = 136, max_label_width = 205}
+node = {fill = "#2f855a", border = "#3d5a80", text = "#ffffff"}
+edge = {color = "#6b7b8c", width = 1.5, routing = "ortho"}
+effects = {shadow = true, shadow_blur = 1.8, hover_glow = false}
+severity = {use_cvss_colors = true}
+badges = {cvss = true, fill = "#16324f", text = "#ffffff"}
+vulntree = {direct_border = "#16324f", direct_border_width = 2.2, exploited_color = "#111827", exploited_width = 2.6}
+layout = {h_gap = 42, v_gap = 80}
+
+# SVG Minimal - flat outline, no depth
+[sv_minimal]
+meta = {engine = "svg"}
+title = {show = false, size = 14}
+page = {background = "#ffffff", padding = 40, text = "#475569"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 15}
+card = {radius = 4, padding_x = 14, padding_y = 9, border_width = 1.0, min_width = 128, max_label_width = 195}
+node = {fill = "#66bb6a", border = "#cbd5e1", text = "#ffffff"}
+edge = {color = "#cbd5e1", width = 1.3, routing = "ortho"}
+effects = {shadow = false, shadow_blur = 0, hover_glow = true}
+severity = {use_cvss_colors = true}
+badges = {cvss = true, fill = "#334155", text = "#ffffff"}
+vulntree = {direct_border = "#94a3b8", direct_border_width = 1.8, exploited_color = "#334155", exploited_width = 2.2}
+layout = {h_gap = 38, v_gap = 72}
