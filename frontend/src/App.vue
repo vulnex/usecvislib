@@ -15,11 +15,10 @@
     <header class="header">
       <div class="header-content">
         <h1 class="logo">
-          <img src="/usecvislib_logo.png" alt="USecVisLib" class="logo-image" />
-          USecVisLib
+          <img src="/usecvislib_logo.png" alt="VULNEX USecVisLib" class="logo-image" />
+          VULNEX USecVisLib
         </h1>
         <p class="tagline">Universal Security Visualization Library</p>
-        <a class="brand" href="https://www.vulnex.com" target="_blank" rel="noopener">by VULNEX</a>
       </div>
       <div class="header-actions">
         <button class="btn btn-icon" @click="activeTab = 'docs'" :class="{ active: activeTab === 'docs' }" title="Documentation">
