@@ -51,6 +51,23 @@ DEFAULTS: dict[str, Any] = {
     "killchain": {"phase_fill": "#1e3a5f", "phase_text": "#ffffff", "flow_color": "#94a3b8"},
     # Vuln Dependency Tree (mode 11): direct-dependency border + exploited-edge accent.
     "vulntree": {"direct_border": "#1e293b", "direct_border_width": 2.2, "exploited_color": "#0f172a", "exploited_width": 2.6},
+    # Attack Graphs (mode 3): per-node-kind fills, edge-kind colors, and the
+    # Graphviz-oracle layout spacing (rankdir + node/rank separation in inches).
+    "attackgraph": {
+        "host": "#3d5a80",
+        "vulnerability": "#e74c3c",
+        "privilege": "#e08e0b",
+        "service": "#2f8f4e",
+        "exploit": "#8e44ad",
+        "border": "#1e293b",
+        "network_edge": "#3b82c4",
+        "exploit_edge": "#c0392b",
+        "structural_edge": "#94a3b8",
+        "exploit_edge_width": 2.4,
+        "rankdir": "LR",
+        "nodesep": 0.4,
+        "ranksep": 0.7,
+    },
     # Incident Timeline (mode 10): time-chart lane/phase/axis colors (severity
     # marker colors are fixed in the module, not themed).
     "timeline": {

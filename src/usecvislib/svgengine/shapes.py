@@ -370,6 +370,32 @@ def curve_path_d(x1: float, y1: float, x2: float, y2: float, horizontal: bool = 
     return f"M {fmt(x1)} {fmt(y1)} C {fmt(x1)} {fmt(y1 + dy)} {fmt(x2)} {fmt(y2 - dy)} {fmt(x2)} {fmt(y2)}"
 
 
+def spline_path_d(points: list[tuple[float, float]]) -> str:
+    """Path through a Graphviz B-spline: the point list from a layout oracle.
+
+    ``points`` is the ordered control-point list a general-graph layout
+    (``GraphvizJsonLayout``) reads back from Graphviz: the first point is the
+    curve start, then cubic segments in groups of three, and — for a directed
+    edge — a final arrow-tip point that does not complete a triple. Cubic
+    triples become ``C`` segments; any trailing point(s) become ``L`` segments
+    so the stroke reaches the arrowhead. Fewer than two points yields an empty
+    path (the caller falls back to a straight connector).
+    """
+    if len(points) < 2:
+        return ""
+    pts = [(fmt(x), fmt(y)) for x, y in points]
+    segments = [f"M {pts[0][0]} {pts[0][1]}"]
+    i, n = 1, len(pts)
+    while i + 2 < n:  # a full cubic needs three further points
+        c1, c2, end = pts[i], pts[i + 1], pts[i + 2]
+        segments.append(f"C {c1[0]} {c1[1]} {c2[0]} {c2[1]} {end[0]} {end[1]}")
+        i += 3
+    while i < n:  # trailing point(s) (e.g. the arrow tip) as line segments
+        segments.append(f"L {pts[i][0]} {pts[i][1]}")
+        i += 1
+    return " ".join(segments)
+
+
 def image(x: float, y: float, width: float, height: float, href: str) -> ET.Element:
     """Embedded image (data URI href), aspect-fit inside its box."""
     return ET.Element(

@@ -716,12 +716,12 @@ export async function getThreatElementTypes() {
  * @param {string} format - Output format (png, svg, pdf)
  * @param {string} style - Style preset
  */
-export async function visualizeAttackGraph(file, format = 'png', style = 'ag_default') {
+export async function visualizeAttackGraph(file, format = 'png', style = 'ag_default', renderEngine = 'graphviz') {
   const formData = new FormData()
   formData.append('file', file)
 
   const response = await api.post(
-    `/visualize/attack-graph?format=${format}&style=${style}`,
+    `/visualize/attack-graph?format=${format}&style=${style}&render_engine=${renderEngine}`,
     formData,
     {
       responseType: 'blob',
@@ -738,9 +738,9 @@ export async function visualizeAttackGraph(file, format = 'png', style = 'ag_def
  * @param {string} style - Style preset
  * @param {string} configFormat - Configuration format (toml, json, yaml)
  */
-export async function visualizeAttackGraphFromContent(content, outputFormat = 'png', style = 'ag_default', configFormat = 'toml') {
+export async function visualizeAttackGraphFromContent(content, outputFormat = 'png', style = 'ag_default', configFormat = 'toml', renderEngine = 'graphviz') {
   const file = createFileFromContent(content, 'attack_graph', configFormat)
-  return visualizeAttackGraph(file, outputFormat, style)
+  return visualizeAttackGraph(file, outputFormat, style, renderEngine)
 }
 
 /**

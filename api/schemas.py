@@ -267,6 +267,13 @@ class AttackGraphStyle(str, Enum):
     TERRA = "ag_terra"
     DOC_LIGHT = "ag_doc_light"
 
+    # SVG engine presets (require render_engine=svg)
+    SVG_DEFAULT = "sv_default"
+    SVG_DARK = "sv_dark"
+    SVG_SECURITY = "sv_security"
+    SVG_CORPORATE = "sv_corporate"
+    SVG_MINIMAL = "sv_minimal"
+
 
 class PrivilegeGradientStyle(str, Enum):
     """Available privilege gradient graph styles."""

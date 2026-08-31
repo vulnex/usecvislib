@@ -41,6 +41,7 @@ __all__ = [
 # Visualization class name -> painter module path
 _PAINTERS: dict[str, str] = {
     "AttackTrees": "usecvislib.svgengine.painters.attacktrees",
+    "AttackGraphs": "usecvislib.svgengine.painters.attackgraphs",
     "KillChain": "usecvislib.svgengine.painters.killchain",
     "VulnDependencyTree": "usecvislib.svgengine.painters.vulntree",
     "IncidentTimeline": "usecvislib.svgengine.painters.timeline",

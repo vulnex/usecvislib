@@ -70,9 +70,10 @@ class SceneEdge:
     dst: str
     kind: str = "edge"
     color: Optional[str] = None
+    width: Optional[float] = None  # overrides theme edge width when set
     dashed: bool = False
     label: Optional[str] = None
-    points: list[tuple[float, float]] = field(default_factory=list)
+    points: list[tuple[float, float]] = field(default_factory=list)  # spline control points (layout-set)
 
 
 @dataclass

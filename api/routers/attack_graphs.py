@@ -41,6 +41,7 @@ from ..schemas import (
     CriticalNode,
     GraphStats,
     OutputFormat,
+    RenderEngine,
     TemplateMetadata,
 )
 
@@ -71,6 +72,10 @@ async def visualize_attack_graph(
     file: UploadFile = File(..., description="Configuration file containing attack graph definition"),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     style: AttackGraphStyle = Query(default=AttackGraphStyle.DEFAULT, description="Style preset"),
+    render_engine: RenderEngine = Query(
+        default=RenderEngine.GRAPHVIZ,
+        description="Rendering engine: graphviz (default) or svg (modern cards over a Graphviz-computed layout, sv_* styles)",
+    ),
 ):
     """
     Generate an attack graph visualization from an uploaded configuration file.
@@ -135,9 +140,15 @@ async def visualize_attack_graph(
             logger.debug(f"Image resolution skipped: {e}")
             input_for_viz = input_path
 
+        styleid = style.value
+        if render_engine == RenderEngine.SVG and style == AttackGraphStyle.DEFAULT:
+            styleid = ""  # let the engine pick sv_default
+
         # Generate visualization with timeout protection
         # SECURITY: Prevents resource exhaustion from complex/slow visualizations
-        ag = AttackGraphs(input_for_viz, output_base, format=format.value, styleid=style.value)
+        ag = AttackGraphs(
+            input_for_viz, output_base, format=format.value, styleid=styleid, render_engine=render_engine.value
+        )
         await run_sync_with_timeout(ag.BuildAttackGraph, REQUEST_TIMEOUT_VISUALIZE, "attack graph visualization")
 
         output_path = f"{output_base}.{format.value}"

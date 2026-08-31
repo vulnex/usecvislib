@@ -24,11 +24,12 @@ in devnotes/SVG_ENGINE_DESIGN.md).
 All layouts write center coordinates to ``node.x`` / ``node.y``.
 """
 
+import json
 import logging
 from itertools import pairwise
 from typing import Optional
 
-from .scene import Scene
+from .scene import EngineNotSupportedError, Scene
 
 logger = logging.getLogger(__name__)
 
@@ -480,3 +481,163 @@ class AxisLayout:
             else:
                 node.x = lane_centers[lane_of[node.id]]
                 node.y = axis_pos(node)
+
+
+def _dot_escape(text: str) -> str:
+    """Escape a string for use inside a double-quoted DOT identifier."""
+    return str(text).replace("\\", "\\\\").replace('"', '\\"')
+
+
+class GraphvizJsonLayout:
+    """General-graph layout that uses Graphviz purely as a coordinate oracle.
+
+    Unlike the native layouts above, arbitrary directed graphs (attack
+    graphs, dependency graphs, DFDs) have no cheap closed-form placement.
+    This layout builds a minimal DOT document from the scene — node IDs, our
+    own text-metric sizes, and the edge list — runs it through
+    ``graphviz.pipe(engine, "json0", ...)``, and reads back node centers and
+    edge B-spline control points. Graphviz computes geometry; it never paints.
+
+    Sizes are fed to Graphviz in inches as ``pixels / 72`` with
+    ``fixedsize=true``, so one returned point maps 1:1 to one engine pixel.
+    Coordinates are converted from Graphviz's bottom-left origin to the
+    engine's top-left convention (Y flipped about the graph height) and
+    written to ``node.x`` / ``node.y`` (centers) and ``edge.points``.
+
+    Requires the system Graphviz ``dot`` binary; general graphs have no
+    native fallback yet, so an unavailable binary raises
+    ``EngineNotSupportedError`` (the networkx spring fallback is deferred).
+    """
+
+    _PT_PER_INCH = 72.0
+
+    def __init__(
+        self,
+        rankdir: str = "LR",
+        nodesep: float = 0.35,
+        ranksep: float = 0.55,
+        splines: str = "spline",
+        engine: str = "dot",
+    ) -> None:
+        """Configure the layout direction and Graphviz spacing/engine."""
+        self.rankdir = rankdir if str(rankdir).upper() in ("LR", "TB", "RL", "BT") else "LR"
+        self.nodesep = nodesep
+        self.ranksep = ranksep
+        self.splines = splines
+        self.engine = engine
+
+    def solve(self, scene: Scene) -> None:
+        """Place all scene nodes and route all edges via Graphviz."""
+        if not scene.nodes:
+            return
+        data = self._run(self._build_dot(scene))
+        self._apply(scene, data)
+
+    def _build_dot(self, scene: Scene) -> str:
+        """Serialize the scene to a minimal DOT document for layout only."""
+        lines = [
+            "digraph G {",
+            f'  graph [rankdir="{self.rankdir}", nodesep="{self.nodesep}", '
+            f'ranksep="{self.ranksep}", splines="{self.splines}"];',
+            "  node [shape=box, fixedsize=true];",
+        ]
+        for node in scene.nodes:
+            w_in = max(node.width, 1.0) / self._PT_PER_INCH
+            h_in = max(node.height, 1.0) / self._PT_PER_INCH
+            lines.append(f'  "{_dot_escape(node.id)}" [width={w_in:.4f}, height={h_in:.4f}, label=""];')
+        for edge in scene.edges:
+            lines.append(f'  "{_dot_escape(edge.src)}" -> "{_dot_escape(edge.dst)}";')
+        lines.append("}")
+        return "\n".join(lines)
+
+    def _run(self, dot: str) -> dict:
+        """Pipe the DOT document through Graphviz and parse the JSON result."""
+        try:
+            import graphviz
+        except ImportError as exc:  # pragma: no cover - graphviz is a hard dep
+            raise EngineNotSupportedError(
+                "General-graph SVG layout requires the 'graphviz' package and the 'dot' binary."
+            ) from exc
+        try:
+            raw = graphviz.pipe(self.engine, "json0", dot.encode("utf-8"))
+        except Exception as exc:
+            raise EngineNotSupportedError(
+                "General-graph SVG layout requires the Graphviz 'dot' binary; it could not be run. "
+                "Install Graphviz or use render_engine='graphviz'."
+            ) from exc
+        return json.loads(raw.decode("utf-8"))
+
+    def _apply(self, scene: Scene, data: dict) -> None:
+        """Write oracle positions/splines back onto the scene (Y-flipped)."""
+        height = self._bb_height(data.get("bb", ""))
+
+        by_id = {n.id: n for n in scene.nodes}
+        gvid_to_id: dict[int, str] = {}
+        for obj in data.get("objects", []):
+            name = obj.get("name")
+            if name is not None and "_gvid" in obj:
+                gvid_to_id[obj["_gvid"]] = name
+            node = by_id.get(name)
+            pos = obj.get("pos")
+            if node is None or not pos:
+                continue
+            x_str, y_str = pos.split(",")
+            node.x = float(x_str)
+            node.y = height - float(y_str)
+
+        # Match json edges back to scene edges by (tail, head); a repeated
+        # pair (parallel edges) consumes successive scene edges in order.
+        buckets: dict[tuple[str, str], list] = {}
+        for edge in scene.edges:
+            buckets.setdefault((edge.src, edge.dst), []).append(edge)
+        used: dict[tuple[str, str], int] = {}
+        for gv_edge in data.get("edges", []):
+            tail = gvid_to_id.get(gv_edge.get("tail"))
+            head = gvid_to_id.get(gv_edge.get("head"))
+            if tail is None or head is None:
+                continue
+            bucket = buckets.get((tail, head))
+            if not bucket:
+                continue
+            idx = used.get((tail, head), 0)
+            if idx >= len(bucket):
+                continue
+            bucket[idx].points = self._parse_spline(gv_edge.get("pos", ""), height)
+            used[(tail, head)] = idx + 1
+
+    @staticmethod
+    def _bb_height(bb: str) -> float:
+        """Graph bounding-box height (upper-right Y) for the Y-axis flip."""
+        parts = bb.split(",") if bb else []
+        if len(parts) == 4:
+            try:
+                return float(parts[3])
+            except ValueError:
+                return 0.0
+        return 0.0
+
+    @staticmethod
+    def _parse_spline(pos: str, height: float) -> list[tuple[float, float]]:
+        """Parse a Graphviz edge ``pos`` spline into flipped control points.
+
+        Format: optional ``s,x,y`` (arrow-tail tip) and ``e,x,y`` (arrow-head
+        tip) tokens plus the B-spline points. We keep the spline points in
+        order and append the head tip last so the stroke reaches the
+        arrowhead; the tail tip is unused (our edges carry head arrows only).
+        """
+        if not pos:
+            return []
+        end_tip: Optional[tuple[float, float]] = None
+        points: list[tuple[float, float]] = []
+        for token in pos.split():
+            if token.startswith("e,"):
+                x_str, y_str = token[2:].split(",")
+                end_tip = (float(x_str), height - float(y_str))
+            elif token.startswith("s,"):
+                continue
+            else:
+                x_str, y_str = token.split(",")
+                points.append((float(x_str), height - float(y_str)))
+        if end_tip is not None:
+            points.append(end_tip)
+        return points
