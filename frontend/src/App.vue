@@ -122,10 +122,10 @@ const apiVersion = ref('Unknown')
 
 // Footer copyright: year of first release through the current year (collapses
 // to a single year until the current year moves past the release year).
-const RELEASE_YEAR = 2026
+const RELEASE_YEAR = 2025
 const copyrightYears = computed(() => {
   const now = new Date().getFullYear()
-  return now > RELEASE_YEAR ? `${RELEASE_YEAR}–${now}` : `${RELEASE_YEAR}`
+  return now > RELEASE_YEAR ? `${RELEASE_YEAR}-${now}` : `${RELEASE_YEAR}`
 })
 const modules = ref({
   attack_trees: false,
