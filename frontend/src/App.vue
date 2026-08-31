@@ -19,6 +19,7 @@
           USecVisLib
         </h1>
         <p class="tagline">Universal Security Visualization Library</p>
+        <a class="brand" href="https://www.vulnex.com" target="_blank" rel="noopener">by VULNEX</a>
       </div>
       <div class="header-actions">
         <button class="btn btn-icon" @click="activeTab = 'docs'" :class="{ active: activeTab === 'docs' }" title="Documentation">
@@ -86,6 +87,10 @@
         <a href="http://localhost:8000/docs" target="_blank">API Docs</a> |
         <a href="https://github.com/vulnex/usecvislib" target="_blank">GitHub</a>
       </p>
+      <p class="footer-copyright">
+        &copy; {{ copyrightYears }}
+        <a href="https://www.vulnex.com" target="_blank" rel="noopener">VULNEX</a>. All rights reserved.
+      </p>
     </footer>
   </div>
 </template>
@@ -115,6 +120,14 @@ import SettingsPanel from './components/SettingsPanel.vue'
 
 const apiConnected = ref(false)
 const apiVersion = ref('Unknown')
+
+// Footer copyright: year of first release through the current year (collapses
+// to a single year until the current year moves past the release year).
+const RELEASE_YEAR = 2026
+const copyrightYears = computed(() => {
+  const now = new Date().getFullYear()
+  return now > RELEASE_YEAR ? `${RELEASE_YEAR}–${now}` : `${RELEASE_YEAR}`
+})
 const modules = ref({
   attack_trees: false,
   attack_graphs: false,

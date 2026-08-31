@@ -100,6 +100,24 @@ body {
   font-size: 0.9rem;
 }
 
+.brand {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.brand:hover {
+  color: var(--text-primary);
+  border-color: var(--primary);
+}
+
 .api-status {
   font-size: 0.85rem;
   padding: 0.4rem 0.8rem;
@@ -862,6 +880,13 @@ body {
 
 .footer a:hover {
   text-decoration: underline;
+}
+
+.footer-copyright {
+  margin-top: 0.35rem;
+  color: var(--text-muted);
+  opacity: 0.85;
+  font-size: 0.8rem;
 }
 
 /* =============================================================================
