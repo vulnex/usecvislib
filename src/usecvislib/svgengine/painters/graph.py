@@ -70,10 +70,15 @@ def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str,
         module_slug: Module slug for CSS classes / data attributes.
         rankdir: Layout direction passed to the oracle ("LR" | "TB" | ...).
     """
-    if not scene.nodes:
-        from ... import utils
+    from ... import utils
 
+    if not scene.nodes:
         raise utils.RenderError("Graph has no nodes to render")
+
+    # Bound layout/paint cost before invoking the Graphviz oracle, matching the
+    # Graphviz render path and the attack-tree SVG painter (the SVG engine skips
+    # _render_impl, so this guard would otherwise be bypassed).
+    utils.check_graph_complexity(len(scene.nodes), len(scene.edges))
 
     ag = theme.get("attackgraph", {})
     GraphvizJsonLayout(

@@ -184,6 +184,20 @@ class TestEngineGuards:
         with pytest.raises(StyleEngineMismatchError):
             AttackGraphs(FIXTURE, "unused", styleid="sv_default", render_engine="graphviz").load()
 
+    def test_complexity_guard_runs_before_layout(self, monkeypatch, tmp_path):
+        # The SVG engine skips _render_impl, so the shared graph painter must
+        # enforce check_graph_complexity itself. Patch it to raise and confirm
+        # the render trips it before the dot-requiring layout runs (so this
+        # test needs no dot binary).
+        import usecvislib.utils as u
+
+        def _boom(nodes, edges, **kwargs):
+            raise ValueError(f"COMPLEXITY {nodes}/{edges}")
+
+        monkeypatch.setattr(u, "check_graph_complexity", _boom)
+        with pytest.raises(ValueError, match="COMPLEXITY"):
+            _render(FIXTURE, tmp_path)
+
 
 @requires_dot
 class TestRasterOutputs:
