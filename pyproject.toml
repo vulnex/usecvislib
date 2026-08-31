@@ -31,7 +31,7 @@ dependencies = [
     "tomli>=2.0; python_version < '3.11'",  # spec-compliant TOML reader on 3.10 (stdlib tomllib is 3.11+)
     "pyyaml>=6.0",
     "numpy>=1.24.0",
-    "matplotlib>=3.7.0",
+    "matplotlib==3.10.8",  # pinned: byte-exact SVG golden depends on font metrics; 3.10.8 supports py3.10-3.13
     "scipy>=1.10.0",
     "pytm>=1.2.0",
     "networkx>=3.0",

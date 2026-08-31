@@ -4,7 +4,11 @@ toml>=0.10.2
 tomli>=2.0; python_version < '3.11'  # spec-compliant TOML reader on 3.10 (stdlib tomllib is 3.11+)
 pyyaml>=6.0
 numpy>=1.24.0
-matplotlib>=3.7.0
+# Pinned exactly: the SVG-engine golden test (tests/test_svgengine.py::TestGolden)
+# is byte-exact and matplotlib font metrics shift layout coordinates between
+# versions. 3.10.8 supports Python 3.10-3.13 (matplotlib 3.11 requires >=3.11),
+# keeping the whole CI matrix on one metric-stable version.
+matplotlib==3.10.8
 scipy>=1.10.0
 pytm>=1.2.0
 networkx>=3.0
