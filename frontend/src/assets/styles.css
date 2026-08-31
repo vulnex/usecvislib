@@ -121,7 +121,7 @@ body {
 .main {
   flex: 1;
   padding: 2rem;
-  max-width: 1400px;
+  max-width: 2200px; /* fills wide screens; caps only on ultrawide */
   margin: 0 auto;
   width: 100%;
 }
