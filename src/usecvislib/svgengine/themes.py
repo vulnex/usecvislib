@@ -47,6 +47,10 @@ DEFAULTS: dict[str, Any] = {
     "badges": {"cvss": True, "gate": True, "coverage": True, "fill": "#0f172a", "text": "#ffffff"},
     "images": {"size": 48},
     "layout": {"h_gap": 40, "v_gap": 76},
+    # General-graph cluster (SceneGroup) fallback styling. Painters that use
+    # clusters (e.g. Component Diagram layers) usually set per-group colors;
+    # these are the defaults the shared painter falls back to.
+    "cluster": {"fill": "#eef2f7", "border": "#cbd5e1", "text": "#475569", "label_size": 12, "radius": 10},
     # Kill Chain (mode 9) swimlane: phase-header and flow-arrow colors.
     "killchain": {"phase_fill": "#1e3a5f", "phase_text": "#ffffff", "flow_color": "#94a3b8"},
     # Vuln Dependency Tree (mode 11): direct-dependency border + exploited-edge accent.
@@ -66,6 +70,30 @@ DEFAULTS: dict[str, Any] = {
         "exploit_edge_width": 2.4,
         "rankdir": "LR",
         "nodesep": 0.4,
+        "ranksep": 0.7,
+    },
+    # Component Diagram (mode 7): a single component fill (types vary by
+    # shape, not color — matching the Graphviz path), one connection color,
+    # and a pastel palette cycled across layer clusters.
+    "componentdiagram": {
+        "component": "#4a90d9",
+        "component_border": "#1e293b",
+        "text": "#ffffff",
+        "connection": "#64748b",
+        "layer_palette": [
+            "#e3f2fd",
+            "#f3e5f5",
+            "#e8f5e9",
+            "#fff3e0",
+            "#fce4ec",
+            "#e0f7fa",
+            "#f1f8e9",
+            "#ede7f6",
+        ],
+        "layer_border": "#cbd5e1",
+        "layer_text": "#334155",
+        "rankdir": "TB",
+        "nodesep": 0.5,
         "ranksep": 0.7,
     },
     # Dependency Graph (mode 8): per-group internal fills, external/muted

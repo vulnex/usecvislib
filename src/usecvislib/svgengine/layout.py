@@ -534,21 +534,48 @@ class GraphvizJsonLayout:
         self._apply(scene, data)
 
     def _build_dot(self, scene: Scene) -> str:
-        """Serialize the scene to a minimal DOT document for layout only."""
+        """Serialize the scene to a minimal DOT document for layout only.
+
+        Groups with members are emitted as ``cluster_*`` subgraphs so Graphviz
+        reserves space for them and keeps their members contiguous; the reserved
+        cluster bounding boxes are read back in :meth:`_apply`.
+        """
         lines = [
             "digraph G {",
             f'  graph [rankdir="{self.rankdir}", nodesep="{self.nodesep}", '
             f'ranksep="{self.ranksep}", splines="{self.splines}"];',
             "  node [shape=box, fixedsize=true];",
         ]
+
+        member_of: dict[str, str] = {}
+        for group in scene.groups:
+            for member in group.members:
+                member_of.setdefault(member, group.id)
+
+        for group in scene.groups:
+            members = [n for n in scene.nodes if member_of.get(n.id) == group.id]
+            if not members:
+                continue
+            lines.append(f'  subgraph "cluster_{_dot_escape(group.id)}" {{')
+            if group.label:
+                lines.append(f'    label="{_dot_escape(group.label)}";')
+            for node in members:
+                lines.append(f"  {self._node_line(node)}")
+            lines.append("  }")
+
         for node in scene.nodes:
-            w_in = max(node.width, 1.0) / self._PT_PER_INCH
-            h_in = max(node.height, 1.0) / self._PT_PER_INCH
-            lines.append(f'  "{_dot_escape(node.id)}" [width={w_in:.4f}, height={h_in:.4f}, label=""];')
+            if node.id not in member_of:
+                lines.append(self._node_line(node))
         for edge in scene.edges:
             lines.append(f'  "{_dot_escape(edge.src)}" -> "{_dot_escape(edge.dst)}";')
         lines.append("}")
         return "\n".join(lines)
+
+    def _node_line(self, node) -> str:
+        """DOT declaration for one node, sized in inches (px / 72)."""
+        w_in = max(node.width, 1.0) / self._PT_PER_INCH
+        h_in = max(node.height, 1.0) / self._PT_PER_INCH
+        return f'  "{_dot_escape(node.id)}" [width={w_in:.4f}, height={h_in:.4f}, label=""];'
 
     def _run(self, dot: str) -> dict:
         """Pipe the DOT document through Graphviz and parse the JSON result."""
@@ -572,11 +599,20 @@ class GraphvizJsonLayout:
         height = self._bb_height(data.get("bb", ""))
 
         by_id = {n.id: n for n in scene.nodes}
+        group_by_id = {g.id: g for g in scene.groups}
         gvid_to_id: dict[int, str] = {}
         for obj in data.get("objects", []):
             name = obj.get("name")
             if name is not None and "_gvid" in obj:
                 gvid_to_id[obj["_gvid"]] = name
+
+            # Cluster subgraphs carry a bbox (no pos); map it back to the group.
+            if isinstance(name, str) and name.startswith("cluster_"):
+                group = group_by_id.get(name[len("cluster_") :])
+                if group is not None:
+                    self._apply_cluster_bbox(group, obj.get("bb", ""), height)
+                continue
+
             node = by_id.get(name)
             pos = obj.get("pos")
             if node is None or not pos:
@@ -604,6 +640,26 @@ class GraphvizJsonLayout:
                 continue
             bucket[idx].points = self._parse_spline(gv_edge.get("pos", ""), height)
             used[(tail, head)] = idx + 1
+
+    @staticmethod
+    def _apply_cluster_bbox(group, bb: str, height: float) -> None:
+        """Write a Graphviz cluster ``bb`` onto a group as a top-left rect.
+
+        Graphviz ``bb`` is ``x0,y0,x1,y1`` (lower-left / upper-right, bottom-left
+        origin). Convert to the engine's top-left origin by flipping about the
+        graph height: the box top is ``height - y1``.
+        """
+        parts = bb.split(",") if bb else []
+        if len(parts) != 4:
+            return
+        try:
+            x0, y0, x1, y1 = (float(p) for p in parts)
+        except ValueError:
+            return
+        group.x = x0
+        group.y = height - y1
+        group.width = x1 - x0
+        group.height = y1 - y0
 
     @staticmethod
     def _bb_height(bb: str) -> float:

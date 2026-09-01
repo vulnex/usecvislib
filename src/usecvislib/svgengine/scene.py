@@ -78,11 +78,24 @@ class SceneEdge:
 
 @dataclass
 class SceneGroup:
-    """A named cluster of scene nodes."""
+    """A named cluster of scene nodes.
+
+    A group with members is emitted to the layout oracle as a Graphviz
+    ``cluster_*`` subgraph; the oracle writes its bounding box back onto
+    ``x`` / ``y`` (top-left) / ``width`` / ``height`` and the general-graph
+    painter draws it as a labelled background rectangle behind its members.
+    """
 
     id: str
     label: str = ""
     members: list[str] = field(default_factory=list)
+    fill: Optional[str] = None  # cluster background ("#hex" or "gradient:a>b")
+    border: Optional[str] = None
+    text_color: Optional[str] = None
+    x: float = 0.0  # top-left, set by layout oracle from the cluster bbox
+    y: float = 0.0
+    width: float = 0.0
+    height: float = 0.0
 
 
 @dataclass

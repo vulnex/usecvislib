@@ -109,15 +109,29 @@ def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str,
     canvas.set_css("\n".join(css))
 
     pad = float(page["padding"])
-    min_x = min(n.x - n.width / 2 for n in scene.nodes) - pad
-    min_y = min(n.y - n.height / 2 for n in scene.nodes) - pad
-    max_x = max(n.x + n.width / 2 for n in scene.nodes) + pad
-    max_y = max(n.y + n.height / 2 for n in scene.nodes) + pad
+    # Bounds span nodes and any placed cluster rectangles (clusters extend
+    # beyond their members by the reserved padding + label band).
+    xs_lo = [n.x - n.width / 2 for n in scene.nodes]
+    ys_lo = [n.y - n.height / 2 for n in scene.nodes]
+    xs_hi = [n.x + n.width / 2 for n in scene.nodes]
+    ys_hi = [n.y + n.height / 2 for n in scene.nodes]
+    for grp in scene.groups:
+        if grp.width > 0 and grp.height > 0:
+            xs_lo.append(grp.x)
+            ys_lo.append(grp.y)
+            xs_hi.append(grp.x + grp.width)
+            ys_hi.append(grp.y + grp.height)
+    min_x = min(xs_lo) - pad
+    min_y = min(ys_lo) - pad
+    max_x = max(xs_hi) + pad
+    max_y = max(ys_hi) + pad
     canvas.finalize(min_x, min_y, max_x - min_x, max_y - min_y)
     canvas.add(
         "groups",
         shapes.card(min_x, min_y, max_x - min_x, max_y - min_y, 0, fill=page["background"], stroke="none", stroke_width=0),
     )
+
+    _paint_clusters(scene, canvas, theme)
 
     title_cfg = theme["title"]
     title = str(scene.meta.get("name", "")).strip()
@@ -131,6 +145,38 @@ def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str,
     _paint_nodes(scene, canvas, theme, node_cfg, size, radius, border_width, shadow_url)
 
     return canvas.to_string()
+
+
+def _paint_clusters(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any]) -> None:
+    """Draw each placed group as a labelled background rectangle behind nodes.
+
+    Rectangles land in the bottom ``groups`` layer (above the page background,
+    below edges and nodes), so members always paint on top of their cluster.
+    """
+    if not scene.groups:
+        return
+    cfg = theme.get("cluster", {})
+    default_fill = cfg.get("fill", "#eef2f7")
+    default_border = cfg.get("border", "#cbd5e1")
+    default_text = cfg.get("text", "#475569")
+    label_size = float(cfg.get("label_size", 12))
+    radius = float(cfg.get("radius", 10))
+
+    for grp in scene.groups:
+        if grp.width <= 0 or grp.height <= 0:
+            continue
+        fill = grp.fill or default_fill
+        border = grp.border or default_border
+        text_color = grp.text_color or default_text
+
+        group = shapes.group(["usv-cluster"], {"cluster-id": grp.id, "label": grp.label or grp.id})
+        group.append(shapes.card(grp.x, grp.y, grp.width, grp.height, radius, fill, border, 1.2))
+        if grp.label:
+            # Label sits in the band Graphviz reserved at the cluster's top.
+            group.append(
+                shapes.anchored_text(grp.x + radius, grp.y + label_size + 2, grp.label, label_size, text_color, bold=True)
+            )
+        canvas.add("groups", group)
 
 
 def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], edge_cfg: dict) -> None:

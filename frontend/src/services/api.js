@@ -1064,12 +1064,12 @@ export async function validatePrivilegeGradientFromContent(content, configFormat
  * @param {string} format - Output format (png, svg, pdf)
  * @param {string} style - Style preset
  */
-export async function visualizeComponentDiagram(file, format = 'png', style = 'cd_default') {
+export async function visualizeComponentDiagram(file, format = 'png', style = 'cd_default', renderEngine = 'graphviz') {
   const formData = new FormData()
   formData.append('file', file)
 
   const response = await api.post(
-    `/visualize/component-diagram?format=${format}&style=${style}`,
+    `/visualize/component-diagram?format=${format}&style=${style}&render_engine=${renderEngine}`,
     formData,
     {
       responseType: 'blob',
@@ -1082,9 +1082,9 @@ export async function visualizeComponentDiagram(file, format = 'png', style = 'c
 /**
  * Generate component diagram visualization from text content
  */
-export async function visualizeComponentDiagramFromContent(content, outputFormat = 'png', style = 'cd_default', configFormat = 'toml') {
+export async function visualizeComponentDiagramFromContent(content, outputFormat = 'png', style = 'cd_default', configFormat = 'toml', renderEngine = 'graphviz') {
   const file = createFileFromContent(content, 'component_diagram', configFormat)
-  return visualizeComponentDiagram(file, outputFormat, style)
+  return visualizeComponentDiagram(file, outputFormat, style, renderEngine)
 }
 
 /**
@@ -1137,12 +1137,12 @@ export async function validateComponentDiagramFromContent(content, configFormat 
  * @param {string} format - Output format (png, svg, pdf)
  * @param {string} style - Style preset
  */
-export async function visualizeDependencyGraph(file, format = 'png', style = 'dg_default') {
+export async function visualizeDependencyGraph(file, format = 'png', style = 'dg_default', renderEngine = 'graphviz') {
   const formData = new FormData()
   formData.append('file', file)
 
   const response = await api.post(
-    `/visualize/dependency-graph?format=${format}&style=${style}`,
+    `/visualize/dependency-graph?format=${format}&style=${style}&render_engine=${renderEngine}`,
     formData,
     {
       responseType: 'blob',
@@ -1155,9 +1155,9 @@ export async function visualizeDependencyGraph(file, format = 'png', style = 'dg
 /**
  * Generate dependency graph visualization from text content
  */
-export async function visualizeDependencyGraphFromContent(content, outputFormat = 'png', style = 'dg_default', configFormat = 'toml') {
+export async function visualizeDependencyGraphFromContent(content, outputFormat = 'png', style = 'dg_default', configFormat = 'toml', renderEngine = 'graphviz') {
   const file = createFileFromContent(content, 'dependency_graph', configFormat)
-  return visualizeDependencyGraph(file, outputFormat, style)
+  return visualizeDependencyGraph(file, outputFormat, style, renderEngine)
 }
 
 /**

@@ -87,6 +87,13 @@
 
         <div class="options-row">
           <div class="option-group">
+            <label>Engine</label>
+            <select v-model="renderEngine">
+              <option value="graphviz">Graphviz</option>
+              <option value="svg">SVG (modern)</option>
+            </select>
+          </div>
+          <div class="option-group">
             <label>Output Format</label>
             <select v-model="format">
               <option v-for="f in formats" :key="f" :value="f">{{ f.toUpperCase() }}</option>
@@ -132,6 +139,9 @@
           <p>PDF generated successfully</p>
           <p class="pdf-hint">Click "Download" to save the PDF file</p>
         </div>
+        <!-- SVG-engine SVG is inlined (sanitized) for hover/click interactivity;
+             Graphviz output and rasters stay in an <img>. -->
+        <InteractiveSvg v-else-if="svgText" :svg-text="svgText" />
         <ZoomableImage v-else :src="imageUrl" alt="Architecture Diagram Visualization" />
       </div>
 
@@ -216,6 +226,7 @@
 import { ref, inject, watch, computed } from 'vue'
 import ConfigEditor from './ConfigEditor.vue'
 import ZoomableImage from './ZoomableImage.vue'
+import InteractiveSvg from './InteractiveSvg.vue'
 import TemplateMetadata from './TemplateMetadata.vue'
 import {
   visualizeComponentDiagramFromContent,
@@ -248,10 +259,12 @@ const fileName = ref('')
 const fileFormat = ref('toml')
 const format = ref('png')
 const style = ref('cd_default')
+const renderEngine = ref('graphviz')
 const loading = ref(false)
 const error = ref(null)
 const imageUrl = ref(null)
 const imageBlob = ref(null)
+const svgText = ref(null)
 const stats = ref(null)
 const validation = ref(null)
 const isDragging = ref(false)
@@ -260,13 +273,27 @@ const configEditor = ref(null)
 const isConfigValid = ref(false)
 const templateMismatch = ref(null)
 
-// Style options per diagram type
+// Style options per diagram type. SVG-engine (sv_*) and Graphviz presets are
+// not interchangeable, so the list swaps with the selected engine.
 const componentDiagramStyles = ['cd_default', 'cd_blueprint', 'cd_minimal', 'cd_dark']
 const dependencyGraphStyles = ['dg_default', 'dg_dark', 'dg_minimal', 'dg_coupling']
+const svgEngineStyles = ['sv_default', 'sv_dark', 'sv_security', 'sv_corporate', 'sv_minimal']
+
+function defaultStyleFor(type, engine) {
+  if (engine === 'svg') return 'sv_default'
+  return type === 'component-diagram' ? 'cd_default' : 'dg_default'
+}
 
 // Computed
 const currentStyles = computed(() => {
+  if (renderEngine.value === 'svg') return svgEngineStyles
   return diagramType.value === 'component-diagram' ? componentDiagramStyles : dependencyGraphStyles
+})
+
+// Keep the style valid whenever the engine changes.
+watch(renderEngine, (engine) => {
+  style.value = defaultStyleFor(diagramType.value, engine)
+  clearResults()
 })
 
 const canGenerate = computed(() => {
@@ -280,13 +307,13 @@ const maxLayerCount = computed(() => {
 
 // Methods
 function formatStyleName(s) {
-  return s.replace(/^(cd_|dg_)/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  return s.replace(/^(cd_|dg_|sv_)/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 function switchDiagramType(type) {
   if (diagramType.value === type) return
   diagramType.value = type
-  style.value = type === 'component-diagram' ? 'cd_default' : 'dg_default'
+  style.value = defaultStyleFor(type, renderEngine.value)
   clearResults()
 }
 
@@ -362,6 +389,7 @@ function clearResults() {
   error.value = null
   imageUrl.value = null
   imageBlob.value = null
+  svgText.value = null
   stats.value = null
   validation.value = null
 }
@@ -371,7 +399,8 @@ function resetPanel() {
   fileName.value = ''
   fileFormat.value = 'toml'
   format.value = 'png'
-  style.value = diagramType.value === 'component-diagram' ? 'cd_default' : 'dg_default'
+  renderEngine.value = 'graphviz'
+  style.value = defaultStyleFor(diagramType.value, renderEngine.value)
   isConfigValid.value = false
   templateMismatch.value = null
   clearResults()
@@ -393,9 +422,12 @@ async function generateVisualization() {
     const visualizeFn = diagramType.value === 'component-diagram'
       ? visualizeComponentDiagramFromContent
       : visualizeDependencyGraphFromContent
-    const blob = await visualizeFn(editorContent.value, format.value, style.value, fileFormat.value)
+    const blob = await visualizeFn(editorContent.value, format.value, style.value, fileFormat.value, renderEngine.value)
     imageBlob.value = blob
     imageUrl.value = createImageUrl(blob)
+    // Inline SVG-engine SVG output for interactivity; Graphviz output and
+    // rasters render via <img>.
+    svgText.value = renderEngine.value === 'svg' && format.value === 'svg' ? await blob.text() : null
   } catch (err) {
     error.value = err.response?.data?.detail || err.message || 'Failed to generate visualization'
   } finally {

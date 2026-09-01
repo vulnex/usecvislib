@@ -293,6 +293,13 @@ class ComponentDiagramStyle(str, Enum):
     MINIMAL = "cd_minimal"
     DARK = "cd_dark"
 
+    # SVG engine presets (require render_engine=svg)
+    SVG_DEFAULT = "sv_default"
+    SVG_DARK = "sv_dark"
+    SVG_SECURITY = "sv_security"
+    SVG_CORPORATE = "sv_corporate"
+    SVG_MINIMAL = "sv_minimal"
+
 
 class DependencyGraphStyle(str, Enum):
     """Available dependency graph styles."""
