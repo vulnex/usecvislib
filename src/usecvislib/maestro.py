@@ -208,6 +208,7 @@ class MaestroThreatModel(VisualizationBase):
         styleid: str = "",
         validate_paths: bool = True,
         view: str = "layered",
+        render_engine: str = "graphviz",
     ) -> None:
         if format == "":
             format = "png"
@@ -215,7 +216,12 @@ class MaestroThreatModel(VisualizationBase):
             styleid = None
 
         super().__init__(
-            inputfile=inputfile, outputfile=outputfile, format=format, styleid=styleid, validate_paths=validate_paths
+            inputfile=inputfile,
+            outputfile=outputfile,
+            format=format,
+            styleid=styleid,
+            validate_paths=validate_paths,
+            render_engine=render_engine,
         )
 
         self.graph: Optional[Digraph] = None

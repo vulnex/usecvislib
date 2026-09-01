@@ -64,7 +64,7 @@ usecvis = "usecvislib.usecvis:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-usecvislib = ["models/*.tml"]
+usecvislib = ["models/*.tml", "models/*.json"]
 
 [tool.ruff]
 target-version = "py310"

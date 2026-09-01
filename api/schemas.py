@@ -2251,6 +2251,13 @@ class MaestroStyle(str, Enum):
     SEVERITY = "ma_severity"
     COMPACT = "ma_compact"
 
+    # SVG engine presets (require render_engine=svg; graph view only)
+    SVG_DEFAULT = "sv_default"
+    SVG_DARK = "sv_dark"
+    SVG_SECURITY = "sv_security"
+    SVG_CORPORATE = "sv_corporate"
+    SVG_MINIMAL = "sv_minimal"
+
 
 class MaestroView(str, Enum):
     """MAESTRO render views."""

@@ -72,6 +72,30 @@ DEFAULTS: dict[str, Any] = {
         "nodesep": 0.4,
         "ranksep": 0.7,
     },
+    # MAESTRO agent-centric graph (mode 12, graph view): per-layer cluster +
+    # agent fills (keyed by MaestroLayer value), agent/critical border, chain
+    # fallback color, and oracle spacing. The 7-layer palette lives here and is
+    # inherited by every preset (presets tune borders / text / spacing).
+    "maestro": {
+        "layers": {
+            "agent-ecosystem": {"cluster": "#e3f2fd", "agent": "#90caf9"},
+            "agent-frameworks": {"cluster": "#f3e5f5", "agent": "#ce93d8"},
+            "foundation-models": {"cluster": "#e8f5e9", "agent": "#a5d6a7"},
+            "data-operations": {"cluster": "#fff3e0", "agent": "#ffcc80"},
+            "infrastructure": {"cluster": "#fce4ec", "agent": "#f48fb1"},
+            "observability": {"cluster": "#e0f7fa", "agent": "#80deea"},
+            "security": {"cluster": "#fff8e1", "agent": "#ffe082"},
+        },
+        "agent_border": "#616161",
+        "critical_border": "#e53935",
+        "layer_border": "#bdbdbd",
+        "layer_text": "#374151",
+        "chain_fallback": "#94a3b8",
+        "text": "#1f2937",
+        "rankdir": "LR",
+        "nodesep": 0.5,
+        "ranksep": 0.9,
+    },
     # Data Flow Diagram / Threat Model (mode 1): per-element-type fills
     # (external entity / process / data store), the data-flow edge color, and
     # trust-boundary styling (drawn as dashed cluster rectangles).

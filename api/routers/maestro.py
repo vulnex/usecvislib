@@ -45,6 +45,7 @@ from ..schemas import (
     MaestroValidationResponse,
     MaestroView,
     OutputFormat,
+    RenderEngine,
     TemplateMetadata,
 )
 
@@ -81,6 +82,10 @@ async def visualize_maestro(
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     style: MaestroStyle = Query(default=MaestroStyle.DEFAULT, description="Style preset"),
     view: MaestroView = Query(default=MaestroView.LAYERED, description="Render view: layered, graph, or heatmap"),
+    render_engine: RenderEngine = Query(
+        default=RenderEngine.GRAPHVIZ,
+        description="Rendering engine: graphviz (default) or svg (modern cards; MAESTRO 'graph' view only)",
+    ),
 ):
     """
     Generate a MAESTRO threat model visualization from an uploaded configuration file.
@@ -103,12 +108,23 @@ async def visualize_maestro(
         input_path = save_upload_file(file)
         output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
 
+        styleid = style.value
+        view_value = view.value
+        if render_engine == RenderEngine.SVG:
+            # The SVG engine renders only the agent-centric graph view; default
+            # to it so a plain svg request works, and map the default style.
+            if view == MaestroView.LAYERED:
+                view_value = MaestroView.GRAPH.value
+            if style == MaestroStyle.DEFAULT:
+                styleid = ""  # let the engine pick sv_default
+
         mm = MaestroThreatModel(
             input_path,
             output_base,
             format=format.value,
-            styleid=style.value,
-            view=view.value,
+            styleid=styleid,
+            view=view_value,
+            render_engine=render_engine.value,
         )
         await run_sync_with_timeout(
             mm.build,

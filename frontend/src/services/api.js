@@ -1215,12 +1215,12 @@ export async function validateDependencyGraphFromContent(content, configFormat =
  * @param {string} style - Style preset (ma_default, ma_dark, ma_blueprint, ma_severity, ma_compact)
  * @param {string} view - Render view: "layered" (default) or "heatmap"
  */
-export async function visualizeMaestro(file, format = 'png', style = 'ma_default', view = 'layered') {
+export async function visualizeMaestro(file, format = 'png', style = 'ma_default', view = 'layered', renderEngine = 'graphviz') {
   const formData = new FormData()
   formData.append('file', file)
 
   const response = await api.post(
-    `/visualize/maestro?format=${format}&style=${style}&view=${view}`,
+    `/visualize/maestro?format=${format}&style=${style}&view=${view}&render_engine=${renderEngine}`,
     formData,
     {
       responseType: 'blob',
@@ -1233,9 +1233,9 @@ export async function visualizeMaestro(file, format = 'png', style = 'ma_default
 /**
  * Generate MAESTRO visualization from text content
  */
-export async function visualizeMaestroFromContent(content, outputFormat = 'png', style = 'ma_default', configFormat = 'toml', view = 'layered') {
+export async function visualizeMaestroFromContent(content, outputFormat = 'png', style = 'ma_default', configFormat = 'toml', view = 'layered', renderEngine = 'graphviz') {
   const file = createFileFromContent(content, 'maestro', configFormat)
-  return visualizeMaestro(file, outputFormat, style, view)
+  return visualizeMaestro(file, outputFormat, style, view, renderEngine)
 }
 
 /**

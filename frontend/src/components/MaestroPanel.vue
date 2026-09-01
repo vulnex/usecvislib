@@ -60,6 +60,13 @@
 
         <div class="options-row">
           <div class="option-group">
+            <label>Render Engine</label>
+            <select v-model="renderEngine">
+              <option value="graphviz">Graphviz</option>
+              <option value="svg">SVG (modern)</option>
+            </select>
+          </div>
+          <div class="option-group">
             <label>Output Format</label>
             <select v-model="format">
               <option v-for="f in formats" :key="f" :value="f">{{ f.toUpperCase() }}</option>
@@ -68,21 +75,21 @@
           <div class="option-group">
             <label>Style</label>
             <select v-model="style">
-              <option value="ma_default">Default</option>
-              <option value="ma_dark">Dark</option>
-              <option value="ma_blueprint">Blueprint</option>
-              <option value="ma_severity">Severity</option>
-              <option value="ma_compact">Compact</option>
+              <option v-for="s in currentStyles" :key="s.value" :value="s.value">{{ s.label }}</option>
             </select>
           </div>
           <div class="option-group">
             <label>View</label>
             <select v-model="view">
-              <option value="layered">Layered Architecture</option>
               <option value="graph">Agent Graph</option>
-              <option value="heatmap">Severity Heatmap</option>
+              <option value="layered" :disabled="renderEngine === 'svg'">Layered Architecture</option>
+              <option value="heatmap" :disabled="renderEngine === 'svg'">Severity Heatmap</option>
             </select>
           </div>
+        </div>
+        <div v-if="renderEngine === 'svg'" class="engine-info">
+          <span class="info-icon">&#x2139;</span>
+          The SVG engine renders the agent-centric graph view only.
         </div>
 
         <div class="actions">
@@ -121,6 +128,9 @@
           <p>PDF generated successfully</p>
           <p class="pdf-hint">Click "Download" to save the PDF file</p>
         </div>
+        <!-- SVG-engine SVG is inlined (sanitized) for hover/click interactivity;
+             Graphviz/Matplotlib output and rasters stay in an <img>. -->
+        <InteractiveSvg v-else-if="svgText" :svg-text="svgText" />
         <ZoomableImage v-else :src="imageUrl" alt="MAESTRO Threat Model" />
       </div>
 
@@ -325,6 +335,7 @@
 import { ref, inject, watch, computed } from 'vue'
 import ConfigEditor from './ConfigEditor.vue'
 import ZoomableImage from './ZoomableImage.vue'
+import InteractiveSvg from './InteractiveSvg.vue'
 import TemplateMetadata from './TemplateMetadata.vue'
 import {
   visualizeMaestroFromContent,
@@ -355,9 +366,39 @@ const fileFormat = ref('toml')
 const format = ref('png')
 const style = ref('ma_default')
 const view = ref('layered')
+const renderEngine = ref('graphviz')
 const loading = ref(false)
 const error = ref(null)
 const imageUrl = ref(null)
+const svgText = ref(null)
+
+// SVG-engine (sv_*) presets replace the ma_* list when that engine is chosen;
+// the two are not interchangeable, and SVG only renders the graph view.
+const graphvizStyles = [
+  { value: 'ma_default', label: 'Default' },
+  { value: 'ma_dark', label: 'Dark' },
+  { value: 'ma_blueprint', label: 'Blueprint' },
+  { value: 'ma_severity', label: 'Severity' },
+  { value: 'ma_compact', label: 'Compact' }
+]
+const svgEngineStyles = [
+  { value: 'sv_default', label: 'Default' },
+  { value: 'sv_dark', label: 'Dark' },
+  { value: 'sv_security', label: 'Security' },
+  { value: 'sv_corporate', label: 'Corporate' },
+  { value: 'sv_minimal', label: 'Minimal' }
+]
+const currentStyles = computed(() => (renderEngine.value === 'svg' ? svgEngineStyles : graphvizStyles))
+
+watch(renderEngine, (eng) => {
+  if (eng === 'svg') {
+    style.value = 'sv_default'
+    view.value = 'graph'  // only the agent-centric graph is SVG-native
+  } else {
+    style.value = 'ma_default'
+  }
+  clearResults()
+})
 const imageBlob = ref(null)
 const stats = ref(null)
 const validation = ref(null)
@@ -439,6 +480,7 @@ function clearResults() {
   error.value = null
   imageUrl.value = null
   imageBlob.value = null
+  svgText.value = null
   stats.value = null
   validation.value = null
   threatList.value = null
@@ -451,6 +493,7 @@ function resetPanel() {
   format.value = 'png'
   style.value = 'ma_default'
   view.value = 'layered'
+  renderEngine.value = 'graphviz'
   isConfigValid.value = false
   catalogOpen.value = false
   threatLayerFilter.value = ''
@@ -468,10 +511,12 @@ async function generateVisualization() {
 
   try {
     const blob = await visualizeMaestroFromContent(
-      editorContent.value, format.value, style.value, fileFormat.value, view.value
+      editorContent.value, format.value, style.value, fileFormat.value, view.value, renderEngine.value
     )
     imageBlob.value = blob
     imageUrl.value = createImageUrl(blob)
+    // Inline SVG-engine SVG output for interactivity; other output via <img>.
+    svgText.value = renderEngine.value === 'svg' && format.value === 'svg' ? await blob.text() : null
   } catch (err) {
     error.value = err.response?.data?.detail || err.message || 'Failed to generate visualization'
   } finally {
