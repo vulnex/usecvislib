@@ -115,7 +115,8 @@ def Usage() -> None:
     print("                          svg: modern hand-painted output, sv_* styles")
     print("                          (sv_default, sv_dark, sv_neon, sv_corporate, sv_minimal)")
     print("                          Currently supported for modes 0 (Attack Trees), 3 (Attack Graphs),")
-    print("                          9 (Kill Chain), 10 (Incident Timeline), 11 (Vuln Dependency Tree)")
+    print("                          8 (Dependency Graph), 9 (Kill Chain), 10 (Incident Timeline),")
+    print("                          11 (Vuln Dependency Tree)")
     print("")
     print("  --convert <format>      Convert input file to format: toml, json, yaml, mermaid")
     print("                          Output will be saved to <output>.<format_ext>")
@@ -365,10 +366,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     if render_engine not in ("graphviz", "svg"):
         error_exit(f"Invalid render engine: {render_engine}. Must be graphviz or svg.")
     if render_engine == "svg":
-        if mode not in (0, 3, 9, 10, 11):
+        if mode not in (0, 3, 8, 9, 10, 11):
             error_exit(
                 "Render engine 'svg' currently supports modes 0 (Attack Trees), 3 (Attack Graphs), "
-                "9 (Kill Chain), 10 (Incident Timeline), 11 (Vuln Dependency Tree); "
+                "8 (Dependency Graph), 9 (Kill Chain), 10 (Incident Timeline), 11 (Vuln Dependency Tree); "
                 f"got mode {mode}."
             )
         if format == "dot":
@@ -595,7 +596,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             # Dependency Graphs
             from . import dependencygraph
 
-            dg = dependencygraph.DependencyGraph(inputfile, outputfile, format, styleid)
+            dg = dependencygraph.DependencyGraph(inputfile, outputfile, format, styleid, render_engine=render_engine)
             dg.BuildDependencyGraph()
             print(f"Dependency graph generated: {outputfile}.{format}")
 

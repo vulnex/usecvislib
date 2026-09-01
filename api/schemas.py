@@ -302,6 +302,13 @@ class DependencyGraphStyle(str, Enum):
     MINIMAL = "dg_minimal"
     COUPLING = "dg_coupling"
 
+    # SVG engine presets (require render_engine=svg)
+    SVG_DEFAULT = "sv_default"
+    SVG_DARK = "sv_dark"
+    SVG_SECURITY = "sv_security"
+    SVG_CORPORATE = "sv_corporate"
+    SVG_MINIMAL = "sv_minimal"
+
 
 class KillChainStyle(str, Enum):
     """Available kill chain styles (Graphviz kc_* and SVG-engine sv_*)."""

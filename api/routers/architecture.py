@@ -41,6 +41,7 @@ from ..schemas import (
     DependencyGraphStats,
     DependencyGraphStyle,
     OutputFormat,
+    RenderEngine,
     TemplateMetadata,
 )
 
@@ -242,6 +243,10 @@ async def visualize_dependency_graph(
     file: UploadFile = File(..., description="Configuration file containing dependency graph definition"),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     style: DependencyGraphStyle = Query(default=DependencyGraphStyle.DEFAULT, description="Style preset"),
+    render_engine: RenderEngine = Query(
+        default=RenderEngine.GRAPHVIZ,
+        description="Rendering engine: graphviz (default) or svg (modern cards over a Graphviz-computed layout, sv_* styles)",
+    ),
 ):
     """
     Generate a dependency graph visualization from an uploaded configuration file.
@@ -272,7 +277,13 @@ async def visualize_dependency_graph(
             logger.debug(f"Image resolution skipped: {e}")
             input_for_viz = input_path
 
-        dg = DependencyGraph(input_for_viz, output_base, format=format.value, styleid=style.value)
+        styleid = style.value
+        if render_engine == RenderEngine.SVG and style == DependencyGraphStyle.DEFAULT:
+            styleid = ""  # let the engine pick sv_default
+
+        dg = DependencyGraph(
+            input_for_viz, output_base, format=format.value, styleid=styleid, render_engine=render_engine.value
+        )
         await run_sync_with_timeout(
             dg.BuildDependencyGraph, REQUEST_TIMEOUT_VISUALIZE, "dependency graph visualization"
         )

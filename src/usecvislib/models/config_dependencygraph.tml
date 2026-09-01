@@ -212,3 +212,69 @@ fontname = "Arial Bold"
 fontsize = "12"
 fontcolor = "#555555"
 penwidth = "1"
+
+# =============================================================================
+# SVG engine presets (render_engine="svg"). Marked with meta.engine = "svg".
+# Group colors are inherited from the engine defaults; presets tune the
+# structural colors (internal/external/border/circular) and oracle spacing.
+# =============================================================================
+
+# SVG Default - slate cards on soft grey
+[sv_default]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#f8fafc", padding = 44, text = "#111827"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 10, padding_x = 16, padding_y = 11, border_width = 1.0, min_width = 116, max_label_width = 220}
+node = {fill = "#5dade2", border = "#1e293b", text = "#ffffff"}
+edge = {color = "#94a3b8", width = 1.6, routing = "spline", label_size = 10, label_color = "#64748b"}
+effects = {shadow = true, shadow_blur = 2.2, hover_glow = true}
+dependencygraph = {internal = "#5dade2", external_fill = "#e5e9ef", external_border = "#9aa8b5", external_text = "#475569", border = "#1e293b", circular_edge = "#cc0000", circular_width = 2.6, rankdir = "LR", nodesep = 0.4, ranksep = 0.7}
+
+# SVG Dark - slate night-ops board
+[sv_dark]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#0f172a", padding = 44, text = "#e2e8f0"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 10, padding_x = 16, padding_y = 11, border_width = 1.0, min_width = 116, max_label_width = 220}
+node = {fill = "#33507a", border = "#475569", text = "#ffffff"}
+edge = {color = "#64748b", width = 1.6, routing = "spline", label_size = 10, label_color = "#94a3b8"}
+effects = {shadow = true, shadow_blur = 2.6, hover_glow = true}
+dependencygraph = {internal = "#4a90d9", external_fill = "#1e293b", external_border = "#475569", external_text = "#cbd5e1", border = "#475569", circular_edge = "#ff6b6b", circular_width = 2.8, rankdir = "LR", nodesep = 0.4, ranksep = 0.7}
+
+# SVG Security - high-contrast, coupling-forward
+[sv_security]
+meta = {engine = "svg"}
+title = {show = true, size = 16}
+page = {background = "#f5f7fa", padding = 46, text = "#0f172a"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 8, padding_x = 16, padding_y = 11, border_width = 1.4, min_width = 124, max_label_width = 230}
+node = {fill = "#2c3e50", border = "#0f172a", text = "#ffffff"}
+edge = {color = "#64748b", width = 1.9, routing = "spline", label_size = 10, label_color = "#475569"}
+effects = {shadow = true, shadow_blur = 2.4, hover_glow = true}
+dependencygraph = {internal = "#2c3e50", external_fill = "#e5e9ef", external_border = "#94a3b8", external_text = "#334155", border = "#0f172a", circular_edge = "#c0392b", circular_width = 3.0, rankdir = "TB", nodesep = 0.45, ranksep = 0.8}
+
+# SVG Corporate - professional blue-on-white for reports
+[sv_corporate]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#ffffff", padding = 48, text = "#16324f"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 6, padding_x = 15, padding_y = 10, border_width = 1.0, min_width = 120, max_label_width = 225}
+node = {fill = "#2f5f8a", border = "#16324f", text = "#ffffff"}
+edge = {color = "#6b7b8c", width = 1.5, routing = "spline", label_size = 10, label_color = "#4a5b6b"}
+effects = {shadow = true, shadow_blur = 1.8, hover_glow = false}
+dependencygraph = {internal = "#2f5f8a", external_fill = "#f1f4f7", external_border = "#9aa8b5", external_text = "#4a5b6b", border = "#16324f", circular_edge = "#b83227", circular_width = 2.6, rankdir = "LR", nodesep = 0.42, ranksep = 0.75}
+
+# SVG Minimal - flat outline, no depth
+[sv_minimal]
+meta = {engine = "svg"}
+title = {show = false, size = 14}
+page = {background = "#ffffff", padding = 40, text = "#475569"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 15}
+card = {radius = 4, padding_x = 14, padding_y = 9, border_width = 1.0, min_width = 112, max_label_width = 210}
+node = {fill = "#5b7896", border = "#cbd5e1", text = "#ffffff"}
+edge = {color = "#cbd5e1", width = 1.3, routing = "spline", label_size = 10, label_color = "#94a3b8"}
+effects = {shadow = false, shadow_blur = 0, hover_glow = true}
+dependencygraph = {internal = "#5b7896", external_fill = "#f4f6f8", external_border = "#cbd5e1", external_text = "#64748b", border = "#cbd5e1", circular_edge = "#d9534f", circular_width = 2.2, rankdir = "LR", nodesep = 0.38, ranksep = 0.68}

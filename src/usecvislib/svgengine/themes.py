@@ -68,6 +68,30 @@ DEFAULTS: dict[str, Any] = {
         "nodesep": 0.4,
         "ranksep": 0.7,
     },
+    # Dependency Graph (mode 8): per-group internal fills, external/muted
+    # styling, the circular-dependency edge accent, and oracle spacing. Groups
+    # convey the module's cluster (the general-graph path draws no cluster box
+    # yet), so a group's color is its category.
+    "dependencygraph": {
+        "groups": {
+            "core": "#4a90d9",
+            "features": "#50c878",
+            "api": "#e67e22",
+            "infrastructure": "#9b59b6",
+            "tests": "#1abc9c",
+            "utils": "#f39c12",
+        },
+        "internal": "#5dade2",
+        "external_fill": "#e5e9ef",
+        "external_border": "#9aa8b5",
+        "external_text": "#475569",
+        "border": "#1e293b",
+        "circular_edge": "#cc0000",
+        "circular_width": 2.6,
+        "rankdir": "LR",
+        "nodesep": 0.4,
+        "ranksep": 0.7,
+    },
     # Incident Timeline (mode 10): time-chart lane/phase/axis colors (severity
     # marker colors are fixed in the module, not themed).
     "timeline": {
