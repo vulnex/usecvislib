@@ -36,6 +36,7 @@ from ..helpers import (
 from ..schemas import (
     ModelStats,
     OutputFormat,
+    RenderEngine,
     StrideCategory,
     StrideReport,
     TemplateMetadata,
@@ -72,6 +73,10 @@ async def visualize_threat_model(
     style: ThreatModelStyle = Query(default=ThreatModelStyle.DEFAULT, description="Style preset"),
     engine: ThreatModelEngine = Query(
         default=ThreatModelEngine.USECVISLIB, description="Threat modeling engine (usecvislib or pytm)"
+    ),
+    render_engine: RenderEngine = Query(
+        default=RenderEngine.GRAPHVIZ,
+        description="Rendering engine: graphviz (default) or svg (modern cards over a Graphviz-computed layout, sv_* styles)",
     ),
 ):
     """
@@ -112,7 +117,18 @@ async def visualize_threat_model(
             logger.debug(f"Image resolution skipped: {e}")
             input_for_viz = input_path
 
-        tm = ThreatModeling(input_for_viz, output_base, format=format.value, styleid=style.value, engine=engine.value)
+        styleid = style.value
+        if render_engine == RenderEngine.SVG and style == ThreatModelStyle.DEFAULT:
+            styleid = ""  # let the engine pick sv_default
+
+        tm = ThreatModeling(
+            input_for_viz,
+            output_base,
+            format=format.value,
+            styleid=styleid,
+            engine=engine.value,
+            render_engine=render_engine.value,
+        )
         # SECURITY: Timeout protection for complex threat models
         await run_sync_with_timeout(tm.BuildThreatModel, REQUEST_TIMEOUT_VISUALIZE, "threat model visualization")
 

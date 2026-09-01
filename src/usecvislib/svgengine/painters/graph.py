@@ -170,7 +170,10 @@ def _paint_clusters(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any]) -> N
         text_color = grp.text_color or default_text
 
         group = shapes.group(["usv-cluster"], {"cluster-id": grp.id, "label": grp.label or grp.id})
-        group.append(shapes.card(grp.x, grp.y, grp.width, grp.height, radius, fill, border, 1.2))
+        rect = shapes.card(grp.x, grp.y, grp.width, grp.height, radius, fill, border, 1.6 if grp.dashed else 1.2)
+        if grp.dashed:
+            rect.set("stroke-dasharray", "7 4")
+        group.append(rect)
         if grp.label:
             # Label sits in the band Graphviz reserved at the cluster's top.
             group.append(

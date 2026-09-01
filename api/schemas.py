@@ -94,6 +94,13 @@ class ThreatModelStyle(str, Enum):
     DOC_LIGHT = "tm_doc_light"
     DOC_CLEAN = "tm_doc_clean"
 
+    # SVG engine presets (require render_engine=svg)
+    SVG_DEFAULT = "sv_default"
+    SVG_DARK = "sv_dark"
+    SVG_SECURITY = "sv_security"
+    SVG_CORPORATE = "sv_corporate"
+    SVG_MINIMAL = "sv_minimal"
+
 
 class ThreatModelEngine(str, Enum):
     """Available threat modeling engines."""

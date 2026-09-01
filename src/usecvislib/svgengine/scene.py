@@ -92,6 +92,7 @@ class SceneGroup:
     fill: Optional[str] = None  # cluster background ("#hex" or "gradient:a>b")
     border: Optional[str] = None
     text_color: Optional[str] = None
+    dashed: bool = False  # dashed border (e.g. DFD trust boundaries)
     x: float = 0.0  # top-left, set by layout oracle from the cluster bbox
     y: float = 0.0
     width: float = 0.0

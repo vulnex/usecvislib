@@ -95,9 +95,16 @@
 
         <div class="options-row">
           <div class="option-group">
-            <label>Engine</label>
-            <select v-model="engine">
-              <option v-for="e in engines" :key="e.value" :value="e.value" :disabled="!e.available">
+            <label>Render Engine</label>
+            <select v-model="renderEngine">
+              <option value="graphviz">Graphviz</option>
+              <option value="svg">SVG (modern)</option>
+            </select>
+          </div>
+          <div class="option-group">
+            <label>Analysis Engine</label>
+            <select v-model="engine" :disabled="renderEngine === 'svg'">
+              <option v-for="e in engines" :key="e.value" :value="e.value" :disabled="!e.available || (renderEngine === 'svg' && e.value === 'pytm')">
                 {{ e.label }}{{ !e.available ? ' (not installed)' : '' }}
               </option>
             </select>
@@ -110,8 +117,8 @@
           </div>
           <div class="option-group">
             <label>Style</label>
-            <select v-model="style" :disabled="engine === 'pytm'">
-              <option v-for="s in styles" :key="s" :value="s">{{ formatStyleName(s) }}</option>
+            <select v-model="style" :disabled="engine === 'pytm' && renderEngine !== 'svg'">
+              <option v-for="s in currentStyles" :key="s" :value="s">{{ formatStyleName(s) }}</option>
             </select>
           </div>
         </div>
@@ -167,6 +174,9 @@
           <p>PDF generated successfully</p>
           <p class="pdf-hint">Click "Download" to save the PDF file</p>
         </div>
+        <!-- SVG-engine SVG is inlined (sanitized) for hover/click interactivity;
+             Graphviz output and rasters stay in an <img>. -->
+        <InteractiveSvg v-else-if="svgText" :svg-text="svgText" />
         <ZoomableImage v-else :src="imageUrl" alt="Threat Model DFD" />
       </div>
 
@@ -264,6 +274,7 @@
 import { ref, reactive, inject, watch, computed } from 'vue'
 import ConfigEditor from './ConfigEditor.vue'
 import ZoomableImage from './ZoomableImage.vue'
+import InteractiveSvg from './InteractiveSvg.vue'
 import TemplateMetadata from './TemplateMetadata.vue'
 import ImageUploader from './ImageUploader.vue'
 import {
@@ -303,10 +314,12 @@ const fileFormat = ref('toml')  // Detected file format: toml, json, yaml
 const format = ref('png')
 const style = ref('tm_default')
 const engine = ref('usecvislib')
+const renderEngine = ref('graphviz')
 const loading = ref(false)
 const error = ref(null)
 const imageUrl = ref(null)
 const imageBlob = ref(null)
+const svgText = ref(null)
 const stats = ref(null)
 const strideReport = ref(null)
 const isDragging = ref(false)
@@ -337,14 +350,34 @@ const strideCategories = {
   elevation_of_privilege: { name: 'Elevation of Privilege', icon: '⬆️' }
 }
 
+// SVG-engine (sv_*) presets replace the Graphviz tm_* list when that engine
+// is selected; the two are not interchangeable.
+const svgEngineStyles = ['sv_default', 'sv_dark', 'sv_security', 'sv_corporate', 'sv_minimal']
+
 // Computed
 const canGenerate = computed(() => {
   return editorContent.value && editorContent.value.trim() && isConfigValid.value
 })
 
+const currentStyles = computed(() => {
+  return renderEngine.value === 'svg' ? svgEngineStyles : props.styles
+})
+
+// The SVG engine renders the native DFD; pytm cannot feed it, so force the
+// usecvislib analysis engine and swap to an sv_* style when SVG is selected.
+watch(renderEngine, (eng) => {
+  if (eng === 'svg') {
+    engine.value = 'usecvislib'
+    style.value = 'sv_default'
+  } else {
+    style.value = 'tm_default'
+  }
+  clearResults()
+})
+
 // Methods
 function formatStyleName(s) {
-  return s.replace('tm_', '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  return s.replace(/^(tm_|sv_)/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
 }
 
 async function handleFileSelect(event) {
@@ -417,6 +450,7 @@ function clearResults() {
   error.value = null
   imageUrl.value = null
   imageBlob.value = null
+  svgText.value = null
   stats.value = null
   strideReport.value = null
 }
@@ -428,6 +462,7 @@ function resetPanel() {
   format.value = 'png'
   style.value = 'tm_default'
   engine.value = 'usecvislib'
+  renderEngine.value = 'graphviz'
   isConfigValid.value = false
   showImageUploader.value = false
   selectedImageId.value = null
@@ -464,9 +499,12 @@ async function generateVisualization() {
   strideReport.value = null
 
   try {
-    const blob = await visualizeThreatModelFromContent(editorContent.value, format.value, style.value, engine.value, fileFormat.value)
+    const blob = await visualizeThreatModelFromContent(editorContent.value, format.value, style.value, engine.value, fileFormat.value, renderEngine.value)
     imageBlob.value = blob
     imageUrl.value = createImageUrl(blob)
+    // Inline SVG-engine SVG output for interactivity; Graphviz output and
+    // rasters render via <img>.
+    svgText.value = renderEngine.value === 'svg' && format.value === 'svg' ? await blob.text() : null
   } catch (err) {
     error.value = err.response?.data?.detail || err.message || 'Failed to generate visualization'
   } finally {

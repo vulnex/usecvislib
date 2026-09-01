@@ -72,6 +72,23 @@ DEFAULTS: dict[str, Any] = {
         "nodesep": 0.4,
         "ranksep": 0.7,
     },
+    # Data Flow Diagram / Threat Model (mode 1): per-element-type fills
+    # (external entity / process / data store), the data-flow edge color, and
+    # trust-boundary styling (drawn as dashed cluster rectangles).
+    "dfd": {
+        "external": "#5c7784",
+        "process": "#2f8f4e",
+        "datastore": "#2f5f8a",
+        "border": "#1e293b",
+        "text": "#ffffff",
+        "dataflow": "#64748b",
+        "boundary_fill": "#fef2f2",
+        "boundary_border": "#e74c3c",
+        "boundary_text": "#b91c1c",
+        "rankdir": "LR",
+        "nodesep": 0.5,
+        "ranksep": 0.8,
+    },
     # Component Diagram (mode 7): a single component fill (types vary by
     # shape, not color — matching the Graphviz path), one connection color,
     # and a pastel palette cycled across layer clusters.

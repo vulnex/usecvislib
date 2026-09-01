@@ -322,12 +322,12 @@ export async function validateVulnTree(file) {
 /**
  * Generate threat model visualization
  */
-export async function visualizeThreatModel(file, format = 'png', style = 'tm_default', engine = 'usecvislib') {
+export async function visualizeThreatModel(file, format = 'png', style = 'tm_default', engine = 'usecvislib', renderEngine = 'graphviz') {
   const formData = new FormData()
   formData.append('file', file)
 
   const response = await api.post(
-    `/visualize/threat-model?format=${format}&style=${style}&engine=${engine}`,
+    `/visualize/threat-model?format=${format}&style=${style}&engine=${engine}&render_engine=${renderEngine}`,
     formData,
     {
       responseType: 'blob',
@@ -582,9 +582,9 @@ export async function validateVulnTreeFromContent(content, configFormat = 'toml'
  * @param {string} engine - Engine (usecvislib, pytm)
  * @param {string} configFormat - Configuration format (toml, json, yaml)
  */
-export async function visualizeThreatModelFromContent(content, outputFormat = 'png', style = 'tm_default', engine = 'usecvislib', configFormat = 'toml') {
+export async function visualizeThreatModelFromContent(content, outputFormat = 'png', style = 'tm_default', engine = 'usecvislib', configFormat = 'toml', renderEngine = 'graphviz') {
   const file = createFileFromContent(content, 'threat_model', configFormat)
-  return visualizeThreatModel(file, outputFormat, style, engine)
+  return visualizeThreatModel(file, outputFormat, style, engine, renderEngine)
 }
 
 /**
