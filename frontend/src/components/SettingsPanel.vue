@@ -290,7 +290,7 @@
           <div class="about-info">
             <h4>USecVisLib</h4>
             <p>Universal Security Visualization Library</p>
-            <p class="version">Frontend v0.4.1</p>
+            <p class="version">Frontend v0.6.0</p>
           </div>
         </div>
         <div class="about-links">

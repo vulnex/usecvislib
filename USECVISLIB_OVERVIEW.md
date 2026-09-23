@@ -4,7 +4,7 @@
 
 | | |
 |---|---|
-| **Version** | 0.5.0 |
+| **Version** | 0.6.0 |
 | **License** | Apache 2.0 |
 | **Author** | Simon Roses Femerling — [VULNEX](https://www.vulnex.com) |
 | **Language** | Python 3.10+ / Vue.js 3 |
@@ -240,4 +240,4 @@ Thank you for taking the time to review USecVisLib.
 
 ---
 
-*USecVisLib · Universal Security Visualization Library · v0.5.0 · © VULNEX · Apache License 2.0*
+*USecVisLib · Universal Security Visualization Library · v0.6.0 · © VULNEX · Apache License 2.0*
