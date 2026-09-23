@@ -1,6 +1,6 @@
 {
   "name": "usecvislib-frontend",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Web frontend for Universal Security Visualization Library",
   "private": true,
   "type": "module",

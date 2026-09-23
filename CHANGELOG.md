@@ -5,7 +5,7 @@ All notable changes to USecVisLib will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.6.0] - 2026-09-23
 
 ### Added
 
@@ -58,7 +58,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Wired through the CLI (`-m 11 --render-engine svg`), the REST API (`render_engine` on `POST /visualize/vuln-tree`, `sv_*` values on `VulnTreeStyle`), and the frontend `VulnTreePanel.vue` (engine toggle + inlined `InteractiveSvg` display path).
   - 30 tests in `tests/test_svg_vulntree.py` (contract, all templates × modes, exploited/direct semantics, engine-mismatch guards, cairosvg raster, CLI end-to-end).
 
-## [0.5.0] - 2026-08-27
+### Security
+
+- **Graph-complexity limit enforced on the SVG general-graph path** — the SVG engine bypasses `_render_impl`, so the Graphviz path's `utils.check_graph_complexity` DoS guard did not apply to it. The check now runs in the shared `render_graph_svg` before the Graphviz layout oracle is invoked, bounding every general-graph painter the same way as the Graphviz path and the attack-tree SVG painter.
+
+### Changed
+
+- **matplotlib pinned to 3.10.8** (was `>=3.7.0`) so text metrics — and therefore SVG-engine layout and golden-file bytes — are identical across the Python 3.10–3.13 CI matrix and dev machines; the attack-tree SVG golden was regenerated against the pinned version.
+- Frontend main content now widens to fill the viewport (capped at 2200px) instead of a fixed narrow column, and the footer copyright reads 2025-2026 (release year through current year).
 
 ### Added
 

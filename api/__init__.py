@@ -13,4 +13,4 @@
 
 """USecVisLib API - FastAPI-based REST API for security visualizations."""
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
