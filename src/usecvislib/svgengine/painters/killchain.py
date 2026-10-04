@@ -250,10 +250,17 @@ def render_svg(viz) -> str:
         chain = [tid for tid in incident.techniques if tid in by_id]
         for src_id, dst_id in pairwise(chain):
             a, b = by_id[src_id], by_id[dst_id]
-            forward = b.x >= a.x
-            x1 = a.x + a.width / 2 if forward else a.x - a.width / 2
-            x2 = b.x - b.width / 2 if forward else b.x + b.width / 2
-            d = shapes.curve_path_d(x1, a.y, x2, b.y, horizontal=True)
+            if abs(a.x - b.x) < 0.01:
+                # Same-phase step: a vertical arrow between the stacked cards.
+                down = b.y > a.y
+                y1 = a.y + a.height / 2 if down else a.y - a.height / 2
+                y2 = b.y - b.height / 2 if down else b.y + b.height / 2
+                d = f"M {shapes.fmt(a.x)} {shapes.fmt(y1)} L {shapes.fmt(b.x)} {shapes.fmt(y2)}"
+            else:
+                forward = b.x > a.x
+                x1 = a.x + a.width / 2 if forward else a.x - a.width / 2
+                x2 = b.x - b.width / 2 if forward else b.x + b.width / 2
+                d = shapes.curve_path_d(x1, a.y, x2, b.y, horizontal=True)
             g = shapes.group(
                 ["usv-edge", "usv-edge--incident"],
                 {"from": src_id, "to": dst_id, "incident": incident.incident_id},

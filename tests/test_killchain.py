@@ -171,6 +171,8 @@ class TestSvgEngine:
                 continue
             src, dst = sanitize_node_id(g.get("data-from")), sanitize_node_id(g.get("data-to"))
             (sx1, sy1, sx2, sy2), (dx1, dy1, dx2, dy2) = cards[src], cards[dst]
+            if (sx1 + sx2) / 2 == pytest.approx((dx1 + dx2) / 2):
+                continue  # same-phase step: vertical, covered separately
             line_y = (sy1 + sy2) / 2
             assert line_y == pytest.approx((dy1 + dy2) / 2), f"{src} -> {dst} should run straight"
             for other, (ox1, oy1, ox2, oy2) in cards.items():
@@ -178,6 +180,13 @@ class TestSvgEngine:
                     continue
                 between = ox1 < max(dx1, sx1) and ox2 > min(sx2, dx2)
                 assert not (between and oy1 < line_y < oy2), f"{src} -> {dst} passes behind {other}"
+
+    def test_same_phase_step_is_vertical_arrow(self, tmp_path):
+        root = ET.fromstring(_render_svg(RANSOM, tmp_path))
+        edge = next(g for g in root.iter(f"{SVG_NS}g") if g.get("data-from") == "T1490" and g.get("data-to") == "T1486")
+        parts = edge.find(f"{SVG_NS}path").get("d").split()
+        assert parts[0] == "M" and parts[3] == "L" and parts[1] == parts[4], "expected a straight vertical line"
+        assert float(parts[5]) > float(parts[2]), "T1486 sits below T1490"
 
     def test_no_active_content(self, tmp_path):
         content = _render_svg(APT, tmp_path)
@@ -234,13 +243,13 @@ class TestGraphvizEngine:
         assert len(counts) == 1
 
     def test_skip_edges_thread_through_placeholders(self, tmp_path):
-        kc = KillChain(RANSOM, str(tmp_path / "o"), format="svg", styleid="kc_default")
+        kc = KillChain(APT, str(tmp_path / "o"), format="svg", styleid="kc_default")
         kc.load()
         kc.render()
         src = kc.dot.source
-        # T1059.001 (Execution) -> T1055 (Privilege Escalation) skips
-        # Persistence: it must route through a Persistence placeholder slot.
-        assert '"T1059.001" -> __slot_Persistence_' in src
+        # T1595 (Reconnaissance) -> T1566 (Delivery) skips Weaponization:
+        # it must route through a Weaponization placeholder slot.
+        assert "T1595 -> __slot_Weaponization_" in src
 
     @pytest.mark.skipif(shutil.which("dot") is None, reason="requires the Graphviz dot binary")
     @pytest.mark.parametrize("template", TEMPLATES, ids=[Path(t).stem for t in TEMPLATES])
@@ -256,23 +265,36 @@ class TestGraphvizEngine:
         y = {o["name"]: float(o["pos"].split(",")[1]) for o in layout["objects"] if "pos" in o}
         # Every shipped template's incident is a forward chain: each flow edge
         # (including through skipped phases) must be one horizontal line.
+        phase_of = {tech.id: tech.phase for tech in kc.techniques.values()}
         for incident in kc.incidents:
             for src, dst in pairwise(incident.techniques):
-                assert y[src] == pytest.approx(y[dst]), f"{src} -> {dst} should run straight"
+                if phase_of[src] != phase_of[dst]:  # same-phase steps are vertical
+                    assert y[src] == pytest.approx(y[dst]), f"{src} -> {dst} should run straight"
+        names = {o["_gvid"]: o["name"] for o in layout["objects"]}
         for edge in layout["edges"]:
-            if edge.get("style") != "invis":
+            tail, head = names[edge["tail"]], names[edge["head"]]
+            if edge.get("style") != "invis" and phase_of.get(tail, tail) != phase_of.get(head, head):
                 ys = {round(float(p.split(",")[1]), 1) for p in edge["pos"].removeprefix("e,").split()}
                 assert len(ys) == 1, "flow edges must not dip (no off-center parallel edges)"
 
     def test_pass_through_placeholder_bridges_the_line(self, tmp_path):
-        kc = KillChain(RANSOM, str(tmp_path / "o"), format="svg", styleid="kc_default")
+        kc = KillChain(APT, str(tmp_path / "o"), format="svg", styleid="kc_default")
         kc.load()
         kc.render()
         src = kc.dot.source
-        bridge = next(line for line in src.splitlines() if line.strip().startswith("__slot_Persistence_0 "))
+        bridge = next(line for line in src.splitlines() if line.strip().startswith("__slot_Weaponization_0 "))
         assert "fixedsize=shape" in bridge and "style=filled" in bridge
-        filler = next(line for line in src.splitlines() if line.strip().startswith("__slot_Initial_Access_1 "))
+        filler = next(line for line in src.splitlines() if line.strip().startswith("__slot_Delivery_1 "))
         assert "style=invis" in filler
+
+    def test_same_phase_step_stays_stacked(self, tmp_path):
+        # T1490 -> T1486 are both Impact: a ranking edge would open a new
+        # column inside the Impact box, so it must not constrain ranks.
+        kc = KillChain(RANSOM, str(tmp_path / "o"), format="svg", styleid="kc_default")
+        kc.load()
+        kc.render()
+        edge = next(line for line in kc.dot.source.splitlines() if line.strip().startswith("T1490 -> T1486"))
+        assert "constraint=false" in edge
 
     def test_svg_preset_rejected_on_graphviz(self, tmp_path):
         from usecvislib.svgengine import StyleEngineMismatchError

@@ -85,4 +85,4 @@ id = "INC-2026-031"
 name = "LockChain Ransomware"
 threat_actor = "FIN-Locker"
 campaign = "LockChain"
-techniques = ["T1566.001", "T1059.001", "T1055", "T1562.001", "T1003", "T1021.002", "T1486"]
+techniques = ["T1566.001", "T1059.001", "T1547.001", "T1055", "T1562.001", "T1003", "T1018", "T1021.002", "T1490", "T1486"]

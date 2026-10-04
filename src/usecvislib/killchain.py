@@ -385,6 +385,10 @@ class KillChain(VisualizationBase):
                     segment["tailclip"] = "false"
                 if index < len(path) - 2:
                     segment.update(headclip="false", arrowhead="none")
+                if self.techniques[src].phase == self.techniques[dst].phase:
+                    # Same-phase step: keep both cards stacked in the phase
+                    # column (a ranking edge would open a new column).
+                    segment["constraint"] = "false"
                 segments.append((tail, head, segment))
         segment_pairs = {(tail, head): attrs for tail, head, attrs in segments}
 
