@@ -118,48 +118,59 @@ def _build_scene(viz, theme):
     return scene, phases, grouped, tech_by_id
 
 
-def _layout(scene, phases, grouped, theme):
-    """Place cards in phase columns; return phase -> (cx, col_width, bottom).
+def _layout(viz, scene, phases, theme):
+    """Place cards on a shared row grid; return phase -> (cx, col_width, bottom).
 
     LinearLayout supplies the ordered, variable-width column centers (one
-    lane node per phase, sized to its widest card / header); technique
-    cards then stack down from a shared header baseline inside each column.
+    lane node per phase, sized to its widest card / header). Rows come from
+    the module's grid planner (shared with the Graphviz engine): incident
+    flows keep one row across the phases they span, so every flow edge is
+    a straight line and passes only through empty slots - never behind a
+    card it does not connect to. Cards are centered vertically in their
+    row, which is as tall as its tallest card.
     """
     font = theme["font"]
     header_size = float(font["root_size"]) * 0.8
     by_id = {n.id: n for n in scene.nodes}
+    grid, _, _ = viz.plan_grid(phases)
 
     lane_scene = Scene(module=MODULE_SLUG)
     for phase in phases:
-        techs = grouped.get(phase, [])
-        widest = max((by_id[t.id].width for t in techs), default=0.0)
+        widest = max((by_id[t].width for t in grid.get(phase, {}).values() if t), default=0.0)
         header_w = metrics.measure_text(phase, font["family"], header_size, bold=True) + 28.0
         col_w = max(_MIN_COL_WIDTH, widest, header_w)
         lane_scene.nodes.append(SceneNode(id=phase, label=phase, width=col_w, height=_header_height(theme)))
     LinearLayout(gap=_PHASE_GAP, orientation="LR").solve(lane_scene)
 
-    header_h = _header_height(theme)
+    row_count = max((row + 1 for rows in grid.values() for row in rows), default=0)
+    row_heights = [
+        max((by_id[t].height for rows in grid.values() if (t := rows.get(row))), default=0.0)
+        for row in range(row_count)
+    ]
+    row_centers = []
+    top = _header_height(theme) + _HEADER_GAP
+    for height in row_heights:
+        row_centers.append(top + height / 2)
+        top += height + _CARD_GAP
+
     boxes: dict[str, tuple[float, float, float]] = {}
     for lane in lane_scene.nodes:
-        cx = lane.x
-        card_top = header_h + _HEADER_GAP
-        for tech in grouped.get(lane.id, []):
-            node = by_id[tech.id]
-            node.x = cx
-            node.y = card_top + node.height / 2
-            card_top += node.height + _CARD_GAP
-        boxes[lane.id] = (cx, lane.width, card_top)
+        for row, tech_id in grid.get(lane.id, {}).items():
+            if tech_id:
+                by_id[tech_id].x = lane.x
+                by_id[tech_id].y = row_centers[row]
+        boxes[lane.id] = (lane.x, lane.width, top)
     return boxes
 
 
 def render_svg(viz) -> str:
     """Render a kill chain visualization instance to SVG text."""
     theme = themes.resolve(viz.style)
-    scene, phases, grouped, tech_by_id = _build_scene(viz, theme)
+    scene, phases, _grouped, tech_by_id = _build_scene(viz, theme)
     if not scene.nodes:
         raise utils.RenderError("Kill chain has no techniques to render")
 
-    boxes = _layout(scene, phases, grouped, theme)
+    boxes = _layout(viz, scene, phases, theme)
 
     font = theme["font"]
     card_cfg = theme["card"]

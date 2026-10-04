@@ -152,6 +152,33 @@ class TestSvgEngine:
         incidents = [g for g in root.iter(f"{SVG_NS}g") if "usv-edge--incident" in g.get("class", "").split()]
         assert len(incidents) == 5  # 6-technique path -> 5 edges
 
+    @pytest.mark.parametrize("template", TEMPLATES, ids=[Path(t).stem for t in TEMPLATES])
+    def test_flow_lines_never_pass_behind_unrelated_cards(self, tmp_path, template):
+        # Regression: cards stacked in declared order put e.g. T1547.001 on
+        # the T1059.001 -> T1055 line, so it looked connected. With the shared
+        # row planner, flows run straight along their row through empty slots.
+        from usecvislib.utils import sanitize_node_id
+
+        root = ET.fromstring(_render_svg(template, tmp_path))
+        cards = {}
+        for g in root.iter(f"{SVG_NS}g"):
+            if "usv-node--technique" in g.get("class", "").split():
+                rect = g.find(f"{SVG_NS}rect")
+                x, y, w, h = (float(rect.get(k)) for k in ("x", "y", "width", "height"))
+                cards[g.get("data-node-id")] = (x, y, x + w, y + h)
+        for g in root.iter(f"{SVG_NS}g"):
+            if "usv-edge--incident" not in g.get("class", "").split():
+                continue
+            src, dst = sanitize_node_id(g.get("data-from")), sanitize_node_id(g.get("data-to"))
+            (sx1, sy1, sx2, sy2), (dx1, dy1, dx2, dy2) = cards[src], cards[dst]
+            line_y = (sy1 + sy2) / 2
+            assert line_y == pytest.approx((dy1 + dy2) / 2), f"{src} -> {dst} should run straight"
+            for other, (ox1, oy1, ox2, oy2) in cards.items():
+                if other in (src, dst):
+                    continue
+                between = ox1 < max(dx1, sx1) and ox2 > min(sx2, dx2)
+                assert not (between and oy1 < line_y < oy2), f"{src} -> {dst} passes behind {other}"
+
     def test_no_active_content(self, tmp_path):
         content = _render_svg(APT, tmp_path)
         assert "<script" not in content and "onclick" not in content
@@ -217,7 +244,7 @@ class TestGraphvizEngine:
 
     @pytest.mark.skipif(shutil.which("dot") is None, reason="requires the Graphviz dot binary")
     @pytest.mark.parametrize("template", TEMPLATES, ids=[Path(t).stem for t in TEMPLATES])
-    def test_phase_boxes_align_and_keep_declared_order(self, tmp_path, template):
+    def test_phase_boxes_align_and_flows_run_straight(self, tmp_path, template):
         kc = KillChain(template, str(tmp_path / "o"), format="svg", styleid="kc_default")
         kc.load()
         kc.render()
@@ -227,9 +254,25 @@ class TestGraphvizEngine:
         bottoms = {round(float(bb.split(",")[1]), 1) for bb in boxes}
         assert len(tops) == 1 and len(bottoms) == 1, "phase boxes must share top and bottom"
         y = {o["name"]: float(o["pos"].split(",")[1]) for o in layout["objects"] if "pos" in o}
-        for techs in kc.techniques_by_phase().values():
-            for upper, lower in pairwise(techs):
-                assert y[upper.id] > y[lower.id], f"{upper.id} should sit above {lower.id}"
+        # Every shipped template's incident is a forward chain: each flow edge
+        # (including through skipped phases) must be one horizontal line.
+        for incident in kc.incidents:
+            for src, dst in pairwise(incident.techniques):
+                assert y[src] == pytest.approx(y[dst]), f"{src} -> {dst} should run straight"
+        for edge in layout["edges"]:
+            if edge.get("style") != "invis":
+                ys = {round(float(p.split(",")[1]), 1) for p in edge["pos"].removeprefix("e,").split()}
+                assert len(ys) == 1, "flow edges must not dip (no off-center parallel edges)"
+
+    def test_pass_through_placeholder_bridges_the_line(self, tmp_path):
+        kc = KillChain(RANSOM, str(tmp_path / "o"), format="svg", styleid="kc_default")
+        kc.load()
+        kc.render()
+        src = kc.dot.source
+        bridge = next(line for line in src.splitlines() if line.strip().startswith("__slot_Persistence_0 "))
+        assert "fixedsize=shape" in bridge and "style=filled" in bridge
+        filler = next(line for line in src.splitlines() if line.strip().startswith("__slot_Initial_Access_1 "))
+        assert "style=invis" in filler
 
     def test_svg_preset_rejected_on_graphviz(self, tmp_path):
         from usecvislib.svgengine import StyleEngineMismatchError
