@@ -113,6 +113,20 @@ _PHASE_ALIASES = {
 _VALID_SEVERITIES = {"critical", "high", "medium", "low", "none", "info"}
 
 
+def _slot_id(phase_key: str, row: int) -> str:
+    """Node id of a phase's invisible placeholder slot."""
+    return f"__slot_{phase_key}_{row}"
+
+
+# Invisible slot filler with the same row structure as a technique card
+# (id / name / coverage), so placeholders take a card's height.
+_PLACEHOLDER_LABEL = (
+    '<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1">'
+    "<TR><TD><B> </B></TD></TR><TR><TD> </TD></TR>"
+    '<TR><TD><FONT POINT-SIZE="9"> </FONT></TD></TR></TABLE>>'
+)
+
+
 def _html_escape(text: str) -> str:
     """Escape text for use inside a Graphviz HTML-like label."""
     return str(text).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -344,28 +358,92 @@ class KillChain(VisualizationBase):
 
         # One cluster per phase, ranked left to right. Technique nodes are
         # added to the CLUSTER (not the root graph) so each lands under its
-        # phase header; a hidden anchor per phase orders the columns via
-        # invisible anchor->anchor edges (works even for empty phases).
-        prev_anchor = None
+        # phase header. Graphviz places clusters independently, so phases
+        # with fewer techniques would float up or down; instead every phase
+        # gets the same number of row slots (techniques, then invisible
+        # card-sized placeholders) and slot k of each phase is chained to
+        # slot k of the next by a heavy invisible edge. The rows lay out
+        # straight, giving every phase box the same top and height (works for
+        # empty phases).
+        rows = {phase: [tech.id for tech in grouped.get(phase, [])] for phase in phases}
+        slot_count = max((len(ids) for ids in rows.values()), default=0) or 1
+        flows, waypoints = self._plan_flows(phases, rows, slot_count)
+        slot_count = max([slot_count, *(row + 1 for route in waypoints.values() for _, row in route)])
+
+        placeholder_style = {
+            **self._graphviz_tech_style(Technique(id="", name="", phase=""), style),
+            "style": "invis",
+        }
+        prev_slots: list[str] = []
         for phase in phases:
             key = utils.sanitize_node_id(phase)
+            slots: list[str] = []
             with self.dot.subgraph(name=f"cluster_{key}") as sub:
                 attrs = utils.stringify_dict(dict(phase_style))
                 sub.attr(label=f"  {phase}  ", **{k: v for k, v in attrs.items() if k != "label"})
-                anchor = f"__anchor_{key}"
-                sub.node(anchor, "", shape="point", width="0", height="0", style="invis")
                 for tech in grouped.get(phase, []):
                     sub.node(tech.id, label=self._graphviz_label(tech), **self._graphviz_tech_style(tech, style))
-            if prev_anchor is not None:
-                self.dot.edge(prev_anchor, anchor, style="invis")
-            prev_anchor = anchor
+                    slots.append(tech.id)
+                for index in range(len(slots), slot_count):
+                    slot = _slot_id(key, index)
+                    sub.node(slot, label=_PLACEHOLDER_LABEL, **placeholder_style)
+                    slots.append(slot)
+            if prev_slots:
+                for prev, cur in zip(prev_slots, slots, strict=True):
+                    self.dot.edge(prev, cur, style="invis", weight="100")
+            prev_slots = slots
 
-        # Incident technique-to-technique flow edges.
+        # Incident technique-to-technique flow edges. An edge skipping phases
+        # threads through a free placeholder slot in each skipped phase (with
+        # clipping off, so the segments join into one line); otherwise dot
+        # would detour it around the full-height phase boxes.
         edge_style = utils.stringify_dict(style.get("edge", self._default_style()["edge"]))
+        for src, dst in flows:
+            path = [
+                src,
+                *(_slot_id(utils.sanitize_node_id(phase), row) for phase, row in waypoints.get((src, dst), [])),
+            ]
+            path.append(dst)
+            for index, (tail, head) in enumerate(pairwise(path)):
+                segment = dict(edge_style)
+                if index > 0:
+                    segment["tailclip"] = "false"
+                if index < len(path) - 2:
+                    segment.update(headclip="false", arrowhead="none")
+                self.dot.edge(tail, head, **segment)
+
+    def _plan_flows(
+        self, phases: list[str], rows: dict[str, list[str]], slot_count: int
+    ) -> tuple[list[tuple[str, str]], dict[tuple[str, str], list[tuple[str, int]]]]:
+        """Incident flow edges, plus a placeholder row in each phase a
+        forward edge skips (nearest free row to the source; a new row is
+        opened when a skipped phase has none). Returns (flows, waypoints)."""
+        column = {phase: index for index, phase in enumerate(phases)}
+        row_of = {tech_id: (phase, index) for phase, ids in rows.items() for index, tech_id in enumerate(ids)}
+        taken: dict[str, set[int]] = {phase: set(range(len(ids))) for phase, ids in rows.items()}
+        flows: list[tuple[str, str]] = []
+        waypoints: dict[tuple[str, str], list[tuple[str, int]]] = {}
         for incident in self.incidents:
             for src, dst in pairwise(incident.techniques):
-                if src in self.techniques and dst in self.techniques:
-                    self.dot.edge(src, dst, **edge_style)
+                if src not in self.techniques or dst not in self.techniques:
+                    continue
+                flows.append((src, dst))
+                if (src, dst) in waypoints or src not in row_of or dst not in row_of:
+                    continue
+                (src_phase, src_row), (dst_phase, _) = row_of[src], row_of[dst]
+                if column[dst_phase] - column[src_phase] < 2:
+                    continue
+                route = []
+                for phase in phases[column[src_phase] + 1 : column[dst_phase]]:
+                    free = [row for row in range(slot_count) if row not in taken[phase]]
+                    if not free:
+                        slot_count += 1
+                        free = [slot_count - 1]
+                    row = min(free, key=lambda r: (abs(r - src_row), r))
+                    taken[phase].add(row)
+                    route.append((phase, row))
+                waypoints[(src, dst)] = route
+        return flows, waypoints
 
     @staticmethod
     def _coverage_state(tech: Technique) -> str:

@@ -14,7 +14,10 @@
 """Tests for the Kill Chain / MITRE ATT&CK module (CLI mode 9)."""
 
 import glob
+import json
+import shutil
 import xml.etree.ElementTree as ET
+from itertools import pairwise
 from pathlib import Path
 
 import pytest
@@ -192,6 +195,41 @@ class TestGraphvizEngine:
         assert "<TABLE" in src  # HTML-like labels
         assert "Detected + Mitigated" in src  # readable coverage line
         assert "[D-]" not in src and "[DM]" not in src  # no cryptic codes
+
+    def test_phases_get_equal_slot_counts(self, tmp_path):
+        # Every phase cluster holds the same number of row slots (techniques
+        # plus invisible placeholders) so the phase boxes align.
+        kc = KillChain(RANSOM, str(tmp_path / "o"), format="svg", styleid="kc_default")
+        kc.load()
+        kc.render()
+        blocks = kc.dot.source.split("subgraph cluster_")[1:]
+        counts = {block.count("[label=") for block in blocks}
+        assert len(counts) == 1
+
+    def test_skip_edges_thread_through_placeholders(self, tmp_path):
+        kc = KillChain(RANSOM, str(tmp_path / "o"), format="svg", styleid="kc_default")
+        kc.load()
+        kc.render()
+        src = kc.dot.source
+        # T1059.001 (Execution) -> T1055 (Privilege Escalation) skips
+        # Persistence: it must route through a Persistence placeholder slot.
+        assert '"T1059.001" -> __slot_Persistence_' in src
+
+    @pytest.mark.skipif(shutil.which("dot") is None, reason="requires the Graphviz dot binary")
+    @pytest.mark.parametrize("template", TEMPLATES, ids=[Path(t).stem for t in TEMPLATES])
+    def test_phase_boxes_align_and_keep_declared_order(self, tmp_path, template):
+        kc = KillChain(template, str(tmp_path / "o"), format="svg", styleid="kc_default")
+        kc.load()
+        kc.render()
+        layout = json.loads(kc.dot.pipe("json0"))
+        boxes = [o["bb"] for o in layout["objects"] if o.get("name", "").startswith("cluster_")]
+        tops = {round(float(bb.split(",")[3]), 1) for bb in boxes}
+        bottoms = {round(float(bb.split(",")[1]), 1) for bb in boxes}
+        assert len(tops) == 1 and len(bottoms) == 1, "phase boxes must share top and bottom"
+        y = {o["name"]: float(o["pos"].split(",")[1]) for o in layout["objects"] if "pos" in o}
+        for techs in kc.techniques_by_phase().values():
+            for upper, lower in pairwise(techs):
+                assert y[upper.id] > y[lower.id], f"{upper.id} should sit above {lower.id}"
 
     def test_svg_preset_rejected_on_graphviz(self, tmp_path):
         from usecvislib.svgengine import StyleEngineMismatchError
