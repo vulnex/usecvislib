@@ -662,7 +662,7 @@ async def export_data(
         # Extract section if specified
         if section:
             if section not in data:
-                available = [k for k in data if isinstance(data[k], (list, dict))]
+                available = [k for k in data if isinstance(data[k], list | dict)]
                 raise HTTPException(status_code=400, detail=f"Section '{section}' not found. Available: {available}")
             export_data_content = data[section]
         else:

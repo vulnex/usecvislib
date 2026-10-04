@@ -82,7 +82,7 @@ class Change:
             if len(value) > 50:
                 return f'"{value[:47]}..."'
             return f'"{value}"'
-        if isinstance(value, (dict, list)):
+        if isinstance(value, dict | list):
             return f"<{type(value).__name__}>"
         return str(value)
 

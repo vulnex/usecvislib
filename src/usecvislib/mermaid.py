@@ -970,7 +970,7 @@ def _convert_generic(data: dict[str, Any]) -> str:
 
     # Create nodes for top-level keys
     for key in data:
-        if isinstance(data[key], (dict, list)):
+        if isinstance(data[key], dict | list):
             safe_key = sanitize_node_id(key)
             count = len(data[key])
             lines.append(f'    {safe_key}["{escape_label(key)} ({count} items)"]')

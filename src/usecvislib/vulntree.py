@@ -225,7 +225,9 @@ class VulnDependencyTree(VisualizationBase):
                     continue
                 severity = str(vd.get("severity", "none")).lower()
                 if severity not in _VALID_SEVERITIES:
-                    self.warnings.append(f"Vulnerability '{vd.get('id', '?')}': unknown severity '{severity}', using none")
+                    self.warnings.append(
+                        f"Vulnerability '{vd.get('id', '?')}': unknown severity '{severity}', using none"
+                    )
                     severity = "none"
                 vulns.append(
                     Vulnerability(
@@ -308,7 +310,9 @@ class VulnDependencyTree(VisualizationBase):
         reachable = self._reachable()
         if self.mode == "tree":
             return reachable
-        threshold = _SEVERITY_RANK[VulnSeverity.HIGH] if self.mode == "critical_path" else _SEVERITY_RANK[VulnSeverity.LOW]
+        threshold = (
+            _SEVERITY_RANK[VulnSeverity.HIGH] if self.mode == "critical_path" else _SEVERITY_RANK[VulnSeverity.LOW]
+        )
         subtree = self._subtree_min_rank()
         return {dep_id for dep_id in reachable if subtree.get(dep_id, 99) <= threshold}
 
@@ -405,22 +409,21 @@ class VulnDependencyTree(VisualizationBase):
         """For each root, the vulnerable packages reachable beneath it."""
         impact: dict[str, list[str]] = {}
         for root in self.root_packages:
-            seen: set[str] = set()
             vulnerable: list[str] = []
-
-            def walk(dep_id: str, depth: int) -> None:
-                if dep_id in seen or depth > _MAX_DEPTH or dep_id not in self.dependencies:
-                    return
-                seen.add(dep_id)
-                if self.dependencies[dep_id].vulnerabilities:
-                    vulnerable.append(dep_id)
-                for child in self.dependencies[dep_id].dependencies:
-                    walk(child, depth + 1)
-
-            walk(root, 0)
+            self._collect_vulnerable(root, 0, set(), vulnerable)
             if vulnerable:
                 impact[root] = vulnerable
         return impact
+
+    def _collect_vulnerable(self, dep_id: str, depth: int, seen: set[str], vulnerable: list[str]) -> None:
+        """Depth-first collect vulnerable packages beneath ``dep_id`` (cycle-safe)."""
+        if dep_id in seen or depth > _MAX_DEPTH or dep_id not in self.dependencies:
+            return
+        seen.add(dep_id)
+        if self.dependencies[dep_id].vulnerabilities:
+            vulnerable.append(dep_id)
+        for child in self.dependencies[dep_id].dependencies:
+            self._collect_vulnerable(child, depth + 1, seen, vulnerable)
 
     def remediation(self) -> list[dict[str, str]]:
         """Fixed-version upgrade hints for vulnerable dependencies."""

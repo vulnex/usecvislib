@@ -213,7 +213,9 @@ def render_svg(viz) -> str:
     canvas.finalize(min_x, min_y, max_x - min_x, max_y - min_y)
     canvas.add(
         "groups",
-        shapes.card(min_x, min_y, max_x - min_x, max_y - min_y, 0, fill=page["background"], stroke="none", stroke_width=0),
+        shapes.card(
+            min_x, min_y, max_x - min_x, max_y - min_y, 0, fill=page["background"], stroke="none", stroke_width=0
+        ),
     )
 
     title_cfg = theme["title"]

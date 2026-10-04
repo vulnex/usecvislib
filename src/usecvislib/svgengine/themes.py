@@ -54,7 +54,12 @@ DEFAULTS: dict[str, Any] = {
     # Kill Chain (mode 9) swimlane: phase-header and flow-arrow colors.
     "killchain": {"phase_fill": "#1e3a5f", "phase_text": "#ffffff", "flow_color": "#94a3b8"},
     # Vuln Dependency Tree (mode 11): direct-dependency border + exploited-edge accent.
-    "vulntree": {"direct_border": "#1e293b", "direct_border_width": 2.2, "exploited_color": "#0f172a", "exploited_width": 2.6},
+    "vulntree": {
+        "direct_border": "#1e293b",
+        "direct_border_width": 2.2,
+        "exploited_color": "#0f172a",
+        "exploited_width": 2.6,
+    },
     # Attack Graphs (mode 3): per-node-kind fills, edge-kind colors, and the
     # Graphviz-oracle layout spacing (rankdir + node/rank separation in inches).
     "attackgraph": {

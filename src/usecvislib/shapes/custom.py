@@ -383,7 +383,7 @@ class CustomShapeLoader:
         Raises:
             CustomShapeError: If dimensions are invalid
         """
-        if not isinstance(width, (int, float)) or not isinstance(height, (int, float)):
+        if not isinstance(width, int | float) or not isinstance(height, int | float):
             raise CustomShapeError("Width and height must be numbers")
 
         if width < self.MIN_DIMENSION or width > self.MAX_DIMENSION:

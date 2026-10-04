@@ -77,7 +77,11 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
 
     def add_node(node_id, lines, kind, fill, severity=None, cvss=None, text_color="#ffffff"):
         text_w, text_h = metrics.measure_block(lines, font["family"], size)
-        node_data = {"node-id": utils.sanitize_node_id(node_id), "label": lines[0] if lines else str(node_id), "kind": kind}
+        node_data = {
+            "node-id": utils.sanitize_node_id(node_id),
+            "label": lines[0] if lines else str(node_id),
+            "kind": kind,
+        }
         if severity:
             node_data["severity"] = severity
         if cvss is not None:
@@ -183,7 +187,9 @@ def _build_edges(scene: Scene, data: dict, ag: dict) -> None:
         if not isinstance(exploit, dict):
             continue
         pres = exploit.get("preconditions", []) or ([exploit["precondition"]] if exploit.get("precondition") else [])
-        posts = exploit.get("postconditions", []) or ([exploit["postcondition"]] if exploit.get("postcondition") else [])
+        posts = exploit.get("postconditions", []) or (
+            [exploit["postcondition"]] if exploit.get("postcondition") else []
+        )
         for pre in pres:
             add_edge(pre, exploit_id, "exploit", ag["exploit_edge"], width=exploit_width)
         for post in posts:

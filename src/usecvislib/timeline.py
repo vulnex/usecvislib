@@ -105,7 +105,7 @@ def parse_duration(value: Any) -> Optional[timedelta]:
     """Parse a compact duration string like ``2m``, ``1h30m``, ``45s``, ``2d``."""
     if value is None or value == "":
         return None
-    if isinstance(value, (int, float)):
+    if isinstance(value, int | float):
         return timedelta(minutes=float(value))
     text = str(value).strip()
     matches = _DURATION_RE.findall(text)
@@ -311,7 +311,7 @@ class IncidentTimeline(VisualizationBase):
         return grouped
 
     def severity_distribution(self) -> dict[str, int]:
-        dist = {sev: 0 for sev in _SEVERITY_ORDER}
+        dist = dict.fromkeys(_SEVERITY_ORDER, 0)
         for ev in self.events:
             dist[ev.severity] = dist.get(ev.severity, 0) + 1
         return dist
@@ -473,19 +473,23 @@ class IncidentTimeline(VisualizationBase):
         self._draw_phase_bands(ax, style)
 
         # Alternating lane background bands for readability.
-        for lane, y in y_of.items():
-            ax.axhspan(y - 0.5, y + 0.5, color=lane_cfg["color"], alpha=lane_cfg["band_alpha"] if y % 2 else 0.0, zorder=0)
+        for y in y_of.values():
+            ax.axhspan(
+                y - 0.5, y + 0.5, color=lane_cfg["color"], alpha=lane_cfg["band_alpha"] if y % 2 else 0.0, zorder=0
+            )
 
         span = self.time_span() or timedelta(minutes=1)
         for lane in lanes:
             y = y_of[lane]
             lane_events = grouped.get(lane, [])
             slots = self._label_slots(lane_events, span)
-            for ev, (dy, va) in zip(lane_events, slots):
+            for ev, (dy, va) in zip(lane_events, slots, strict=True):
                 x = mdates.date2num(ev.timestamp)
                 if ev.duration:
                     x_end = mdates.date2num(ev.end_time)
-                    ax.plot([x, x_end], [y, y], color=ev.color, linewidth=6, alpha=0.55, solid_capstyle="round", zorder=2)
+                    ax.plot(
+                        [x, x_end], [y, y], color=ev.color, linewidth=6, alpha=0.55, solid_capstyle="round", zorder=2
+                    )
                 ax.scatter(
                     x, y, s=ev_cfg["marker_size"], c=ev.color, edgecolors=ev_cfg["edgecolor"], linewidths=0.8, zorder=3
                 )
@@ -526,9 +530,13 @@ class IncidentTimeline(VisualizationBase):
         for row, ev in enumerate(reversed(self.events)):
             x = mdates.date2num(ev.timestamp)
             width = mdates.date2num(ev.end_time + (min_bar if not ev.duration else timedelta())) - x
-            ax.barh(row, width, left=x, height=0.6, color=ev.color, edgecolor=ev_cfg["edgecolor"], linewidth=0.6, zorder=3)
+            ax.barh(
+                row, width, left=x, height=0.6, color=ev.color, edgecolor=ev_cfg["edgecolor"], linewidth=0.6, zorder=3
+            )
             tag = f"  {ev.title}" + (f" [{ev.technique}]" if ev.technique else "")
-            ax.text(x, row, tag, va="center", ha="left", fontsize=ev_cfg["fontsize"], color=ev_cfg["text_color"], zorder=4)
+            ax.text(
+                x, row, tag, va="center", ha="left", fontsize=ev_cfg["fontsize"], color=ev_cfg["text_color"], zorder=4
+            )
 
         ax.set_yticks(range(n))
         ax.set_yticklabels([ev.id for ev in reversed(self.events)], fontsize=8)
@@ -546,7 +554,9 @@ class IncidentTimeline(VisualizationBase):
         ev_cfg = {**self._default_style()["event"], **style.get("event", {})}
         n = len(self.events)
         height = max(4.0, 0.6 * n + 2.0)
-        fig, ax = plt.subplots(figsize=(max(8.0, fig_cfg["width"] * 0.6), height), dpi=fig_cfg["dpi"], facecolor=fig_cfg["facecolor"])
+        fig, ax = plt.subplots(
+            figsize=(max(8.0, fig_cfg["width"] * 0.6), height), dpi=fig_cfg["dpi"], facecolor=fig_cfg["facecolor"]
+        )
 
         self._draw_phase_bands(ax, style, vertical=True)
 
@@ -554,7 +564,9 @@ class IncidentTimeline(VisualizationBase):
         ax.plot([0.5] * n, ys, color="#cbd5e1", linewidth=2, zorder=1)
         for i, ev in enumerate(self.events):
             y = ys[i]
-            ax.scatter(0.5, y, s=ev_cfg["marker_size"], c=ev.color, edgecolors=ev_cfg["edgecolor"], linewidths=0.8, zorder=3)
+            ax.scatter(
+                0.5, y, s=ev_cfg["marker_size"], c=ev.color, edgecolors=ev_cfg["edgecolor"], linewidths=0.8, zorder=3
+            )
             side = 1 if i % 2 == 0 else -1
             label = ev.title if not ev.technique else f"{ev.title} [{ev.technique}]"
             ax.annotate(
@@ -590,7 +602,9 @@ class IncidentTimeline(VisualizationBase):
         xs = [mdates.date2num(ev.timestamp) for ev in self.events]
         ax.plot([min(xs), max(xs)], [0, 0], color="#cbd5e1", linewidth=2, zorder=1)
         for i, ev in enumerate(self.events):
-            ax.scatter(xs[i], 0, s=ev_cfg["marker_size"], c=ev.color, edgecolors=ev_cfg["edgecolor"], linewidths=0.8, zorder=3)
+            ax.scatter(
+                xs[i], 0, s=ev_cfg["marker_size"], c=ev.color, edgecolors=ev_cfg["edgecolor"], linewidths=0.8, zorder=3
+            )
             ax.annotate(
                 ev.title,
                 (xs[i], 0),
@@ -618,7 +632,9 @@ class IncidentTimeline(VisualizationBase):
             raise TimelineError("Timeline not rendered; call render() first")
         output_path = f"{outputfile}.{self.format}"
         try:
-            self._fig.savefig(output_path, format=self.format, dpi=self.style.get("figure", {}).get("dpi", 150), bbox_inches="tight")
+            self._fig.savefig(
+                output_path, format=self.format, dpi=self.style.get("figure", {}).get("dpi", 150), bbox_inches="tight"
+            )
         except Exception as e:  # pragma: no cover - matplotlib IO failure
             raise TimelineError(f"Failed to write timeline: {e}") from e
         finally:

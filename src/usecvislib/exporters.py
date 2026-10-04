@@ -221,7 +221,7 @@ class ExportMixin:
         inputdata = getattr(self, "inputdata", {})
 
         for key, value in inputdata.items():
-            if isinstance(value, (list, dict)):
+            if isinstance(value, list | dict):
                 sections.append(key)
 
         return sections

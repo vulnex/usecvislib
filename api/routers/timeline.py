@@ -60,7 +60,9 @@ router = APIRouter(tags=["Incident Timeline"])
 async def visualize_timeline(
     request: Request,
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(..., description="Config file with an [incident] section, [[events]] and optional [[phases]]"),
+    file: UploadFile = File(
+        ..., description="Config file with an [incident] section, [[events]] and optional [[phases]]"
+    ),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     style: TimelineStyle = Query(default=TimelineStyle.DEFAULT, description="Style preset"),
     mode: TimelineMode = Query(default=TimelineMode.SWIMLANE, description="Render mode"),
@@ -127,7 +129,9 @@ async def visualize_timeline(
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def analyze_timeline(
     request: Request,
-    file: UploadFile = File(..., description="Config file with an [incident] section, [[events]] and optional [[phases]]"),
+    file: UploadFile = File(
+        ..., description="Config file with an [incident] section, [[events]] and optional [[phases]]"
+    ),
 ):
     """Return timeline statistics, severity distribution and response metrics."""
     input_path = None
@@ -167,7 +171,9 @@ async def analyze_timeline(
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def validate_timeline(
     request: Request,
-    file: UploadFile = File(..., description="Config file with an [incident] section, [[events]] and optional [[phases]]"),
+    file: UploadFile = File(
+        ..., description="Config file with an [incident] section, [[events]] and optional [[phases]]"
+    ),
 ):
     """Validate an incident timeline configuration and return any errors/warnings."""
     input_path = None

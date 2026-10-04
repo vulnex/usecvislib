@@ -161,19 +161,6 @@ from .killchain import (
     KillChainError,
     Technique,
 )
-from .timeline import (
-    IncidentTimeline,
-    TimelineError,
-    TimelineEvent,
-    TimelinePhase,
-)
-from .vulntree import (
-    Dependency,
-    Vulnerability,
-    VulnDependencyTree,
-    VulnSeverity,
-    VulnTreeError,
-)
 from .maestro import (
     Agent as MaestroAgent,
 )
@@ -240,6 +227,12 @@ from .settings import (
     set_cvss_display_settings,
 )
 from .threatmodeling import ThreatModeling
+from .timeline import (
+    IncidentTimeline,
+    TimelineError,
+    TimelineEvent,
+    TimelinePhase,
+)
 from .utils import (
     AnalysisError,
     ConfigError,
@@ -269,6 +262,13 @@ from .utils import (
     # Security utilities
     validate_input_path,
     validate_output_path,
+)
+from .vulntree import (
+    Dependency,
+    VulnDependencyTree,
+    Vulnerability,
+    VulnSeverity,
+    VulnTreeError,
 )
 
 __all__ = [
@@ -325,6 +325,8 @@ __all__ = [
     "CrossLayerThreat",
     "CustomDiagramError",
     "CustomDiagrams",
+    # Vulnerability Dependency Tree support classes
+    "Dependency",
     "DependencyGraph",
     "DependencyGraphBuilder",
     "DependencyGraphError",
@@ -341,23 +343,11 @@ __all__ = [
     "IconNotFoundError",
     # Kill Chain support classes
     "IncidentMapping",
+    # Incident Timeline support classes
+    "IncidentTimeline",
     "KillChain",
     "KillChainBuilder",
     "KillChainError",
-    "Technique",
-    # Incident Timeline support classes
-    "IncidentTimeline",
-    "TimelineBuilder",
-    "TimelineError",
-    "TimelineEvent",
-    "TimelinePhase",
-    # Vulnerability Dependency Tree support classes
-    "Dependency",
-    "Vulnerability",
-    "VulnDependencyTree",
-    "VulnSeverity",
-    "VulnTreeBuilder",
-    "VulnTreeError",
     # MAESTRO support classes
     "MaestroAgent",
     "MaestroAsset",
@@ -395,11 +385,16 @@ __all__ = [
     # Result Classes
     "Severity",
     "StyleManager",
+    "Technique",
     "TemplateMetadata",
     "ThreatModelBuilder",
     "ThreatModelEngine",
     "ThreatModeling",
     "ThreatStatus",
+    "TimelineBuilder",
+    "TimelineError",
+    "TimelineEvent",
+    "TimelinePhase",
     # Exception hierarchy
     "USecVisLibError",
     "ValidationError",
@@ -409,6 +404,11 @@ __all__ = [
     "VisualizationBase",
     "VisualizationDiff",
     "VisualizationType",
+    "VulnDependencyTree",
+    "VulnSeverity",
+    "VulnTreeBuilder",
+    "VulnTreeError",
+    "Vulnerability",
     "__author__",
     # Metadata
     "__version__",

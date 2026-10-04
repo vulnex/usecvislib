@@ -662,9 +662,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  Lanes: {len(stats['lanes'])}")
             print(f"  Time span: {stats['time_span']}")
             if stats["severity_distribution"]:
-                sev_summary = ", ".join(
-                    f"{k}={v}" for k, v in stats["severity_distribution"].items() if v
-                )
+                sev_summary = ", ".join(f"{k}={v}" for k, v in stats["severity_distribution"].items() if v)
                 print(f"  Severity breakdown: {sev_summary}")
             rm = stats["response_metrics"]
             if any(rm.values()):
@@ -690,10 +688,14 @@ def main(argv: Optional[list[str]] = None) -> int:
             stats = vt.get_stats()
             print("\nVulnerability Tree Statistics:")
             print(f"  Name: {stats['name']}")
-            print(f"  Dependencies: {stats['total_dependencies']} "
-                  f"({stats['direct_dependencies']} direct, {stats['transitive_dependencies']} transitive)")
-            print(f"  Vulnerable: {stats['vulnerable_dependencies']} "
-                  f"({stats['total_vulnerabilities']} CVEs, {stats['exploited_vulnerabilities']} exploited)")
+            print(
+                f"  Dependencies: {stats['total_dependencies']} "
+                f"({stats['direct_dependencies']} direct, {stats['transitive_dependencies']} transitive)"
+            )
+            print(
+                f"  Vulnerable: {stats['vulnerable_dependencies']} "
+                f"({stats['total_vulnerabilities']} CVEs, {stats['exploited_vulnerabilities']} exploited)"
+            )
             print(f"  Max CVSS: {stats['max_cvss']:g}")
             if stats["severity_distribution"]:
                 sev_summary = ", ".join(f"{k}={v}" for k, v in stats["severity_distribution"].items() if v)

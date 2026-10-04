@@ -93,7 +93,9 @@ def _pick_tier(x: float, last_x: list[float]) -> tuple[int, float]:
     return _TIERS[0]
 
 
-def _staggered_label(group, bounds, x: float, cy: float, lines: list[str], size: float, family: str, color: str, last_x: list[float]) -> None:
+def _staggered_label(
+    group, bounds, x: float, cy: float, lines: list[str], size: float, family: str, color: str, last_x: list[float]
+) -> None:
     """Place a centered label above/below the marker in a free stagger tier."""
     sign, base = _pick_tier(x, last_x)
     text_h = len(lines) * size * metrics.LINE_HEIGHT
@@ -149,20 +151,26 @@ def _marker(ev, x: float, y: float, theme, ops: _Ops, bounds: _Bounds) -> Any:
     return group
 
 
-def _centered_label(group, bounds: _Bounds, cx: float, top_y: float, lines: list[str], size: float, family: str, color: str) -> None:
+def _centered_label(
+    group, bounds: _Bounds, cx: float, top_y: float, lines: list[str], size: float, family: str, color: str
+) -> None:
     group.extend(shapes.text_lines(cx, top_y, lines, size, color))
     w = max((metrics.measure_text(line, family, size) for line in lines), default=0.0)
     bounds.rect(cx - w / 2, top_y, w, len(lines) * size * metrics.LINE_HEIGHT)
 
 
-def _anchored_label(group, bounds: _Bounds, x: float, baseline_y: float, text: str, size: float, family: str, color: str, anchor: str) -> None:
+def _anchored_label(
+    group, bounds: _Bounds, x: float, baseline_y: float, text: str, size: float, family: str, color: str, anchor: str
+) -> None:
     group.append(shapes.anchored_text(x, baseline_y, text, size, color, anchor=anchor))
     w = metrics.measure_text(text, family, size)
     bx = x if anchor == "start" else (x - w if anchor == "end" else x - w / 2)
     bounds.rect(bx, baseline_y - size, w, size * 1.2)
 
 
-def _phase_bands_vertical(viz, x_of, top: float, bottom: float, theme, ops: _Ops, bounds: _Bounds, size: float, family: str) -> None:
+def _phase_bands_vertical(
+    viz, x_of, top: float, bottom: float, theme, ops: _Ops, bounds: _Bounds, size: float, family: str
+) -> None:
     """Shade phases as vertical time regions with a name label on top."""
     alpha = float(theme["timeline"]["phase_alpha"])
     for ph in viz.phases:
@@ -175,12 +183,18 @@ def _phase_bands_vertical(viz, x_of, top: float, bottom: float, theme, ops: _Ops
         bounds.rect(x0, top, w, bottom - top)
 
 
-def _time_axis_bottom(x_of, ticks, top: float, bottom: float, theme, ops: _Ops, bounds: _Bounds, size: float, family: str) -> None:
+def _time_axis_bottom(
+    x_of, ticks, top: float, bottom: float, theme, ops: _Ops, bounds: _Bounds, size: float, family: str
+) -> None:
     tl = theme["timeline"]
     grid, axis_text = tl["grid_color"], tl["axis_text"]
     for t, lbl in ticks:
         x = x_of(t)
-        ops.edges.append(shapes.edge_path(f"M {shapes.fmt(x)} {shapes.fmt(top)} L {shapes.fmt(x)} {shapes.fmt(bottom)}", grid, 1.0, dashed=True))
+        ops.edges.append(
+            shapes.edge_path(
+                f"M {shapes.fmt(x)} {shapes.fmt(top)} L {shapes.fmt(x)} {shapes.fmt(bottom)}", grid, 1.0, dashed=True
+            )
+        )
         _anchored_label(ops.labels, bounds, x, bottom + size + 6, lbl, size, family, axis_text, "middle")
 
 
@@ -195,7 +209,9 @@ def _legend(viz, theme, ops: _Ops, bounds: _Bounds, right_x: float, top_y: float
         g = shapes.group(["usv-legend", _severity_class(sev)], {"value": sev})
         g.append(shapes.dot(right_x, y, 5.0, color, stroke=theme["node"]["border"], stroke_width=0.6))
         ops.badges.append(g)
-        _anchored_label(ops.badges, bounds, right_x + 10, y + size * 0.35, sev.title(), size, family, theme["page"]["text"], "start")
+        _anchored_label(
+            ops.badges, bounds, right_x + 10, y + size * 0.35, sev.title(), size, family, theme["page"]["text"], "start"
+        )
         bounds.rect(right_x - 5, y - 5, 10, 10)
         y += size * 1.5
 
@@ -203,7 +219,7 @@ def _legend(viz, theme, ops: _Ops, bounds: _Bounds, right_x: float, top_y: float
 def _wrap_title(ev, family: str, size: float, max_w: float) -> list[str]:
     lines = metrics.wrap_text(ev.title, family, size, max_w) or [ev.title]
     if ev.technique:
-        lines = list(lines) + [ev.technique]
+        lines = [*lines, ev.technique]
     return lines
 
 
@@ -231,10 +247,22 @@ def _render_swimlane(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
         y0 = content_top + row * lane_h
         if row % 2:
             ops.groups.append(shapes.band(0.0, y0, axis_length, lane_h, lane_band, opacity=band_alpha))
-        _anchored_label(ops.labels, bounds, -12.0, y0 + lane_h / 2 + size * 0.35, lane, float(font["size"]) * 0.92, family, lane_text, "end")
+        _anchored_label(
+            ops.labels,
+            bounds,
+            -12.0,
+            y0 + lane_h / 2 + size * 0.35,
+            lane,
+            float(font["size"]) * 0.92,
+            family,
+            lane_text,
+            "end",
+        )
         bounds.rect(0.0, y0, axis_length, lane_h)
 
-    _phase_bands_vertical(viz, x_of, content_top, content_bottom, theme, ops, bounds, float(font["size"]) * 0.85, family)
+    _phase_bands_vertical(
+        viz, x_of, content_top, content_bottom, theme, ops, bounds, float(font["size"]) * 0.85, family
+    )
     _time_axis_bottom(x_of, ticks, content_top, content_bottom, theme, ops, bounds, float(font["size"]) * 0.85, family)
 
     dur_alpha = float(tl["duration_alpha"])
@@ -247,7 +275,9 @@ def _render_swimlane(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
             if ev.duration:
                 x_end = x_of(ev.end_time)
                 color = SEVERITY_COLORS.get(ev.severity, SEVERITY_COLORS["info"])
-                ops.edges.append(shapes.band(x, cy - 3.0, max(x_end - x, 2.0), 6.0, color, opacity=dur_alpha, radius=3.0))
+                ops.edges.append(
+                    shapes.band(x, cy - 3.0, max(x_end - x, 2.0), 6.0, color, opacity=dur_alpha, radius=3.0)
+                )
                 bounds.rect(x, cy - 3.0, max(x_end - x, 2.0), 6.0)
             group = _marker(ev, x, cy, theme, ops, bounds)
             lines = _wrap_title(ev, family, size, max_w)
@@ -272,7 +302,9 @@ def _render_gantt(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
     # Left gutter = widest event id
     gutter = max((metrics.measure_text(ev.id, family, size) for ev in events), default=0.0) + 14.0
 
-    _phase_bands_vertical(viz, x_of, content_top, content_bottom, theme, ops, bounds, float(font["size"]) * 0.85, family)
+    _phase_bands_vertical(
+        viz, x_of, content_top, content_bottom, theme, ops, bounds, float(font["size"]) * 0.85, family
+    )
     _time_axis_bottom(x_of, ticks, content_top, content_bottom, theme, ops, bounds, float(font["size"]) * 0.85, family)
 
     min_bar = (viz.time_span() or timedelta(minutes=10)) / max(len(events), 1) * 0.15
@@ -288,7 +320,9 @@ def _render_gantt(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
         ops.nodes.append(group)
         tag = ev.title + (f" [{ev.technique}]" if ev.technique else "")
         _anchored_label(group, bounds, x + 6.0, cy + size * 0.35, tag, size, family, theme["event_text"], "start")
-        _anchored_label(ops.labels, bounds, -gutter + 2.0, cy + size * 0.35, ev.id, size * 0.92, family, tl["lane_text"], "start")
+        _anchored_label(
+            ops.labels, bounds, -gutter + 2.0, cy + size * 0.35, ev.id, size * 0.92, family, tl["lane_text"], "start"
+        )
         bounds.point(-gutter, cy)
 
     _legend(viz, theme, ops, bounds, axis_length + 24.0, content_top + 4.0, float(font["size"]) * 0.85, family)
@@ -322,7 +356,13 @@ def _render_vertical(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
         bounds.rect(-260.0, y0, 520.0, h)
 
     # Center connector line
-    ops.edges.append(shapes.edge_path(f"M {shapes.fmt(center_x)} {shapes.fmt(content_top)} L {shapes.fmt(center_x)} {shapes.fmt(content_bottom)}", tl["connector"], 2.0))
+    ops.edges.append(
+        shapes.edge_path(
+            f"M {shapes.fmt(center_x)} {shapes.fmt(content_top)} L {shapes.fmt(center_x)} {shapes.fmt(content_bottom)}",
+            tl["connector"],
+            2.0,
+        )
+    )
     bounds.rect(center_x - 1, content_top, 2, content_bottom - content_top)
 
     for i, ev in enumerate(events):
@@ -331,9 +371,21 @@ def _render_vertical(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
         side = 1 if i % 2 == 0 else -1
         tag = ev.title + (f" [{ev.technique}]" if ev.technique else "")
         anchor = "start" if side > 0 else "end"
-        _anchored_label(group, bounds, center_x + side * 40.0, y + size * 0.35, tag, size, family, theme["event_text"], anchor)
+        _anchored_label(
+            group, bounds, center_x + side * 40.0, y + size * 0.35, tag, size, family, theme["event_text"], anchor
+        )
         # Small time stamp under the marker on the opposite side
-        _anchored_label(group, bounds, center_x - side * 12.0, y + size * 0.35, ev.timestamp.strftime(tick_fmt), size * 0.85, family, tl["axis_text"], "end" if side > 0 else "start")
+        _anchored_label(
+            group,
+            bounds,
+            center_x - side * 12.0,
+            y + size * 0.35,
+            ev.timestamp.strftime(tick_fmt),
+            size * 0.85,
+            family,
+            tl["axis_text"],
+            "end" if side > 0 else "start",
+        )
 
     _legend(viz, theme, ops, bounds, 270.0, content_top + 4.0, float(font["size"]) * 0.85, family)
 
@@ -352,7 +404,13 @@ def _render_compact(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
 
     _phase_bands_vertical(viz, x_of, cy - 46.0, cy + 46.0, theme, ops, bounds, float(font["size"]) * 0.85, family)
 
-    ops.edges.append(shapes.edge_path(f"M {shapes.fmt(x_of(t_min))} {shapes.fmt(cy)} L {shapes.fmt(axis_length)} {shapes.fmt(cy)}", tl["connector"], 2.0))
+    ops.edges.append(
+        shapes.edge_path(
+            f"M {shapes.fmt(x_of(t_min))} {shapes.fmt(cy)} L {shapes.fmt(axis_length)} {shapes.fmt(cy)}",
+            tl["connector"],
+            2.0,
+        )
+    )
     bounds.rect(0.0, cy - 1, axis_length, 2)
 
     last_x = [-1e18] * len(_TIERS)
@@ -396,7 +454,17 @@ def render_svg(viz) -> str:
 
     if not viz.events:
         bounds.rect(0.0, 0.0, 240.0, 60.0)
-        _anchored_label(ops.labels, bounds, 120.0, 34.0, "No events to display", float(font["size"]), font["family"], "#94a3b8", "middle")
+        _anchored_label(
+            ops.labels,
+            bounds,
+            120.0,
+            34.0,
+            "No events to display",
+            float(font["size"]),
+            font["family"],
+            "#94a3b8",
+            "middle",
+        )
     else:
         _RENDERERS[mode](viz, theme, ops, bounds)
 
@@ -407,12 +475,19 @@ def render_svg(viz) -> str:
     canvas.finalize(min_x, min_y, width, height)
 
     # Page background first, then the deferred layer ops in draw order.
-    canvas.add("groups", shapes.card(min_x, min_y, width, height, 0, fill=page["background"], stroke="none", stroke_width=0))
+    canvas.add(
+        "groups", shapes.card(min_x, min_y, width, height, 0, fill=page["background"], stroke="none", stroke_width=0)
+    )
 
     title_cfg = theme["title"]
     title = viz._incident_name() if hasattr(viz, "_incident_name") else ""
     if title_cfg["show"] and title:
-        canvas.add("labels", shapes.title_text(min_x + pad * 0.5, min_y + pad * 0.55, str(title), float(title_cfg["size"]), page["text"]))
+        canvas.add(
+            "labels",
+            shapes.title_text(
+                min_x + pad * 0.5, min_y + pad * 0.55, str(title), float(title_cfg["size"]), page["text"]
+            ),
+        )
 
     for element in ops.groups:
         canvas.add("groups", element)

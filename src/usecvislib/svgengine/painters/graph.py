@@ -128,7 +128,9 @@ def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str,
     canvas.finalize(min_x, min_y, max_x - min_x, max_y - min_y)
     canvas.add(
         "groups",
-        shapes.card(min_x, min_y, max_x - min_x, max_y - min_y, 0, fill=page["background"], stroke="none", stroke_width=0),
+        shapes.card(
+            min_x, min_y, max_x - min_x, max_y - min_y, 0, fill=page["background"], stroke="none", stroke_width=0
+        ),
     )
 
     _paint_clusters(scene, canvas, theme)
@@ -177,7 +179,9 @@ def _paint_clusters(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any]) -> N
         if grp.label:
             # Label sits in the band Graphviz reserved at the cluster's top.
             group.append(
-                shapes.anchored_text(grp.x + radius, grp.y + label_size + 2, grp.label, label_size, text_color, bold=True)
+                shapes.anchored_text(
+                    grp.x + radius, grp.y + label_size + 2, grp.label, label_size, text_color, bold=True
+                )
             )
         canvas.add("groups", group)
 
