@@ -252,6 +252,30 @@ class TestDagRoutingAndLayout:
         plain_rails = {g.get("data-from") for g in root.iter(f"{SVG_NS}g") if g.get("class") == "usv-rail"}
         assert plain_rails.isdisjoint({"Copy to USB", "Email to Personal", "Cloud Upload", "Screenshot/Photo"})
 
+    def test_crossings_get_junction_dots_or_hops(self, tmp_path):
+        """Lines passing through a rail are disambiguated: dot if joined, gap if crossed."""
+        root = ET.fromstring(_render(self.INSIDER, tmp_path))
+        centers = self._node_centers(root)
+
+        def groups(cls):
+            return [g for g in root.iter(f"{SVG_NS}g") if g.get("class") == cls]
+
+        dot_xs = sorted(float(g.find(f"{SVG_NS}circle").get("cx")) for g in groups("usv-junction"))
+        # Leaves feeding BOTH Sell Data and Competitor Advantage pass through the
+        # upper rail on their way to the lower one (Copy to USB joins at a rail end).
+        expected_dots = sorted(centers[n] for n in ("Email to Personal", "Cloud Upload", "Screenshot/Photo"))
+        assert dot_xs == pytest.approx(expected_dots, abs=0.05)
+
+        hop_xs = sorted(float(g.findall(f"{SVG_NS}path")[1].get("d").split()[1]) for g in groups("usv-hop"))
+        # Modify Records only feeds Business Disruption and crosses the Sell Data
+        # rail; the Sell Data stem crosses the Competitor Advantage rail.
+        expected_hops = sorted([centers["Modify Records"], centers["Sell Data"]])
+        assert hop_xs == pytest.approx(expected_hops, abs=0.05)
+
+    def test_pure_tree_has_no_crossing_markers(self, tmp_path):
+        content = _render(self.RANSOMWARE, tmp_path)
+        assert "usv-junction" not in content and "usv-hop" not in content
+
     def test_multi_parent_sinks_sit_at_parent_barycenter(self, tmp_path):
         from usecvislib import utils
 

@@ -281,6 +281,10 @@ def _paint_edges(
     - Cross-links: lateral/upward edges are drawn as curves so derived
       connections read differently from the structural plumbing; per-edge
       color/dash overrides keep individual paths.
+    - Junctions and hops: staggered rails get crossed by trunks and stems.
+      A line passing through a rail it connects to gets a junction dot; one
+      merely crossing a rail gets a gap cut into the rail (schematic
+      convention), so every path stays traceable end to end.
     """
     width = float(edge_cfg["width"])
     default_color = edge_cfg["color"]
@@ -504,6 +508,11 @@ def _paint_edges(
             requirements[row_key] = max(requirements.get(row_key, 0.0), need)
         return requirements
 
+    # Rails and the vertical segments meeting them, for junctions/hops.
+    # rail: (lo, hi, bus, connected crosses); vertical: (cross, m1, m2, color)
+    rails: list[tuple[float, float, float, set]] = []
+    verticals: list[tuple[float, float, float, str]] = []
+
     # ---- Pass 5: draw fan-out plumbing and cross-links
     for record in groups:
         src = record["src"]
@@ -577,6 +586,8 @@ def _paint_edges(
         if (abs(lo - src_cross) < 0.01 or abs(hi - src_cross) < 0.01) and round(src_cross, 2) not in drop_ends:
             trunk_end = bus - r  # meets the upward-turning rail corner
 
+        rails.append((lo, hi, bus, {round(c, 2) for c in drop_ends | {src_cross}}))
+        verticals.append((src_cross, src_end, trunk_end, default_color))
         rail_group = shapes.group(["usv-rail"], {"from": plumbed[0][0].src})
         rail_group.append(shapes.edge_path(rail_path(lo, hi, bus, radii[0], radii[1]), default_color, width))
         rail_group.append(shapes.edge_path(line(src_cross, src_end, src_cross, trunk_end), default_color, width))
@@ -590,6 +601,7 @@ def _paint_edges(
             elif abs(cross - hi) < 0.01:
                 end_r = radii[1]
             start = bus + r if end_r > 0 else bus
+            verticals.append((cross, start, visual_top(dst), default_color))
             draw_edge(edge, line(cross, start, cross, visual_top(dst)), default_color)
             add_label(edge, cross, (bus + visual_top(dst)) / 2)
 
@@ -612,11 +624,13 @@ def _paint_edges(
             else:
                 radii.append(-r)
 
+        rails.append((lo, hi, bus, member_crosses | {round(stem, 2)}))
         rail_group = shapes.group(["usv-rail", "usv-rail--merge"], {"to": sink.id})
         rail_group.append(shapes.edge_path(rail_path(lo, hi, bus, radii[0], radii[1]), default_color, width))
         stem_start = bus
         if not stem_on_member and (abs(stem - lo) < 0.01 or abs(stem - hi) < 0.01):
             stem_start = bus + r  # continue the down-turning end curve
+        verticals.append((stem, stem_start, visual_top(sink), default_color))
         rail_group.append(
             shapes.edge_path(
                 line(stem, stem_start, stem, visual_top(sink)),
@@ -635,8 +649,65 @@ def _paint_edges(
             at_end = abs(member_cross - lo) < 0.01 or abs(member_cross - hi) < 0.01
             if at_end and abs(member_cross - stem) > 0.01:
                 trunk_end = bus - r  # meets the upward-turning rail corner
+            verticals.append((member_cross, start_of(member), trunk_end, default_color))
             draw_edge(edge, line(member_cross, start_of(member), member_cross, trunk_end), default_color, arrow=False)
             add_label(edge, member_cross, (start_of(member) + bus) / 2)
+
+    # ---- Pass 7: junction dots and crossing hops
+    _paint_crossings(canvas, rails, verticals, width, corner, horizontal, page_bg)
+
+
+def _paint_crossings(
+    canvas: SvgCanvas,
+    rails: list[tuple[float, float, float, set]],
+    verticals: list[tuple[float, float, float, str]],
+    width: float,
+    corner: float,
+    horizontal: bool,
+    page_bg: str,
+) -> None:
+    """Disambiguate verticals passing THROUGH a rail's interior.
+
+    T-junctions (a line ending on a rail) and the rounded rail ends read
+    unambiguously; a line continuing through a rail does not - it looks the
+    same whether it joins the rail or just crosses it. Joined: junction dot.
+    Crossed: the rail is cut with a page-colored gap and the vertical is
+    redrawn across it, so it visibly bridges over.
+    """
+    eps = 0.5
+    half_gap = 4.0 + width
+    dots: dict[tuple[float, float], str] = {}
+    hops: dict[tuple[float, float], str] = {}
+    for lo, hi, bus, connected in rails:
+        for cross, m1, m2, color in verticals:
+            m1, m2 = min(m1, m2), max(m1, m2)
+            if not (lo + corner < cross < hi - corner and m1 < bus - eps and bus + eps < m2):
+                continue
+            key = (round(cross, 2), round(bus, 2))
+            if key[0] in connected:
+                dots.setdefault(key, color)
+            else:
+                hops.setdefault(key, color)
+
+    def pt(c: float, m: float) -> tuple[float, float]:
+        return (m, c) if horizontal else (c, m)
+
+    def seg(c1: float, m1: float, c2: float, m2: float) -> str:
+        (x1, y1), (x2, y2) = pt(c1, m1), pt(c2, m2)
+        return f"M {shapes.fmt(x1)} {shapes.fmt(y1)} L {shapes.fmt(x2)} {shapes.fmt(y2)}"
+
+    if page_bg:
+        for (cross, bus), color in sorted(hops.items()):
+            hop = shapes.group(["usv-hop"])
+            hop.append(shapes.edge_path(seg(cross - half_gap, bus, cross + half_gap, bus), page_bg, width + 2.0))
+            reach = width + 2.0
+            hop.append(shapes.edge_path(seg(cross, bus - reach, cross, bus + reach), color, width))
+            canvas.add("edges", hop)
+    for (cross, bus), color in sorted(dots.items()):
+        x, y = pt(cross, bus)
+        junction = shapes.group(["usv-junction"])
+        junction.append(shapes.dot(x, y, width * 1.75, color))
+        canvas.add("edges", junction)
 
 
 _MIN_ROW_GAP = 36.0  # bands with no rail tracks: just a trunk + arrowhead
