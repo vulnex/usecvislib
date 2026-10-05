@@ -384,10 +384,18 @@ const loadingShapes = ref(false)
 const availableStyles = ref([
   { value: 'cd_default', label: 'Default' },
   { value: 'cd_dark', label: 'Dark Mode' },
+  { value: 'cd_light', label: 'Light' },
+  { value: 'cd_colorful', label: 'Colorful' },
   { value: 'cd_blueprint', label: 'Blueprint' },
-  { value: 'cd_minimal', label: 'Minimal' },
+  { value: 'cd_sketch', label: 'Sketch' },
+  { value: 'cd_corporate', label: 'Corporate' },
   { value: 'cd_neon', label: 'Neon' },
-  { value: 'cd_corporate', label: 'Corporate' }
+  { value: 'cd_pastel', label: 'Pastel' },
+  { value: 'cd_minimal', label: 'Minimal' },
+  { value: 'cd_monochrome', label: 'Monochrome' },
+  { value: 'cd_security', label: 'Security' },
+  { value: 'cd_nature', label: 'Nature' },
+  { value: 'cd_ocean', label: 'Ocean' }
 ])
 
 // Computed

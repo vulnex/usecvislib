@@ -1258,10 +1258,18 @@ class CustomDiagramStyle(str, Enum):
 
     DEFAULT = "cd_default"
     DARK = "cd_dark"
+    LIGHT = "cd_light"
+    COLORFUL = "cd_colorful"
     BLUEPRINT = "cd_blueprint"
+    SKETCH = "cd_sketch"
     CORPORATE = "cd_corporate"
-    MINIMAL = "cd_minimal"
     NEON = "cd_neon"
+    PASTEL = "cd_pastel"
+    MINIMAL = "cd_minimal"
+    MONOCHROME = "cd_monochrome"
+    SECURITY = "cd_security"
+    NATURE = "cd_nature"
+    OCEAN = "cd_ocean"
 
 
 class CustomDiagramLayout(str, Enum):

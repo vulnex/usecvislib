@@ -122,6 +122,35 @@ class TestAttackTreesRender:
             finally:
                 os.unlink(f.name)
 
+    def test_nodes_labelled_with_names_not_ids(self):
+        """Nodes without CVSS used to show their sanitized DOT id (Data_Theft)."""
+        tree = '''
+[tree]
+name = "Labels"
+root = "Steal Data"
+
+[nodes]
+"Steal Data" = {}
+"Phish User" = {}
+"Exploit Bug" = {cvss = 7.5}
+
+[edges]
+"Steal Data" = [{to = "Phish User"}, {to = "Exploit Bug"}]
+'''
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.tml', delete=False) as f:
+            f.write(tree)
+            f.flush()
+            try:
+                at = AttackTrees(f.name, "output", validate_paths=False)
+                at.load()
+                at.Render()
+                source = at.dot.source
+                assert 'label="Steal Data"' in source
+                assert 'label="Phish User"' in source
+                assert "Exploit Bug" in source and "CVSS: 7.5" in source
+            finally:
+                os.unlink(f.name)
+
     def test_render_without_load(self):
         """Test rendering without loading data first."""
         at = AttackTrees("/nonexistent/input.tml", "output", validate_paths=False)

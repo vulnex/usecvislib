@@ -207,11 +207,21 @@ class DependencyGraph(VisualizationBase):
         else:
             self._dependencies = []
 
+        # A cycle is a plain module-id list, or a table carrying it under
+        # "cycle" (plus metadata such as severity), as the example template uses.
         circ_raw = self.inputdata.get("circular", [])
+        self._circular = []
         if isinstance(circ_raw, list):
-            self._circular = [c for c in circ_raw if isinstance(c, list)]
-        else:
-            self._circular = []
+            for c in circ_raw:
+                if isinstance(c, dict):
+                    c = c.get("cycle")
+                if isinstance(c, list):
+                    self._circular.append(c)
+
+    @staticmethod
+    def _is_external(mod_data: dict[str, Any]) -> bool:
+        """True for ``type = "external"`` or an explicit ``external = true``."""
+        return mod_data.get("type") == "external" or bool(mod_data.get("external"))
 
     def _build_circular_edges(self) -> None:
         """Build set of circular dependency edge pairs."""
@@ -317,11 +327,10 @@ class DependencyGraph(VisualizationBase):
     ) -> None:
         """Add a module node to the graph."""
         mod_name = mod_data.get("name", mod_id)
-        mod_type = mod_data.get("type", "internal")
         sloc = mod_data.get("sloc", 0)
         group = mod_data.get("group", "")
 
-        if mod_type == "external":
+        if self._is_external(mod_data):
             node_attrs = {**external_style}
             version = mod_data.get("version", "")
             if version:
@@ -332,7 +341,12 @@ class DependencyGraph(VisualizationBase):
             node_attrs = {**module_style}
             # Apply group color
             group_color = self.GROUP_COLORS.get(group, self.DEFAULT_INTERNAL_COLOR)
-            node_attrs.update(group_color)
+            if "filled" in str(node_attrs.get("style", "")):
+                node_attrs.update(group_color)
+            else:
+                # Outline presets (dg_minimal) have no fill for white group text
+                # to sit on: show the group as the border, keep the preset text.
+                node_attrs["color"] = group_color["fillcolor"]
 
             # SLOC label
             if sloc and sloc > 0:
@@ -403,8 +417,8 @@ class DependencyGraph(VisualizationBase):
     def _get_stats_impl(self) -> dict[str, Any]:
         title = self.inputdata.get("title", "Unknown")
 
-        internal_count = sum(1 for m in self._modules.values() if m.get("type", "internal") == "internal")
-        external_count = sum(1 for m in self._modules.values() if m.get("type", "internal") == "external")
+        external_count = sum(1 for m in self._modules.values() if self._is_external(m))
+        internal_count = len(self._modules) - external_count
 
         groups = set()
         for m in self._modules.values():

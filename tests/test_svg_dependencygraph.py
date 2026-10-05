@@ -191,6 +191,35 @@ class TestSemantics:
         assert _render(FIXTURE, tmp_path, name="one") == _render(FIXTURE, tmp_path, name="two")
 
 
+class TestGraphvizPath:
+    """Graphviz-path semantics (DOT source only, so no dot binary needed)."""
+
+    @staticmethod
+    def _dot(inputfile: str, styleid: str = "") -> str:
+        dg = DependencyGraph(inputfile, "unused", styleid=styleid)
+        dg.render()
+        return dg.graph.source
+
+    def test_template_dict_form_cycle_parsed(self):
+        # The template writes {cycle = [...], severity = ...}; it used to be
+        # dropped silently, so no circular edge was ever highlighted.
+        dg = _loaded(FIXTURE)
+        assert dg._circular == [["utils", "settings"]]
+        assert "circular" in self._dot(FIXTURE)
+
+    def test_external_boolean_honoured(self):
+        dg = _loaded(FIXTURE)
+        assert dg.get_stats()["external_count"] == sum(1 for m in dg._modules.values() if m.get("external"))
+        line = next(ln for ln in self._dot(FIXTURE).splitlines() if ln.strip().startswith("graphviz "))
+        assert "dashed" in line  # external_module preset style, not a group-colored internal card
+
+    def test_outline_preset_keeps_readable_text(self):
+        # dg_minimal nodes are unfilled: forcing the white group text made
+        # every label white-on-white.
+        source = self._dot(FIXTURE, "dg_minimal")
+        assert "fontcolor=white" not in source
+
+
 class TestEngineGuards:
     """Engine/style guards do not render, so they run without the dot binary."""
 

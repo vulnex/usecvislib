@@ -567,9 +567,27 @@ class GraphvizJsonLayout:
             if node.id not in member_of:
                 lines.append(self._node_line(node))
         for edge in scene.edges:
-            lines.append(f'  "{_dot_escape(edge.src)}" -> "{_dot_escape(edge.dst)}";')
+            lines.append(f'  "{_dot_escape(edge.src)}" -> "{_dot_escape(edge.dst)}"{self._edge_attrs(edge)};')
         lines.append("}")
         return "\n".join(lines)
+
+    @staticmethod
+    def _edge_attrs(edge) -> str:
+        """Reserve the edge label's painted size so Graphviz routes around it.
+
+        The label is a fixed-size empty HTML table cell rather than text, so
+        the reserved box is exactly our own text-metric size and independent
+        of whichever fonts the Graphviz host has installed. The chosen label
+        center comes back as the edge's ``lp``.
+        """
+        if not edge.label or edge.label_width <= 0 or edge.label_height <= 0:
+            return ""
+        w = max(1, round(edge.label_width))
+        h = max(1, round(edge.label_height))
+        return (
+            ' [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="0" CELLSPACING="0">'
+            f'<TR><TD WIDTH="{w}" HEIGHT="{h}" FIXEDSIZE="TRUE"></TD></TR></TABLE>>]'
+        )
 
     def _node_line(self, node) -> str:
         """DOT declaration for one node, sized in inches (px / 72)."""
@@ -639,6 +657,10 @@ class GraphvizJsonLayout:
             if idx >= len(bucket):
                 continue
             bucket[idx].points = self._parse_spline(gv_edge.get("pos", ""), height)
+            lp = gv_edge.get("lp")
+            if lp:
+                x_str, y_str = lp.split(",")
+                bucket[idx].label_pos = (float(x_str), height - float(y_str))
             used[(tail, head)] = idx + 1
 
     @staticmethod

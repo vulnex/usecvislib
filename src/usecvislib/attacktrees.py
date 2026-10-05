@@ -282,6 +282,8 @@ class AttackTrees(VisualizationBase):
         root_node_attributes = self._strip_style_attrs(root_node_attributes)
         # Merge with defaults first (style values take precedence when style selected)
         root_node_kwargs = utils.merge_dicts(root_defaults, root_node_attributes)
+        # Label with the node's name, not the sanitized DOT id (Data_Theft)
+        root_node_kwargs.setdefault("label", root_node)
         # Process image AFTER merge so icon settings take priority
         utils.process_node_image(root_node_kwargs, root_node, self.logger, preserve_shape=user_set_shape)
         root_node_kwargs = utils.stringify_dict(root_node_kwargs)
@@ -322,6 +324,8 @@ class AttackTrees(VisualizationBase):
             # Strip style attributes when a non-default style is selected
             # This allows the selected style to override template colors
             node_attrs = self._strip_style_attrs(node_attrs)
+            # Label with the node's name, not the sanitized DOT id (Data_Theft)
+            node_attrs.setdefault("label", node)
 
             # Apply CVSS-based styling if score is present and CVSS display is enabled
             # Skip fillcolor for nodes with images (they use shape=none)

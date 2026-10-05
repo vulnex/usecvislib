@@ -54,10 +54,32 @@ def _border_point(node, toward_x: float, toward_y: float) -> tuple[float, float]
 
 
 def _edge_anchor(points: list[tuple[float, float]]) -> tuple[float, float]:
-    """A label anchor near the middle of an edge path."""
+    """A label anchor on the middle of an edge path.
+
+    Fallback for edges the oracle returned no label position for. The points
+    are a cubic B-spline (start + 3 per segment, head tip last), so the middle
+    segment is evaluated at t=0.5 — a bare control point lies off the curve.
+    """
     if not points:
         return 0.0, 0.0
-    return points[len(points) // 2]
+    ctrl = points[:-1] if len(points) % 3 == 2 else points
+    segments = (len(ctrl) - 1) // 3
+    if segments < 1:
+        return points[len(points) // 2]
+    i = (segments // 2) * 3
+    (x0, y0), (x1, y1), (x2, y2), (x3, y3) = ctrl[i : i + 4]
+    return (x0 + 3 * x1 + 3 * x2 + x3) / 8, (y0 + 3 * y1 + 3 * y2 + y3) / 8
+
+
+def _reserve_label_sizes(scene: Scene, theme: dict[str, Any]) -> None:
+    """Size each edge label (as painted by ``shapes.edge_label``) for the oracle."""
+    family = theme["font"]["family"]
+    size = float(theme["edge"].get("label_size", 10))
+    for edge in scene.edges:
+        if edge.label:
+            text_w = metrics.measure_text(edge.label, family, size, bold=True) + 0.3 * len(edge.label)
+            edge.label_width = text_w + size * 0.8
+            edge.label_height = size * 1.5
 
 
 def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str, *, rankdir: str = "LR") -> str:
@@ -80,6 +102,7 @@ def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str,
     # _render_impl, so this guard would otherwise be bypassed).
     utils.check_graph_complexity(len(scene.nodes), len(scene.edges))
 
+    _reserve_label_sizes(scene, theme)
     ag = theme.get("attackgraph", {})
     GraphvizJsonLayout(
         rankdir=rankdir,
@@ -121,6 +144,13 @@ def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str,
             ys_lo.append(grp.y)
             xs_hi.append(grp.x + grp.width)
             ys_hi.append(grp.y + grp.height)
+    for edge in scene.edges:
+        if edge.label and edge.label_pos:
+            lx, ly = edge.label_pos
+            xs_lo.append(lx - edge.label_width / 2)
+            xs_hi.append(lx + edge.label_width / 2)
+            ys_lo.append(ly - edge.label_height / 2)
+            ys_hi.append(ly + edge.label_height / 2)
     min_x = min(xs_lo) - pad
     min_y = min(ys_lo) - pad
     max_x = max(xs_hi) + pad
@@ -210,7 +240,7 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], edge_cf
             d = f"M {shapes.fmt(x1)} {shapes.fmt(y1)} L {shapes.fmt(x2)} {shapes.fmt(y2)}"
             anchor = ((x1 + x2) / 2, (y1 + y2) / 2)
         else:
-            anchor = _edge_anchor(edge.points)
+            anchor = edge.label_pos or _edge_anchor(edge.points)
 
         classes = ["usv-edge", f"usv-edge--{edge.kind}"]
         group = shapes.group(classes, {"from": edge.src, "to": edge.dst})
@@ -218,7 +248,9 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], edge_cf
         canvas.add("edges", group)
 
         if edge.label:
-            canvas.add("edges", shapes.edge_label(anchor[0], anchor[1], edge.label, label_size, label_color, page_bg))
+            # Labels sit in the top layer: the oracle reserved room for them,
+            # so painting above nodes/cluster titles never hides them.
+            canvas.add("labels", shapes.edge_label(anchor[0], anchor[1], edge.label, label_size, label_color, page_bg))
 
 
 def _paint_nodes(

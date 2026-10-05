@@ -97,10 +97,8 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
         if not isinstance(mod, dict):
             continue
         mod_name = mod.get("name", mod_id)
-        # Honor both the `type = "external"` string (Graphviz-path convention)
-        # and an explicit `external = true` boolean (used by the example
-        # template); either marks the module as an external dependency.
-        is_external = mod.get("type") == "external" or bool(mod.get("external"))
+        # Same rule as the Graphviz path: `type = "external"` or `external = true`.
+        is_external = viz._is_external(mod)
         group = mod.get("group", "") or ""
         sloc = int(mod.get("sloc", 0) or 0)
         lines = _wrap(mod_name, font, size, max_w)

@@ -718,14 +718,7 @@ async def get_custom_diagram_styles(request: Request):
     return {
         "styles": [s.value for s in CustomDiagramStyle],
         "default": CustomDiagramStyle.DEFAULT.value,
-        "descriptions": {
-            CustomDiagramStyle.DEFAULT.value: "Default clean style with blue tones",
-            CustomDiagramStyle.DARK.value: "Dark mode with light text on dark backgrounds",
-            CustomDiagramStyle.BLUEPRINT.value: "Technical blueprint style with grid background",
-            CustomDiagramStyle.MINIMAL.value: "Minimal black and white style",
-            CustomDiagramStyle.NEON.value: "Vibrant neon style with glowing effects",
-            CustomDiagramStyle.CORPORATE.value: "Professional corporate styling",
-        },
+        "descriptions": {s.value: CustomDiagrams.STYLES.get(s.value, "") for s in CustomDiagramStyle},
     }
 
 

@@ -74,6 +74,9 @@ class SceneEdge:
     dashed: bool = False
     label: Optional[str] = None
     points: list[tuple[float, float]] = field(default_factory=list)  # spline control points (layout-set)
+    label_width: float = 0.0  # px reserved for the label by the layout oracle (painter-set)
+    label_height: float = 0.0
+    label_pos: Optional[tuple[float, float]] = None  # label center chosen by the oracle (layout-set)
 
 
 @dataclass

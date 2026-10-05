@@ -548,3 +548,64 @@ class TestFileLoading:
         cd = CustomDiagrams()
         with pytest.raises(Exception):  # FileError
             cd.load("/nonexistent/path/file.json")
+
+
+class TestStylePresets:
+    """Every preset is registered, reachable from the API, and readable."""
+
+    @staticmethod
+    def _config_presets():
+        import tomllib
+
+        from usecvislib import customdiagrams
+
+        path = Path(customdiagrams.__file__).parent / "models" / CustomDiagrams.STYLE_FILE
+        with open(path, "rb") as f:
+            return tomllib.load(f)
+
+    @staticmethod
+    def _luminance(color):
+        named = {"white": "#ffffff", "black": "#000000"}
+        hexcode = named.get(color, color).lstrip("#")
+        channels = [int(hexcode[i : i + 2], 16) / 255 for i in (0, 2, 4)]
+        lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+        return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+    def test_config_and_registry_agree(self):
+        # cd_security/nature/ocean existed in the config but not in STYLES,
+        # so they were never loaded and rendered unstyled.
+        assert set(self._config_presets()) == set(CustomDiagrams.STYLES)
+
+    def test_api_enum_matches_registry(self):
+        from api.schemas import CustomDiagramStyle
+
+        assert {s.value for s in CustomDiagramStyle} == set(CustomDiagrams.STYLES)
+
+    def test_preset_node_text_contrasts_with_fill(self):
+        for style_id, preset in self._config_presets().items():
+            node = preset.get("node", {})
+            if style_id == CustomDiagrams.DEFAULT_STYLE_ID or "fillcolor" not in node:
+                continue
+            a, b = self._luminance(node["fillcolor"]), self._luminance(node["fontcolor"])
+            ratio = (max(a, b) + 0.05) / (min(a, b) + 0.05)
+            assert ratio >= 4.5, f"{style_id}: node text contrast {ratio:.2f}"
+
+    FLOWCHART = Path(__file__).parent.parent / "templates" / "custom-diagrams" / "general" / "flowchart.toml"
+
+    def _dot_with_style(self, style_id):
+        cd = CustomDiagrams()
+        cd.load(self.FLOWCHART)
+        cd.settings.style = style_id
+        return cd.get_dot_source()
+
+    def test_presets_without_fill_keep_schema_fill(self):
+        # cd_colorful sets no fillcolor: the template's per-type colors survive
+        # instead of collapsing to Graphviz default grey.
+        assert "#27AE60" in self._dot_with_style("cd_colorful")
+
+    def test_presets_with_fill_override_schema_fill(self):
+        # cd_blueprint used to strip the schema fill and fall back to its white
+        # border color, giving white text on white nodes.
+        source = self._dot_with_style("cd_blueprint")
+        assert "#27AE60" not in source
+        assert "#0d2a4a" in source

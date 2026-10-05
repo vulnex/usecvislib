@@ -19,7 +19,7 @@ cluster = {color = "#cccccc", style = "rounded", fontname = "Arial", fontsize = 
 # =============================================================================
 [cd_dark]
 graph = {bgcolor = "#1a1a2e", fontcolor = "#ffffff", fontname = "Arial", fontsize = "14"}
-node = {fontcolor = "#ffffff", fontname = "Arial", fontsize = "11", style = "filled", color = "#444444"}
+node = {fontcolor = "#ffffff", fontname = "Arial", fontsize = "11", style = "filled", fillcolor = "#444444", color = "#444444"}
 edge = {color = "#666666", fontcolor = "#cccccc", fontname = "Arial", fontsize = "10", penwidth = "1.2"}
 cluster = {color = "#444444", bgcolor = "#2a2a4e", style = "rounded", fontcolor = "#ffffff"}
 
@@ -28,7 +28,7 @@ cluster = {color = "#444444", bgcolor = "#2a2a4e", style = "rounded", fontcolor 
 # =============================================================================
 [cd_light]
 graph = {bgcolor = "#fafafa", fontcolor = "#333333", fontname = "Helvetica", fontsize = "14"}
-node = {fontcolor = "#333333", fontname = "Helvetica", fontsize = "11", style = "filled", color = "#e0e0e0"}
+node = {fontcolor = "#333333", fontname = "Helvetica", fontsize = "11", style = "filled", fillcolor = "#e0e0e0", color = "#e0e0e0"}
 edge = {color = "#999999", fontname = "Helvetica", fontsize = "10", penwidth = "1"}
 cluster = {color = "#e0e0e0", bgcolor = "#ffffff", style = "rounded,dashed"}
 
@@ -37,7 +37,7 @@ cluster = {color = "#e0e0e0", bgcolor = "#ffffff", style = "rounded,dashed"}
 # =============================================================================
 [cd_colorful]
 graph = {bgcolor = "white", fontcolor = "#2c3e50", fontname = "Arial", fontsize = "14"}
-node = {fontcolor = "white", fontname = "Arial Bold", fontsize = "11", style = "filled,rounded"}
+node = {fontname = "Arial Bold", fontsize = "11", style = "filled,rounded"}
 edge = {color = "#7f8c8d", fontname = "Arial", fontsize = "10", penwidth = "1.5"}
 cluster = {color = "#3498db", style = "bold,rounded", fontname = "Arial Bold"}
 
@@ -46,7 +46,7 @@ cluster = {color = "#3498db", style = "bold,rounded", fontname = "Arial Bold"}
 # =============================================================================
 [cd_blueprint]
 graph = {bgcolor = "#1e3a5f", fontcolor = "#ffffff", fontname = "Courier New", fontsize = "14"}
-node = {fontcolor = "#ffffff", fontname = "Courier New", fontsize = "10", style = "filled", color = "#ffffff"}
+node = {fontcolor = "#ffffff", fontname = "Courier New", fontsize = "10", style = "filled", fillcolor = "#0d2a4a", color = "#ffffff"}
 edge = {color = "#4a90d9", fontcolor = "#90caf9", fontname = "Courier New", fontsize = "9", style = "dashed", penwidth = "1.2"}
 cluster = {color = "#4a90d9", bgcolor = "#2a4a6f", style = "dashed", fontcolor = "#90caf9"}
 
@@ -55,7 +55,7 @@ cluster = {color = "#4a90d9", bgcolor = "#2a4a6f", style = "dashed", fontcolor =
 # =============================================================================
 [cd_sketch]
 graph = {bgcolor = "#fffef5", fontcolor = "#333333", fontname = "Comic Sans MS", fontsize = "14"}
-node = {fontcolor = "#333333", fontname = "Comic Sans MS", fontsize = "11", style = "filled", penwidth = "2"}
+node = {fontcolor = "#333333", fontname = "Comic Sans MS", fontsize = "11", style = "filled", fillcolor = "#ffffff", color = "#333333", penwidth = "2"}
 edge = {color = "#555555", fontname = "Comic Sans MS", fontsize = "10", penwidth = "1.5", style = "bold"}
 cluster = {color = "#888888", style = "dashed", penwidth = "2", fontname = "Comic Sans MS"}
 
@@ -64,7 +64,7 @@ cluster = {color = "#888888", style = "dashed", penwidth = "2", fontname = "Comi
 # =============================================================================
 [cd_corporate]
 graph = {bgcolor = "white", fontcolor = "#1e3a5f", fontname = "Calibri", fontsize = "14"}
-node = {fontcolor = "#ffffff", fontname = "Calibri", fontsize = "11", style = "filled,rounded"}
+node = {fontcolor = "#ffffff", fontname = "Calibri", fontsize = "11", style = "filled,rounded", fillcolor = "#1e3a5f", color = "#14283f"}
 edge = {color = "#6b7b8c", fontname = "Calibri", fontsize = "10", penwidth = "1.5", arrowsize = "0.8"}
 cluster = {color = "#1e3a5f", bgcolor = "#f0f4f8", style = "rounded", fontname = "Calibri Bold"}
 
@@ -73,7 +73,7 @@ cluster = {color = "#1e3a5f", bgcolor = "#f0f4f8", style = "rounded", fontname =
 # =============================================================================
 [cd_neon]
 graph = {bgcolor = "#0a0a0a", fontcolor = "#00ff00", fontname = "Consolas", fontsize = "14"}
-node = {fontcolor = "#00ff00", fontname = "Consolas", fontsize = "11", style = "filled,bold", color = "#00ff00", penwidth = "2"}
+node = {fontcolor = "#00ff00", fontname = "Consolas", fontsize = "11", style = "filled,bold", fillcolor = "#111111", color = "#00ff00", penwidth = "2"}
 edge = {color = "#ff00ff", fontcolor = "#00ffff", fontname = "Consolas", fontsize = "10", penwidth = "2"}
 cluster = {color = "#00ffff", bgcolor = "#1a1a1a", style = "bold", fontcolor = "#ff00ff", penwidth = "2"}
 
@@ -82,9 +82,18 @@ cluster = {color = "#00ffff", bgcolor = "#1a1a1a", style = "bold", fontcolor = "
 # =============================================================================
 [cd_pastel]
 graph = {bgcolor = "#fef9f3", fontcolor = "#4a4a4a", fontname = "Georgia", fontsize = "14"}
-node = {fontcolor = "#4a4a4a", fontname = "Georgia", fontsize = "11", style = "filled,rounded"}
+node = {fontcolor = "#4a4a4a", fontname = "Georgia", fontsize = "11", style = "filled,rounded", fillcolor = "#e8dff5", color = "#c3b1e1"}
 edge = {color = "#b8b8b8", fontname = "Georgia", fontsize = "10", penwidth = "1.2"}
 cluster = {color = "#d4a5a5", bgcolor = "#fef0e6", style = "rounded", fontname = "Georgia"}
+
+# =============================================================================
+# Minimal - White cards, thin grey outlines
+# =============================================================================
+[cd_minimal]
+graph = {bgcolor = "white", fontcolor = "#333333", fontname = "Helvetica", fontsize = "14"}
+node = {fontcolor = "#333333", fontname = "Helvetica", fontsize = "11", style = "filled,rounded", fillcolor = "#ffffff", color = "#9e9e9e", penwidth = "1"}
+edge = {color = "#9e9e9e", fontcolor = "#616161", fontname = "Helvetica", fontsize = "10", penwidth = "1"}
+cluster = {color = "#e0e0e0", style = "rounded", fontcolor = "#616161", fontname = "Helvetica"}
 
 # =============================================================================
 # Monochrome - Black and white only
@@ -100,8 +109,8 @@ cluster = {color = "black", bgcolor = "white", style = "solid", fontname = "Time
 # =============================================================================
 [cd_security]
 graph = {bgcolor = "#1a1a1a", fontcolor = "#ff6b6b", fontname = "Arial", fontsize = "14"}
-node = {fontcolor = "white", fontname = "Arial Bold", fontsize = "11", style = "filled,bold"}
-edge = {color = "#ff6b6b", fontname = "Arial", fontsize = "10", penwidth = "1.5"}
+node = {fontcolor = "white", fontname = "Arial Bold", fontsize = "11", style = "filled,bold", fillcolor = "#3a1f1f", color = "#ff6b6b"}
+edge = {color = "#ff6b6b", fontcolor = "#ff9999", fontname = "Arial", fontsize = "10", penwidth = "1.5"}
 cluster = {color = "#ff6b6b", bgcolor = "#2a1a1a", style = "bold,dashed", fontcolor = "#ff9999"}
 
 # =============================================================================
@@ -109,7 +118,7 @@ cluster = {color = "#ff6b6b", bgcolor = "#2a1a1a", style = "bold,dashed", fontco
 # =============================================================================
 [cd_nature]
 graph = {bgcolor = "#f0f7f4", fontcolor = "#1b4332", fontname = "Georgia", fontsize = "14"}
-node = {fontcolor = "white", fontname = "Georgia", fontsize = "11", style = "filled,rounded"}
+node = {fontcolor = "white", fontname = "Georgia", fontsize = "11", style = "filled,rounded", fillcolor = "#2d6a4f", color = "#1b4332"}
 edge = {color = "#52b788", fontname = "Georgia", fontsize = "10", penwidth = "1.5"}
 cluster = {color = "#40916c", bgcolor = "#d8f3dc", style = "rounded", fontname = "Georgia"}
 
@@ -118,6 +127,6 @@ cluster = {color = "#40916c", bgcolor = "#d8f3dc", style = "rounded", fontname =
 # =============================================================================
 [cd_ocean]
 graph = {bgcolor = "#e8f4f8", fontcolor = "#023e8a", fontname = "Arial", fontsize = "14"}
-node = {fontcolor = "white", fontname = "Arial", fontsize = "11", style = "filled,rounded"}
+node = {fontcolor = "white", fontname = "Arial", fontsize = "11", style = "filled,rounded", fillcolor = "#0077b6", color = "#023e8a"}
 edge = {color = "#0077b6", fontname = "Arial", fontsize = "10", penwidth = "1.5"}
 cluster = {color = "#0096c7", bgcolor = "#caf0f8", style = "rounded", fontname = "Arial Bold"}

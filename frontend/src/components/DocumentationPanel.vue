@@ -472,6 +472,8 @@ type = "flow"</code></pre>
           <li><strong>cd_neon</strong> - Cyberpunk neon colors</li>
           <li><strong>cd_blueprint</strong> - Technical blueprint style</li>
           <li><strong>cd_pastel</strong> - Soft pastel colors</li>
+          <li><strong>cd_light</strong>, <strong>cd_colorful</strong>, <strong>cd_sketch</strong>, <strong>cd_minimal</strong>, <strong>cd_monochrome</strong></li>
+          <li><strong>cd_security</strong>, <strong>cd_nature</strong>, <strong>cd_ocean</strong> - Themed palettes</li>
         </ul>
 
         <h4>Shape Gallery</h4>

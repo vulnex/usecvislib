@@ -16,7 +16,7 @@
 The first general-graph painter: it consumes the same input data as the
 Graphviz path in ``attackgraphs.py`` and mirrors its structure — typed nodes
 (host / vulnerability / privilege / service / exploit) and typed edges
-(network / exploit / structural host-to-vuln). Vulnerability nodes are filled
+(network / exploit / structural host-to-vuln and host-to-service). Vulnerability nodes are filled
 by CVSS severity (reusing the module's own CVSS helpers), so the SVG output
 stays consistent with the Graphviz engine.
 
@@ -201,6 +201,11 @@ def _build_edges(scene: Scene, data: dict, ag: dict) -> None:
             host = vuln.get("host") or vuln.get("affected_host")
             if host:
                 add_edge(host, vuln_id, "structural", ag["structural_edge"], dashed=True)
+
+    # Structural host -> service links (also dotted in the Graphviz path)
+    for svc_id, svc in _items(data.get("services", {})):
+        if isinstance(svc, dict) and svc.get("host"):
+            add_edge(svc["host"], svc_id, "structural", ag["structural_edge"], dashed=True)
 
 
 def _items(section: Any):

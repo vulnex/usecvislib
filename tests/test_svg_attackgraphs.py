@@ -129,6 +129,15 @@ class TestInteractivityContract:
         kinds = {c.removeprefix("usv-edge--") for c in _classes_with_prefix(root, "usv-edge--")}
         assert {"network", "exploit", "structural"} <= kinds
 
+    @pytest.mark.parametrize("template", TEMPLATES, ids=lambda p: Path(p).name)
+    def test_services_linked_to_hosts(self, template, tmp_path):
+        # Parity with the Graphviz path: services used to float unconnected.
+        root = ET.fromstring(_render(template, tmp_path))
+        drawn = {(g.get("data-from"), g.get("data-to")) for g in _edges(root)}
+        for svc_id, svc in _loaded(template).inputdata.get("services", {}).items():
+            if isinstance(svc, dict) and svc.get("host"):
+                assert (svc["host"], svc_id) in drawn, f"service {svc_id} not linked to host {svc['host']}"
+
     def test_severity_classes_are_canonical(self, tmp_path):
         root = ET.fromstring(_render(FIXTURE, tmp_path))
         seen = {c.removeprefix("usv-sev--") for c in _classes_with_prefix(root, "usv-sev--")}
@@ -171,6 +180,37 @@ class TestSemantics:
     def test_deterministic_across_runs(self, tmp_path):
         # Same dot version + same input is byte-stable within a run.
         assert _render(FIXTURE, tmp_path, name="one") == _render(FIXTURE, tmp_path, name="two")
+
+    def test_oracle_reserves_edge_label_space(self):
+        # Short edges between wide nodes used to get no room for their label,
+        # which was then centered between the nodes and painted over by them.
+        from usecvislib.svgengine.layout import GraphvizJsonLayout
+        from usecvislib.svgengine.scene import Scene, SceneEdge, SceneNode
+
+        scene = Scene(module="t")
+        for nid in ("a", "b", "c"):
+            scene.nodes.append(SceneNode(id=nid, label=nid, width=160, height=40))
+        for src, dst in (("a", "b"), ("b", "c"), ("a", "c")):
+            scene.edges.append(
+                SceneEdge(src=src, dst=dst, label="a fairly long edge label", label_width=150, label_height=15)
+            )
+        GraphvizJsonLayout(rankdir="LR", nodesep=0.1, ranksep=0.1).solve(scene)
+
+        for edge in scene.edges:
+            assert edge.label_pos is not None
+            lx, ly = edge.label_pos
+            for node in scene.nodes:
+                overlap_x = abs(lx - node.x) < (edge.label_width + node.width) / 2
+                overlap_y = abs(ly - node.y) < (edge.label_height + node.height) / 2
+                assert not (overlap_x and overlap_y), f"label of {edge.src}->{edge.dst} overlaps node {node.id}"
+
+    def test_edge_labels_paint_above_nodes(self, tmp_path):
+        root = ET.fromstring(_render(FIXTURE, tmp_path))
+        order = [g.get("class", "") for g in root.iter(f"{SVG_NS}g")]
+        labels = [i for i, c in enumerate(order) if "usv-edge-label" in c.split()]
+        nodes = [i for i, c in enumerate(order) if "usv-node" in c.split()]
+        assert labels and nodes
+        assert min(labels) > max(nodes)
 
 
 class TestEngineGuards:

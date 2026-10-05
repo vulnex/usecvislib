@@ -183,7 +183,11 @@ class CustomDiagrams:
         "cd_corporate": "Professional corporate style",
         "cd_neon": "Neon cyberpunk style",
         "cd_pastel": "Soft pastel colors",
+        "cd_minimal": "Minimal white cards with grey outlines",
         "cd_monochrome": "Black and white",
+        "cd_security": "Dark security theme with red accents",
+        "cd_nature": "Green and earth tones",
+        "cd_ocean": "Blue water tones",
     }
 
     # Style-related attributes that should be overridden by selected style
@@ -252,25 +256,28 @@ class CustomDiagrams:
         style_id = self.settings.style if self.settings else self.DEFAULT_STYLE_ID
         return self._style_config.get(style_id, self._style_config.get(self.DEFAULT_STYLE_ID, {}))
 
-    def _strip_style_attrs(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        """Strip style-related attributes from node/edge data when a style is selected.
+    def _strip_style_attrs(self, attrs: dict[str, Any], section: str = "node") -> dict[str, Any]:
+        """Strip the schema attributes the selected style preset overrides.
 
-        When a non-default style is explicitly selected, schema-defined colors
-        and styling should be overridden by the style's values. This method
-        removes style-related attributes so the selected style takes precedence.
+        When a non-default style is explicitly selected, its ``node`` / ``edge``
+        values take precedence over schema-defined styling. Only attributes the
+        preset actually sets are removed: stripping everything left nodes with
+        no fill at all (Graphviz light grey, or the border color — e.g. white
+        text on white nodes) whenever a preset defined no ``fillcolor``.
 
         Args:
             attrs: Node or edge attributes dictionary.
+            section: Preset section the attributes compete with ("node"/"edge").
 
         Returns:
-            New dictionary with style attributes removed.
+            New dictionary with the overridden attributes removed.
         """
         style_id = self.settings.style if self.settings else self.DEFAULT_STYLE_ID
         if style_id == self.DEFAULT_STYLE_ID:
             # Default style: preserve schema colors
             return attrs
-        # Non-default style selected: strip style attrs so style takes precedence
-        return {k: v for k, v in attrs.items() if k not in self.STYLE_OVERRIDE_ATTRS}
+        overridden = set(self._get_style_config().get(section, {})) & self.STYLE_OVERRIDE_ATTRS
+        return {k: v for k, v in attrs.items() if k not in overridden}
 
     def load(self, config_path: Union[str, Path]) -> "CustomDiagrams":
         """Load diagram configuration from file.
@@ -502,7 +509,7 @@ class CustomDiagrams:
 
             # Strip style attributes when a non-default style is selected
             # This allows the selected style to override schema-defined colors
-            attrs = self._strip_style_attrs(attrs)
+            attrs = self._strip_style_attrs(attrs, section="edge")
 
             # Add label if label_field is specified
             if type_schema.label_field and type_schema.label_field in edge:
@@ -739,6 +746,9 @@ class CustomDiagrams:
         if not self._config_loaded:
             raise CustomDiagramError("No configuration loaded")
 
+        # Load the schema as BuildCustomDiagram does; without it every node
+        # falls back to an unstyled box and the DOT does not match the render.
+        self.validate(raise_on_error=False)
         graph = self._render_impl()
         return graph.source
 
