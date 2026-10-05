@@ -848,11 +848,33 @@ class MaestroThreatModel(VisualizationBase):
             for agent in agents_in_layer:
                 node_id = self._agent_node_id(agent.id, layer_key)
                 label = self._agent_label_for_layer(agent, layer_key)
-                sub.node(node_id, label, **agent_attrs)
+                sub.node(node_id, label, **self._agent_node_attrs(agent, layer_key, agent_attrs))
 
         for asset in assets_in_layer:
             label = self._asset_label(asset)
             sub.node(utils.sanitize_node_id(f"asset_{asset.id}"), label, **asset_attrs)
+
+    # Light severity tints for color_by="severity" (dark preset text stays readable)
+    _SEVERITY_TINTS = {
+        "critical": "#ffcdd2",
+        "high": "#ffe0b2",
+        "medium": "#fff9c4",
+        "low": "#dcedc8",
+        "unknown": "#eceff1",
+    }
+
+    def _agent_node_attrs(self, agent: Agent, layer_key: str, agent_attrs: dict[str, str]) -> dict[str, str]:
+        """Per-agent node attributes; ``color_by = "severity"`` tints by worst open threat.
+
+        ma_severity used one flat orange for every agent, so the preset
+        named for severity did not encode it.
+        """
+        attrs = {k: v for k, v in agent_attrs.items() if k != "color_by"}
+        if agent_attrs.get("color_by") == "severity":
+            worst = self._max_severity_for_agent_in_layer(agent.id, layer_key)
+            attrs["fillcolor"] = self._SEVERITY_TINTS.get(worst, self._SEVERITY_TINTS["unknown"])
+            attrs["color"] = SEVERITY_COLORS.get(worst, "#9e9e9e")
+        return attrs
 
     def _render_clustered_agents(
         self,
@@ -887,7 +909,7 @@ class MaestroThreatModel(VisualizationBase):
                 for agent in members:
                     node_id = self._agent_node_id(agent.id, layer_key)
                     label = self._agent_label_for_layer(agent, layer_key)
-                    cluster.node(node_id, label, **agent_attrs)
+                    cluster.node(node_id, label, **self._agent_node_attrs(agent, layer_key, agent_attrs))
 
     @staticmethod
     def _severity_badge(worst: str, count: int) -> str:
@@ -1054,6 +1076,19 @@ class MaestroThreatModel(VisualizationBase):
         "#5d4037",  # brown
     )
 
+    def _chain_labels_mode(self) -> str:
+        """``[render] chain_labels``: "first" (default, keeps dense models
+        readable), "all", or "off". Shared by the Graphviz and SVG engines."""
+        render_cfg = self.inputdata.get("render", {}) if isinstance(self.inputdata, dict) else {}
+        requested = render_cfg.get("chain_labels", "first") if isinstance(render_cfg, dict) else "first"
+        return requested if requested in ("all", "first", "off") else "first"
+
+    def _security_counts(self) -> tuple[int, int]:
+        """(preventive, detective) implemented mitigation counts for the L6 note."""
+        preventive = sum(1 for m in self.mitigations.values() if m.type == "preventive" and m.implemented)
+        detective = sum(1 for m in self.mitigations.values() if m.type == "detective" and m.implemented)
+        return preventive, detective
+
     def _chain_color(self, chain_id: str) -> str:
         """Deterministic color for a cross-layer chain, hashed from its id.
 
@@ -1136,12 +1171,7 @@ class MaestroThreatModel(VisualizationBase):
             self.warnings.append(f"Unknown graph_direction '{direction}', falling back to LR")
             direction = "LR"
 
-        # First-hop-only chain labels by default to keep dense models readable.
-        chain_labels_mode = "first"
-        if isinstance(render_cfg, dict):
-            requested = render_cfg.get("chain_labels", "first")
-            if requested in ("all", "first", "off"):
-                chain_labels_mode = requested
+        chain_labels_mode = self._chain_labels_mode()
 
         # Dark presets (ma_dark, ma_blueprint) keep their own dark cluster and
         # agent fills and carry the layer identity in the borders; light
@@ -1171,6 +1201,7 @@ class MaestroThreatModel(VisualizationBase):
         # Light presets: the per-node fill is the agent's primary-layer color
         # (links agent to layer at a glance), so text must be dark. Dark
         # presets keep the preset's own fill and light text.
+        agent_attrs.pop("color_by", None)  # layered-view option, not a Graphviz attr
         self._graph_agent_fill = agent_attrs.pop("fillcolor", "#0f3460")
         if not self._graph_dark:
             agent_attrs["fontcolor"] = "#1f2937"

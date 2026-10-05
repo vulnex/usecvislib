@@ -49,8 +49,8 @@ exploited = {color = "#111827", penwidth = "2.6"}
 [vt_minimal]
 graph = {rankdir = "TB", bgcolor = "#ffffff", fontname = "Helvetica", fontcolor = "#475569", fontsize = "16", pad = "0.4", nodesep = "0.26", ranksep = "0.5", labelloc = "t"}
 node = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", color = "#cbd5e1", fontsize = "10", penwidth = "1"}
-clean = {fillcolor = "#66bb6a", fontcolor = "#ffffff"}
-edge = {color = "#cbd5e1", penwidth = "1.3", arrowhead = "vee", arrowsize = "0.6"}
+clean = {fillcolor = "#2e7d32", fontcolor = "#ffffff"}
+edge = {color = "#94a3b8", penwidth = "1.3", arrowhead = "vee", arrowsize = "0.6"}
 direct = {penwidth = "1.8", color = "#94a3b8"}
 exploited = {color = "#334155", penwidth = "2.2"}
 

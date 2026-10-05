@@ -140,7 +140,8 @@ def _layout(viz, scene, phases, theme):
     lane_scene = Scene(module=MODULE_SLUG)
     for phase in phases:
         widest = max((by_id[t].width for t in grid.get(phase, {}).values() if t), default=0.0)
-        header_w = metrics.measure_text(phase, font["family"], header_size, bold=True) + 28.0
+        # Pill end-caps eat into the text room; rasterized bold also runs wider
+        header_w = metrics.measure_text(phase, font["family"], header_size, bold=True) * 1.06 + 40.0
         col_w = max(_MIN_COL_WIDTH, widest, header_w)
         lane_scene.nodes.append(SceneNode(id=phase, label=phase, width=col_w, height=_header_height(theme)))
     LinearLayout(gap=_PHASE_GAP, orientation="LR").solve(lane_scene)
@@ -164,6 +165,31 @@ def _layout(viz, scene, phases, theme):
                 by_id[tech_id].y = row_centers[row]
         boxes[lane.id] = (lane.x, lane.width, top)
     return boxes
+
+
+_LEGEND_ITEMS = (
+    ("covered", "Detected + Mitigated"),
+    ("partial", "Partial coverage"),
+    ("gap", "No coverage"),
+)
+
+
+def _paint_legend(canvas: SvgCanvas, theme: dict[str, Any], x: float, y: float) -> None:
+    """Coverage legend row: card colors plus what the D/M chips mean.
+
+    The chips ("DM", "D·", "··") had no key, unlike the Graphviz path's
+    spelled-out coverage text.
+    """
+    font = theme["font"]
+    size = float(font["size"]) * 0.8
+    text_color = theme["page"]["text"]
+    g = shapes.group(["usv-legend"])
+    for cover, label in _LEGEND_ITEMS:
+        g.append(shapes.card(x, y - size * 0.8, size * 1.6, size, 3.0, _COVERAGE_FILLS[cover], "none", 0.0))
+        g.append(shapes.anchored_text(x + size * 2.0, y, label, size, text_color, anchor="start"))
+        x += size * 2.0 + metrics.measure_text(label, font["family"], size) + 22.0
+    g.append(shapes.anchored_text(x, y, "Chips: D = detected, M = mitigated, · = no", size, text_color, anchor="start"))
+    canvas.add("labels", g)
 
 
 def render_svg(viz) -> str:
@@ -203,7 +229,9 @@ def render_svg(viz) -> str:
     pad = float(page["padding"])
     min_x = min(cx - w / 2 for cx, w, _ in boxes.values()) - pad
     max_x = max(cx + w / 2 for cx, w, _ in boxes.values()) + pad
-    max_y = max((b for _, _, b in boxes.values()), default=header_h) + pad
+    content_bottom = max((b for _, _, b in boxes.values()), default=header_h)
+    legend_y = content_bottom + 26.0
+    max_y = legend_y + float(font["size"]) + pad
     min_y = -pad
     canvas.finalize(min_x, min_y, max_x - min_x, max_y - min_y)
     canvas.add(
@@ -254,11 +282,16 @@ def render_svg(viz) -> str:
         for src_id, dst_id in pairwise(chain):
             a, b = by_id[src_id], by_id[dst_id]
             if abs(a.x - b.x) < 0.01:
-                # Same-phase step: a vertical arrow between the stacked cards.
-                down = b.y > a.y
-                y1 = a.y + a.height / 2 if down else a.y - a.height / 2
-                y2 = b.y - b.height / 2 if down else b.y + b.height / 2
-                d = f"M {shapes.fmt(a.x)} {shapes.fmt(y1)} L {shapes.fmt(b.x)} {shapes.fmt(y2)}"
+                # Same-phase step: a bracket along the cards' left edges. The
+                # gap between stacked cards left a vertical arrow only a few
+                # px long (under the coverage chip).
+                # Starts low on the card edge: cross-column flows arrive at mid-height.
+                lx = min(a.x - a.width / 2, b.x - b.width / 2)
+                ay = a.y + a.height * 0.3 if b.y > a.y else a.y - a.height * 0.3
+                a_left, b_left = a.x - a.width / 2, b.x - b.width / 2
+                d = shapes.rounded_polyline_d(
+                    [(a_left, ay), (lx - 14.0, ay), (lx - 14.0, b.y), (b_left, b.y)], corner=6.0
+                )
             else:
                 forward = b.x > a.x
                 x1 = a.x + a.width / 2 if forward else a.x - a.width / 2
@@ -274,6 +307,8 @@ def render_svg(viz) -> str:
                 )
             )
             canvas.add("edges", g)
+
+    _paint_legend(canvas, theme, min_x + pad, legend_y)
 
     # Technique cards + coverage chips
     border = theme["node"]["border"]

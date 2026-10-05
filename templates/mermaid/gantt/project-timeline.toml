@@ -12,6 +12,8 @@ source = """
 gantt
     title Software Development Project
     dateFormat  YYYY-MM-DD
+    axisFormat  %b %d
+    tickInterval 2week
     excludes    weekends
 
     section Planning

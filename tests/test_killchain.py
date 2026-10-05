@@ -181,12 +181,21 @@ class TestSvgEngine:
                 between = ox1 < max(dx1, sx1) and ox2 > min(sx2, dx2)
                 assert not (between and oy1 < line_y < oy2), f"{src} -> {dst} passes behind {other}"
 
-    def test_same_phase_step_is_vertical_arrow(self, tmp_path):
+    def test_same_phase_step_is_side_bracket(self, tmp_path):
+        # A vertical arrow in the gap between stacked cards was only a few px
+        # long; the step now brackets the cards' left edges.
+        import re
+
         root = ET.fromstring(_render_svg(RANSOM, tmp_path))
         edge = next(g for g in root.iter(f"{SVG_NS}g") if g.get("data-from") == "T1490" and g.get("data-to") == "T1486")
-        parts = edge.find(f"{SVG_NS}path").get("d").split()
-        assert parts[0] == "M" and parts[3] == "L" and parts[1] == parts[4], "expected a straight vertical line"
-        assert float(parts[5]) > float(parts[2]), "T1486 sits below T1490"
+        nums = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", edge.find(f"{SVG_NS}path").get("d"))]
+        xs, ys = nums[0::2], nums[1::2]
+        assert min(xs) < xs[0], "bracket runs out to the left of the cards"
+        assert ys[-1] - ys[0] > 30, "T1486 sits well below T1490 (not a few-px stub)"
+
+    def test_coverage_legend_present(self, tmp_path):
+        content = _render_svg(APT, tmp_path)
+        assert "usv-legend" in content and "D = detected" in content
 
     def test_no_active_content(self, tmp_path):
         content = _render_svg(APT, tmp_path)

@@ -347,7 +347,7 @@ fontname = "Georgia"
 shape = "rectangle"
 style = "filled,rounded"
 fillcolor = "#ff6b6b"
-fontcolor = "white"
+fontcolor = "#3d0f0b"
 fontname = "Georgia"
 fontsize = "11"
 
@@ -600,7 +600,7 @@ fontname = "Arial"
 [tm_doc_light.process]
 shape = "rectangle"
 style = "filled,rounded"
-fillcolor = "#5b8db8"
+fillcolor = "#3f6f99"
 fontcolor = "white"
 fontname = "Arial"
 fontsize = "11"
@@ -609,7 +609,7 @@ fontsize = "11"
 shape = "cylinder"
 style = "filled"
 fillcolor = "#7fb3d3"
-fontcolor = "white"
+fontcolor = "#13293a"
 fontname = "Arial"
 fontsize = "11"
 
@@ -617,7 +617,7 @@ fontsize = "11"
 shape = "rectangle"
 style = "filled,dashed"
 fillcolor = "#b0bec5"
-fontcolor = "white"
+fontcolor = "#1f2a30"
 fontname = "Arial"
 fontsize = "11"
 
@@ -757,4 +757,4 @@ node = {fill = "#5b7896", border = "#cbd5e1", text = "#ffffff"}
 edge = {color = "#94a3b8", width = 1.3, routing = "spline", label_size = 10, label_color = "#64748b"}
 effects = {shadow = false, shadow_blur = 0, hover_glow = true}
 cluster = {fill = "#fdf0f0", border = "#e79a9a", text = "#9a5b5b", label_size = 12, radius = 4}
-dfd = {external = "#6b8296", process = "#5aa579", datastore = "#5b7896", border = "#cbd5e1", text = "#ffffff", dataflow = "#cbd5e1", boundary_fill = "#fdf0f0", boundary_border = "#e79a9a", boundary_text = "#9a5b5b", rankdir = "LR", nodesep = 0.45, ranksep = 0.7}
+dfd = {external = "#5d7387", process = "#357a50", datastore = "#5b7896", border = "#cbd5e1", text = "#ffffff", dataflow = "#cbd5e1", boundary_fill = "#fdf0f0", boundary_border = "#e79a9a", boundary_text = "#9a5b5b", rankdir = "LR", nodesep = 0.45, ranksep = 0.7}

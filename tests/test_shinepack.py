@@ -13,6 +13,7 @@
 
 """Tests for the SVG shine pack (Phase 0 of the SVG engine)."""
 
+import re
 import shutil
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -174,3 +175,20 @@ class TestCliShine:
         assert SHINE_MARKER in content
         assert FILTER_ID in content
         ET.fromstring(content)  # still valid SVG
+
+
+@pytest.mark.skipif(shutil.which("dot") is None, reason="Graphviz 'dot' binary required")
+class TestShineTextFit:
+    def test_wide_labels_pinned_inside_node_shapes(self, tmp_path):
+        # The shine font renders wider than the Times Graphviz sized nodes for;
+        # "Malicious Insider" overflowed its ellipse.
+        from pathlib import Path
+
+        from usecvislib.attacktrees import AttackTrees
+        from usecvislib.svgengine import apply_shine_file
+
+        template = Path(__file__).parent.parent / "templates" / "attack-trees" / "insider_threat.tml"
+        AttackTrees(str(template), str(tmp_path / "t"), "svg").build()
+        shined = Path(apply_shine_file(str(tmp_path / "t.svg"))).read_text(encoding="utf-8")
+        assert 'lengthAdjust="spacingAndGlyphs"' in shined
+        assert re.search(r'textLength="[\d.]+"[^>]*>Malicious Insider<', shined)

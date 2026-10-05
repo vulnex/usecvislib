@@ -213,7 +213,7 @@ class BinVis:
                 "show_grid": True,
                 "grid_alpha": 0.3,
             },
-            "wind_rose": {"bar_alpha": 0.7, "dpi": 150, "rticks": [0.25, 0.5, 0.75, 1.0], "rlabel_position": 0},
+            "wind_rose": {"bar_alpha": 0.7, "dpi": 150, "rticks": [0.25, 0.5, 0.75, 1.0], "rlabel_position": 22.5},
             "heatmap": {
                 "block_size": 256,
                 "dpi": 150,
@@ -804,7 +804,8 @@ class BinVis:
 
         # Use config for rticks and rlabel position
         ax.set_rticks(config.get("rticks", [0.25, 0.5, 0.75, 1.0]))
-        ax.set_rlabel_position(config.get("rlabel_position", 0))
+        # Off 0 deg, where the "1.00" radial label collided with the "0°" angle label
+        ax.set_rlabel_position(config.get("rlabel_position", 22.5))
 
         self._apply_theme(fig, [ax])
         plt.tight_layout()
@@ -849,9 +850,14 @@ class BinVis:
         if padding:
             data_array = np.pad(data_array, (0, padding), mode="constant", constant_values=0)
 
-        # Reshape to 2D
+        # Reshape to 2D; mask the padding so the partial last row does not
+        # show 0x00 "data" (a black bar at the bottom right)
         height = len(data_array) // block_size
         image = data_array.reshape((height, block_size))
+        if padding:
+            mask = np.zeros(image.shape, dtype=bool)
+            mask.flat[len(data_array) - padding :] = True
+            image = np.ma.masked_array(image, mask=mask)
 
         fig, ax = plt.subplots(figsize=style.get("figsize", [12, 12]))
 

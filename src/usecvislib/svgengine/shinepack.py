@@ -106,6 +106,52 @@ def _build_shadow_defs() -> ET.Element:
     return defs
 
 
+def _shape_width(group: ET.Element) -> float:
+    """Inner width of a Graphviz node's shape (ellipse or polygon), 0 if unknown."""
+    for child in group:
+        if child.tag == _q("ellipse"):
+            try:
+                return 2 * float(child.get("rx", "0"))
+            except ValueError:
+                return 0.0
+        if child.tag == _q("polygon"):
+            try:
+                xs = [float(p.split(",")[0]) for p in child.get("points", "").split()]
+            except ValueError:
+                return 0.0
+            return max(xs) - min(xs) if xs else 0.0
+    return 0.0
+
+
+def _fit_text_to_graphviz_widths(root: ET.Element, font_family: str) -> None:
+    """Keep re-fonted labels inside the node shapes Graphviz sized.
+
+    Graphviz sized each node for its own font (Times by default); the shine
+    font renders wider, so some labels overflowed their ellipses. A label
+    whose estimated width (with a safety margin for wide fallback fonts)
+    exceeds its shape's inner width is pinned to fit via textLength.
+    """
+    from . import metrics
+
+    for group in root.iter(_q("g")):
+        if not _has_class_token(group, "node"):
+            continue
+        available = _shape_width(group) - 12.0
+        if available <= 0:
+            continue
+        for text in group.iter(_q("text")):
+            content = "".join(text.itertext()).strip()
+            if not content:
+                continue
+            try:
+                size = float(text.get("font-size", "14"))
+            except ValueError:
+                continue
+            if metrics.measure_text(content, font_family, size) * 1.1 > available:
+                text.set("textLength", f"{available:.2f}")
+                text.set("lengthAdjust", "spacingAndGlyphs")
+
+
 def apply_shine(
     svg_text: str,
     *,
@@ -145,6 +191,8 @@ def apply_shine(
     style = ET.Element(_q("style"), {"type": "text/css"})
     style.text = "\n" + _build_css(font_family, hover) + "\n"
     root.insert(0, style)
+
+    _fit_text_to_graphviz_widths(root, font_family)
 
     if shadow:
         root.insert(0, _build_shadow_defs())

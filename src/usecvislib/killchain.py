@@ -398,17 +398,18 @@ class KillChain(VisualizationBase):
         }
         # A flow passing through a placeholder is split there, and Graphviz
         # stops unclipped edge ends 1pt short of the node center. Pass-through
-        # placeholders therefore draw a tiny edge-colored bar (fixedsize=shape:
+        # placeholders therefore draw a tiny edge-colored dot (fixedsize=shape:
         # the blank label still reserves a card's footprint) that bridges the
-        # 2pt break, so the flow reads as one continuous line.
+        # 2pt break; a dot one line-width across reads as a round join (a
+        # rectangular bar antialiased into a visible blip).
         pen = float(edge_style.get("penwidth", "1"))
         bridge_style = {
             **placeholder_style,
             "style": "filled",
-            "shape": "box",
+            "shape": "circle",
             "fixedsize": "shape",
-            "width": f"{3 / 72:.4f}",
-            "height": f"{pen / 72:.4f}",
+            "width": f"{max(pen, 2.2) / 72:.4f}",
+            "height": f"{max(pen, 2.2) / 72:.4f}",
             "penwidth": "0",
             "color": edge_style.get("color", "black"),
             "fillcolor": edge_style.get("color", "black"),

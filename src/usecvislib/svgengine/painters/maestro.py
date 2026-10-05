@@ -151,6 +151,27 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     if not scene.nodes:
         raise utils.RenderError("MAESTRO model has no agents to render in the graph view")
 
+    # L6 Security & Compliance summary note, as in the Graphviz graph view
+    if viz.mitigations:
+        preventive, detective = viz._security_counts()
+        lines = ["Security & Compliance", f"{preventive} preventive | {detective} detective"]
+        text_w, text_h = metrics.measure_block(lines, font["family"], size)
+        scene.nodes.append(
+            SceneNode(
+                id="security_summary",
+                label=lines[0],
+                kind="node",
+                lines=lines,
+                width=text_w + 2 * pad_x,
+                height=text_h + 2 * pad_y,
+                shape="chamfer",
+                fill=ma.get("note_fill", "#ffe0b2"),
+                border=ma.get("note_border", "#e65100"),
+                text_color=ma.get("note_text", "#bf360c"),
+                data={"node-id": "security_summary", "label": lines[0], "kind": "note"},
+            )
+        )
+
     _build_chain_edges(scene, viz)
     return scene
 
@@ -160,6 +181,7 @@ def _build_chain_edges(scene: Scene, viz) -> None:
     from itertools import pairwise
 
     node_ids = {n.id for n in scene.nodes}
+    mode = viz._chain_labels_mode()  # [render] chain_labels: first | all | off
 
     def pick_agent_for_layer(layer_value: str) -> Optional[str]:
         primary = next((a for a in viz.agents.values() if a.layers and a.layers[0] == layer_value), None)
@@ -191,15 +213,13 @@ def _build_chain_edges(scene: Scene, viz) -> None:
             )
             continue
         for i, (src, dst) in enumerate(pairwise(cleaned)):
-            scene.edges.append(
-                SceneEdge(
-                    src=src,
-                    dst=dst,
-                    kind="chain",
-                    color=color,
-                    label=f"{clt.id}: {clt.name}" if i == 0 else None,
-                )
-            )
+            if mode == "off":
+                label = None
+            elif i == 0:
+                label = f"{clt.id}: {clt.name}"
+            else:
+                label = clt.id if mode == "all" else None
+            scene.edges.append(SceneEdge(src=src, dst=dst, kind="chain", color=color, label=label))
 
 
 def render_svg(viz) -> str:

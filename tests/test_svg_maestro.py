@@ -95,16 +95,33 @@ class TestTemplates:
 class TestInteractivityContract:
     def test_every_agent_is_a_node(self, tmp_path):
         root = ET.fromstring(_render(FIXTURE, tmp_path))
-        assert len(_by_class(root, "usv-node")) == len(_loaded(FIXTURE).agents)
+        agents = [g for g in _by_class(root, "usv-node") if g.get("data-kind") == "agent"]
+        assert len(agents) == len(_loaded(FIXTURE).agents)
 
     def test_nodes_carry_contract(self, tmp_path):
         root = ET.fromstring(_render(FIXTURE, tmp_path))
-        nodes = _by_class(root, "usv-node")
+        nodes = [g for g in _by_class(root, "usv-node") if g.get("data-kind") != "note"]
         assert nodes
         for g in nodes:
             assert g.get("data-node-id") and g.get("data-label")
             assert g.get("data-kind") == "agent"
             assert g.get("data-layer"), "every agent records its MAESTRO layer"
+
+    def test_security_note_matches_graphviz_view(self, tmp_path):
+        # The Graphviz graph view shows the L6 summary note; SVG left it out.
+        root = ET.fromstring(_render(FIXTURE, tmp_path))
+        notes = [g for g in _by_class(root, "usv-node") if g.get("data-kind") == "note"]
+        assert len(notes) == (1 if _loaded(FIXTURE).mitigations else 0)
+
+    def test_chain_labels_setting_honoured(self, tmp_path):
+        # [render] chain_labels = "off" was ignored by the SVG engine.
+        src = Path(FIXTURE).read_text(encoding="utf-8")
+        off = tmp_path / "off.toml"
+        off.write_text(src + '\n[render]\nchain_labels = "off"\n', encoding="utf-8")
+        root = ET.fromstring(_render(str(off), tmp_path, name="off"))
+        chain_labels = [g for g in root.iter(f"{SVG_NS}g") if g.get("class") == "usv-edge-label"]
+        self_loop_only = all("layers)" in "".join(g.itertext()) for g in chain_labels)
+        assert self_loop_only
 
     def test_chain_edges_present(self, tmp_path):
         root = ET.fromstring(_render(FIXTURE, tmp_path))

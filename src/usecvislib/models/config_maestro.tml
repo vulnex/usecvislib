@@ -226,6 +226,7 @@ fillcolor = "#ffe0b2"
 color = "#e65100"
 penwidth = "1.5"
 margin = "0.2,0.1"
+color_by = "severity"
 
 [ma_severity.asset]
 shape = "cylinder"
