@@ -84,3 +84,36 @@ def test_export_renders_with_mmdc(path, tmp_path):
     md.load_from_string(mmd, format="mermaid")
     result = md.render(str(tmp_path / "out"), format="svg")
     assert Path(result.output_path).stat().st_size > 0
+
+
+def test_angle_brackets_use_entity_codes():
+    from usecvislib.mermaid import escape_label
+
+    assert escape_label("<<device>> web") == "#lt;#lt;device#gt;#gt; web"
+
+
+def test_attack_graph_uses_module_schema():
+    _, mmd = _export(TEMPLATES / "attack-graphs" / "simple_network.tml")
+    # network_edges, singular precondition/postcondition, affected_host
+    assert "attacker -.->" in mmd
+    assert "==>" in mmd
+    assert "vuln_web_rce --> webserver" in mmd
+
+
+def test_threat_model_uses_labels():
+    _, mmd = _export(TEMPLATES / "threat-models" / "banking_api.tml")
+    assert '["mTLS Mobile API"]' not in mmd and '|"mTLS Mobile API"|' in mmd
+    assert re.search(r'subgraph internet\["(?!internet")', mmd)
+
+
+def test_timeline_keeps_every_event_once():
+    path = TEMPLATES / "timelines" / "ransomware_incident.tml"
+    data = parse_content(path.read_text(encoding="utf-8"), "toml")
+    _, mmd = _export(path)
+    task_lines = [ln for ln in mmd.splitlines() if re.search(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}", ln)]
+    assert len(task_lines) == len(data["events"])
+
+
+def test_custom_diagram_shapes_and_edge_label_fields():
+    _, mmd = _export(TEMPLATES / "custom-diagrams" / "general" / "flowchart.toml")
+    assert 'validate{"Valid?"}' in mmd and 'start(["Start"])' in mmd

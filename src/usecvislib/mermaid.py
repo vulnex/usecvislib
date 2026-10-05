@@ -147,9 +147,10 @@ def escape_label(text: str, max_length: int = 100) -> str:
     text = text.replace("{", "(")
     text = text.replace("}", ")")
     text = text.replace("|", "/")
-    text = text.replace("<", "lt")
-    text = text.replace(">", "gt")
     text = text.replace("#", "")
+    # Mermaid entity codes (plain "lt"/"gt" turned <<device>> into "ltltdevicegtgt")
+    text = text.replace("<", "#lt;")
+    text = text.replace(">", "#gt;")
 
     # Remove newlines
     text = text.replace("\n", " ").replace("\r", "")
@@ -415,7 +416,10 @@ def _convert_threat_model_flowchart(data: dict[str, Any]) -> str:
     for _flow_id, flow_data in flows.items():
         source = flow_data.get("source", "")
         target = flow_data.get("target", "")
-        flow_label = flow_data.get("data", flow_data.get("name", ""))
+        # The flow's label first ("data" is its classification list)
+        flow_label = flow_data.get("label") or flow_data.get("name") or flow_data.get("data", "")
+        if isinstance(flow_label, list):
+            flow_label = ", ".join(str(v) for v in flow_label)
 
         if source and target:
             safe_source = sanitize_node_id(source)
@@ -430,7 +434,7 @@ def _convert_threat_model_flowchart(data: dict[str, Any]) -> str:
     if boundaries:
         lines.append("")
         for boundary_id, boundary_data in boundaries.items():
-            boundary_name = boundary_data.get("name", boundary_id)
+            boundary_name = boundary_data.get("label") or boundary_data.get("name", boundary_id)
             boundary_elements = boundary_data.get("elements", [])
 
             if boundary_elements:
@@ -567,18 +571,34 @@ def _convert_attack_graph(data: dict[str, Any], max_nodes: int = 100) -> str:
 
     lines.append("")
 
-    # Generate network edges
-    for source, targets in network.items():
+    # Generate network edges: [[network_edges]] from/to (the schema the
+    # module reads) plus the legacy {source: [targets]} "network" table
+    known = set(hosts) | set(vulnerabilities) | set(privileges) | set(services)
+    for edge in _items_of(data.get("network_edges", [])):
+        src, dst = edge.get("from"), edge.get("to")
+        if src and dst:
+            for end in (src, dst):
+                if end not in known:  # e.g. the external "attacker"
+                    known.add(end)
+                    lines.append(f'    {sanitize_node_id(end)}(["{escape_label(end)}"])')
+            lines.append(_edge_line(sanitize_node_id(src), sanitize_node_id(dst), edge.get("label", ""), "-.->"))
+    for source, targets in network.items() if isinstance(network, dict) else ():
         safe_source = sanitize_node_id(source)
         if isinstance(targets, list):
             for target in targets:
                 safe_target = sanitize_node_id(target)
                 lines.append(f"    {safe_source} -.-> {safe_target}")
 
-    # Generate exploit edges
+    # Generate exploit edges (singular precondition/postcondition is the
+    # module schema; plural lists are accepted too)
+    def _as_list(value: Any) -> list[str]:
+        if not value:
+            return []
+        return [str(v) for v in value] if isinstance(value, list) else [str(value)]
+
     for exploit_id, exploit_data in exploits.items():
-        preconditions = exploit_data.get("preconditions", [])
-        postconditions = exploit_data.get("postconditions", [])
+        preconditions = _as_list(exploit_data.get("preconditions") or exploit_data.get("precondition"))
+        postconditions = _as_list(exploit_data.get("postconditions") or exploit_data.get("postcondition"))
 
         for pre in preconditions:
             for post in postconditions:
@@ -589,7 +609,7 @@ def _convert_attack_graph(data: dict[str, Any], max_nodes: int = 100) -> str:
 
     # Vulnerability to host connections
     for vuln_id, vuln_data in vulnerabilities.items():
-        host = vuln_data.get("host", "")
+        host = vuln_data.get("affected_host") or vuln_data.get("host", "")
         if host:
             safe_vuln = sanitize_node_id(vuln_id)
             safe_host = sanitize_node_id(host)
@@ -753,19 +773,32 @@ def _convert_timeline(data: dict[str, Any]) -> str:
 
     # Group events by lane or phase
     if phases:
-        # Use phases as sections
+        # Use phases as sections. Each event goes to the first phase that
+        # contains it (boundary events were listed twice) and events outside
+        # every phase get their own section (they were dropped).
+        def norm(ts: Any) -> str:
+            return re.sub(r"(Z|[+-]\d{2}:?\d{2})$", "", str(ts or "")).replace("T", " ")
+
+        placed: set[int] = set()
         for phase in phases:
             phase_name = phase.get("name", "Phase")
+            phase_start, phase_end = norm(phase.get("start")), norm(phase.get("end"))
+            members = [
+                i
+                for i, event in enumerate(events)
+                if i not in placed and phase_start <= norm(event.get("timestamp")) <= phase_end
+            ]
+            if not members:
+                continue
             lines.append(f"    section {escape_label(phase_name)}")
-
-            # Find events in this phase's time range
-            phase_start = phase.get("start", "")
-            phase_end = phase.get("end", "")
-
-            for event in events:
-                event_time = event.get("timestamp", "")
-                if phase_start <= event_time <= phase_end:
-                    _add_gantt_event(lines, event)
+            for i in members:
+                placed.add(i)
+                _add_gantt_event(lines, events[i])
+        rest = [event for i, event in enumerate(events) if i not in placed]
+        if rest:
+            lines.append("    section Other events")
+            for event in rest:
+                _add_gantt_event(lines, event)
     else:
         # Group by lane
         lanes: dict[str, list] = {}
@@ -1118,6 +1151,26 @@ def _convert_maestro(data: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+# Graphviz shape name -> Mermaid flowchart node brackets
+_MERMAID_SHAPES = {
+    "ellipse": ("([", "])"),
+    "oval": ("([", "])"),
+    "circle": ("((", "))"),
+    "doublecircle": ("(((", ")))"),
+    "diamond": ("{", "}"),
+    "hexagon": ("{{", "}}"),
+    "octagon": ("{{", "}}"),
+    "database": ("[(", ")]"),
+    "cylinder": ("[(", ")]"),
+    "parallelogram": ("[/", "/]"),
+    "trapezium": ("[/", "\\]"),
+    "note": (">", "]"),
+    "box3d": ("[[", "]]"),
+    "component": ("[[", "]]"),
+    "package": ("[[", "]]"),
+}
+
+
 def _convert_node_graph(data: dict[str, Any]) -> str:
     """Custom / cloud diagrams: node and edge lists, clusters as subgraphs."""
     diagram = data.get("diagram", {}) if isinstance(data.get("diagram"), dict) else {}
@@ -1125,11 +1178,34 @@ def _convert_node_graph(data: dict[str, Any]) -> str:
     direction = direction if direction in ("TB", "TD", "BT", "LR", "RL") else "TB"
     lines = [f"flowchart {direction}", f"    %% {escape_label(diagram.get('title', 'Diagram'))}", ""]
     nodes = {str(n.get("id", "")): n for n in _items_of(data.get("nodes"))}
+    # Custom diagrams describe shapes, labels and edge-label fields per type
+    # in [schema]; without it every node was a box and labels were lost
+    schema = data.get("schema", {}) if isinstance(data.get("schema"), dict) else {}
+    node_types = schema.get("nodes", {}) if isinstance(schema.get("nodes"), dict) else {}
+    edge_types = schema.get("edges", {}) if isinstance(schema.get("edges"), dict) else {}
+
+    def node_label(node: dict[str, Any], nid: str) -> str:
+        if node.get("label"):
+            return str(node["label"])
+        template = (node_types.get(node.get("type"), {}) or {}).get("label_template")
+        if template:
+            fields = {k: v for k, v in node.items() if isinstance(v, str | int | float)}
+            text = re.sub(r"\{(\w+)\}", lambda m: str(fields.get(m.group(1), "")), str(template))
+            text = text.replace("\\n", " ").replace("\n", " ").strip()
+            if text:
+                return text
+        return str(node.get("name", nid))
 
     def node_line(nid: str, indent: str) -> str:
         node = nodes[nid]
-        label = node.get("label", node.get("name", nid))
-        return f'{indent}{sanitize_node_id(nid)}["{escape_label(label)}"]'
+        shape = str((node_types.get(node.get("type"), {}) or {}).get("shape", node.get("shape", "")))
+        left, right = _MERMAID_SHAPES.get(shape, ("[", "]"))
+        return f'{indent}{sanitize_node_id(nid)}{left}"{escape_label(node_label(node, nid))}"{right}'
+
+    def edge_label(edge: dict[str, Any]) -> str:
+        field = (edge_types.get(edge.get("type"), {}) or {}).get("label_field")
+        value = edge.get(field) if field else None
+        return str(value if value not in (None, "") else edge.get("label", ""))
 
     placed: set[str] = set()
     for cluster in _items_of(data.get("clusters")):
@@ -1153,7 +1229,7 @@ def _convert_node_graph(data: dict[str, Any]) -> str:
         for dst in targets if isinstance(targets, list) else [targets]:
             src_list = edge.get("from", "")
             for src in src_list if isinstance(src_list, list) else [src_list]:
-                lines.append(_edge_line(src, dst, edge.get("label", "")))
+                lines.append(_edge_line(src, dst, edge_label(edge)))
     return "\n".join(lines)
 
 
