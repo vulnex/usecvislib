@@ -18,13 +18,19 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 # Install system dependencies
 # - graphviz: Required for graph rendering (dot executable)
-# - fonts: For proper text rendering in visualizations
+# - fonts: For proper text rendering in visualizations. Liberation, Carlito
+#   and Comic Neue are metric-compatible stand-ins that fontconfig maps the
+#   style presets' Arial/Helvetica/Times/Courier, Calibri and Comic Sans to
+#   (otherwise every preset font falls back to DejaVu)
 # - libcairo2, libpango: Required for cairosvg (SVG to PNG conversion)
 # - nodejs, npm: Required for mermaid-cli
 # - chromium: Required for mermaid-cli puppeteer
 RUN apt-get update && apt-get install -y --no-install-recommends \
     graphviz \
     fonts-dejavu-core \
+    fonts-liberation \
+    fonts-crosextra-carlito \
+    fonts-comic-neue \
     libcairo2 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
