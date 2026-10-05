@@ -71,3 +71,18 @@ def test_icon_edges_end_at_the_icon():
     src = _source("software/deployment-diagram_icons.toml")
     assert "headport=icon" in src and "tailport=icon" not in src
     assert 'PORT="icon" FIXEDSIZE="TRUE"' in src
+
+
+def test_import_attack_tree_keeps_edges():
+    # The importer read a per-node "parent" key the schema does not have.
+    cd = CustomDiagrams.from_attack_tree(str(TEMPLATES.parent / "attack-trees" / "ransomware_attack.tml"))
+    assert len(cd.edges) >= len(cd.nodes) - 1
+    assert any(n["type"] == "root" for n in cd.nodes)
+
+
+def test_import_attack_graph_keeps_attack_path():
+    cd = CustomDiagrams.from_attack_graph(str(TEMPLATES.parent / "attack-graphs" / "corporate_network.tml"))
+    steps = [e for e in cd.edges if e["type"] == "attack_step"]
+    assert steps
+    exploits = {n["id"] for n in cd.nodes if n["type"] == "exploit"}
+    assert all(e["from"] in exploits or e["to"] in exploits for e in steps)

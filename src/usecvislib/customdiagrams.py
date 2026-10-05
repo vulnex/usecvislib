@@ -972,17 +972,26 @@ class CustomDiagrams:
                 }
             )
 
-        # Convert edges from parent relationships
-        for node_id, node_data in nodes.items():
-            parent = node_data.get("parent")
-            if parent:
-                cd.edges.append(
-                    {
-                        "from": parent,
-                        "to": node_id,
-                        "type": "parent_child",
-                    }
-                )
+        # Convert edges: attack trees keep their structure in the [edges]
+        # table ({parent = [{to = child, label = ...}]}); reading a per-node
+        # "parent" key, which the schema does not have, imported no edges
+        root = at.inputdata.get("tree", {}).get("root")
+        for node in cd.nodes:
+            if node["id"] == root and node["type"] == "leaf":
+                node["type"] = "root"
+        for parent, children in (at.inputdata.get("edges", {}) or {}).items():
+            for child in children if isinstance(children, list) else []:
+                target = child.get("to") if isinstance(child, dict) else child
+                if not target:
+                    continue
+                edge = {"from": parent, "to": target, "type": "parent_child"}
+                if isinstance(child, dict) and child.get("label"):
+                    edge["label"] = str(child["label"])
+                cd.edges.append(edge)
+        for node_id, node_data in nodes.items():  # legacy per-node parent links
+            parent = node_data.get("parent") if isinstance(node_data, dict) else None
+            if parent and not any(e["from"] == parent and e["to"] == node_id for e in cd.edges):
+                cd.edges.append({"from": parent, "to": node_id, "type": "parent_child"})
 
         cd._config_loaded = True
         return cd
@@ -1083,6 +1092,11 @@ class CustomDiagrams:
                     "color": "#27AE60",
                     "arrowhead": "none",
                 },
+                "attack_step": {
+                    "style": "bold",
+                    "color": "#C0392B",
+                    "arrowhead": "normal",
+                },
             },
         }
 
@@ -1175,7 +1189,6 @@ class CustomDiagrams:
                     "name": exp_data.get("label", exp_id),
                 }
             )
-            # Create edges for precondition and postcondition
             vuln = exp_data.get("vulnerability")
             if vuln:
                 cd.edges.append(
@@ -1185,6 +1198,14 @@ class CustomDiagrams:
                         "type": "exploits",
                     }
                 )
+            # The attack path itself: precondition -> exploit -> postcondition
+            # (the comment promised these edges but none were drawn, so the
+            # exploit chain fell apart into islands)
+            for key, outgoing in (("precondition", False), ("postcondition", True)):
+                ends = exp_data.get(key) or exp_data.get(f"{key}s") or []
+                for end in ends if isinstance(ends, list) else [ends]:
+                    pair = (exp_id, str(end)) if outgoing else (str(end), exp_id)
+                    cd.edges.append({"from": pair[0], "to": pair[1], "type": "attack_step"})
 
         # Convert network edges
         network_edges = ag.inputdata.get("network_edges", {})
