@@ -225,9 +225,9 @@ async def analyze_cloud(
             errors=errors,
             stats=CloudStats(
                 title=stats.get("title", ""),
-                node_count=stats.get("node_count", 0),
-                edge_count=stats.get("edge_count", 0),
-                cluster_count=stats.get("cluster_count", 0),
+                node_count=stats.get("total_nodes", 0),
+                edge_count=stats.get("total_edges", 0),
+                cluster_count=stats.get("total_clusters", 0),
                 providers_used=stats.get("providers_used", []),
                 loaded=True,
             ),

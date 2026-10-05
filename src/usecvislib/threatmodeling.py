@@ -1349,7 +1349,7 @@ class ThreatModeling(VisualizationBase):
             else:
                 # Sort by CVSS score (highest first) if CVSS is shown
                 if show_cvss:
-                    sorted_threats = sorted(threat_list, key=lambda t: t.get("cvss", 0), reverse=True)
+                    sorted_threats = sorted(threat_list, key=lambda t: t.get("cvss") or 0, reverse=True)
                 else:
                     sorted_threats = threat_list
 

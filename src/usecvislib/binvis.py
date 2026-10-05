@@ -133,6 +133,8 @@ class BinVis:
             stp = utils.ConfigModel(self.stylefile)
             self.style = stp.get(self.styleid)
         except (KeyError, FileNotFoundError):
+            if self.styleid:
+                logger.warning(f"Style '{self.styleid}' not found; using the default style")
             self.style = self._default_style()
 
     def _default_style(self) -> dict[str, Any]:
@@ -247,23 +249,19 @@ class BinVis:
             logger.debug("No config file specified, using defaults")
             return
 
-        # Validate and load user config
+        # An explicitly given config must load: silently falling back to
+        # defaults rendered something the user did not ask for.
+        if not os.path.isfile(config_path):
+            raise utils.ConfigError(f"Config file not found: {config_path}")
         try:
-            import toml
-
-            # Check if file exists
-            if not os.path.isfile(config_path):
-                logger.warning(f"Config file not found: {config_path}, using defaults")
-                return
-
-            user_config = toml.load(config_path)
-            logger.info(f"Loaded user config from {config_path}")
-
-            # Merge user config with defaults (user values override defaults)
+            with open(config_path, encoding="utf-8") as f:
+                user_config = utils.parse_content(f.read(), "toml")
             self._merge_config(user_config)
-
+        except utils.ConfigError:
+            raise
         except Exception as e:
-            logger.warning(f"Failed to load config file {config_path}: {e}, using defaults")
+            raise utils.ConfigError(f"Invalid binary visualization config {config_path}: {e}") from e
+        logger.info(f"Loaded user config from {config_path}")
 
     def _merge_config(self, user_config: dict[str, Any]) -> None:
         """Merge user configuration with defaults.
@@ -324,6 +322,8 @@ class BinVis:
             logger.error(f"Failed to read binary file {self.inputfile}: {e}")
             raise
 
+        if not self.data:
+            raise utils.ValidationError(f"Input file is empty: {self.inputfile}")
         return self.data
 
     # Streaming methods for large file support

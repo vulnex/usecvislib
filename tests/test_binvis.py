@@ -70,13 +70,15 @@ class TestBinVisLoad:
             bv.load()
 
     def test_load_empty_file(self):
-        """Test loading an empty file."""
+        """An empty file is rejected (charts of nothing leaked Matplotlib warnings)."""
+        from usecvislib.utils import ValidationError
+
         with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
             f.flush()  # Empty file
             try:
                 bv = BinVis(f.name, "output", validate_paths=False)
-                data = bv.load()
-                assert data == b''
+                with pytest.raises(ValidationError):
+                    bv.load()
             finally:
                 os.unlink(f.name)
 
@@ -397,12 +399,20 @@ window_size = 1024
             finally:
                 os.unlink(f.name)
 
-    def test_config_file_not_found_uses_defaults(self):
-        """Test that missing config file falls back to defaults."""
-        bv = BinVis("input.bin", "output", configfile="/nonexistent/config.toml", validate_paths=False)
-        # Should use defaults without error
-        assert bv.config["entropy_analysis"]["window_size"] == 256
-        assert bv.config["heatmap"]["block_size"] == 256
+    def test_config_file_not_found_is_an_error(self):
+        """An explicitly given config that is missing is an error, not silent defaults."""
+        from usecvislib.utils import ConfigError
+
+        with pytest.raises(ConfigError):
+            BinVis("input.bin", "output", configfile="/nonexistent/config.toml", validate_paths=False)
+
+    def test_invalid_config_is_an_error(self, tmp_path):
+        from usecvislib.utils import ConfigError
+
+        bad = tmp_path / "bad.toml"
+        bad.write_text("[entropy_analysis\nwindow_size = ", encoding="utf-8")
+        with pytest.raises(ConfigError):
+            BinVis("input.bin", "output", configfile=str(bad), validate_paths=False)
 
     def test_loadconfig_with_custom_thresholds(self):
         """Test loading config with custom entropy thresholds."""

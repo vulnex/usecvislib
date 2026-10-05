@@ -150,8 +150,18 @@ class VisualizationBase(ABC, Generic[T]):
             config = utils.ConfigModel(self.STYLE_FILE)
             self.style = config.get(self.styleid)
             self.logger.debug(f"Loaded style: {self.styleid}")
-        except (KeyError, utils.FileError) as e:
-            self.logger.warning(f"Style '{self.styleid}' not found, using defaults: {e}")
+        except KeyError:
+            # Unknown id: fall back to this engine's default preset (the generic
+            # default is a Graphviz style, which then failed the SVG check below
+            # with a misleading "not an SVG-engine preset" error).
+            fallback = self.SVG_DEFAULT_STYLE_ID if self.render_engine == "svg" else self.DEFAULT_STYLE_ID
+            self.logger.warning(f"Style '{self.styleid}' not found; using '{fallback or 'built-in default'}'")
+            try:
+                self.style = config.get(fallback) if fallback else self._default_style()
+            except KeyError:
+                self.style = self._default_style()
+        except utils.FileError as e:
+            self.logger.warning(f"Style file unavailable ({e}); using built-in defaults")
             self.style = self._default_style()
 
         # Preset/engine mismatch is a config error, not silently broken output:
