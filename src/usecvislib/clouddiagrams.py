@@ -92,7 +92,7 @@ def _wrap_node_label(label: str, width: int = 18) -> str:
         return label
     import textwrap
 
-    return "\n".join(textwrap.wrap(label, width=width)) or label
+    return "\n".join(textwrap.wrap(label, width=width, break_long_words=False, break_on_hyphens=False)) or label
 
 
 def _escape_python_string(value: str, max_length: int = 500) -> str:

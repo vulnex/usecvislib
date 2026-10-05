@@ -247,7 +247,11 @@ class AttackTrees(VisualizationBase):
         # Create the graph
         self.dot = Digraph(format=self.format, name=tree.get("name", "Attack Tree"))
 
-        # Apply graph-level parameters
+        # Apply graph-level parameters: the preset's page look (dark presets
+        # need a bgcolor or they render on white), then the tree's own params
+        preset_graph = self.style.get("graph", {})
+        if isinstance(preset_graph, dict) and preset_graph:
+            self.dot.attr(**utils.stringify_dict(preset_graph))
         diagraph_params = tree.get("params", {})
         diagraph_params = utils.stringify_dict(diagraph_params)
         self.dot.attr(**diagraph_params)
@@ -357,6 +361,13 @@ class AttackTrees(VisualizationBase):
             # (icons appear on white/light background, not colored fill)
             if has_image and "fontcolor" not in attributes:
                 node_attrs["fontcolor"] = "black"
+
+            # A node's own fill without its own fontcolor kept the preset's
+            # (white) text, unreadable on light custom fills
+            if not has_image and "fillcolor" in node_attrs and "fontcolor" not in node_attrs:
+                contrast = utils.readable_text_color(node_attrs["fillcolor"])
+                if contrast:
+                    node_attrs["fontcolor"] = contrast
 
             # Merge with defaults (style values take precedence when style selected)
             node_kwargs = utils.merge_dicts(node_defaults, node_attrs)

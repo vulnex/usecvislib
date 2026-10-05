@@ -169,13 +169,32 @@ class BinVis:
                 ax.tick_params(colors=text)
                 for spine in ax.spines.values():
                     spine.set_edgecolor(text)
-            if theme.get("grid"):
+            # No grid over colorbars or image axes (it hatched the heatmap scale)
+            if theme.get("grid") and getattr(ax, "_colorbar", None) is None and not ax.images:
                 ax.grid(True, color=theme["grid"], alpha=0.4)
             legend = ax.get_legend()
             if legend is not None and bg:
                 legend.get_frame().set_facecolor(bg)
                 for t in legend.get_texts():
                     t.set_color(text or t.get_color())
+
+    def _dark_theme(self) -> bool:
+        """True when the preset's plot background is dark."""
+        theme = self.style.get("theme") if isinstance(self.style, dict) else None
+        bg = (theme or {}).get("plot_background") or (theme or {}).get("background")
+        return utils.readable_text_color(bg) == "#ffffff" if bg else False
+
+    def _threshold_color(self, color: str):
+        """Threshold line color, lightened on dark presets (pure blue/green
+        lines were barely visible on the dark plot background)."""
+        if not self._dark_theme():
+            return color
+        from matplotlib.colors import to_rgb
+
+        try:
+            return tuple(0.45 * c + 0.55 for c in to_rgb(color))
+        except ValueError:
+            return color
 
     def _default_config(self) -> dict[str, Any]:
         """Return default visualization configuration parameters.
@@ -636,7 +655,12 @@ class BinVis:
         # (low = structured/padding, high = packed or encrypted).
         from matplotlib.collections import LineCollection
 
-        cmap = plt.get_cmap(style.get("colormap", "viridis"))
+        # Clamp to the colormap's middle like the windrose: the extremes of
+        # sequential maps are near-white or near-black and vanished on the
+        # plot background
+        from matplotlib.colors import ListedColormap
+
+        cmap = ListedColormap(plt.get_cmap(style.get("colormap", "viridis"))(np.linspace(0.2, 0.9, 256)))
         fill_alpha = config.get("fill_alpha", 0.3)
         ax.fill_between(positions, entropies, alpha=fill_alpha, color=cmap(0.5))
         points = np.column_stack([positions, entropies]).reshape(-1, 1, 2)
@@ -668,9 +692,10 @@ class BinVis:
             for threshold in thresholds:
                 ax.axhline(
                     y=threshold.get("value", 0),
-                    color=threshold.get("color", "r"),
+                    color=self._threshold_color(threshold.get("color", "r")),
                     linestyle=threshold.get("style", "--"),
-                    alpha=threshold.get("alpha", 0.5),
+                    # faint 0.5 lines disappeared on dark presets
+                    alpha=max(threshold.get("alpha", 0.5), 0.85 if self._dark_theme() else 0.0),
                     label=threshold.get("label", ""),
                 )
             ax.legend(loc="best", fontsize="small")

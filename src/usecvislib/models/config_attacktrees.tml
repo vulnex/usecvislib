@@ -32,6 +32,7 @@ edge = {color = "#6b7b8c", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
 # Neon - Cyberpunk dark theme with neon accents
 # =============================================================================
 [at_neon]
+graph = {bgcolor = "#0d0d0d", fontcolor = "#00ff9f"}
 root = {margin = 0.15, fontcolor = "#00ff9f", fillcolor = "#0d0d0d", shape = "rectangle", style = "filled,bold", fontname = "Consolas", fontsize = "14", penwidth = "2", color = "#00ff9f"}
 node = {margin = 0.12, fontcolor = "#ff00ff", fillcolor = "#1a1a2e", shape = "rectangle", style = "filled", fontname = "Consolas", fontsize = "11", penwidth = "1.5", color = "#ff00ff"}
 edge = {color = "#00d4ff", style = "solid", penwidth = "2", arrowsize = "0.9"}
@@ -80,6 +81,7 @@ edge = {color = "#e0aaff", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
 # Hacker - Matrix-inspired green on black
 # =============================================================================
 [at_hacker]
+graph = {bgcolor = "#000000", fontcolor = "#00ff00"}
 root = {margin = 0.15, fontcolor = "#00ff00", fillcolor = "#000000", shape = "rectangle", style = "filled", fontname = "Courier", fontsize = "13", penwidth = "2", color = "#00ff00"}
 node = {margin = 0.12, fontcolor = "#00cc00", fillcolor = "#0a0a0a", shape = "rectangle", style = "filled", fontname = "Courier", fontsize = "11", penwidth = "1", color = "#00cc00"}
 edge = {color = "#00ff00", style = "solid", penwidth = "1.5", arrowsize = "0.8"}

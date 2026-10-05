@@ -476,9 +476,7 @@ class PrivilegeGradient(VisualizationBase):
                 sub_attrs = utils.stringify_dict(zone_style.copy())
                 sub.attr(
                     label=f"{zone_label}\\n(Trust Level {trust_level})",
-                    # Title at the bottom: cross-zone edges mostly enter from
-                    # above in these layouts and ran through top titles
-                    labelloc="b",
+                    labelloc="t",
                     fillcolor=zone_color,
                     color=zone_border,
                     fontcolor=zone_font_color,
@@ -515,6 +513,12 @@ class PrivilegeGradient(VisualizationBase):
                                     node_attrs["color"] = zone_border
                             else:
                                 node_attrs["fillcolor"] = zone_border
+                                # White on light zone borders (amber, orange)
+                                # was unreadable
+                                if "fontcolor" not in comp_data:
+                                    node_attrs["fontcolor"] = utils.readable_text_color(zone_border) or node_attrs.get(
+                                        "fontcolor"
+                                    )
 
                         utils.process_node_image(node_attrs, comp_id, self.logger, preserve_shape=user_set_shape)
 

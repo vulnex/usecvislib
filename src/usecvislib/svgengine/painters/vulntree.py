@@ -50,7 +50,7 @@ def _node_lines(dep, font, size, max_w) -> list[str]:
     lines = metrics.wrap_text(title, font["family"], size, max_w) or [dep.name]
     if dep.vulnerabilities:
         worst = dep.highest_severity.value
-        lines.append(f"{len(dep.vulnerabilities)} CVE · {worst} {dep.max_cvss:g}")
+        lines.append(f"{len(dep.vulnerabilities)} CVE · {worst} {dep.max_cvss:.1f}")
     else:
         lines.append("no known CVEs")  # as the Graphviz path labels clean packages
     return lines
@@ -89,7 +89,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str]:
             "direct": "true" if dep.direct else "false",
         }
         if dep.vulnerabilities:
-            node_data["cvss"] = f"{dep.max_cvss:g}"
+            node_data["cvss"] = f"{dep.max_cvss:.1f}"
             node_data["severity"] = sev.value
             node_data["exploited"] = "true" if any(v.exploited for v in dep.vulnerabilities) else "false"
         scene.nodes.append(
@@ -290,7 +290,7 @@ def render_svg(viz) -> str:
         # Highest-CVSS badge docked on the top-right corner
         if dep.vulnerabilities and dep.max_cvss > 0 and theme["badges"].get("cvss", True):
             badge_size = size * 0.78
-            badge_label = f"{dep.max_cvss:g}"
+            badge_label = f"{dep.max_cvss:.1f}"
             badge_w = metrics.measure_text(badge_label, font["family"], badge_size, bold=True)
             canvas.add(
                 "badges",

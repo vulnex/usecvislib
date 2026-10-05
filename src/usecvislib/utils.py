@@ -812,8 +812,11 @@ def process_node_image(
         _escape_html(str(resolved_path))
 
         # Always render icons cleanly without background boxes
-        # Clear ALL existing attributes to ensure clean rendering
+        # Clear ALL existing attributes to ensure clean rendering, keeping
+        # the typeface (clearing it dropped icon labels to Times serif)
+        kept_font = {k: node_attrs[k] for k in ("fontname", "fontsize") if node_attrs.get(k)}
         node_attrs.clear()
+        node_attrs.update(kept_font)
 
         # Escape label text for HTML
         safe_label = _escape_html(str(label_text))
@@ -1560,6 +1563,32 @@ def ortho_edge_xlabels(graph: Any) -> None:
     for i, line in enumerate(body):
         if " -> " in line or " -- " in line:
             body[i] = _EDGE_LABEL.sub(r"\1xlabel=", line)
+
+
+def readable_text_color(fill: Any, light: str = "#ffffff", dark: str = "#1f2937") -> Optional[str]:
+    """Pick the label color (light or dark) with the better contrast on ``fill``.
+
+    Uses WCAG relative luminance. Returns None when ``fill`` is not a plain
+    ``#rrggbb`` / ``#rgb`` color (named colors, gradients), so callers can keep
+    their default.
+    """
+
+    def luminance(color: Any) -> Optional[float]:
+        value = str(color or "").strip()
+        if not re.fullmatch(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})", value):
+            return None
+        hexval = value[1:] if len(value) == 7 else "".join(c * 2 for c in value[1:])
+        rgb = [int(hexval[i : i + 2], 16) / 255 for i in (0, 2, 4)]
+        r, g, b = (v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4 for v in rgb)
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+    lum = luminance(fill)
+    if lum is None:
+        return None
+    lum_light, lum_dark = luminance(light) or 1.0, luminance(dark) or 0.0
+    on_light = (lum_light + 0.05) / (lum + 0.05)
+    on_dark = (lum + 0.05) / (lum_dark + 0.05)
+    return light if on_light >= on_dark else dark
 
 
 def stringify_dict(d: dict[str, Any]) -> dict[str, str]:

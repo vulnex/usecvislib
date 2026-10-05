@@ -353,7 +353,7 @@ class VulnDependencyTree(VisualizationBase):
         rows = f"<TR><TD><B>{title}</B></TD></TR>"
         if dep.vulnerabilities:
             worst = dep.highest_severity.value
-            cve = f"{len(dep.vulnerabilities)} CVE - {worst} (CVSS {dep.max_cvss:g})"
+            cve = f"{len(dep.vulnerabilities)} CVE - {worst} (CVSS {dep.max_cvss:.1f})"
             rows += f'<TR><TD><FONT POINT-SIZE="9">{_html_escape(cve)}</FONT></TD></TR>'
         else:
             rows += '<TR><TD><FONT POINT-SIZE="9">no known CVEs</FONT></TD></TR>'

@@ -20,7 +20,7 @@
 graph = {rankdir = "LR", bgcolor = "white", fontname = "Arial", splines = "ortho", nodesep = "0.5", ranksep = "0.8"}
 host = {shape = "box3d", style = "filled", fillcolor = "#4a90d9", fontcolor = "white", fontname = "Arial", fontsize = "11", margin = "0.15"}
 vulnerability = {shape = "diamond", style = "filled", fillcolor = "#e74c3c", fontcolor = "white", fontname = "Arial", fontsize = "10", margin = "0.1"}
-privilege = {shape = "ellipse", style = "filled", fillcolor = "#f39c12", fontcolor = "white", fontname = "Arial", fontsize = "10", margin = "0.1"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#f39c12", fontcolor = "#1f2937", fontname = "Arial", fontsize = "10", margin = "0.1"}
 service = {shape = "component", style = "filled", fillcolor = "#27ae60", fontcolor = "white", fontname = "Arial", fontsize = "10", margin = "0.1"}
 edge = {color = "#34495e", fontname = "Arial", fontsize = "9"}
 network_edge = {color = "#3498db", style = "dashed", fontname = "Arial", fontsize = "9", penwidth = "1.5"}
@@ -82,7 +82,7 @@ exploit_edge = {color = "black", style = "bold", fontname = "Helvetica", fontsiz
 # Neon - Cyberpunk neon style
 # =============================================================================
 [ag_neon]
-graph = {rankdir = "LR", bgcolor = "#0d0d0d", fontname = "Consolas", splines = "ortho"}
+graph = {rankdir = "LR", bgcolor = "#0d0d0d", fontname = "Consolas", fontcolor = "#00ff9f", splines = "ortho"}
 host = {shape = "box3d", style = "filled", fillcolor = "#1a1a2e", fontcolor = "#00ff9f", fontname = "Consolas", fontsize = "11", penwidth = "2", color = "#00ff9f"}
 vulnerability = {shape = "diamond", style = "filled", fillcolor = "#1a1a2e", fontcolor = "#ff0080", fontname = "Consolas", fontsize = "10", penwidth = "2", color = "#ff0080"}
 privilege = {shape = "ellipse", style = "filled", fillcolor = "#1a1a2e", fontcolor = "#ffff00", fontname = "Consolas", fontsize = "10", penwidth = "2", color = "#ffff00"}
@@ -98,7 +98,7 @@ exploit_edge = {color = "#ff0080", style = "bold", fontname = "Consolas", fontsi
 graph = {rankdir = "LR", bgcolor = "#fafafa", fontname = "Arial", splines = "ortho"}
 host = {shape = "box", style = "filled,rounded", fillcolor = "#1e3a5f", fontcolor = "white", fontname = "Arial", fontsize = "11", margin = "0.15"}
 vulnerability = {shape = "diamond", style = "filled", fillcolor = "#8b0000", fontcolor = "white", fontname = "Arial", fontsize = "10"}
-privilege = {shape = "ellipse", style = "filled", fillcolor = "#b8860b", fontcolor = "white", fontname = "Arial", fontsize = "10"}
+privilege = {shape = "ellipse", style = "filled", fillcolor = "#b8860b", fontcolor = "#1f2937", fontname = "Arial", fontsize = "10"}
 service = {shape = "component", style = "filled", fillcolor = "#3d5a80", fontcolor = "white", fontname = "Arial", fontsize = "10"}
 edge = {color = "#6b7b8c", fontname = "Arial", fontsize = "9", penwidth = "1.5"}
 network_edge = {color = "#4682b4", style = "dashed", fontname = "Arial", fontsize = "9", penwidth = "1.5"}
@@ -108,7 +108,7 @@ exploit_edge = {color = "#8b0000", style = "bold", fontname = "Arial", fontsize 
 # Hacker - Matrix-inspired green on black
 # =============================================================================
 [ag_hacker]
-graph = {rankdir = "TB", bgcolor = "#000000", fontname = "Courier", splines = "ortho"}
+graph = {rankdir = "TB", bgcolor = "#000000", fontname = "Courier", fontcolor = "#00ff00", splines = "ortho"}
 host = {shape = "box3d", style = "filled", fillcolor = "#001100", fontcolor = "#00ff00", fontname = "Courier", fontsize = "11", penwidth = "1", color = "#00ff00"}
 vulnerability = {shape = "diamond", style = "filled", fillcolor = "#110000", fontcolor = "#ff0000", fontname = "Courier", fontsize = "10", penwidth = "1", color = "#ff0000"}
 privilege = {shape = "ellipse", style = "filled", fillcolor = "#111100", fontcolor = "#ffff00", fontname = "Courier", fontsize = "10", penwidth = "1", color = "#ffff00"}
@@ -121,7 +121,7 @@ exploit_edge = {color = "#ff0000", style = "bold", fontname = "Courier", fontsiz
 # Blueprint - Technical blueprint style
 # =============================================================================
 [ag_blueprint]
-graph = {rankdir = "LR", bgcolor = "#001f3f", fontname = "Courier New", splines = "ortho"}
+graph = {rankdir = "LR", bgcolor = "#001f3f", fontname = "Courier New", fontcolor = "#7fdbff", splines = "ortho"}
 host = {shape = "box", style = "filled", fillcolor = "#001f3f", fontcolor = "#7fdbff", fontname = "Courier New", fontsize = "11", penwidth = "2", color = "#7fdbff"}
 vulnerability = {shape = "diamond", style = "filled", fillcolor = "#001f3f", fontcolor = "#ff851b", fontname = "Courier New", fontsize = "10", penwidth = "2", color = "#ff851b"}
 privilege = {shape = "ellipse", style = "filled", fillcolor = "#001f3f", fontcolor = "#ffdc00", fontname = "Courier New", fontsize = "10", penwidth = "2", color = "#ffdc00"}

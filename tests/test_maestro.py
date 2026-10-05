@@ -851,10 +851,11 @@ class TestLayeredLabels:
 
 
 class TestGraphSelfLoops:
-    def test_single_agent_chain_loops_below_the_card(self):
-        # Self-loops drawn on top ran through the cluster title.
+    def test_single_agent_chain_loops_on_the_west_side(self):
+        # On top a loop ran through the cluster title, below it hung onto the
+        # next card, and east it crossed the left-to-right chain edges.
         template = os.path.join(os.path.dirname(__file__), "..", "templates", "maestro", "autonomous-soc-agent.toml")
         m = MaestroThreatModel(template, "out", format="dot", view="graph", validate_paths=False)
         m.load().render()
         loops = [ln for ln in m.graph.source.splitlines() if "layers)" in ln]
-        assert loops and all("tailport=s" in ln and "headport=s" in ln for ln in loops)
+        assert loops and all("tailport=w" in ln and "headport=w" in ln for ln in loops)

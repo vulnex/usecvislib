@@ -330,7 +330,7 @@ def _paint_nodes(
 
         if node.cvss is not None and node.cvss > 0 and theme["badges"].get("cvss", True):
             badge_size = size * 0.78
-            badge_label = f"{node.cvss:g}"
+            badge_label = f"{node.cvss:.1f}"
             badge_w = metrics.measure_text(badge_label, font["family"], badge_size, bold=True)
             canvas.add(
                 "badges",

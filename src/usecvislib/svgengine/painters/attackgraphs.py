@@ -75,7 +75,10 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     name = data.get("graph", {}).get("name", "Attack Graph")
     scene = Scene(module=MODULE_SLUG, meta={"name": name})
 
-    def add_node(node_id, lines, kind, fill, severity=None, cvss=None, text_color="#ffffff"):
+    def add_node(node_id, lines, kind, fill, severity=None, cvss=None, text_color=None):
+        if text_color is None:
+            # white on the amber privilege fill read at ~2:1
+            text_color = utils.readable_text_color(fill) or "#ffffff"
         text_w, text_h = metrics.measure_block(lines, font["family"], size)
         node_data = {
             "node-id": utils.sanitize_node_id(node_id),
@@ -85,7 +88,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
         if severity:
             node_data["severity"] = severity
         if cvss is not None:
-            node_data["cvss"] = f"{cvss:g}"
+            node_data["cvss"] = f"{cvss:.1f}"
         scene.nodes.append(
             SceneNode(
                 id=node_id,
@@ -121,7 +124,10 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
         if score is not None:
             severity = cvss_to_severity_label(score).lower()
             cvss = score
-            lines.append(f"CVSS {score:g} · {cvss_to_severity_label(score)}")
+            # One decimal like the Graphviz label (":g" printed 9.0 as "9"); "*"
+            # marks a score computed from the vector, as in Graphviz
+            derived = "*" if vuln.get("cvss_vector") and vuln.get("cvss") is None else ""
+            lines.append(f"CVSS {score:.1f}{derived} · {cvss_to_severity_label(score)}")
             if use_cvss_colors:
                 fill = cvss_to_color(score)
                 text_color = cvss_to_text_color(score)

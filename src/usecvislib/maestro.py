@@ -1073,7 +1073,7 @@ class MaestroThreatModel(VisualizationBase):
         "#7b1fa2",  # purple
         "#0097a7",  # teal
         "#c2185b",  # pink
-        "#5d4037",  # brown
+        "#8d6e63",  # brown (#5d4037 vanished on dark presets)
     )
 
     def _chain_labels_mode(self) -> str:
@@ -1391,9 +1391,11 @@ class MaestroThreatModel(VisualizationBase):
                     penwidth="1.5",
                     arrowhead="vee",
                     style="dashed",
-                    # Loop under the card: on top it ran through the cluster title
-                    tailport="s",
-                    headport="s",
+                    # Loop on the west side: on top it ran through the cluster
+                    # title, underneath it hung onto the agent card below, and
+                    # east it crossed the left-to-right chain edges
+                    tailport="w",
+                    headport="w",
                 )
                 continue
 
