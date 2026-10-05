@@ -320,3 +320,22 @@ def test_template_count():
     assert categories.get("network", 0) >= 3
     assert categories.get("security", 0) >= 3
     assert categories.get("business", 0) >= 3
+
+
+class TestAttackTreeEdgeSeverity:
+    """Severity edge labels must agree with the target node's CVSS score."""
+
+    @pytest.mark.parametrize("name", ["network_infrastructure", "network_infrastructure_with_icons"])
+    def test_edge_labels_match_cvss(self, name):
+        import tomllib
+
+        from usecvislib.constants import cvss_to_severity_label
+
+        with open(Path(__file__).parent.parent / "templates" / "attack-trees" / f"{name}.toml", "rb") as f:
+            data = tomllib.load(f)
+        for children in data["edges"].values():
+            for edge in children:
+                node = data["nodes"].get(edge["to"], {})
+                label = edge.get("label", "")
+                if "cvss" in node and label.upper() in {"LOW", "MEDIUM", "HIGH", "CRITICAL"}:
+                    assert label.upper() == cvss_to_severity_label(node["cvss"]).upper(), edge["to"]

@@ -1360,6 +1360,9 @@ class MaestroThreatModel(VisualizationBase):
                     penwidth="1.5",
                     arrowhead="vee",
                     style="dashed",
+                    # Loop under the card: on top it ran through the cluster title
+                    tailport="s",
+                    headport="s",
                 )
                 continue
 

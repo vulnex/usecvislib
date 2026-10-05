@@ -19,7 +19,7 @@ type = "Privilege Gradient Graph"
 # Trust Zones (Purdue levels - higher level = lower trust in OT context)
 [[zones]]
 id = "enterprise"
-label = "Enterprise IT (Level 4)"
+label = "Enterprise IT (Purdue L4)"
 trust_level = 0
 color = "#ffcccc"
 border_color = "#cc0000"
@@ -27,7 +27,7 @@ font_color = "#660000"
 
 [[zones]]
 id = "operations"
-label = "Site Operations (Level 3)"
+label = "Site Operations (Purdue L3)"
 trust_level = 1
 color = "#ffe0b2"
 border_color = "#e65100"
@@ -35,7 +35,7 @@ font_color = "#663300"
 
 [[zones]]
 id = "supervisory"
-label = "Supervisory (Level 2)"
+label = "Supervisory (Purdue L2)"
 trust_level = 2
 color = "#fff9c4"
 border_color = "#f9a825"
@@ -43,7 +43,7 @@ font_color = "#665500"
 
 [[zones]]
 id = "control"
-label = "Basic Control (Level 1)"
+label = "Basic Control (Purdue L1)"
 trust_level = 3
 color = "#c8e6c9"
 border_color = "#2e7d32"
@@ -51,7 +51,7 @@ font_color = "#1b5e20"
 
 [[zones]]
 id = "process"
-label = "Physical Process (Level 0)"
+label = "Physical Process (Purdue L0)"
 trust_level = 4
 color = "#bbdefb"
 border_color = "#1565c0"

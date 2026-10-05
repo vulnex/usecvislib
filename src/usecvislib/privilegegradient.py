@@ -476,6 +476,9 @@ class PrivilegeGradient(VisualizationBase):
                 sub_attrs = utils.stringify_dict(zone_style.copy())
                 sub.attr(
                     label=f"{zone_label}\\n(Trust Level {trust_level})",
+                    # Title at the bottom: cross-zone edges mostly enter from
+                    # above in these layouts and ran through top titles
+                    labelloc="b",
                     fillcolor=zone_color,
                     color=zone_border,
                     fontcolor=zone_font_color,

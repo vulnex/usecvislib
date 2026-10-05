@@ -288,6 +288,10 @@ class AttackTrees(VisualizationBase):
         utils.process_node_image(root_node_kwargs, root_node, self.logger, preserve_shape=user_set_shape)
         root_node_kwargs = utils.stringify_dict(root_node_kwargs)
         self.dot.node(utils.sanitize_node_id(root_node), **root_node_kwargs)
+        # Icon nodes (HTML icon-over-text tables): edges aim at the icon cell
+        icon_nodes = set()
+        if root_node_kwargs.get("label", "").startswith("<<TABLE"):
+            icon_nodes.add(utils.sanitize_node_id(root_node))
 
         # Add remaining nodes with styling and CVSS support
         for node, attributes in nodes.items():
@@ -360,6 +364,13 @@ class AttackTrees(VisualizationBase):
             utils.process_node_image(node_kwargs, node, self.logger, preserve_shape=user_set_shape)
             node_kwargs = utils.stringify_dict(node_kwargs)
             self.dot.node(utils.sanitize_node_id(node), **node_kwargs)
+            if node_kwargs.get("label", "").startswith("<<TABLE"):
+                icon_nodes.add(utils.sanitize_node_id(node))
+
+        # Edges into an icon node end at the icon, not at the edge of its
+        # (label-wide) bounding box, where arrows stopped in empty space.
+        rankdir = str(diagraph_params.get("rankdir", "TB")).upper()
+        icon_port = {"LR": "icon:w", "RL": "icon:e", "BT": "icon:s"}.get(rankdir, "icon:n")
 
         # Add edges
         for parent, children in edges.items():
@@ -374,6 +385,8 @@ class AttackTrees(VisualizationBase):
                 edge_attrs = {k: v for k, v in child.items() if k != "to"}
                 edge_kwargs = utils.merge_dicts(edge_attrs, edge_defaults)
                 edge_kwargs = utils.stringify_dict(edge_kwargs)
+                if utils.sanitize_node_id(child["to"]) in icon_nodes:
+                    edge_kwargs.setdefault("headport", icon_port)
                 self.dot.edge(utils.sanitize_node_id(parent), utils.sanitize_node_id(child["to"]), **edge_kwargs)
 
         self.logger.debug(f"Rendered attack tree with {len(nodes)} nodes")

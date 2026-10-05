@@ -811,3 +811,13 @@ class TestTemplateIcons:
         cd.load_from_string('[diagram]\ntitle = "x"\n[[nodes]]\nid = "a"\nicon = "aws.compute.NoSuchThing"\nlabel = "a"\n')
         with pytest.raises(IconNotFoundError):
             cd.render(str(tmp_path / "out"), format="png")
+
+
+class TestLabelWrap:
+    def test_long_labels_wrap_to_node_width(self):
+        # Long labels overflowed the fixed-width icon node and its cluster.
+        from usecvislib.clouddiagrams import _wrap_node_label
+
+        assert _wrap_node_label("Web Application Firewall") == "Web Application\nFirewall"
+        assert _wrap_node_label("SSO") == "SSO"
+        assert _wrap_node_label("Keep\nmy breaks as written please") == "Keep\nmy breaks as written please"

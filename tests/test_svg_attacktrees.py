@@ -307,7 +307,7 @@ class TestDagRoutingAndLayout:
             # Halo copy under the fill copy (paint-order is not portable)
             assert len(texts) == 2 and texts[0].text == texts[1].text
             seen.append(texts[1].text)
-        assert sorted(seen) == ["CRITICAL", "CRITICAL", "HIGH", "HIGH", "HIGH", "HIGH", "MEDIUM", "OR", "OR", "OR"]
+        assert sorted(seen) == ["CRITICAL", "HIGH", "HIGH", "HIGH", "HIGH", "HIGH", "MEDIUM", "OR", "OR", "OR"]
 
     def test_gate_chips_rendered(self, tmp_path):
         root = ET.fromstring(_render(self.NETINFRA, tmp_path))

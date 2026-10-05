@@ -43,6 +43,6 @@ params = { rankdir = "TB", splines = "polyline", nodesep = "0.8", ranksep = "1.0
 
 [edges]
 "Compromise Infrastructure" = [{to="Attack Web Tier", label="OR"}, {to="Attack Database Tier", label="OR"}, {to="Attack Internal Network", label="OR"}]
-"Attack Web Tier" = [{to="SQL Injection", label="HIGH"}, {to="XSS Attack", label="MEDIUM"}, {to="Session Hijacking", label="HIGH"}]
-"Attack Database Tier" = [{to="Credential Theft", label="HIGH"}, {to="Privilege Escalation", label="CRITICAL"}]
-"Attack Internal Network" = [{to="Lateral Movement", label="HIGH"}, {to="Pass-the-Hash", label="CRITICAL"}]
+"Attack Web Tier" = [{to="SQL Injection", label="CRITICAL"}, {to="XSS Attack", label="MEDIUM"}, {to="Session Hijacking", label="HIGH"}]
+"Attack Database Tier" = [{to="Credential Theft", label="HIGH"}, {to="Privilege Escalation", label="HIGH"}]
+"Attack Internal Network" = [{to="Lateral Movement", label="HIGH"}, {to="Pass-the-Hash", label="HIGH"}]

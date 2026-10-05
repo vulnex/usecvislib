@@ -848,3 +848,13 @@ class TestLayeredLabels:
         for clt in m.cross_layer_threats.values():
             assert f'label=" {clt.id}"' in source
             assert f'label=" {clt.id}: ' not in source
+
+
+class TestGraphSelfLoops:
+    def test_single_agent_chain_loops_below_the_card(self):
+        # Self-loops drawn on top ran through the cluster title.
+        template = os.path.join(os.path.dirname(__file__), "..", "templates", "maestro", "autonomous-soc-agent.toml")
+        m = MaestroThreatModel(template, "out", format="dot", view="graph", validate_paths=False)
+        m.load().render()
+        loops = [ln for ln in m.graph.source.splitlines() if "layers)" in ln]
+        assert loops and all("tailport=s" in ln and "headport=s" in ln for ln in loops)

@@ -27,7 +27,7 @@ version = "1.0.0"
 type = "Attack Tree"
 date = "2025-12-30"
 author = "VULNEX"
-params = { rankdir = "TB", splines = "ortho", nodesep = "1.2" }
+params = { rankdir = "TB", splines = "polyline", nodesep = "1.2" }
 
 [nodes]
 # Root node - Main attack goal

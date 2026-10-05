@@ -844,7 +844,7 @@ def process_node_image(
 
         escaped_display = _html.escape(str(display_path), quote=True)
         html_label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
-<TR><TD><IMG SRC="{escaped_display}"/></TD></TR>
+<TR><TD PORT="icon"><IMG SRC="{escaped_display}"/></TD></TR>
 <TR><TD>{safe_label}</TD></TR>
 </TABLE>>'''
 

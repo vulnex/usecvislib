@@ -81,6 +81,20 @@ class IconNotFoundError(CloudDiagramError):
 # =============================================================================
 
 
+def _wrap_node_label(label: str, width: int = 18) -> str:
+    """Wrap a long node label onto lines that fit the fixed-width icon node.
+
+    diagrams nodes are a fixed 1.4in wide with the label underneath, so a
+    long label ("Web Application Firewall") overflowed its cluster border.
+    Labels with explicit line breaks are left as written.
+    """
+    if "\n" in label or len(label) <= width:
+        return label
+    import textwrap
+
+    return "\n".join(textwrap.wrap(label, width=width)) or label
+
+
 def _escape_python_string(value: str, max_length: int = 500) -> str:
     """Escape a string for safe use in generated Python code.
 
@@ -614,7 +628,7 @@ class CloudDiagrams:
         for node in standalone_nodes:
             var_name = self._safe_var_name(node.id)
             icon_class = self._get_icon_class_name(node.icon)
-            label_escaped = _escape_python_string(node.label)
+            label_escaped = _escape_python_string(_wrap_node_label(node.label))
             lines.append(f'    {var_name} = {icon_class}("{label_escaped}")')
             node_vars[node.id] = var_name
 
@@ -627,7 +641,7 @@ class CloudDiagrams:
             for node in cluster.nodes:
                 var_name = self._safe_var_name(node.id)
                 icon_class = self._get_icon_class_name(node.icon)
-                node_label_escaped = _escape_python_string(node.label)
+                node_label_escaped = _escape_python_string(_wrap_node_label(node.label))
                 lines.append(f'        {var_name} = {icon_class}("{node_label_escaped}")')
                 node_vars[node.id] = var_name
 
