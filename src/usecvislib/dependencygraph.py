@@ -258,8 +258,13 @@ class DependencyGraph(VisualizationBase):
         circular_style = self.style.get("circular", self._default_style()["circular"])
         group_style = self.style.get("group", self._default_style()["group"])
 
-        self.graph = Digraph(name=title, format=self.format, engine="fdp")
-        graph_attrs = utils.stringify_dict(graph_style)
+        # dot, not fdp: fdp layouts are not reproducible (the same input gave
+        # different pictures under concurrent renders, e.g. in the API), and a
+        # layered left-to-right flow reads naturally for dependencies.
+        self.graph = Digraph(name=title, format=self.format, engine="dot")
+        graph_attrs = {"rankdir": "LR", "nodesep": "0.4", "ranksep": "0.9", **utils.stringify_dict(graph_style)}
+        for fdp_only in ("overlap", "sep"):
+            graph_attrs.pop(fdp_only, None)
         self.graph.attr(**graph_attrs)
 
         if title:

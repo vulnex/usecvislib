@@ -65,6 +65,23 @@ class MermaidDirection(str, Enum):
 # =============================================================================
 
 
+_MERMAID_RESERVED_IDS = frozenset(
+    {
+        "end",
+        "graph",
+        "subgraph",
+        "flowchart",
+        "class",
+        "classdef",
+        "style",
+        "click",
+        "linkstyle",
+        "default",
+        "direction",
+    }
+)
+
+
 def sanitize_node_id(node_id: str) -> str:
     """
     Sanitize a node ID for Mermaid compatibility.
@@ -92,6 +109,10 @@ def sanitize_node_id(node_id: str) -> str:
     # Ensure doesn't start with number
     if sanitized and sanitized[0].isdigit():
         sanitized = "n_" + sanitized
+
+    # Mermaid keywords cannot be node ids ("end" closes a subgraph)
+    if sanitized.lower() in _MERMAID_RESERVED_IDS:
+        sanitized += "_node"
 
     # Ensure not empty
     return sanitized or "node"
@@ -150,8 +171,14 @@ def detect_visualization_type(data: dict[str, Any]) -> str:
 
     Returns:
         Visualization type string: 'attack_tree', 'threat_model',
-        'attack_graph', 'killchain', 'timeline', or 'unknown'
+        'attack_graph', 'killchain', 'timeline', 'access_graph', 'vuln_tree',
+        'component_diagram', 'dependency_graph', 'privilege_gradient',
+        'maestro', 'node_graph', 'mermaid_source', or 'unknown'
     """
+    # Mermaid templates already carry Mermaid source
+    if isinstance(data.get("mermaid"), dict) and data["mermaid"].get("source"):
+        return "mermaid_source"
+
     # Attack Trees: have 'tree' section with 'root'
     if "tree" in data and "root" in data.get("tree", {}):
         return "attack_tree"
@@ -185,6 +212,26 @@ def detect_visualization_type(data: dict[str, Any]) -> str:
         deps = data.get("dependencies", {})
         if isinstance(deps, dict) and any("vulnerabilities" in v for v in deps.values() if isinstance(v, dict)):
             return "vuln_tree"
+
+    # Component Diagram: layered components plus connections
+    if isinstance(data.get("layers"), list) and "connections" in data:
+        return "component_diagram"
+
+    # Dependency Graph: modules plus dependencies
+    if isinstance(data.get("modules"), list | dict) and "dependencies" in data:
+        return "dependency_graph"
+
+    # Privilege Gradient: trust zones, components, influences
+    if "zones" in data and "components" in data and ("influences" in data or "gradient" in data):
+        return "privilege_gradient"
+
+    # MAESTRO: agents (with layers) and cross-layer threats
+    if "agents" in data and ("cross_layer_threats" in data or "meta" in data):
+        return "maestro"
+
+    # Custom / cloud diagrams: plain node and edge lists
+    if isinstance(data.get("nodes"), list) and isinstance(data.get("edges"), list):
+        return "node_graph"
 
     return "unknown"
 
@@ -236,10 +283,10 @@ def _convert_attack_tree(data: dict[str, Any], direction: MermaidDirection = Mer
             lines.append(f'    {safe_id}(["{safe_label}"])')
         elif node_type == "and":
             # AND node: hexagon
-            lines.append(f"    {safe_id}{{{{{safe_label}}}}}")
+            lines.append(f'    {safe_id}{{{{"{safe_label}"}}}}')
         elif node_type == "or":
             # OR node: diamond
-            lines.append(f"    {safe_id}{{{safe_label}}}")
+            lines.append(f'    {safe_id}{{"{safe_label}"}}')
         else:
             # Regular node: rectangle
             lines.append(f'    {safe_id}["{safe_label}"]')
@@ -259,7 +306,7 @@ def _convert_attack_tree(data: dict[str, Any], direction: MermaidDirection = Mer
                     safe_target = sanitize_node_id(target.get("to", ""))
                     edge_label = target.get("label", "")
                     if edge_label:
-                        lines.append(f"    {safe_source} -->|{escape_label(edge_label)}| {safe_target}")
+                        lines.append(f'    {safe_source} -->|"{escape_label(edge_label)}"| {safe_target}')
                     else:
                         lines.append(f"    {safe_source} --> {safe_target}")
         elif isinstance(targets, dict):
@@ -269,7 +316,7 @@ def _convert_attack_tree(data: dict[str, Any], direction: MermaidDirection = Mer
                 if isinstance(attrs, dict):
                     edge_label = attrs.get("label", "")
                     if edge_label:
-                        lines.append(f"    {safe_source} -->|{escape_label(edge_label)}| {safe_target}")
+                        lines.append(f'    {safe_source} -->|"{escape_label(edge_label)}"| {safe_target}')
                     else:
                         lines.append(f"    {safe_source} --> {safe_target}")
                 else:
@@ -375,7 +422,7 @@ def _convert_threat_model_flowchart(data: dict[str, Any]) -> str:
             safe_target = sanitize_node_id(target)
 
             if flow_label:
-                lines.append(f"    {safe_source} -->|{escape_label(flow_label)}| {safe_target}")
+                lines.append(f'    {safe_source} -->|"{escape_label(flow_label)}"| {safe_target}')
             else:
                 lines.append(f"    {safe_source} --> {safe_target}")
 
@@ -388,7 +435,7 @@ def _convert_threat_model_flowchart(data: dict[str, Any]) -> str:
 
             if boundary_elements:
                 safe_boundary = sanitize_node_id(boundary_id)
-                lines.append(f"    subgraph {safe_boundary}[{escape_label(boundary_name)}]")
+                lines.append(f'    subgraph {safe_boundary}["{escape_label(boundary_name)}"]')
                 for elem in boundary_elements:
                     lines.append(f"        {sanitize_node_id(elem)}")
                 lines.append("    end")
@@ -497,7 +544,7 @@ def _convert_attack_graph(data: dict[str, Any], max_nodes: int = 100) -> str:
         cvss = vuln_data.get("cvss", "")
         if cvss:
             label = f"{label} ({cvss})"
-        lines.append(f"    {safe_id}{{{escape_label(label)}}}")
+        lines.append(f'    {safe_id}{{"{escape_label(label)}"}}')
         node_count += 1
 
     # Generate privilege nodes (hexagon shape)
@@ -506,7 +553,7 @@ def _convert_attack_graph(data: dict[str, Any], max_nodes: int = 100) -> str:
             break
         safe_id = sanitize_node_id(priv_id)
         label = priv_data.get("label", priv_data.get("name", priv_id))
-        lines.append(f"    {safe_id}{{{{{escape_label(label)}}}}}")
+        lines.append(f'    {safe_id}{{{{"{escape_label(label)}"}}}}')
         node_count += 1
 
     # Generate service nodes (rounded rectangle)
@@ -538,7 +585,7 @@ def _convert_attack_graph(data: dict[str, Any], max_nodes: int = 100) -> str:
                 safe_pre = sanitize_node_id(pre)
                 safe_post = sanitize_node_id(post)
                 exploit_label = exploit_data.get("label", exploit_id)
-                lines.append(f"    {safe_pre} ==>|{escape_label(exploit_label)}| {safe_post}")
+                lines.append(f'    {safe_pre} ==>|"{escape_label(exploit_label)}"| {safe_post}')
 
     # Vulnerability to host connections
     for vuln_id, vuln_data in vulnerabilities.items():
@@ -698,7 +745,9 @@ def _convert_timeline(data: dict[str, Any]) -> str:
 
     incident_name = incident.get("name", "Incident Timeline")
     lines.append(f"    title {escape_label(incident_name)}")
-    lines.append("    dateFormat YYYY-MM-DDTHH:mm:ss")
+    # Must match the "YYYY-MM-DD HH:MM:SS" form _add_gantt_event writes
+    # (a "T" here left every date unparsable and crashed mermaid-cli)
+    lines.append("    dateFormat YYYY-MM-DD HH:mm:ss")
     lines.append("    axisFormat %H:%M")
     lines.append("")
 
@@ -750,12 +799,13 @@ def _add_gantt_event(lines: list[str], event: dict[str, Any]) -> None:
     # Format timestamp for Gantt
     timestamp = event.get("timestamp", "")
     if timestamp:
-        # Remove timezone indicator for Mermaid compatibility
-        timestamp = timestamp.replace("Z", "").replace("T", " ")
+        # Drop the timezone (Z or +hh:mm) for Mermaid; space-separated time
+        timestamp = re.sub(r"(Z|[+-]\d{2}:?\d{2})$", "", str(timestamp)).replace("T", " ")
 
     duration = event.get("duration", "5m")
 
-    safe_title = escape_label(title)
+    # ":" separates a gantt task's title from its data
+    safe_title = escape_label(title).replace(":", " -")
     safe_id = sanitize_node_id(event_id) if event_id else ""
 
     if safe_id:
@@ -844,7 +894,7 @@ def _convert_access_graph(data: dict[str, Any], max_nodes: int = 50) -> str:
         # Only include if both nodes are in the graph
         if safe_source in valid_nodes and safe_target in valid_nodes:
             if rel_type:
-                lines.append(f"    {safe_source} -->|{escape_label(rel_type)}| {safe_target}")
+                lines.append(f'    {safe_source} -->|"{escape_label(rel_type)}"| {safe_target}')
             else:
                 lines.append(f"    {safe_source} --> {safe_target}")
 
@@ -952,6 +1002,161 @@ def _convert_vuln_tree(data: dict[str, Any]) -> str:
 # =============================================================================
 
 
+def _items_of(section: Any, id_key: str = "id") -> list[dict[str, Any]]:
+    """Normalize a list-of-dicts or id-keyed dict section to a list of dicts with ids."""
+    if isinstance(section, dict):
+        return [{id_key: k, **v} for k, v in section.items() if isinstance(v, dict)]
+    if isinstance(section, list):
+        return [item for item in section if isinstance(item, dict)]
+    return []
+
+
+def _edge_line(src: str, dst: str, label: Any = "", arrow: str = "-->") -> str:
+    """One flowchart edge; labels are quoted so punctuation is safe."""
+    s, d = sanitize_node_id(str(src)), sanitize_node_id(str(dst))
+    if label:
+        return f'    {s} {arrow}|"{escape_label(label)}"| {d}'
+    return f"    {s} {arrow} {d}"
+
+
+def _convert_component_diagram(data: dict[str, Any]) -> str:
+    """Component diagram: one subgraph per layer (in order), typed connections."""
+    lines = ["flowchart TB", f"    %% {escape_label(data.get('title', 'Component Diagram'))}", ""]
+    layers = sorted(_items_of(data.get("layers")), key=lambda layer: layer.get("order", 0))
+    for i, layer in enumerate(layers):
+        lines.append(f'    subgraph layer_{i}["{escape_label(layer.get("name", f"Layer {i}"))}"]')
+        for comp in _items_of(layer.get("components")):
+            label = comp.get("name", comp.get("id", ""))
+            if comp.get("tech"):
+                label = f"{label} - {comp['tech']}"
+            lines.append(f'        {sanitize_node_id(str(comp.get("id", label)))}["{escape_label(label)}"]')
+        lines.append("    end")
+    for conn in _items_of(data.get("connections")):
+        arrow = "-.->" if conn.get("style") in ("async", "event") else "-->"
+        lines.append(_edge_line(conn.get("from", ""), conn.get("to", ""), conn.get("label", ""), arrow))
+    return "\n".join(lines)
+
+
+def _convert_dependency_graph(data: dict[str, Any]) -> str:
+    """Dependency graph: modules grouped into subgraphs; circular edges labelled."""
+    lines = ["flowchart LR", f"    %% {escape_label(data.get('title', 'Dependency Graph'))}", ""]
+    modules = _items_of(data.get("modules"))
+    circular = set()
+    for cycle in data.get("circular", []) or []:
+        members = cycle.get("cycle") if isinstance(cycle, dict) else cycle
+        if isinstance(members, list) and len(members) >= 2:
+            for i, src in enumerate(members):
+                circular.add((src, members[(i + 1) % len(members)]))
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for mod in modules:
+        groups.setdefault(mod.get("group", ""), []).append(mod)
+    for group, members in groups.items():
+        if group:
+            lines.append(f'    subgraph grp_{sanitize_node_id(group)}["{escape_label(group)}"]')
+        for mod in members:
+            mid = sanitize_node_id(str(mod.get("id", mod.get("name", ""))))
+            label = escape_label(mod.get("name", mid))
+            external = mod.get("type") == "external" or mod.get("external")
+            lines.append(f'        {mid}(["{label}"])' if external else f'        {mid}["{label}"]')
+        if group:
+            lines.append("    end")
+    for dep in _items_of(data.get("dependencies")):
+        src, dst = dep.get("from", ""), dep.get("to", "")
+        if (src, dst) in circular:
+            lines.append(_edge_line(src, dst, "circular", "==>"))
+        else:
+            lines.append(_edge_line(src, dst, "", "-.->" if dep.get("type") in ("runtime", "framework") else "-->"))
+    return "\n".join(lines)
+
+
+def _convert_privilege_gradient(data: dict[str, Any]) -> str:
+    """Privilege gradient: trust zones (low to high) as subgraphs, influence edges."""
+    meta = data.get("gradient", {}) if isinstance(data.get("gradient"), dict) else {}
+    lines = ["flowchart LR", f"    %% {escape_label(meta.get('name', 'Privilege Gradient'))}", ""]
+    zones = sorted(_items_of(data.get("zones")), key=lambda z: z.get("trust_level", 0))
+    components = _items_of(data.get("components"))
+    for zone in zones:
+        zid = zone.get("id", "")
+        title = f"{zone.get('label', zid)} (Trust {zone.get('trust_level', 0)})"
+        lines.append(f'    subgraph zone_{sanitize_node_id(str(zid))}["{escape_label(title)}"]')
+        for comp in components:
+            if comp.get("zone") == zid:
+                cid = sanitize_node_id(str(comp.get("id", "")))
+                lines.append(f'        {cid}["{escape_label(comp.get("label", comp.get("id", "")))}"]')
+        lines.append("    end")
+    for inf in _items_of(data.get("influences")):
+        lines.append(_edge_line(inf.get("from", ""), inf.get("to", ""), inf.get("label", "")))
+    return "\n".join(lines)
+
+
+def _convert_maestro(data: dict[str, Any]) -> str:
+    """MAESTRO: agents grouped by primary layer; cross-layer chains as edges."""
+    meta = data.get("meta", {}) if isinstance(data.get("meta"), dict) else {}
+    lines = ["flowchart LR", f"    %% {escape_label(meta.get('name', 'MAESTRO Threat Model'))}", ""]
+    agents = _items_of(data.get("agents"))
+    by_layer: dict[str, list[dict[str, Any]]] = {}
+    for agent in agents:
+        layers = agent.get("layers") or ["unassigned"]
+        by_layer.setdefault(layers[0], []).append(agent)
+    for layer, members in by_layer.items():
+        lines.append(f'    subgraph layer_{sanitize_node_id(layer)}["{escape_label(layer)}"]')
+        for agent in members:
+            aid = sanitize_node_id(f"agent_{agent.get('id', '')}")
+            label = f"{agent.get('name', agent.get('id', ''))} - {agent.get('type', '')}"
+            lines.append(f'        {aid}["{escape_label(label)}"]')
+        lines.append("    end")
+    for clt in _items_of(data.get("cross_layer_threats")):
+        path = []
+        for layer in clt.get("layers", []) or []:
+            agent = next((a for a in agents if layer in (a.get("layers") or [])), None)
+            if agent is not None:
+                aid = f"agent_{agent.get('id', '')}"
+                if not path or path[-1] != aid:
+                    path.append(aid)
+        for i in range(len(path) - 1):
+            lines.append(_edge_line(path[i], path[i + 1], clt.get("id", "") if i == 0 else "", "-.->"))
+    return "\n".join(lines)
+
+
+def _convert_node_graph(data: dict[str, Any]) -> str:
+    """Custom / cloud diagrams: node and edge lists, clusters as subgraphs."""
+    diagram = data.get("diagram", {}) if isinstance(data.get("diagram"), dict) else {}
+    direction = str(diagram.get("direction", "TB")).upper()
+    direction = direction if direction in ("TB", "TD", "BT", "LR", "RL") else "TB"
+    lines = [f"flowchart {direction}", f"    %% {escape_label(diagram.get('title', 'Diagram'))}", ""]
+    nodes = {str(n.get("id", "")): n for n in _items_of(data.get("nodes"))}
+
+    def node_line(nid: str, indent: str) -> str:
+        node = nodes[nid]
+        label = node.get("label", node.get("name", nid))
+        return f'{indent}{sanitize_node_id(nid)}["{escape_label(label)}"]'
+
+    placed: set[str] = set()
+    for cluster in _items_of(data.get("clusters")):
+        lines.append(
+            f"    subgraph cl_{sanitize_node_id(str(cluster.get('id', '')))}"
+            f'["{escape_label(cluster.get("label", cluster.get("id", "")))}"]'
+        )
+        for member in cluster.get("nodes", []) or []:
+            mid = str(member.get("id", "")) if isinstance(member, dict) else str(member)
+            if isinstance(member, dict) and mid not in nodes:
+                nodes[mid] = member
+            if mid in nodes and mid not in placed:
+                lines.append(node_line(mid, "        "))
+                placed.add(mid)
+        lines.append("    end")
+    for nid in nodes:
+        if nid not in placed:
+            lines.append(node_line(nid, "    "))
+    for edge in _items_of(data.get("edges")):
+        targets = edge.get("to", "")
+        for dst in targets if isinstance(targets, list) else [targets]:
+            src_list = edge.get("from", "")
+            for src in src_list if isinstance(src_list, list) else [src_list]:
+                lines.append(_edge_line(src, dst, edge.get("label", "")))
+    return "\n".join(lines)
+
+
 def _convert_generic(data: dict[str, Any]) -> str:
     """
     Convert generic/unknown configuration to basic Mermaid flowchart.
@@ -1036,6 +1241,12 @@ def serialize_to_mermaid(
         "timeline": lambda: _convert_timeline(data),
         "access_graph": lambda: _convert_access_graph(data, max_nodes),
         "vuln_tree": lambda: _convert_vuln_tree(data),
+        "mermaid_source": lambda: str(data["mermaid"]["source"]).strip(),
+        "component_diagram": lambda: _convert_component_diagram(data),
+        "dependency_graph": lambda: _convert_dependency_graph(data),
+        "privilege_gradient": lambda: _convert_privilege_gradient(data),
+        "maestro": lambda: _convert_maestro(data),
+        "node_graph": lambda: _convert_node_graph(data),
         "unknown": lambda: _convert_generic(data),
     }
 

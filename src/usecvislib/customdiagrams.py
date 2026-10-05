@@ -403,10 +403,11 @@ class CustomDiagrams:
         # each other (risk-matrix used "grid" -> neato).
         engine = self.LAYOUTS.get(self.settings.layout, "dot")
         if self.clusters and engine not in ("dot", "fdp"):
+            # dot rather than fdp: fdp layouts are not reproducible run to run
             logger.warning(
-                f"Layout '{self.settings.layout}' ({engine}) cannot draw clusters; using 'force' (fdp) instead"
+                f"Layout '{self.settings.layout}' ({engine}) cannot draw clusters; using 'hierarchical' (dot) instead"
             )
-            engine = "fdp"
+            engine = "dot"
 
         # Create graph
         graph = gv.Digraph(

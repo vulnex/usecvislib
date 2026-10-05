@@ -666,4 +666,4 @@ class TestLayoutModes:
         cd = self._cd("security/risk-matrix.toml")
         cd.settings.layout = "grid"
         cd.validate(raise_on_error=False)
-        assert cd._render_impl().engine == "fdp"
+        assert cd._render_impl().engine == "dot"

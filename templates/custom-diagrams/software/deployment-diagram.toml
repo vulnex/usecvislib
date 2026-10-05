@@ -41,7 +41,7 @@ label_template = "<<artifact>>\n{name}\n{version}"
 [schema.nodes.container]
 shape = "rectangle"
 required_fields = ["name"]
-optional_fields = ["image"]
+optional_fields = ["container_image"]
 style = { fillcolor = "#1ABC9C", fontcolor = "white" }
 label_template = "<<container>>\n{name}"
 
@@ -127,13 +127,13 @@ technology = "Docker 24.0"
 id = "app_container1"
 type = "container"
 name = "app:latest"
-image = "app:v2.1.0"
+container_image = "app:v2.1.0"
 
 [[nodes]]
 id = "app_container2"
 type = "container"
 name = "app:latest"
-image = "app:v2.1.0"
+container_image = "app:v2.1.0"
 
 [[nodes]]
 id = "app_artifact"
