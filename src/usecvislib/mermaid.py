@@ -1208,19 +1208,38 @@ def _convert_node_graph(data: dict[str, Any]) -> str:
         return str(value if value not in (None, "") else edge.get("label", ""))
 
     placed: set[str] = set()
-    for cluster in _items_of(data.get("clusters")):
+    clusters = _items_of(data.get("clusters"))
+    cluster_ids = {str(c.get("id", "")) for c in clusters}
+    kids: dict[str, list[dict[str, Any]]] = {}
+    for cluster in clusters:
+        kids.setdefault(str(cluster.get("parent") or ""), []).append(cluster)
+    done: set[str] = set()
+
+    def emit(cluster: dict[str, Any], depth: int) -> None:
+        cid = str(cluster.get("id", ""))
+        if cid in done:
+            return
+        done.add(cid)
+        pad = "    " * depth
         lines.append(
-            f"    subgraph cl_{sanitize_node_id(str(cluster.get('id', '')))}"
-            f'["{escape_label(cluster.get("label", cluster.get("id", "")))}"]'
+            f'{pad}subgraph cl_{sanitize_node_id(cid)}["{escape_label(cluster.get("label", cluster.get("id", "")))}"]'
         )
         for member in cluster.get("nodes", []) or []:
             mid = str(member.get("id", "")) if isinstance(member, dict) else str(member)
             if isinstance(member, dict) and mid not in nodes:
                 nodes[mid] = member
             if mid in nodes and mid not in placed:
-                lines.append(node_line(mid, "        "))
+                lines.append(node_line(mid, pad + "    "))
                 placed.add(mid)
-        lines.append("    end")
+        for child in kids.get(cid, []):  # nested clusters ("parent" key)
+            emit(child, depth + 1)
+        lines.append(f"{pad}end")
+
+    for cluster in clusters:
+        if str(cluster.get("parent") or "") not in cluster_ids:
+            emit(cluster, 1)
+    for cluster in clusters:
+        emit(cluster, 1)
     for nid in nodes:
         if nid not in placed:
             lines.append(node_line(nid, "    "))

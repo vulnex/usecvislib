@@ -429,6 +429,11 @@ from = "pol_mfa"
 to = "res_hr"
 type = "applies_to"
 
+[[edges]]
+from = "pol_time"
+to = "perm_deploy"
+type = "applies_to"
+
 # Groupings
 [[clusters]]
 id = "principals"

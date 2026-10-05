@@ -11,7 +11,7 @@ description = "Physical deployment of software components with visual icons"
 layout = "hierarchical"
 direction = "TB"
 style = "cd_blueprint"
-splines = "ortho"
+splines = "polyline"
 nodesep = 0.8
 ranksep = 1.0
 
@@ -123,14 +123,14 @@ id = "docker_web1"
 type = "execution_env"
 name = "Docker"
 technology = "Docker 24.0"
-image = "bundled:bootstrap/icons/icons/box"
+image = "bundled:aws/Containers/Fargate"  # coloured: the monochrome box glyph vanished on dark presets
 
 [[nodes]]
 id = "docker_web2"
 type = "execution_env"
 name = "Docker"
 technology = "Docker 24.0"
-image = "bundled:bootstrap/icons/icons/box"
+image = "bundled:aws/Containers/Fargate"  # coloured: the monochrome box glyph vanished on dark presets
 
 [[nodes]]
 id = "app_container1"

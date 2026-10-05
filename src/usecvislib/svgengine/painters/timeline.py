@@ -483,7 +483,9 @@ def _render_vertical(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
         g.append(shapes.band(band_x0, y0, band_x1 - band_x0, h, ph.color, opacity=alpha))
         ops.groups.append(g)
         bounds.rect(band_x0, y0, band_x1 - band_x0, h)
-        _anchored_label(ops.labels, bounds, names_x, y0 + name_size * 1.2, ph.name, name_size, family, ph.color, "start")
+        _anchored_label(
+            ops.labels, bounds, names_x, y0 + name_size * 1.2, ph.name, name_size, family, ph.color, "start"
+        )
 
     # Legend right of everything drawn, so it never covers a label.
     _legend(viz, theme, ops, bounds, bounds.max_x + 24.0, content_top + 4.0, float(font["size"]) * 0.85, family)

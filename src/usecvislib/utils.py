@@ -846,10 +846,24 @@ def process_node_image(
         import html as _html
 
         escaped_display = _html.escape(str(display_path), quote=True)
-        html_label = f'''<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
-<TR><TD PORT="icon"><IMG SRC="{escaped_display}"/></TD></TR>
+        # The icon's port cell is fixed to the image size inside a nested
+        # table: a plain cell stretched to the (wider) label row, so edges
+        # attached to port "icon" still stopped in empty space beside it.
+        icon_cell = f'<TD PORT="icon"><IMG SRC="{escaped_display}"/></TD>'
+        if PIL_AVAILABLE:
+            try:
+                with Image.open(display_path) as img:
+                    w_pt, h_pt = img.width * 72 // 96 or 1, img.height * 72 // 96 or 1
+                icon_cell = (
+                    f'<TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="{w_pt}" HEIGHT="{h_pt}">'
+                    f'<IMG SRC="{escaped_display}" SCALE="TRUE"/></TD>'
+                )
+            except Exception as e:
+                log.debug(f"Could not size image {display_path}: {e}")
+        html_label = f"""<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR>{icon_cell}</TR></TABLE></TD></TR>
 <TR><TD>{safe_label}</TD></TR>
-</TABLE>>'''
+</TABLE>>"""
 
         node_attrs["label"] = html_label
         node_attrs["shape"] = "none"  # No shape = no background

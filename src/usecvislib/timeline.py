@@ -55,6 +55,7 @@ import re
 import warnings
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from itertools import pairwise
 from typing import Any, Optional
 
 from . import utils
@@ -663,7 +664,7 @@ class IncidentTimeline(VisualizationBase):
             raw = y_raw(t)
             if not knots or raw <= knots[0][0]:
                 return raw + (knots[0][1] - knots[0][0] if knots else 0.0)
-            for (r0, a0), (r1, a1) in zip(knots, knots[1:], strict=False):
+            for (r0, a0), (r1, a1) in pairwise(knots):
                 if raw <= r1:
                     return a0 + (a1 - a0) * ((raw - r0) / (r1 - r0) if r1 > r0 else 1.0)
             return raw + knots[-1][1] - knots[-1][0]

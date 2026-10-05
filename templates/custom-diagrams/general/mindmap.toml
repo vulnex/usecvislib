@@ -9,7 +9,7 @@ description = "Radial mind mapping diagram"
 layout = "radial"
 direction = "LR"
 style = "cd_pastel"
-splines = "curved"
+splines = "true"
 nodesep = 0.8
 ranksep = 1.2
 

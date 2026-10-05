@@ -9,7 +9,7 @@ description = "Data movement between systems"
 layout = "hierarchical"
 direction = "LR"
 style = "cd_default"
-splines = "ortho"
+splines = "polyline"
 nodesep = 0.8
 ranksep = 1.0
 

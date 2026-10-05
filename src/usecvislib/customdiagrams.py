@@ -220,6 +220,7 @@ class CustomDiagrams:
 
         self.settings: Optional[DiagramSettings] = None
         self.schema: dict[str, Any] = {}
+        self._icon_node_ids: set[str] = set()
         self.nodes: list[dict] = []
         self.edges: list[dict] = []
         self.clusters: list[dict] = []
@@ -280,6 +281,11 @@ class CustomDiagrams:
             # Default style: preserve schema colors
             return attrs
         overridden = set(self._get_style_config().get(section, {})) & self.STYLE_OVERRIDE_ATTRS
+        if section == "edge":
+            # An edge's line pattern is semantic (dashed = async, dotted =
+            # inherits...): presets restyle colour and width, not meaning.
+            # (cd_sketch's "bold" turned every dotted/dashed edge solid.)
+            overridden.discard("style")
         return {k: v for k, v in attrs.items() if k not in overridden}
 
     def load(self, config_path: Union[str, Path]) -> "CustomDiagrams":
@@ -409,6 +415,8 @@ class CustomDiagrams:
             )
             engine = "dot"
 
+        self._icon_node_ids: set[str] = set()
+
         # Create graph
         graph = gv.Digraph(
             name=sanitize_node_id(self.settings.title),
@@ -477,6 +485,7 @@ class CustomDiagrams:
             process_node_image(icon_attrs, node_id, logger)
             if "image" not in icon_attrs and str(icon_attrs.get("label", "")).startswith("<"):
                 graph.node(node_id, **icon_attrs)
+                self._icon_node_ids.add(node_id)
                 return
 
         if not type_schema:
@@ -537,6 +546,13 @@ class CustomDiagrams:
         if "style" in edge:
             attrs["style"] = edge["style"]
 
+        # Arrowheads into an icon node end at the icon instead of the
+        # label-wide bounding box, where they stopped in empty space. (Tails
+        # keep the node: from the icon they ran through the node's own label;
+        # Graphviz's ortho router ignores ports.)
+        if self.settings.splines != "ortho" and to_id in self._icon_node_ids:
+            attrs.setdefault("headport", "icon")
+
         graph.edge(from_id, to_id, **attrs)
 
     def _add_clusters(self, graph: gv.Digraph) -> set[str]:
@@ -555,12 +571,29 @@ class CustomDiagrams:
         style_config = self._get_style_config()
         style_cluster_attrs = style_config.get("cluster", {})
 
+        # Nested clusters: a cluster's optional "parent" names the cluster
+        # that encloses it (regions > VPCs > subnets). Unknown parents and
+        # cycles fall back to top level.
+        ids = {str(c.get("id")) for c in self.clusters}
+        children: dict[str, list[dict[str, Any]]] = {}
+        top_level: list[dict[str, Any]] = []
         for cluster in self.clusters:
+            parent = cluster.get("parent")
+            if parent and str(parent) in ids and str(parent) != str(cluster.get("id")):
+                children.setdefault(str(parent), []).append(cluster)
+            else:
+                top_level.append(cluster)
+        emitted: set[str] = set()
+
+        def emit(parent_graph: gv.Digraph, cluster: dict[str, Any]) -> None:
+            if str(cluster.get("id")) in emitted:
+                return
+            emitted.add(str(cluster.get("id")))
             cluster_id = f"cluster_{sanitize_node_id(cluster['id'])}"
             cluster_label = cluster.get("label", cluster["id"])
             cluster_style = cluster.get("style", {})
 
-            with graph.subgraph(name=cluster_id) as subgraph:
+            with parent_graph.subgraph(name=cluster_id) as subgraph:
                 # Set cluster attributes
                 subgraph.attr(label=escape_dot_label(cluster_label))
 
@@ -587,6 +620,15 @@ class CustomDiagrams:
                     if node_data:
                         self._add_node(subgraph, node_data)
                         clustered_nodes.add(node_id)
+
+                for child in children.get(str(cluster.get("id")), []):
+                    emit(subgraph, child)
+
+        for cluster in top_level:
+            emit(graph, cluster)
+        # clusters only reachable through a parent cycle
+        for cluster in self.clusters:
+            emit(graph, cluster)
 
         if lane_anchors:
             self._stack_lanes(graph, lane_anchors)
