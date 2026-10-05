@@ -600,7 +600,7 @@ class PrivilegeGradient(VisualizationBase):
         """Add a compact HTML-table legend at the bottom of the graph."""
         graph_style = self.style.get("graph", self._default_style()["graph"])
         bg = graph_style.get("bgcolor", "white")
-        is_dark = bg.lower() in ("#1a1a2e", "#0d0d0d", "black", "#000000")
+        is_dark = utils.is_dark_color(str(bg))
         font_color = "#e0e0e0" if is_dark else "#333333"
         legend_bg = "#2a2a3e" if is_dark else "#f8f8f8"
         legend_border = "#555555" if is_dark else "#cccccc"
@@ -610,9 +610,13 @@ class PrivilegeGradient(VisualizationBase):
 
         # Build legend as a single HTML table node
         rows = []
-        for inf_type in self._influence_types.values():
+        for type_id, inf_type in self._influence_types.items():
             type_label = inf_type.get("label", inf_type.get("id", ""))
             type_color = inf_type.get("color", "#333333")
+            # Match the drawn edges: dark presets keep their own type colors
+            preset_style = self.style.get(f"{type_id}_influence", {})
+            if is_dark and preset_style.get("color"):
+                type_color = preset_style["color"]
             line_style = inf_type.get("style", "solid")
             # Use a colored line character to represent the edge style
             if line_style == "dashed":
@@ -647,6 +651,7 @@ class PrivilegeGradient(VisualizationBase):
             label=html_label,
             shape="none",
             margin="0",
+            fontname=str(graph_style.get("fontname", "Arial")),
         )
 
     def _draw_impl(self, outputfile: str) -> None:

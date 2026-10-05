@@ -130,7 +130,7 @@ page = {background = "#ffffff", padding = 40, text = "#475569"}
 font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 15}
 card = {radius = 4, padding_x = 14, padding_y = 9, border_width = 1.0, min_width = 128, max_label_width = 195}
 node = {fill = "#388e3c", border = "#cbd5e1", text = "#ffffff"}
-edge = {color = "#cbd5e1", width = 1.3, routing = "ortho"}
+edge = {color = "#94a3b8", width = 1.3, routing = "ortho"}
 effects = {shadow = false, shadow_blur = 0, hover_glow = true}
 severity = {use_cvss_colors = true}
 badges = {cvss = true, fill = "#334155", text = "#ffffff"}

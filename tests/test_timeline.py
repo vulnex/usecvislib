@@ -318,3 +318,15 @@ class TestTemplates:
     def test_template_loads_and_validates(self, template):
         tl = IncidentTimeline(template, "unused")
         assert tl.validate() == []
+
+
+class TestWarnings:
+    def test_no_numpy_timedelta_deprecation_leaks(self, tmp_path):
+        # matplotlib's date2num triggers NumPy >= 2.5's generic-timedelta
+        # DeprecationWarning on every call; it is filtered at render time.
+        import warnings
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            _build(RANSOM, tmp_path)
+        assert not [w for w in caught if "generic' unit for NumPy timedelta" in str(w.message)]

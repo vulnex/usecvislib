@@ -408,7 +408,7 @@ page = {background = "#ffffff", padding = 40, text = "#475569"}
 font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 15}
 card = {radius = 4, padding_x = 14, padding_y = 9, border_width = 1.0, min_width = 112, max_label_width = 210}
 node = {fill = "#90caf9", border = "#cbd5e1", text = "#1f2937"}
-edge = {color = "#cbd5e1", width = 1.3, routing = "spline", label_size = 10, label_color = "#94a3b8"}
+edge = {color = "#94a3b8", width = 1.3, routing = "spline", label_size = 10, label_color = "#64748b"}
 effects = {shadow = false, shadow_blur = 0, hover_glow = true}
 cluster = {fill = "#f4f6f8", border = "#e2e8f0", text = "#64748b", label_size = 12, radius = 4}
-maestro = {agent_border = "#94a3b8", critical_border = "#d9534f", layer_border = "#e2e8f0", layer_text = "#64748b", chain_fallback = "#cbd5e1", text = "#1f2937", rankdir = "LR", nodesep = 0.45, ranksep = 0.8}
+maestro = {agent_border = "#94a3b8", critical_border = "#d9534f", layer_border = "#e2e8f0", layer_text = "#64748b", chain_fallback = "#94a3b8", text = "#1f2937", rankdir = "LR", nodesep = 0.45, ranksep = 0.8}

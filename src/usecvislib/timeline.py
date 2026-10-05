@@ -50,13 +50,28 @@ Input schema (TOML/JSON/YAML)::
     duration = "2m"
 """
 
+import contextlib
 import re
+import warnings
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from . import utils
 from .base import VisualizationBase
+
+
+@contextlib.contextmanager
+def _quiet_numpy_timedelta():
+    """Hide matplotlib's internal NumPy >= 2.5 "generic timedelta unit" warning.
+
+    matplotlib.dates raises it on every date conversion (plotting, and tick
+    drawing at save time); it is not ours to fix, so only that one message
+    is kept out of user logs.
+    """
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", message=".*'generic' unit for NumPy timedelta", category=DeprecationWarning)
+        yield
 
 
 class TimelineError(utils.RenderError):
@@ -374,7 +389,8 @@ class IncidentTimeline(VisualizationBase):
             "vertical": self._render_vertical,
             "compact": self._render_compact,
         }[self.mode]
-        self._fig = renderer(plt, style, fig_cfg)
+        with _quiet_numpy_timedelta():
+            self._fig = renderer(plt, style, fig_cfg)
 
     def _time_format(self) -> str:
         """Tick format: time of day, plus the date once the incident spans days."""
@@ -710,9 +726,13 @@ class IncidentTimeline(VisualizationBase):
             raise TimelineError("Timeline not rendered; call render() first")
         output_path = f"{outputfile}.{self.format}"
         try:
-            self._fig.savefig(
-                output_path, format=self.format, dpi=self.style.get("figure", {}).get("dpi", 150), bbox_inches="tight"
-            )
+            with _quiet_numpy_timedelta():
+                self._fig.savefig(
+                    output_path,
+                    format=self.format,
+                    dpi=self.style.get("figure", {}).get("dpi", 150),
+                    bbox_inches="tight",
+                )
         except Exception as e:  # pragma: no cover - matplotlib IO failure
             raise TimelineError(f"Failed to write timeline: {e}") from e
         finally:
