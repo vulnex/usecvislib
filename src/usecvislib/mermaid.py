@@ -662,22 +662,20 @@ def _convert_killchain_flowchart(data: dict[str, Any]) -> str:
     lines.append(f"    %% {escape_label(kc_name)}")
     lines.append("")
 
-    # Generate technique nodes
+    # Technique nodes grouped by kill-chain phase (in first-seen order) and
+    # labelled with their ATT&CK id: a flat node list lost both
+    by_phase: dict[str, list[tuple[str, dict[str, Any]]]] = {}
     for tech_id, tech_data in techniques.items():
-        safe_id = sanitize_node_id(tech_id)
-        label = tech_data.get("name", tech_id)
-        detected = tech_data.get("detected", False)
-        mitigated = tech_data.get("mitigated", False)
-
-        # Add status indicators
-        status = ""
-        if detected:
-            status += " [D]"
-        if mitigated:
-            status += " [M]"
-
-        safe_label = escape_label(label + status)
-        lines.append(f'    {safe_id}["{safe_label}"]')
+        by_phase.setdefault(str(tech_data.get("phase") or "Unphased"), []).append((tech_id, tech_data))
+    for index, (phase, members) in enumerate(by_phase.items()):
+        lines.append(f'    subgraph phase_{index}["{escape_label(phase)}"]')
+        for tech_id, tech_data in members:
+            label = f"{tech_id}: {tech_data.get('name', tech_id)}"
+            status = ("D" if tech_data.get("detected") else "") + ("M" if tech_data.get("mitigated") else "")
+            if status:
+                label += f" [{status}]"
+            lines.append(f'        {sanitize_node_id(tech_id)}["{escape_label(label)}"]')
+        lines.append("    end")
 
     lines.append("")
 
@@ -691,9 +689,8 @@ def _convert_killchain_flowchart(data: dict[str, Any]) -> str:
             edge_key = (source, target)
 
             if edge_key not in edges_seen:
-                safe_source = sanitize_node_id(source)
-                safe_target = sanitize_node_id(target)
-                lines.append(f"    {safe_source} --> {safe_target}")
+                label = incident.get("name", "") if i == 0 else ""
+                lines.append(_edge_line(sanitize_node_id(source), sanitize_node_id(target), label))
                 edges_seen.add(edge_key)
 
     # Add styling based on detection status
@@ -1131,12 +1128,22 @@ def _convert_maestro(data: dict[str, Any]) -> str:
     for agent in agents:
         layers = agent.get("layers") or ["unassigned"]
         by_layer.setdefault(layers[0], []).append(agent)
-    for layer, members in by_layer.items():
+    # Assets sit in their layer as data stores (they were dropped)
+    assets_by_layer: dict[str, list[dict[str, Any]]] = {}
+    for asset in _items_of(data.get("assets")):
+        assets_by_layer.setdefault(str(asset.get("layer") or "unassigned"), []).append(asset)
+    for layer in list(by_layer) + [lay for lay in assets_by_layer if lay not in by_layer]:
         lines.append(f'    subgraph layer_{sanitize_node_id(layer)}["{escape_label(layer)}"]')
-        for agent in members:
+        for agent in by_layer.get(layer, []):
             aid = sanitize_node_id(f"agent_{agent.get('id', '')}")
             label = f"{agent.get('name', agent.get('id', ''))} - {agent.get('type', '')}"
             lines.append(f'        {aid}["{escape_label(label)}"]')
+        for asset in assets_by_layer.get(layer, []):
+            asid = sanitize_node_id(f"asset_{asset.get('id', '')}")
+            label = asset.get("name", asset.get("id", ""))
+            if asset.get("sensitivity"):
+                label = f"{label} ({asset['sensitivity']})"
+            lines.append(f'        {asid}[("{escape_label(label)}")]')
         lines.append("    end")
     for clt in _items_of(data.get("cross_layer_threats")):
         path = []

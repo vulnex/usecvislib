@@ -29,9 +29,7 @@ from usecvislib.utils import parse_content
 
 TEMPLATES = Path(__file__).parent.parent / "templates"
 FORMATS = {".toml": "toml", ".tml": "toml", ".json": "json", ".yaml": "yaml"}
-ALL = sorted(
-    p for p in TEMPLATES.rglob("*") if p.suffix in FORMATS and p.name != "binvis_config.toml"
-)
+ALL = sorted(p for p in TEMPLATES.rglob("*") if p.suffix in FORMATS and p.name != "binvis_config.toml")
 
 
 def _export(path: Path) -> tuple[str, str]:
@@ -117,3 +115,15 @@ def test_timeline_keeps_every_event_once():
 def test_custom_diagram_shapes_and_edge_label_fields():
     _, mmd = _export(TEMPLATES / "custom-diagrams" / "general" / "flowchart.toml")
     assert 'validate{"Valid?"}' in mmd and 'start(["Start"])' in mmd
+
+
+def test_killchain_export_groups_phases_with_ids():
+    _, mmd = _export(TEMPLATES / "kill-chains" / "apt_intrusion.tml")
+    assert 'subgraph phase_0["Reconnaissance"]' in mmd
+    assert '"T1595: Active Scanning (D)"' in mmd
+    assert '|"Operation Nightfall"|' in mmd
+
+
+def test_maestro_export_includes_assets():
+    _, mmd = _export(TEMPLATES / "maestro" / "single-agent-rag.toml")
+    assert "asset_" in mmd and '[("' in mmd
