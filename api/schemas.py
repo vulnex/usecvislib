@@ -2023,6 +2023,10 @@ class CloudProvider(str, Enum):
     GENERIC = "generic"
     PROGRAMMING = "programming"
     SAAS = "saas"
+    IBM = "ibm"
+    ELASTIC = "elastic"
+    C4 = "c4"
+    CUSTOM = "custom"
 
 
 class CloudOutputFormat(str, Enum):

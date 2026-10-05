@@ -485,6 +485,10 @@ async def batch_visualize(
         batch_output_dir = os.path.join(TEMP_DIR, f"batch_{os.urandom(8).hex()}")
         os.makedirs(batch_output_dir, exist_ok=True)
 
+        # sv_* presets belong to the SVG engine (there is no render_engine
+        # parameter here, so they used to fail for every item)
+        engine = "svg" if style and style.startswith("sv_") else "graphviz"
+
         # Process each file with per-item timeout
         # SECURITY: Prevents single slow file from blocking entire batch
         for filename, input_path in input_paths:
@@ -492,19 +496,37 @@ async def batch_visualize(
                 output_base = os.path.join(batch_output_dir, os.path.splitext(filename)[0])
 
                 if mode == VisualizationMode.ATTACK_TREE:
-                    viz = AttackTrees(input_path, output_base, format=format.value, styleid=style or "at_default")
+                    viz = AttackTrees(
+                        input_path,
+                        output_base,
+                        format=format.value,
+                        styleid=style or "at_default",
+                        render_engine=engine,
+                    )
                     await run_sync_with_timeout(
                         viz.BuildAttackTree, REQUEST_TIMEOUT_VISUALIZE, f"batch attack tree ({filename})"
                     )
                     stats = viz.get_tree_stats() if collect_stats else None
                 elif mode == VisualizationMode.ATTACK_GRAPH:
-                    viz = AttackGraphs(input_path, output_base, format=format.value, styleid=style or "ag_default")
+                    viz = AttackGraphs(
+                        input_path,
+                        output_base,
+                        format=format.value,
+                        styleid=style or "ag_default",
+                        render_engine=engine,
+                    )
                     await run_sync_with_timeout(
                         viz.BuildAttackGraph, REQUEST_TIMEOUT_VISUALIZE, f"batch attack graph ({filename})"
                     )
                     stats = viz.get_graph_stats() if collect_stats else None
                 elif mode == VisualizationMode.THREAT_MODEL:
-                    viz = ThreatModeling(input_path, output_base, format=format.value, styleid=style or "tm_default")
+                    viz = ThreatModeling(
+                        input_path,
+                        output_base,
+                        format=format.value,
+                        styleid=style or "tm_default",
+                        render_engine=engine,
+                    )
                     await run_sync_with_timeout(
                         viz.BuildThreatModel, REQUEST_TIMEOUT_VISUALIZE, f"batch threat model ({filename})"
                     )
@@ -574,6 +596,11 @@ async def batch_visualize(
             aggregate_stats=aggregate_stats,
         )
 
+    except HTTPException:
+        # Client errors (e.g. unsupported mode) keep their status, not 500
+        for _, path in input_paths:
+            cleanup_files(path)
+        raise
     except Exception as e:
         # Cleanup on error
         for _, path in input_paths:
@@ -1059,6 +1086,15 @@ async def stream_progress(request: Request, job_id: str):
     };
     ```
     """
+    # An unknown job held the connection open for the full 60s timeout. Allow
+    # a short grace for a job whose first update has not landed yet.
+    for _ in range(4):
+        if get_progress(job_id):
+            break
+        await asyncio.sleep(0.5)
+    else:
+        raise HTTPException(status_code=404, detail=f"Unknown job '{job_id}'")
+
     logger.info(f"SSE connection opened for job: {job_id}")
     return StreamingResponse(
         progress_event_generator(job_id),

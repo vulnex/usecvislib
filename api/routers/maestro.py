@@ -115,6 +115,13 @@ async def visualize_maestro(
             # to it so a plain svg request works, and map the default style.
             if view == MaestroView.LAYERED:
                 view_value = MaestroView.GRAPH.value
+            elif view == MaestroView.HEATMAP:
+                # A Matplotlib chart with no SVG-engine painter (this was an
+                # uncaught EngineNotSupportedError -> 500)
+                raise HTTPException(
+                    status_code=400,
+                    detail="The heatmap view is not available with render_engine=svg; use render_engine=graphviz",
+                )
             if style == MaestroStyle.DEFAULT:
                 styleid = ""  # let the engine pick sv_default
 

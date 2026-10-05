@@ -15,7 +15,7 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 
-from usecvislib import AttackGraphs, AttackTrees, CustomDiagrams, ThreatModeling
+from usecvislib import CustomDiagrams
 from usecvislib.attackgraphs import AttackGraphError
 from usecvislib.attacktrees import AttackTreeError
 from usecvislib.customdiagrams import CustomDiagramError
@@ -58,6 +58,16 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["Custom Diagrams"])
+
+
+def _apply_style(cd: CustomDiagrams, style: Optional[CustomDiagramStyle]) -> None:
+    """Override the diagram's style preset only when the caller asked for one.
+
+    Defaulting the query to cd_default overwrote every file's own style (and
+    from-template ignored the parameter entirely).
+    """
+    if style and cd.settings:
+        cd.settings.style = style.value
 
 
 @router.get("/custom-diagrams/shapes", response_model=ShapeListResponse, summary="List available shapes")
@@ -302,7 +312,9 @@ async def visualize_custom_diagram(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(..., description="TOML/JSON/YAML file containing custom diagram definition"),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
-    style: CustomDiagramStyle = Query(default=CustomDiagramStyle.DEFAULT, description="Style preset"),
+    style: Optional[CustomDiagramStyle] = Query(
+        default=None, description="Style preset (default: the file's own style)"
+    ),
 ):
     """
     Generate a custom diagram visualization from an uploaded configuration file.
@@ -363,9 +375,7 @@ async def visualize_custom_diagram(
         cd = CustomDiagrams()
         cd.load(input_for_viz)
 
-        # Override style if specified via API parameter
-        if style and cd.settings:
-            cd.settings.style = style.value
+        _apply_style(cd, style)
 
         # Build the diagram with timeout protection
         # SECURITY: Prevents resource exhaustion from complex diagrams
@@ -533,7 +543,9 @@ async def custom_diagram_from_template(
     background_tasks: BackgroundTasks,
     template_id: str = Query(..., description="Template ID (e.g., 'software/architecture')"),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
-    style: CustomDiagramStyle = Query(default=CustomDiagramStyle.DEFAULT, description="Style preset"),
+    style: Optional[CustomDiagramStyle] = Query(
+        default=None, description="Style preset (default: the file's own style)"
+    ),
 ):
     """
     Generate a custom diagram from a built-in template.
@@ -580,6 +592,7 @@ async def custom_diagram_from_template(
         # Create CustomDiagrams instance and build visualization
         cd = CustomDiagrams()
         cd.load(str(resolved_path))
+        _apply_style(cd, style)
 
         # Build the diagram with timeout protection
         # SECURITY: Prevents resource exhaustion from complex templates
@@ -635,7 +648,9 @@ async def import_to_custom_diagram(
     file: UploadFile = File(..., description="Configuration file to import"),
     source_type: VisualizationMode = Query(..., description="Source visualization type"),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
-    style: CustomDiagramStyle = Query(default=CustomDiagramStyle.DEFAULT, description="Style preset"),
+    style: Optional[CustomDiagramStyle] = Query(
+        default=None, description="Style preset (default: the file's own style)"
+    ),
 ):
     """
     Import data from another visualization type and render as custom diagram.
@@ -655,22 +670,18 @@ async def import_to_custom_diagram(
         input_path = save_upload_file(file)
         output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
 
-        # Create CustomDiagrams from source type
-        cd = CustomDiagrams()
-
+        # Create CustomDiagrams from source type (classmethods taking the
+        # config path; they were called on an instance with a loaded object,
+        # a TypeError for every source type)
         if source_type == VisualizationMode.ATTACK_TREE:
-            at = AttackTrees(input_path, "unused")
-            cd.from_attack_tree(at)
+            cd = CustomDiagrams.from_attack_tree(input_path)
         elif source_type == VisualizationMode.ATTACK_GRAPH:
-            ag = AttackGraphs(input_path, "unused")
-            ag.load()
-            cd.from_attack_graph(ag)
+            cd = CustomDiagrams.from_attack_graph(input_path)
         elif source_type == VisualizationMode.THREAT_MODEL:
-            tm = ThreatModeling(input_path, "unused")
-            tm.load()
-            cd.from_threat_model(tm)
+            cd = CustomDiagrams.from_threat_model(input_path)
         else:
             raise HTTPException(status_code=400, detail=f"Import from '{source_type.value}' is not supported")
+        _apply_style(cd, style)
 
         # Build the diagram with timeout protection
         # SECURITY: Prevents resource exhaustion from complex imported diagrams

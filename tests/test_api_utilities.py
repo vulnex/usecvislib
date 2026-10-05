@@ -458,10 +458,9 @@ class TestProgressAndDemoJobs:
         assert data["job_id"].startswith("demo-")
 
     def test_progress_nonexistent_job(self):
-        """SSE stream for nonexistent job should eventually timeout."""
+        """An unknown job is a 404 (it used to hold the stream open for 60s)."""
         response = client.get("/progress/nonexistent-job-id")
-        # SSE endpoint returns 200 with streaming content
-        assert response.status_code == 200
+        assert response.status_code == 404
 
 
 # =============================================================================

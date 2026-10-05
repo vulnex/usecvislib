@@ -705,11 +705,29 @@ class CustomDiagrams:
 
             # Render to file
             output_path = Path(output)
-            rendered_path = graph.render(
-                filename=str(output_path.with_suffix("")),
-                cleanup=True,
-                view=view,
-            )
+            try:
+                rendered_path = graph.render(
+                    filename=str(output_path.with_suffix("")),
+                    cleanup=True,
+                    view=view,
+                )
+            except gv.CalledProcessError as e:
+                # Graphviz's ortho router aborts on some layouts (maze.c
+                # assertion, SIGABRT); fall back to polyline routing.
+                if self.settings.splines != "ortho":
+                    raise
+                logger.warning("ortho edge routing failed (%s); retrying with polyline", str(e.stderr)[:120])
+                self.settings.splines = "polyline"
+                try:
+                    graph = self._render_impl()
+                finally:
+                    self.settings.splines = "ortho"
+                graph.format = output_format
+                rendered_path = graph.render(
+                    filename=str(output_path.with_suffix("")),
+                    cleanup=True,
+                    view=view,
+                )
 
             logger.info(f"Diagram rendered to {rendered_path}")
 
@@ -1256,8 +1274,10 @@ class CustomDiagrams:
             bidirectional = flow_data.get("bidirectional", False)
             cd.edges.append(
                 {
-                    "from": flow_data.get("source", ""),
-                    "to": flow_data.get("destination", ""),
+                    # threat-model dataflows use from/to (source/destination
+                    # was never a schema key: every import failed validation)
+                    "from": flow_data.get("from", flow_data.get("source", "")),
+                    "to": flow_data.get("to", flow_data.get("destination", "")),
                     "type": "bidirectional" if bidirectional else "dataflow",
                     "data": flow_data.get("label", flow_data.get("data", "")),
                 }

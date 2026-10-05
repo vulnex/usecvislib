@@ -132,22 +132,14 @@ async def visualize_cloud(
             cd.config.direction = direction.value
 
         # Render with timeout protection (show=False to not open viewer)
-        await run_sync_with_timeout(
-            lambda: cd.render(
-                output_base, format=format.value if format != CloudOutputFormat.DOT else "png", show=False
-            ),
+        # The library renders every format, DOT included (format=dot used to
+        # return a PNG labelled text/plain)
+        result = await run_sync_with_timeout(
+            lambda: cd.render(output_base, format=format.value, show=False),
             REQUEST_TIMEOUT_VISUALIZE,
             "cloud diagram rendering",
         )
-
-        # Determine actual output path (diagrams library adds extension)
-        if format == CloudOutputFormat.DOT:
-            # For DOT format, generate the .dot file
-            dot_path = f"{output_base}.dot"
-            cd.save_python(dot_path.replace(".dot", ".py"))  # Save Python code as alternative
-            output_path = f"{output_base}.png"  # diagrams creates png
-        else:
-            output_path = f"{output_base}.{format.value}"
+        output_path = str(result.output_path)
 
         if not os.path.exists(output_path):
             cleanup_files(input_path)
@@ -248,28 +240,9 @@ async def list_cloud_providers(request: Request):
     """
     List all available cloud providers for diagrams.
     """
-    try:
-        providers = CloudDiagrams.list_providers()
-        return CloudProvidersResponse(providers=providers)
-    except DiagramsNotInstalledError:
-        # Return static list if diagrams not installed
-        return CloudProvidersResponse(
-            providers=[
-                {"name": "aws", "description": "Amazon Web Services"},
-                {"name": "azure", "description": "Microsoft Azure"},
-                {"name": "gcp", "description": "Google Cloud Platform"},
-                {"name": "k8s", "description": "Kubernetes"},
-                {"name": "onprem", "description": "On-Premises"},
-                {"name": "alibabacloud", "description": "Alibaba Cloud"},
-                {"name": "oci", "description": "Oracle Cloud Infrastructure"},
-                {"name": "digitalocean", "description": "DigitalOcean"},
-                {"name": "openstack", "description": "OpenStack"},
-                {"name": "firebase", "description": "Firebase"},
-                {"name": "generic", "description": "Generic icons"},
-                {"name": "programming", "description": "Programming languages"},
-                {"name": "saas", "description": "SaaS services"},
-            ]
-        )
+    # Static table, no diagrams import needed. The old not-installed fallback
+    # was unreachable and used {name, description} keys the UI does not read.
+    return CloudProvidersResponse(providers=CloudDiagrams.list_providers())
 
 
 @router.get("/cloud/icons", response_model=CloudIconsListResponse, summary="List cloud diagram icons")

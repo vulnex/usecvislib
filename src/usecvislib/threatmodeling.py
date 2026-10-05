@@ -31,6 +31,7 @@ Elements supported:
 from __future__ import annotations
 
 import html as html_module
+import os
 import re
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional
@@ -483,6 +484,37 @@ class PyTMWrapper:
 
         lines.append("}")
         return "\n".join(lines)
+
+    def get_threat_library(self) -> list[dict[str, Any]]:
+        """pytm's built-in threat catalogue (threatlib/threats.json), id = SID.
+
+        Used by GET /threats/library, which called this method before it
+        existed (500 on every request).
+        """
+        if not self._pytm_available:
+            return []
+        import json
+
+        import pytm
+
+        path = os.path.join(os.path.dirname(pytm.__file__), "threatlib", "threats.json")
+        try:
+            with open(path, encoding="utf-8") as f:
+                entries = json.load(f)
+        except (OSError, ValueError):
+            return []
+        return [{**entry, "id": entry.get("SID", "")} for entry in entries if isinstance(entry, dict)]
+
+    def get_threats_by_element_type(self, element_type: str) -> list[dict[str, Any]]:
+        """Library threats that apply to a pytm element type (e.g. "Process")."""
+        wanted = element_type.strip().lower()
+        result = []
+        for threat in self.get_threat_library():
+            targets = threat.get("target", [])
+            targets = [targets] if isinstance(targets, str) else targets
+            if any(str(t).lower() == wanted for t in targets):
+                result.append(threat)
+        return result
 
     def get_threats(self) -> list[dict[str, Any]]:
         """Get threats identified by PyTM."""
