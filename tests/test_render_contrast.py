@@ -13,6 +13,7 @@
 
 """Label contrast and dark-preset page colors found by a visual review."""
 
+import itertools
 from pathlib import Path
 
 import pytest
@@ -115,3 +116,32 @@ def test_merge_trunk_detours_around_a_card_in_between():
     assert cross > blocker.x + blocker.width / 2  # nearer (right) side, clear of the card
     # nothing in the way: straight trunk
     assert _trunk_detour([member, sink], member, sink, cross_of, start_of, bbox_top, False) == (100, None)
+
+
+def test_middle_child_centred_under_parent():
+    # "Exploit Vulnerability" sat right of "Initial Access": the shared
+    # subtree below inflated its left sibling's extent.
+    from usecvislib.svgengine.layout import TidyTreeLayout
+    from usecvislib.svgengine.scene import Scene, SceneEdge, SceneNode
+
+    scene = Scene(module="t")
+    for nid in ("root", "a", "b", "c", "a1", "s", "s1", "s2"):
+        scene.nodes.append(SceneNode(id=nid, label=nid, width=120, height=40))
+    for src, dst in (
+        ("root", "a"),
+        ("root", "b"),
+        ("root", "c"),
+        ("a", "a1"),
+        ("a1", "s"),
+        ("b", "s"),
+        ("c", "s"),
+        ("s", "s1"),
+        ("s", "s2"),
+    ):
+        scene.edges.append(SceneEdge(src=src, dst=dst))
+    TidyTreeLayout().solve(scene, "root")
+    root, a, b, c = (scene.node_by_id(n) for n in ("root", "a", "b", "c"))
+    assert abs(b.x - root.x) < 1.0
+    assert abs((b.x - a.x) - (c.x - b.x)) < 1.0
+    xs = sorted(n.x for n in scene.nodes if n.y == b.y)
+    assert all(x2 - x1 >= 120 for x1, x2 in itertools.pairwise(xs))  # no overlap

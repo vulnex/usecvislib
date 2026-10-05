@@ -155,10 +155,87 @@ class TidyTreeLayout:
                 node.y = row_start[depth[node_id]] + node.height / 2
 
         self._barycenter_multi_parent(scene, nodes, children, reachable, depth)
+        if self._spread_middle_children(nodes, kids_of, depth, root_id):
+            # shared children follow their (moved) parents
+            self._barycenter_multi_parent(scene, nodes, children, reachable, depth)
 
         # Orphans: a row below (TB) / right of (LR) the tree.
         orphans = [n for n in scene.nodes if n.id not in reachable]
         self._place_orphans(scene, orphans, root_id)
+
+    def _spread_middle_children(self, nodes: dict, kids_of: dict, depth: dict, root_id: str) -> bool:
+        """Even out middle siblings between the outer ones, where room allows.
+
+        Placement packs subtrees left to right by their extents, and a
+        shared (multi-parent) subtree inflates the extent of the branch it
+        was first attached to; after the barycenter pass moves it away, a
+        middle sibling is left hugging its right neighbour while the parent
+        centers over the outer two ("Exploit Vulnerability" sat right of
+        "Initial Access"). Each middle child's subtree slides toward an even
+        spacing, stopping short of any card in the rows it occupies.
+        """
+        horizontal = self.orientation == "LR"
+        moved = False
+
+        def c(n) -> float:
+            return n.y if horizontal else n.x
+
+        def half(n) -> float:
+            return (n.height if horizontal else n.width) / 2
+
+        def subtree(node_id: str) -> set[str]:
+            seen, stack = set(), [node_id]
+            while stack:
+                cur = stack.pop()
+                if cur in seen:
+                    continue
+                seen.add(cur)
+                stack.extend(kids_of.get(cur, []))
+            return seen
+
+        order, stack = [], [root_id]  # top-down so parents settle first
+        while stack:
+            cur = stack.pop()
+            order.append(cur)
+            stack.extend(reversed(kids_of.get(cur, [])))
+
+        rows: dict[int, list[str]] = {}
+        for node_id, d in depth.items():
+            if node_id in nodes:
+                rows.setdefault(d, []).append(node_id)
+
+        for parent_id in order:
+            kids = kids_of.get(parent_id, [])
+            if len(kids) < 3:
+                continue
+            first, last = c(nodes[kids[0]]), c(nodes[kids[-1]])
+            step = (last - first) / (len(kids) - 1)
+            for i, kid in enumerate(kids[1:-1], start=1):
+                want = first + i * step - c(nodes[kid])
+                if abs(want) < 0.5:
+                    continue
+                moving = subtree(kid)
+                room = abs(want)
+                for node_id in moving:
+                    n = nodes[node_id]
+                    for other_id in rows.get(depth.get(node_id, -1), []):
+                        if other_id in moving:
+                            continue
+                        m = nodes[other_id]
+                        gap = (c(m) - c(n)) if want > 0 else (c(n) - c(m))
+                        if gap > 0:  # m lies in the direction of travel
+                            room = min(room, gap - half(n) - half(m) - self.h_gap)
+                if room <= 0.5:
+                    continue
+                delta = room if want > 0 else -room
+                for node_id in moving:
+                    n = nodes[node_id]
+                    if horizontal:
+                        n.y += delta
+                    else:
+                        n.x += delta
+                moved = True
+        return moved
 
     @staticmethod
     def _tree_from_dag(scene: Scene, root_id: str, nodes: dict) -> tuple[dict, dict, list]:
