@@ -136,6 +136,10 @@ def _time_scale(viz, axis_length: float):
     starts = [e.timestamp for e in viz.events] + [p.start for p in viz.phases]
     ends = [e.end_time for e in viz.events] + [p.end for p in viz.phases]
     t_min, t_max = min(starts), max(ends)
+    # 2% breathing room each side (as Matplotlib's axis margins): the first
+    # and last markers sat on the plot edge
+    pad = (t_max - t_min) * 0.02
+    t_min, t_max = t_min - pad, t_max + pad
     total = max((t_max - t_min).total_seconds(), 1.0)
     tick_fmt = "%H:%M" if total <= 86400 else "%m-%d %H:%M"
 
