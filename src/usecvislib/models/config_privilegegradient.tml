@@ -30,8 +30,8 @@ control_influence = {color = "#8e44ad", style = "bold", fontname = "Arial", font
 # =============================================================================
 [pg_dark]
 graph = {rankdir = "LR", bgcolor = "#1a1a2e", fontname = "Arial", fontcolor = "#e0e0e0", splines = "spline", compound = "true", nodesep = "0.6", ranksep = "1.2", fontsize = "14", label = "", labelloc = "t"}
-zone = {style = "filled,rounded", fontname = "Arial Bold", fontsize = "13", fontcolor = "#e0e0e0", penwidth = "2"}
-component = {shape = "box", style = "filled,rounded", fontname = "Arial", fontsize = "10", fontcolor = "#e0e0e0", margin = "0.15,0.08", penwidth = "2"}
+zone = {style = "filled,rounded", fontname = "Arial Bold", fontsize = "13", fontcolor = "#e0e0e0", fillcolor = "#232342", penwidth = "2"}
+component = {shape = "box", style = "filled,rounded", fontname = "Arial", fontsize = "10", fontcolor = "#e0e0e0", fillcolor = "#2e2e52", margin = "0.15,0.08", penwidth = "2"}
 inversion = {color = "#ff4444", style = "bold", fontname = "Arial Bold", fontsize = "9", fontcolor = "#ff4444", penwidth = "3", arrowhead = "normal", arrowsize = "1.2"}
 data_influence = {color = "#4a90d9", style = "solid", fontname = "Arial", fontsize = "9", fontcolor = "#4a90d9", penwidth = "1.5", arrowhead = "vee"}
 feedback_influence = {color = "#f0a030", style = "dashed", fontname = "Arial", fontsize = "9", fontcolor = "#f0a030", penwidth = "1.5", arrowhead = "vee"}
@@ -56,8 +56,8 @@ control_influence = {color = "#c0392b", style = "bold", fontname = "Arial", font
 # =============================================================================
 [pg_neon]
 graph = {rankdir = "LR", bgcolor = "#0d0d0d", fontname = "Consolas", fontcolor = "#00ff9f", splines = "spline", compound = "true", nodesep = "0.6", ranksep = "1.2", fontsize = "14", label = "", labelloc = "t"}
-zone = {style = "filled,rounded", fontname = "Consolas", fontsize = "13", fontcolor = "#00ff9f", penwidth = "2"}
-component = {shape = "box", style = "filled,rounded", fontname = "Consolas", fontsize = "10", fontcolor = "#00ff9f", margin = "0.15,0.08", penwidth = "2"}
+zone = {style = "filled,rounded", fontname = "Consolas", fontsize = "13", fontcolor = "#00ff9f", fillcolor = "#141414", penwidth = "2"}
+component = {shape = "box", style = "filled,rounded", fontname = "Consolas", fontsize = "10", fontcolor = "#00ff9f", fillcolor = "#1f1f1f", margin = "0.15,0.08", penwidth = "2"}
 inversion = {color = "#ff0080", style = "bold", fontname = "Consolas", fontsize = "9", fontcolor = "#ff0080", penwidth = "3", arrowhead = "normal", arrowsize = "1.2"}
 data_influence = {color = "#00d4ff", style = "solid", fontname = "Consolas", fontsize = "9", fontcolor = "#00d4ff", penwidth = "2", arrowhead = "vee"}
 feedback_influence = {color = "#ffff00", style = "dashed", fontname = "Consolas", fontsize = "9", fontcolor = "#ffff00", penwidth = "2", arrowhead = "vee"}

@@ -445,6 +445,9 @@ class PrivilegeGradient(VisualizationBase):
 
         graph_attrs = utils.stringify_dict(graph_style)
         self.graph.attr(**graph_attrs)
+        # Template zone/influence colors are tuned for light pages; a dark
+        # preset's own colors take precedence (see zones and edges below).
+        dark_theme = utils.is_dark_color(str(graph_style.get("bgcolor", "white")))
 
         if graph_meta.get("name"):
             self.graph.attr(label=graph_meta["name"], labelloc="t")
@@ -461,6 +464,13 @@ class PrivilegeGradient(VisualizationBase):
             zone_border = zone_data.get("border_color", "#999999")
             zone_font_color = zone_data.get("font_color", "#333333")
             trust_level = zone_data.get("trust_level", 0)
+
+            # Zone identity stays in the border; a preset that defines its own
+            # zone fill / text (dark themes) overrides the template's pastels.
+            if "fillcolor" in zone_style:
+                zone_color = zone_style["fillcolor"]
+            if "fontcolor" in zone_style and (dark_theme or "font_color" not in zone_data):
+                zone_font_color = zone_style["fontcolor"]
 
             with self.graph.subgraph(name=f"cluster_{zone_id}") as sub:
                 sub_attrs = utils.stringify_dict(zone_style.copy())
@@ -493,9 +503,15 @@ class PrivilegeGradient(VisualizationBase):
 
                         node_attrs = utils.merge_dicts(node_attrs, component_style)
 
-                        # Set fillcolor from zone border if not specified by user
+                        # Fill from the preset when it defines one (dark themes, with
+                        # the zone color moved to the border), else the zone border.
                         if "fillcolor" not in comp_data:
-                            node_attrs["fillcolor"] = zone_border
+                            if "fillcolor" in component_style:
+                                node_attrs["fillcolor"] = component_style["fillcolor"]
+                                if "color" not in comp_data:
+                                    node_attrs["color"] = zone_border
+                            else:
+                                node_attrs["fillcolor"] = zone_border
 
                         utils.process_node_image(node_attrs, comp_id, self.logger, preserve_shape=user_set_shape)
 
@@ -555,8 +571,9 @@ class PrivilegeGradient(VisualizationBase):
                 edge_attrs = {}
                 if type_style:
                     edge_attrs = utils.stringify_dict(type_style.copy())
-                # Override with influence type config
-                if inf_type_config.get("color"):
+                # Override with influence type config (light themes only for
+                # color: template colors can vanish on a dark preset's page)
+                if inf_type_config.get("color") and not (dark_theme and type_style.get("color")):
                     edge_attrs["color"] = inf_type_config["color"]
                     edge_attrs["fontcolor"] = inf_type_config["color"]
                 if inf_type_config.get("style"):

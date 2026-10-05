@@ -1004,3 +1004,22 @@ class TestNetworkXSecurityAnalysis:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestExploitNodeStyle:
+    TEMPLATE = os.path.join(os.path.dirname(__file__), "..", "templates", "attack-graphs", "corporate_network.tml")
+
+    def _source(self, styleid):
+        ag = AttackGraphs(self.TEMPLATE, "out", styleid=styleid, validate_paths=False)
+        ag.load()
+        ag.render()
+        return ag.graph.source
+
+    def test_default_preset_keeps_purple_exploits(self):
+        assert 'fillcolor="#9b59b6"' in self._source("ag_default")
+
+    def test_other_presets_style_exploits(self):
+        # Exploit nodes were hard-coded purple/serif under every preset.
+        source = self._source("ag_minimal")
+        assert "#9b59b6" not in source
+        assert "shape=hexagon" in source

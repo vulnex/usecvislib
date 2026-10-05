@@ -682,6 +682,18 @@ class TestPrivilegeGradientRender:
             finally:
                 os.unlink(f.name)
 
+    def test_dark_preset_themes_zones_and_components(self):
+        # pg_dark/pg_neon kept the template's pastel zones, and components
+        # took the zone border as fill under the neon text (unreadable).
+        template = os.path.join(os.path.dirname(__file__), "..", "templates", "privilege-gradient", "corporate_network.tml")
+        pg = PrivilegeGradient(template, "output", styleid="pg_neon", validate_paths=False)
+        pg.load()
+        pg.render()
+        source = pg.graph.source
+        zone_fills = {z.get("color") for z in pg._zones.values() if z.get("color")}
+        assert zone_fills and not any(f'fillcolor="{c}"' in source for c in zone_fills)
+        assert 'fillcolor="#1f1f1f"' in source  # preset component fill
+
     def test_render_without_load_raises(self):
         pg = PrivilegeGradient("/nonexistent/input.tml", "output", validate_paths=False)
         with pytest.raises(PrivilegeGradientError):

@@ -603,16 +603,10 @@ class AttackGraphs(VisualizationBase):
 
         # Add exploit edges
         exploits = self.inputdata.get("exploits", {})
+        exploit_node_attrs = self._exploit_node_style(exploit_edge_style)
         for exploit_id, exploit_data in exploits.items():
             exploit_label = exploit_data.get("label", exploit_id)
-            self.graph.node(
-                utils.sanitize_node_id(exploit_id),
-                exploit_label,
-                shape="hexagon",
-                style="filled",
-                fillcolor="#9b59b6",
-                fontcolor="white",
-            )
+            self.graph.node(utils.sanitize_node_id(exploit_id), exploit_label, **exploit_node_attrs)
 
             preconditions = exploit_data.get("preconditions", [])
             postconditions = exploit_data.get("postconditions", [])
@@ -646,6 +640,26 @@ class AttackGraphs(VisualizationBase):
                 )
 
         self.logger.debug(f"Rendered attack graph with {len(hosts)} hosts")
+
+    def _exploit_node_style(self, exploit_edge_style: dict[str, Any]) -> dict[str, str]:
+        """Graphviz attributes for exploit nodes, following the preset.
+
+        An explicit ``exploit`` preset section wins. Otherwise the default
+        preset keeps its purple hexagons and other presets reuse their
+        privilege-node styling (fonts, fills, text) as a hexagon outlined in
+        the preset's exploit-edge color, so exploits match monochrome/dark
+        themes instead of always being purple in the default font.
+        """
+        if isinstance(self.style.get("exploit"), dict):
+            return utils.stringify_dict({"shape": "hexagon", **self.style["exploit"]})
+        base = {"shape": "hexagon", "style": "filled", "fillcolor": "#9b59b6", "fontcolor": "white"}
+        if self.styleid == self.DEFAULT_STYLE_ID:
+            return base
+        privilege = self.style.get("privilege", {})
+        attrs = {**base, **privilege, "shape": "hexagon"}
+        if exploit_edge_style.get("color"):
+            attrs["color"] = exploit_edge_style["color"]
+        return utils.stringify_dict(attrs)
 
     def _draw_impl(self, outputfile: str) -> None:
         """Save the attack graph visualization to file.
