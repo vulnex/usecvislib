@@ -69,8 +69,8 @@ control_influence = {color = "#ff6600", style = "bold", fontname = "Consolas", f
 # =============================================================================
 [pg_corporate]
 graph = {rankdir = "LR", bgcolor = "#fafafa", fontname = "Arial", splines = "spline", compound = "true", nodesep = "0.6", ranksep = "1.2", fontsize = "14", label = "", labelloc = "t"}
-zone = {style = "filled,rounded", fontname = "Arial", fontsize = "13", fontcolor = "#1e3a5f", penwidth = "2"}
-component = {shape = "box", style = "filled,rounded", fontname = "Arial", fontsize = "10", fontcolor = "white", margin = "0.15,0.08", penwidth = "1.5"}
+zone = {style = "filled", fillcolor = "#f3f6fa", fontname = "Arial", fontsize = "13", fontcolor = "#1e3a5f", penwidth = "2"}
+component = {shape = "box", style = "filled", fontname = "Arial", fontsize = "10", fontcolor = "white", margin = "0.15,0.08", penwidth = "1"}
 inversion = {color = "#8b0000", style = "bold", fontname = "Arial Bold", fontsize = "9", fontcolor = "#8b0000", penwidth = "3", arrowhead = "normal", arrowsize = "1.2"}
 data_influence = {color = "#4682b4", style = "solid", fontname = "Arial", fontsize = "9", fontcolor = "#4682b4", penwidth = "1.5", arrowhead = "vee"}
 feedback_influence = {color = "#b8860b", style = "dashed", fontname = "Arial", fontsize = "9", fontcolor = "#b8860b", penwidth = "1.5", arrowhead = "vee"}

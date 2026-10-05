@@ -217,8 +217,8 @@ penwidth = "1"
 
 # =============================================================================
 # SVG engine presets (render_engine="svg"). Marked with meta.engine = "svg".
-# Group colors are inherited from the engine defaults; presets tune the
-# structural colors (internal/external/border/circular) and oracle spacing.
+# Each preset sets its own group palette (they all inherited the engine
+# defaults and looked alike) and tunes the structural colors (internal/external/border/circular) and oracle spacing.
 # =============================================================================
 
 # SVG Default - slate cards on soft grey
@@ -245,7 +245,7 @@ card = {radius = 10, padding_x = 16, padding_y = 11, border_width = 1.0, min_wid
 node = {fill = "#33507a", border = "#475569", text = "#ffffff"}
 edge = {color = "#64748b", width = 1.6, routing = "spline", label_size = 10, label_color = "#94a3b8"}
 effects = {shadow = true, shadow_blur = 2.6, hover_glow = true}
-dependencygraph = {internal = "#4a90d9", external_fill = "#1e293b", external_border = "#475569", external_text = "#cbd5e1", border = "#475569", circular_edge = "#ff6b6b", circular_width = 2.8, rankdir = "LR", nodesep = 0.4, ranksep = 0.7}
+dependencygraph = {internal = "#4a90d9", external_fill = "#1e293b", external_border = "#475569", external_text = "#cbd5e1", border = "#475569", circular_edge = "#ff6b6b", circular_width = 2.8, rankdir = "LR", nodesep = 0.4, ranksep = 0.7, groups = {core = "#3b6ea5", features = "#3c8d5a", api = "#b3622a", infrastructure = "#7b4fa0", tests = "#1f8f7a", utils = "#b5841f"}}
 
 # SVG Security - high-contrast, coupling-forward
 [sv_security]
@@ -258,7 +258,7 @@ card = {radius = 8, padding_x = 16, padding_y = 11, border_width = 1.4, min_widt
 node = {fill = "#2c3e50", border = "#0f172a", text = "#ffffff"}
 edge = {color = "#64748b", width = 1.9, routing = "spline", label_size = 10, label_color = "#475569"}
 effects = {shadow = true, shadow_blur = 2.4, hover_glow = true}
-dependencygraph = {internal = "#2c3e50", external_fill = "#e5e9ef", external_border = "#94a3b8", external_text = "#334155", border = "#0f172a", circular_edge = "#c0392b", circular_width = 3.0, rankdir = "TB", nodesep = 0.45, ranksep = 0.8}
+dependencygraph = {internal = "#2c3e50", external_fill = "#e5e9ef", external_border = "#94a3b8", external_text = "#334155", border = "#0f172a", circular_edge = "#c0392b", circular_width = 3.0, rankdir = "TB", nodesep = 0.45, ranksep = 0.8, groups = {core = "#2c3e50", features = "#1e6b52", api = "#a04000", infrastructure = "#5b2c6f", tests = "#0e6655", utils = "#9a7d0a"}}
 
 # SVG Corporate - professional blue-on-white for reports
 [sv_corporate]
@@ -271,7 +271,7 @@ card = {radius = 3, padding_x = 15, padding_y = 10, border_width = 1.3, min_widt
 node = {fill = "#2f5f8a", border = "#16324f", text = "#ffffff"}
 edge = {color = "#6b7b8c", width = 1.5, routing = "spline", label_size = 10, label_color = "#4a5b6b"}
 effects = {shadow = false, shadow_blur = 0, hover_glow = false}
-dependencygraph = {internal = "#2f5f8a", external_fill = "#f1f4f7", external_border = "#9aa8b5", external_text = "#4a5b6b", border = "#16324f", circular_edge = "#b83227", circular_width = 2.6, rankdir = "LR", nodesep = 0.42, ranksep = 0.75}
+dependencygraph = {internal = "#2f5f8a", external_fill = "#f1f4f7", external_border = "#9aa8b5", external_text = "#4a5b6b", border = "#16324f", circular_edge = "#b83227", circular_width = 2.6, rankdir = "LR", nodesep = 0.42, ranksep = 0.75, groups = {core = "#2f5f8a", features = "#3d7a6e", api = "#5a6f8c", infrastructure = "#6b5b8c", tests = "#3e7f8f", utils = "#8a6d3b"}}
 
 # SVG Minimal - flat outline, no depth
 [sv_minimal]
@@ -284,4 +284,4 @@ card = {radius = 4, padding_x = 14, padding_y = 9, border_width = 1.0, min_width
 node = {fill = "#5b7896", border = "#cbd5e1", text = "#ffffff"}
 edge = {color = "#94a3b8", width = 1.3, routing = "spline", label_size = 10, label_color = "#64748b"}
 effects = {shadow = false, shadow_blur = 0, hover_glow = true}
-dependencygraph = {internal = "#5b7896", external_fill = "#f4f6f8", external_border = "#cbd5e1", external_text = "#64748b", border = "#cbd5e1", circular_edge = "#d9534f", circular_width = 2.2, rankdir = "LR", nodesep = 0.38, ranksep = 0.68}
+dependencygraph = {internal = "#5b7896", external_fill = "#f4f6f8", external_border = "#cbd5e1", external_text = "#64748b", border = "#cbd5e1", circular_edge = "#d9534f", circular_width = 2.2, rankdir = "LR", nodesep = 0.38, ranksep = 0.68, groups = {core = "#9db4d6", features = "#a8cfb0", api = "#e3c2a0", infrastructure = "#c2b8dc", tests = "#a6d4cc", utils = "#e6cf9c"}}

@@ -114,7 +114,8 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
             kind = "module"
             fill = groups.get(group, dg["internal"])
             border = dg["border"]
-            text_color = "#ffffff"
+            # light group palettes (sv_minimal) need dark text
+            text_color = utils.readable_text_color(fill) or "#ffffff"
             if sloc > 0:
                 lines.append(f"{sloc:,} SLOC")
 

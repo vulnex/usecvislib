@@ -1201,7 +1201,9 @@ class MaestroThreatModel(VisualizationBase):
         # Light presets: the per-node fill is the agent's primary-layer color
         # (links agent to layer at a glance), so text must be dark. Dark
         # presets keep the preset's own fill and light text.
-        agent_attrs.pop("color_by", None)  # layered-view option, not a Graphviz attr
+        # color_by = "severity" (ma_severity) tints agents by their worst
+        # open threat in this view too (it used to be layered-only)
+        self._graph_color_by = agent_attrs.pop("color_by", None)
         self._graph_agent_fill = agent_attrs.pop("fillcolor", "#0f3460")
         if not self._graph_dark:
             agent_attrs["fontcolor"] = "#1f2937"
@@ -1286,6 +1288,9 @@ class MaestroThreatModel(VisualizationBase):
         default_border = layer_accent if self._graph_dark else "#616161"
         border_color = SEVERITY_COLORS.get(worst, "#616161") if worst == "critical" else default_border
         penwidth = "2" if worst == "critical" else "1.2"
+        if getattr(self, "_graph_color_by", None) == "severity":
+            node_fill = self._SEVERITY_TINTS.get(worst, self._SEVERITY_TINTS["unknown"])
+            border_color = SEVERITY_COLORS.get(worst, "#9e9e9e")
         sub.node(
             node_id,
             label,

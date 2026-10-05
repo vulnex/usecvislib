@@ -57,3 +57,37 @@ def test_dark_attack_tree_presets_paint_the_page(tmp_path, styleid):
     at = AttackTrees(str(src), str(tmp_path / "o"), "dot", styleid)
     at.load().render()
     assert "bgcolor" in at.dot.source
+
+
+def test_maestro_severity_preset_tints_graph_view(tmp_path):
+    from usecvislib.maestro import MaestroThreatModel
+
+    src = TEMPLATES / "maestro" / "multi-agent-support.toml"
+    m = MaestroThreatModel(str(src), str(tmp_path / "o"), "dot", "ma_severity", view="graph", validate_paths=False)
+    m.load().render()
+    tints = set(MaestroThreatModel._SEVERITY_TINTS.values())
+    assert any(f'fillcolor="{t}"' in m.graph.source for t in tints)
+
+
+def test_coupling_preset_has_a_legend(tmp_path):
+    from usecvislib.dependencygraph import DependencyGraph
+
+    src = TEMPLATES / "architecture" / "dependency-graph-example.json"
+    dg = DependencyGraph(str(src), str(tmp_path / "o"), "dot", "dg_coupling")
+    dg.load().render()
+    assert "_coupling_legend" in dg.graph.source
+
+
+def test_svg_dependency_presets_have_distinct_group_palettes():
+    import tomllib
+
+    from usecvislib import dependencygraph
+
+    path = Path(dependencygraph.__file__).parent / "models" / "config_dependencygraph.tml"
+    presets = tomllib.loads(path.read_text(encoding="utf-8"))
+    palettes = [
+        tuple(sorted(v.get("dependencygraph", {}).get("groups", {}).items()))
+        for k, v in presets.items()
+        if k.startswith("sv_") and k != "sv_default"
+    ]
+    assert all(palettes) and len(set(palettes)) == len(palettes)

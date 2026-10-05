@@ -322,7 +322,33 @@ class DependencyGraph(VisualizationBase):
             edge_attrs = utils.stringify_dict(edge_attrs)
             self.graph.edge(utils.sanitize_node_id(src), utils.sanitize_node_id(tgt), **edge_attrs)
 
+        if module_style.get("color_by") == "coupling":
+            self._add_coupling_legend()
+
         self.logger.debug(f"Rendered dependency graph with {len(self._modules)} modules")
+
+    def _add_coupling_legend(self) -> None:
+        """Key for the coupling heat fill (dg_coupling had colours but no scale)."""
+        degree: dict[str, int] = {}
+        for dep in self._dependencies:
+            for end in (dep.get("from"), dep.get("to")):
+                if end:
+                    degree[end] = degree.get(end, 0) + 1
+        top = max(degree.values(), default=0)
+        stops = [("low", 0, "#{:02x}{:02x}{:02x}".format(*self._COUPLING_RAMP[0]))]
+        stops.append(("", top // 2, "#{:02x}{:02x}{:02x}".format(*self._COUPLING_RAMP[1])))
+        stops.append(("high", top, "#{:02x}{:02x}{:02x}".format(*self._COUPLING_RAMP[2])))
+        cells = "".join(
+            f'<TD BGCOLOR="{color}" WIDTH="34"><FONT POINT-SIZE="8" COLOR="{utils.readable_text_color(color) or "#1f2937"}">'
+            f"{value}</FONT></TD>"
+            for _name, value, color in stops
+        )
+        label = (
+            '<<TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="3" COLOR="#cbd5e1">'
+            f'<TR><TD COLSPAN="3"><FONT POINT-SIZE="9">Coupling (dependencies in + out)</FONT></TD></TR>'
+            f"<TR>{cells}</TR></TABLE>>"
+        )
+        self.graph.node("_coupling_legend", label, shape="plain", fontname="Arial")
 
     def _add_module_node(
         self,
