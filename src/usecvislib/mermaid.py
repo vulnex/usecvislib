@@ -970,7 +970,7 @@ def _convert_vuln_tree(data: dict[str, Any]) -> str:
         "high": "fill:#c62828,color:#fff",
         "medium": "fill:#ef6c00,color:#fff",
         "low": "fill:#fbc02d,color:#000",
-        "none": "fill:#4caf50,color:#fff",
+        "none": "fill:#2e7d32,color:#fff",
     }
 
     processed = set()

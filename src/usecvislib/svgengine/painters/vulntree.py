@@ -188,6 +188,11 @@ def _edge_path_d(scene: Scene, parent, child, p_bottom: float, bus: float) -> st
         and n.y - n.height / 2 < c_top
     ]
     if not blocking:
+        # A child almost under its parent drops straight (snapped onto the
+        # trunk), as in attack trees: a few px offset drew a tiny S-jog.
+        offset = abs(child.x - parent.x)
+        if 0.01 < offset <= min(24.0, child.width / 4):
+            return f"M {shapes.fmt(parent.x)} {shapes.fmt(p_bottom)} L {shapes.fmt(parent.x)} {shapes.fmt(c_top)}"
         return shapes.ortho_path_d(parent.x, p_bottom, child.x, c_top, corner=10.0, horizontal=False, mid=bus)
     lane_x = max(n.x + n.width / 2 for n in blocking) + 18.0
     approach_y = (max(n.y + n.height / 2 for n in blocking) + c_top) / 2

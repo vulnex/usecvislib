@@ -13,7 +13,7 @@
 [vt_default]
 graph = {rankdir = "TB", bgcolor = "#f8fafc", fontname = "Helvetica", fontcolor = "#334155", fontsize = "16", pad = "0.4", nodesep = "0.3", ranksep = "0.55", labelloc = "t"}
 node = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", color = "#64748b", fontsize = "10", penwidth = "1"}
-clean = {fillcolor = "#4caf50", fontcolor = "#ffffff"}
+clean = {fillcolor = "#2e7d32", fontcolor = "#ffffff"}
 edge = {color = "#94a3b8", penwidth = "1.4", arrowhead = "vee", arrowsize = "0.7"}
 direct = {penwidth = "2.2", color = "#1e293b"}
 exploited = {color = "#000000", penwidth = "2.6"}
@@ -69,7 +69,7 @@ title = {show = true, size = 15}
 page = {background = "#f8fafc", padding = 44, text = "#111827"}
 font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
 card = {radius = 10, padding_x = 15, padding_y = 10, border_width = 1.0, min_width = 132, max_label_width = 200}
-node = {fill = "#4caf50", border = "#94a3b8", text = "#ffffff"}
+node = {fill = "#2e7d32", border = "#94a3b8", text = "#ffffff"}
 edge = {color = "#94a3b8", width = 1.6, routing = "ortho"}
 effects = {shadow = true, shadow_blur = 2.2, hover_glow = true}
 severity = {use_cvss_colors = true}

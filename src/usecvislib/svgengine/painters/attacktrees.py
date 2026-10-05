@@ -460,7 +460,14 @@ def _paint_edges(
         aligned = min((cross_of(s) for _, s in merge["members"]), key=lambda c: abs(c - merge["stem"]))
         if abs(aligned - merge["stem"]) <= limit:
             merge["stem"] = aligned
-        crosses = [cross_of(s) for _, s in merge["members"]] + [merge["stem"]]
+        # A member several rows above the sink drops past the rows between:
+        # straight down, its trunk ran behind any card in the way. Such a
+        # trunk jogs aside in the gap above the first blocking card.
+        merge["trunks"] = {
+            id(edge): _trunk_detour(scene.nodes, member, sink, cross_of, start_of, bbox_top, horizontal)
+            for edge, member in merge["members"]
+        }
+        crosses = [t[0] for t in merge["trunks"].values()] + [merge["stem"]]
         merge["lo"], merge["hi"] = min(crosses), max(crosses)
         merge["nearest"] = visual_top(sink)
         merge["row_key"] = round(bbox_top(sink), 1)
@@ -611,7 +618,7 @@ def _paint_edges(
         bus = merge["bus"]
         stem = merge["stem"]
         lo, hi = merge["lo"], merge["hi"]
-        member_crosses = {round(cross_of(s), 2) for _, s in merge["members"]}
+        member_crosses = {round(merge["trunks"][id(e)][0], 2) for e, _ in merge["members"]}
         r = max(0.0, min(corner, (hi - lo) / 2, merge["nearest"] - bus, bus - merge["parents_end"]))
         stem_on_member = round(stem, 2) in member_crosses
 
@@ -644,17 +651,61 @@ def _paint_edges(
         # Member trunks carry the per-edge interactivity contract; the shared
         # stem carries the single arrowhead.
         for edge, member in merge["members"]:
-            member_cross = cross_of(member)
+            member_cross, jog = merge["trunks"][id(edge)]
             trunk_end = bus
             at_end = abs(member_cross - lo) < 0.01 or abs(member_cross - hi) < 0.01
             if at_end and abs(member_cross - stem) > 0.01:
                 trunk_end = bus - r  # meets the upward-turning rail corner
-            verticals.append((member_cross, start_of(member), trunk_end, default_color))
-            draw_edge(edge, line(member_cross, start_of(member), member_cross, trunk_end), default_color, arrow=False)
+            if jog is None:
+                verticals.append((member_cross, start_of(member), trunk_end, default_color))
+                d = line(member_cross, start_of(member), member_cross, trunk_end)
+            else:
+                verticals.append((member_cross, jog, trunk_end, default_color))
+                d = ortho(cross_of(member), start_of(member), member_cross, trunk_end, jog)
+            draw_edge(edge, d, default_color, arrow=False)
             add_label(edge, member_cross, (start_of(member) + bus) / 2)
 
     # ---- Pass 7: junction dots and crossing hops
     _paint_crossings(canvas, rails, verticals, width, corner, horizontal, page_bg)
+
+
+def _trunk_detour(nodes, member, sink, cross_of, start_of, bbox_top, horizontal) -> tuple[float, Optional[float]]:
+    """(trunk cross, jog main-coordinate or None) for a merge member's trunk.
+
+    The trunk runs from the member down to the rail just above ``sink``.
+    When a card lies on that line it moves to the nearer side of the
+    blocking cards (with clearance), turning in the gap above the first.
+    """
+    clearance = 14.0
+    cross = cross_of(member)
+    top, bottom = start_of(member), bbox_top(sink)
+
+    def extent(node) -> tuple[float, float, float, float]:
+        if horizontal:
+            return (
+                node.y - node.height / 2,
+                node.y + node.height / 2,
+                node.x - node.width / 2,
+                node.x + node.width / 2,
+            )
+        return (node.x - node.width / 2, node.x + node.width / 2, node.y - node.height / 2, node.y + node.height / 2)
+
+    blockers = []
+    for node in nodes:
+        if node is member or node is sink:
+            continue
+        c_lo, c_hi, m_lo, m_hi = extent(node)
+        if m_lo > top and m_lo < bottom and c_lo - clearance / 2 < cross < c_hi + clearance / 2:
+            blockers.append((c_lo, c_hi, m_lo))
+    if not blockers:
+        return cross, None
+    c_lo = min(b[0] for b in blockers)
+    c_hi = max(b[1] for b in blockers)
+    first_top = min(b[2] for b in blockers)
+    new_cross = c_lo - clearance if cross - c_lo < c_hi - cross else c_hi + clearance
+    # Turn high in the gap: rails into the blocking row run at its middle,
+    # and a jog there would merge into them.
+    return new_cross, top + (first_top - top) * 0.3
 
 
 def _paint_crossings(

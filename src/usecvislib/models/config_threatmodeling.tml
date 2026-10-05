@@ -78,7 +78,7 @@ fontname = "Helvetica"
 color = "#2d3436"
 style = "solid"
 fontname = "Helvetica"
-fontsize = "9"
+fontsize = "10"  # TB layouts render wide; labels were too small
 
 [tm_stride.trustboundary]
 color = "#d63031"
@@ -223,7 +223,7 @@ color = "#00d4ff"
 color = "#ff6b6b"
 style = "solid"
 fontname = "Consolas"
-fontsize = "9"
+fontsize = "10"  # TB layouts render wide; labels were too small
 fontcolor = "#ff6b6b"
 penwidth = "1.5"
 
@@ -371,7 +371,7 @@ fontsize = "11"
 color = "#f77f00"
 style = "solid"
 fontname = "Georgia"
-fontsize = "9"
+fontsize = "10"  # TB layouts render wide; labels were too small
 penwidth = "1.5"
 
 [tm_sunset.trustboundary]
@@ -472,7 +472,7 @@ color = "#90cdf4"
 color = "#63b3ed"
 style = "dashed"
 fontname = "Courier New"
-fontsize = "8"
+fontsize = "9"  # TB layouts render wide; labels were too small
 fontcolor = "#90cdf4"
 penwidth = "1"
 
@@ -527,7 +527,7 @@ color = "#00bb00"
 color = "#00ff00"
 style = "solid"
 fontname = "Courier"
-fontsize = "8"
+fontsize = "9"  # TB layouts render wide; labels were too small
 fontcolor = "#00ff00"
 penwidth = "1"
 

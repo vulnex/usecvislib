@@ -89,7 +89,7 @@ SEVERITY_COLORS = {
     VulnSeverity.HIGH: "#c62828",
     VulnSeverity.MEDIUM: "#ef6c00",
     VulnSeverity.LOW: "#fbc02d",
-    VulnSeverity.NONE: "#4caf50",
+    VulnSeverity.NONE: "#2e7d32",
 }
 
 SUPPORTED_MODES = ("tree", "vulnerable_only", "critical_path")
@@ -198,7 +198,7 @@ class VulnDependencyTree(VisualizationBase):
                 "fontsize": "10",
                 "penwidth": "1",
             },
-            "clean": {"fillcolor": "#4caf50", "fontcolor": "#ffffff"},
+            "clean": {"fillcolor": "#2e7d32", "fontcolor": "#ffffff"},
             "edge": {"color": "#94a3b8", "penwidth": "1.4", "arrowhead": "vee", "arrowsize": "0.7"},
             "direct": {"penwidth": "2.2", "color": "#1e293b"},
             "exploited": {"color": "#000000", "penwidth": "2.6"},

@@ -41,6 +41,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from .customdiagrams import CustomDiagrams
+import json
 import logging
 import re
 import shutil
@@ -449,6 +450,7 @@ class MermaidDiagrams:
         with tempfile.NamedTemporaryFile(mode="w", suffix=".mmd", delete=False, encoding="utf-8") as f:
             f.write(self.source)
             input_path = f.name
+        config_path = None
 
         try:
             # Build mmdc command
@@ -467,6 +469,14 @@ class MermaidDiagrams:
                 "-b",
                 bg,
             ]
+
+            # Dark theme: gantt weekend/excluded days default to a bright
+            # olive band that striped the whole chart
+            if t == "dark":
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as cf:
+                    json.dump({"theme": "dark", "themeVariables": {"excludeBkgColor": "#3a3f4b"}}, cf)
+                    config_path = cf.name
+                cmd.extend(["-c", config_path])
 
             # Add puppeteer config if available (for Docker/sandbox environments)
             puppeteer_config = self._get_puppeteer_config()
@@ -499,6 +509,8 @@ class MermaidDiagrams:
             # Cleanup temp file
             try:
                 Path(input_path).unlink(missing_ok=True)
+                if config_path:
+                    Path(config_path).unlink(missing_ok=True)
             except Exception as e:
                 logger.warning(f"Failed to cleanup temp file: {e}")
 

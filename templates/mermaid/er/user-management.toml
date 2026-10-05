@@ -64,7 +64,7 @@ erDiagram
         datetime expires_at
     }
 
-    AUDIT_LOG ||--|| USER : references
+    USER ||--o{ AUDIT_LOG : "generates"
     AUDIT_LOG {
         int id PK
         int user_id FK

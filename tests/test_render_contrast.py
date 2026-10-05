@@ -91,3 +91,27 @@ def test_svg_dependency_presets_have_distinct_group_palettes():
         if k.startswith("sv_") and k != "sv_default"
     ]
     assert all(palettes) and len(set(palettes)) == len(palettes)
+
+
+def test_merge_trunk_detours_around_a_card_in_between():
+    from usecvislib.svgengine.painters.attacktrees import _trunk_detour
+    from usecvislib.svgengine.scene import SceneNode
+
+    member = SceneNode(id="a", label="a", x=100, y=50, width=80, height=40)
+    blocker = SceneNode(id="b", label="b", x=90, y=150, width=100, height=40)
+    sink = SceneNode(id="c", label="c", x=200, y=250, width=80, height=40)
+
+    def cross_of(n):
+        return n.x
+
+    def start_of(n):
+        return n.y + n.height / 2
+
+    def bbox_top(n):
+        return n.y - n.height / 2
+
+    cross, jog = _trunk_detour([member, blocker, sink], member, sink, cross_of, start_of, bbox_top, False)
+    assert jog is not None and 70 < jog < 130
+    assert cross > blocker.x + blocker.width / 2  # nearer (right) side, clear of the card
+    # nothing in the way: straight trunk
+    assert _trunk_detour([member, sink], member, sink, cross_of, start_of, bbox_top, False) == (100, None)
