@@ -32,6 +32,7 @@ color-consistent with the Graphviz-engine timelines.
 
 import logging
 from datetime import timedelta
+from itertools import pairwise
 from typing import Any
 
 from ... import utils
@@ -44,10 +45,13 @@ logger = logging.getLogger(__name__)
 MODULE_SLUG = "timeline"
 
 _CANON_SEV = {"critical", "high", "medium", "low", "info"}
-# Label stagger tiers: (sign, base offset in px). sign<0 = above marker. Same-side
-# tiers are spaced far enough apart to clear a two-line label.
-_TIERS = [(-1, 18.0), (1, 20.0), (-1, 46.0), (1, 48.0), (-1, 74.0), (1, 76.0)]
-_STAGGER_GAP = 90.0  # min horizontal px before a tier can be reused
+# Label placement: candidate offsets (px from the marker center) tried in
+# order, alternating above/below, until a label clears every placed label,
+# marker and duration bar.
+_LABEL_STEP = 14.0
+_LABEL_BASE = 12.0
+_LABEL_LEVELS = 14
+_LABEL_PAD = 3.0
 
 
 class _Bounds:
@@ -83,24 +87,48 @@ def _severity_class(severity: str) -> str:
     return f"usv-sev--{severity}" if severity in _CANON_SEV else "usv-sev--info"
 
 
-def _pick_tier(x: float, last_x: list[float]) -> tuple[int, float]:
-    """Greedily assign a stagger tier whose last label is far enough left."""
-    for i, (sign, base) in enumerate(_TIERS):
-        if x - last_x[i] >= _STAGGER_GAP:
-            last_x[i] = x
-            return sign, base
-    last_x[0] = x
-    return _TIERS[0]
+class _LabelPlacer:
+    """Places marker labels so that none overlap (lane-local coordinates).
+
+    Obstacles and placed labels are rectangles relative to the marker row
+    (y = 0 at the marker centers). Each label tries offsets alternating
+    above / below, nearest first, and takes the first free slot.
+    """
+
+    def __init__(self) -> None:
+        self.rects: list[tuple[float, float, float, float]] = []
+        self.up = 0.0  # extent above the marker row
+        self.down = 0.0  # extent below
+
+    def block(self, x0: float, y0: float, x1: float, y1: float) -> None:
+        self.rects.append((x0, y0, x1, y1))
+
+    def _free(self, r: tuple[float, float, float, float]) -> bool:
+        x0, y0, x1, y1 = r
+        p = _LABEL_PAD
+        return all(x1 + p <= a0 or x0 - p >= a1 or y1 + p <= b0 or y0 - p >= b1 for a0, b0, a1, b1 in self.rects)
+
+    def place(self, x: float, w: float, h: float) -> float:
+        """Return the label's top y (lane-local) and reserve its box."""
+        candidates = []
+        for level in range(_LABEL_LEVELS):
+            off = _LABEL_BASE + level * _LABEL_STEP
+            candidates.append(-off - h)  # above: label bottom sits `off` above
+            candidates.append(off)  # below
+        top = candidates[0]
+        for cand in candidates:
+            if self._free((x - w / 2, cand, x + w / 2, cand + h)):
+                top = cand
+                break
+        self.rects.append((x - w / 2, top, x + w / 2, top + h))
+        self.up = max(self.up, -top)
+        self.down = max(self.down, top + h)
+        return top
 
 
-def _staggered_label(
-    group, bounds, x: float, cy: float, lines: list[str], size: float, family: str, color: str, last_x: list[float]
-) -> None:
-    """Place a centered label above/below the marker in a free stagger tier."""
-    sign, base = _pick_tier(x, last_x)
-    text_h = len(lines) * size * metrics.LINE_HEIGHT
-    top_y = (cy - base - text_h) if sign < 0 else (cy + base)
-    _centered_label(group, bounds, x, top_y, lines, size, family, color)
+def _label_box(lines: list[str], family: str, size: float) -> tuple[float, float]:
+    w = max((metrics.measure_text(line, family, size) for line in lines), default=0.0)
+    return w, len(lines) * size * metrics.LINE_HEIGHT
 
 
 def _time_scale(viz, axis_length: float):
@@ -117,12 +145,28 @@ def _time_scale(viz, axis_length: float):
     return x_of, t_min, total, tick_fmt
 
 
-def _ticks(t_min, total: float, tick_fmt: str, count: int = 5) -> list[tuple[Any, str]]:
+_TICK_STEPS = (
+    [60 * m for m in (1, 2, 5, 10, 15, 30)]
+    + [3600 * h for h in (1, 2, 3, 6, 12)]
+    + [86400 * d for d in (1, 2, 7, 14, 30)]
+)
+
+
+def _ticks(t_min, total: float, tick_fmt: str, target: int = 7) -> list[tuple[Any, str]]:
+    """Ticks on round times (e.g. every 1h / 15min), about ``target`` of them.
+
+    Splitting the span into equal parts put ticks at times like 11:07.
+    """
+    step = next((st for st in _TICK_STEPS if total / st <= target), _TICK_STEPS[-1])
+    day_start = t_min.replace(hour=0, minute=0, second=0, microsecond=0)
+    offset = (t_min - day_start).total_seconds()
+    first = day_start + timedelta(seconds=-(-offset // step) * step)
+    t_end = t_min + timedelta(seconds=total)
     out = []
-    for i in range(count):
-        frac = i / (count - 1)
-        t = t_min + timedelta(seconds=frac * total)
+    t = first
+    while t <= t_end:
         out.append((t, t.strftime(tick_fmt)))
+        t += timedelta(seconds=step)
     return out
 
 
@@ -233,32 +277,64 @@ def _render_swimlane(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
     max_w = float(theme["card"]["max_label_width"])
     axis_length = float(tl["axis_length"])
     lane_h = float(tl["lane_height"])
+    radius = float(tl["marker_radius"])
     x_of, t_min, total, tick_fmt = _time_scale(viz, axis_length)
     ticks = _ticks(t_min, total, tick_fmt)
 
     lanes = viz.lanes or ["Events"]
     grouped = viz.events_by_lane()
+
+    # Pass 1: place each lane's labels lane-locally, then size every lane to
+    # its labels so they can never spill into a neighbouring lane.
+    plans: list[tuple[_LabelPlacer, list]] = []
+    for lane in lanes:
+        placer = _LabelPlacer()
+        lane_events = grouped.get(lane, [])
+        for ev in lane_events:
+            x = x_of(ev.timestamp)
+            placer.block(x - radius, -radius, x + radius, radius)
+            if ev.duration:
+                placer.block(x, -3.0, max(x_of(ev.end_time), x + 2.0), 3.0)
+        items = []
+        for ev in lane_events:
+            x = x_of(ev.timestamp)
+            lines = _wrap_title(ev, family, size, max_w)
+            w, h = _label_box(lines, family, size)
+            items.append((ev, x, lines, placer.place(x, w, h)))
+        plans.append((placer, items))
+
+    lane_pad = 8.0
     content_top = 8.0
-    content_bottom = content_top + lane_h * len(lanes)
+    lane_tops, lane_heights, centers = [], [], []
+    y = content_top
+    for placer, _items in plans:
+        height = max(lane_h, placer.up + placer.down + 2 * lane_pad)
+        # Marker row sits so the label stack is centered in the lane.
+        cy = y + height / 2 + (placer.up - placer.down) / 2
+        lane_tops.append(y)
+        lane_heights.append(height)
+        centers.append(cy)
+        y += height
+    content_bottom = y
 
     # Lane background bands (alternating) + lane labels
     lane_band, band_alpha, lane_text = tl["lane_band"], float(tl["lane_band_alpha"]), tl["lane_text"]
     for row, lane in enumerate(lanes):
-        y0 = content_top + row * lane_h
+        y0, height = lane_tops[row], lane_heights[row]
         if row % 2:
-            ops.groups.append(shapes.band(0.0, y0, axis_length, lane_h, lane_band, opacity=band_alpha))
+            ops.groups.append(shapes.band(0.0, y0, axis_length, height, lane_band, opacity=band_alpha))
         _anchored_label(
             ops.labels,
             bounds,
             -12.0,
-            y0 + lane_h / 2 + size * 0.35,
+            centers[row] + size * 0.35,
             lane,
             float(font["size"]) * 0.92,
             family,
             lane_text,
             "end",
         )
-        bounds.rect(0.0, y0, axis_length, lane_h)
+        bounds.rect(0.0, y0, axis_length, height)
 
     _phase_bands_vertical(
         viz, x_of, content_top, content_bottom, theme, ops, bounds, float(font["size"]) * 0.85, family
@@ -266,12 +342,9 @@ def _render_swimlane(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
     _time_axis_bottom(x_of, ticks, content_top, content_bottom, theme, ops, bounds, float(font["size"]) * 0.85, family)
 
     dur_alpha = float(tl["duration_alpha"])
-    for row, lane in enumerate(lanes):
-        cy = content_top + row * lane_h + lane_h / 2
-        events = grouped.get(lane, [])
-        last_x = [-1e18] * len(_TIERS)
-        for ev in events:
-            x = x_of(ev.timestamp)
+    for row, (_placer, items) in enumerate(plans):
+        cy = centers[row]
+        for ev, x, lines, top in items:
             if ev.duration:
                 x_end = x_of(ev.end_time)
                 color = SEVERITY_COLORS.get(ev.severity, SEVERITY_COLORS["info"])
@@ -280,8 +353,7 @@ def _render_swimlane(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
                 )
                 bounds.rect(x, cy - 3.0, max(x_end - x, 2.0), 6.0)
             group = _marker(ev, x, cy, theme, ops, bounds)
-            lines = _wrap_title(ev, family, size, max_w)
-            _staggered_label(group, bounds, x, cy, lines, size, family, theme["event_text"], last_x)
+            _centered_label(group, bounds, x, cy + top, lines, size, family, theme["event_text"])
 
     _legend(viz, theme, ops, bounds, axis_length + 24.0, content_top + 4.0, float(font["size"]) * 0.85, family)
 
@@ -319,7 +391,8 @@ def _render_gantt(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
         bounds.rect(x, cy - row_h * 0.3, w, row_h * 0.6)
         ops.nodes.append(group)
         tag = ev.title + (f" [{ev.technique}]" if ev.technique else "")
-        _anchored_label(group, bounds, x + 6.0, cy + size * 0.35, tag, size, family, theme["event_text"], "start")
+        # After the bar: inside it, dark text sat on dark severity fills.
+        _anchored_label(group, bounds, x + w + 6.0, cy + size * 0.35, tag, size, family, theme["event_text"], "start")
         _anchored_label(
             ops.labels, bounds, -gutter + 2.0, cy + size * 0.35, ev.id, size * 0.92, family, tl["lane_text"], "start"
         )
@@ -339,21 +412,29 @@ def _render_vertical(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
     center_x = 0.0
     content_top = 8.0
 
-    def y_of(t) -> float:
+    def y_raw(t) -> float:
         return content_top + (t - t_min).total_seconds() / total * axis_v
 
-    content_bottom = content_top + axis_v
+    # Events close in time would overlap: enforce a minimum row spacing and
+    # map other timestamps (phase bounds) piecewise-linearly between the
+    # adjusted event rows, so bands still bracket the right events.
+    min_gap = size * 1.9
+    ys: list[float] = []
+    for ev in events:
+        raw = y_raw(ev.timestamp)
+        ys.append(max(raw, ys[-1] + min_gap) if ys else raw)
+    knots = sorted(zip((y_raw(ev.timestamp) for ev in events), ys, strict=True))
 
-    # Horizontal phase bands (no name label here: left-side event annotations
-    # occupy that gutter — the Matplotlib vertical mode omits phase text too).
-    alpha = float(tl["phase_alpha"])
-    for ph in viz.phases:
-        y0, y1 = y_of(ph.start), y_of(ph.end)
-        h = max(y1 - y0, 1.0)
-        g = shapes.group(["usv-group", "usv-phase"], {"group-id": ph.name})
-        g.append(shapes.band(-260.0, y0, 520.0, h, ph.color, opacity=alpha))
-        ops.groups.append(g)
-        bounds.rect(-260.0, y0, 520.0, h)
+    def y_of(t) -> float:
+        raw = y_raw(t)
+        if raw <= knots[0][0]:
+            return raw + knots[0][1] - knots[0][0]
+        for (r0, a0), (r1, a1) in pairwise(knots):
+            if raw <= r1:
+                return a0 + (a1 - a0) * ((raw - r0) / (r1 - r0) if r1 > r0 else 1.0)
+        return raw + knots[-1][1] - knots[-1][0]
+
+    content_bottom = max(content_top + axis_v, ys[-1] + min_gap)
 
     # Center connector line
     ops.edges.append(
@@ -366,7 +447,7 @@ def _render_vertical(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
     bounds.rect(center_x - 1, content_top, 2, content_bottom - content_top)
 
     for i, ev in enumerate(events):
-        y = y_of(ev.timestamp)
+        y = ys[i]
         group = _marker(ev, center_x, y, theme, ops, bounds)
         side = 1 if i % 2 == 0 else -1
         tag = ev.title + (f" [{ev.technique}]" if ev.technique else "")
@@ -387,7 +468,20 @@ def _render_vertical(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
             "end" if side > 0 else "start",
         )
 
-    _legend(viz, theme, ops, bounds, 270.0, content_top + 4.0, float(font["size"]) * 0.85, family)
+    # Phase bands span the labels actually drawn (no name text: the side
+    # annotations occupy that gutter, as in the Matplotlib vertical mode).
+    band_x0, band_x1 = bounds.min_x - 12.0, bounds.max_x + 12.0
+    alpha = float(tl["phase_alpha"])
+    for ph in viz.phases:
+        y0, y1 = y_of(ph.start), y_of(ph.end)
+        h = max(y1 - y0, 1.0)
+        g = shapes.group(["usv-group", "usv-phase"], {"group-id": ph.name})
+        g.append(shapes.band(band_x0, y0, band_x1 - band_x0, h, ph.color, opacity=alpha))
+        ops.groups.append(g)
+        bounds.rect(band_x0, y0, band_x1 - band_x0, h)
+
+    # Legend right of everything drawn, so it never covers a label.
+    _legend(viz, theme, ops, bounds, bounds.max_x + 24.0, content_top + 4.0, float(font["size"]) * 0.85, family)
 
 
 def _render_compact(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
@@ -401,8 +495,23 @@ def _render_compact(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
 
     events = viz.events
     cy = 60.0
+    radius = float(tl["marker_radius"])
 
-    _phase_bands_vertical(viz, x_of, cy - 46.0, cy + 46.0, theme, ops, bounds, float(font["size"]) * 0.85, family)
+    # Place labels first so the phase bands and the axis clear the stack.
+    placer = _LabelPlacer()
+    for ev in events:
+        x = x_of(ev.timestamp)
+        placer.block(x - radius, -radius, x + radius, radius)
+    placed = []
+    for ev in events:
+        x = x_of(ev.timestamp)
+        lines = metrics.wrap_text(ev.title, family, size, max_w) or [ev.title]
+        w, h = _label_box(lines, family, size)
+        placed.append((ev, x, lines, placer.place(x, w, h)))
+    band_top = cy - max(46.0, placer.up + 8.0)
+    band_bottom = cy + max(46.0, placer.down + 8.0)
+
+    _phase_bands_vertical(viz, x_of, band_top, band_bottom, theme, ops, bounds, float(font["size"]) * 0.85, family)
 
     ops.edges.append(
         shapes.edge_path(
@@ -413,14 +522,11 @@ def _render_compact(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
     )
     bounds.rect(0.0, cy - 1, axis_length, 2)
 
-    last_x = [-1e18] * len(_TIERS)
-    for ev in events:
-        x = x_of(ev.timestamp)
+    for ev, x, lines, top in placed:
         group = _marker(ev, x, cy, theme, ops, bounds)
-        lines = metrics.wrap_text(ev.title, family, size, max_w) or [ev.title]
-        _staggered_label(group, bounds, x, cy, lines, size, family, theme["event_text"], last_x)
+        _centered_label(group, bounds, x, cy + top, lines, size, family, theme["event_text"])
 
-    _time_axis_bottom(x_of, ticks, cy + 46.0, cy + 46.0, theme, ops, bounds, float(font["size"]) * 0.85, family)
+    _time_axis_bottom(x_of, ticks, band_bottom, band_bottom, theme, ops, bounds, float(font["size"]) * 0.85, family)
 
 
 _RENDERERS = {

@@ -187,3 +187,27 @@ class TestCli:
         with pytest.raises(SystemExit) as exc:
             usecvis.main(["-i", FIXTURE, "-o", str(tmp_path / "x"), "-f", "dot", "-m", "10", "--render-engine", "svg"])
         assert exc.value.code == 2
+
+
+class TestLabelLayout:
+    def test_placer_never_overlaps(self):
+        from usecvislib.svgengine.painters.timeline import _LabelPlacer
+
+        placer = _LabelPlacer()
+        boxes = []
+        for x in (0, 20, 40, 60, 80):  # tightly clustered markers, wide labels
+            top = placer.place(x, 160.0, 30.0)
+            boxes.append((x - 80, top, x + 80, top + 30))
+        for i, a in enumerate(boxes):
+            for b in boxes[i + 1 :]:
+                assert a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1], (a, b)
+
+    def test_ticks_fall_on_round_times(self):
+        from datetime import datetime
+
+        from usecvislib.svgengine.painters.timeline import _ticks
+
+        ticks = _ticks(datetime(2026, 3, 1, 8, 7, 30), 11 * 3600, "%H:%M")
+        assert 4 <= len(ticks) <= 8
+        for t, _ in ticks:
+            assert t.second == 0 and t.minute == 0  # hourly or coarser for an 11h span
