@@ -376,13 +376,16 @@ class IncidentTimeline(VisualizationBase):
         }[self.mode]
         self._fig = renderer(plt, style, fig_cfg)
 
+    def _time_format(self) -> str:
+        """Tick format: time of day, plus the date once the incident spans days."""
+        span = self.time_span() or timedelta(minutes=1)
+        return "%H:%M" if span <= timedelta(days=1) else "%m-%d %H:%M"
+
     def _apply_time_axis(self, ax, style: dict[str, Any]) -> None:
         """Format an x-axis carrying matplotlib date numbers."""
         import matplotlib.dates as mdates
 
-        span = self.time_span() or timedelta(minutes=1)
-        fmt = "%H:%M" if span <= timedelta(days=1) else "%m-%d %H:%M"
-        ax.xaxis.set_major_formatter(mdates.DateFormatter(fmt))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter(self._time_format()))
         ax.xaxis_date()
         for label in ax.get_xticklabels():
             label.set_rotation(30)
@@ -425,7 +428,37 @@ class IncidentTimeline(VisualizationBase):
         if handles:
             ax.legend(handles=handles, loc="upper right", fontsize=8, framealpha=0.9, title="Severity")
 
+    def _theme_axes(self, ax, style: dict[str, Any]) -> None:
+        """Carry the preset's colors onto the axes, not just the figure.
+
+        Matplotlib leaves the plot area, ticks, spines and legend frame at its
+        own light defaults, so a dark preset (tl_dark) produced light labels
+        on a white plot area.
+        """
+        fig_cfg = {**self._default_style()["figure"], **style.get("figure", {})}
+        axis_cfg = {**self._default_style()["axis"], **style.get("axis", {})}
+        ev_cfg = {**self._default_style()["event"], **style.get("event", {})}
+        face, color = fig_cfg["facecolor"], axis_cfg["color"]
+
+        ax.set_facecolor(face)
+        ax.tick_params(colors=color)
+        for label in ax.get_xticklabels():
+            label.set_color(color)
+        ax.xaxis.label.set_color(color)
+        ax.yaxis.label.set_color(color)
+        for spine in ax.spines.values():
+            spine.set_edgecolor(color)
+
+        legend = ax.get_legend()
+        if legend is not None:
+            legend.get_frame().set_facecolor(face)
+            legend.get_frame().set_edgecolor(color)
+            legend.get_title().set_color(ev_cfg["text_color"])
+            for text in legend.get_texts():
+                text.set_color(ev_cfg["text_color"])
+
     def _finish(self, fig, ax, style: dict[str, Any]) -> Any:
+        self._theme_axes(ax, style)
         title_cfg = {**self._default_style()["title"], **style.get("title", {})}
         fig.suptitle(self._incident_name(), **title_cfg)
         fig.tight_layout(rect=(0, 0, 1, 0.97))
@@ -584,7 +617,7 @@ class IncidentTimeline(VisualizationBase):
         ax.set_xlim(-0.2, 1.2)
         ax.set_xticks([])
         ax.yaxis_date()
-        ax.yaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+        ax.yaxis.set_major_formatter(mdates.DateFormatter(self._time_format()))
         ax.invert_yaxis()
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)

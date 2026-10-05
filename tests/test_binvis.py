@@ -14,6 +14,7 @@
 """Unit tests for binvis module."""
 
 import os
+import random
 import sys
 import tempfile
 import pytest
@@ -613,3 +614,41 @@ class TestBinVisVisualization:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestBinVisStyling:
+    """Presets visibly change the charts, and charts stay readable."""
+
+    @staticmethod
+    def _sample(tmp_path):
+        # Mostly null bytes plus varied content, like a typical binary: the
+        # dominant 0x00 used to flatten the wind rose to a single spike.
+        path = tmp_path / "sample.bin"
+        path.write_bytes(b"\x00" * 6000 + bytes(range(256)) * 20 + random.Random(0).randbytes(4000))
+        return str(path)
+
+    def _render(self, tmp_path, style, chart):
+        out = tmp_path / f"{style}_{chart}"
+        bv = BinVis(self._sample(tmp_path), str(out), format="png", styleid=style, validate_paths=False)
+        bv.BuildBinVis(chart)
+        return tmp_path / f"{style}_{chart}_{chart}.png"
+
+    def test_entropy_uses_preset_colormap(self, tmp_path):
+        a = self._render(tmp_path, "bv_corporate", "entropy").read_bytes()
+        b = self._render(tmp_path, "bv_forest", "entropy").read_bytes()
+        assert a != b
+
+    def test_dark_preset_has_dark_background(self, tmp_path):
+        from PIL import Image
+
+        for chart in ("entropy", "distribution", "windrose", "heatmap"):
+            img = Image.open(self._render(tmp_path, "bv_dark", chart)).convert("L")
+            assert img.getpixel((2, 2)) < 80, chart
+
+    def test_windrose_not_dominated_by_one_byte(self, tmp_path):
+        from PIL import Image
+
+        img = Image.open(self._render(tmp_path, "bv_minimal", "windrose")).convert("RGB")
+        colors = img.getcolors(img.width * img.height)
+        non_white = sum(count for count, rgb in colors if min(rgb) < 230)
+        assert non_white / (img.width * img.height) > 0.05

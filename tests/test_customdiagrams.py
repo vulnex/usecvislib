@@ -609,3 +609,22 @@ class TestStylePresets:
         source = self._dot_with_style("cd_blueprint")
         assert "#27AE60" not in source
         assert "#0d2a4a" in source
+
+
+class TestLabelLineBreaks:
+    """A literal backslash-n in templates/values is a line break, not text."""
+
+    def test_literal_backslash_n_becomes_line_break(self):
+        cd = CustomDiagrams()
+        label = cd._build_label("{name}\\n{ip}", {"name": "Core Router", "ip": "10.0.0.1\\nVLAN 10"})
+        assert label == "Core Router\n10.0.0.1\nVLAN 10"
+
+    def test_templates_render_without_literal_backslash_n(self):
+        root = Path(__file__).parent.parent / "templates" / "custom-diagrams"
+        for path in sorted(root.glob("*/*.toml")):
+            cd = CustomDiagrams()
+            cd.load(path)
+            source = cd.get_dot_source()
+            # escape_dot_label turns a real newline into "\n"; a doubled
+            # backslash means a literal backslash-n would be printed.
+            assert "\\\\n" not in source, path.name

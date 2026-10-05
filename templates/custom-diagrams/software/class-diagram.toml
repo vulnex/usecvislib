@@ -22,27 +22,27 @@ shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["attributes", "methods", "stereotype"]
 style = { fillcolor = "#FFFACD", fontcolor = "black" }
-label_template = "{name}|{attributes}|{methods}"
+label_template = "{name}\n——————\n{attributes}\n——————\n{methods}"
 
 [schema.nodes.interface]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["methods"]
 style = { fillcolor = "#E6E6FA", fontcolor = "black" }
-label_template = "<<interface>>\\n{name}|{methods}"
+label_template = "<<interface>>\n{name}\n——————\n{methods}"
 
 [schema.nodes.abstract_class]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["attributes", "methods"]
 style = { fillcolor = "#FFE4B5", fontcolor = "black" }
-label_template = "<<abstract>>\\n{name}|{attributes}|{methods}"
+label_template = "<<abstract>>\n{name}\n——————\n{attributes}\n——————\n{methods}"
 
 [schema.nodes.enum]
 shape = "rectangle"
 required_fields = ["name", "values"]
 style = { fillcolor = "#98FB98", fontcolor = "black" }
-label_template = "<<enum>>\\n{name}|{values}"
+label_template = "<<enum>>\n{name}\n——————\n{values}"
 
 [schema.nodes.package]
 shape = "package"
@@ -92,67 +92,67 @@ label_field = "stereotype"
 id = "entity"
 type = "interface"
 name = "Entity"
-methods = "+getId(): UUID\\n+getCreatedAt(): DateTime"
+methods = "+getId(): UUID\n+getCreatedAt(): DateTime"
 
 [[nodes]]
 id = "user"
 type = "class"
 name = "User"
-attributes = "-id: UUID\\n-email: String\\n-password: String\\n-role: Role"
-methods = "+login()\\n+logout()\\n+updateProfile()"
+attributes = "-id: UUID\n-email: String\n-password: String\n-role: Role"
+methods = "+login()\n+logout()\n+updateProfile()"
 
 [[nodes]]
 id = "customer"
 type = "class"
 name = "Customer"
-attributes = "-addresses: List<Address>\\n-orders: List<Order>"
-methods = "+placeOrder()\\n+getOrderHistory()"
+attributes = "-addresses: List<Address>\n-orders: List<Order>"
+methods = "+placeOrder()\n+getOrderHistory()"
 
 [[nodes]]
 id = "admin"
 type = "class"
 name = "Admin"
 attributes = "-permissions: Set<Permission>"
-methods = "+manageUsers()\\n+viewReports()"
+methods = "+manageUsers()\n+viewReports()"
 
 [[nodes]]
 id = "order"
 type = "class"
 name = "Order"
-attributes = "-id: UUID\\n-status: OrderStatus\\n-total: Decimal"
-methods = "+addItem()\\n+removeItem()\\n+checkout()"
+attributes = "-id: UUID\n-status: OrderStatus\n-total: Decimal"
+methods = "+addItem()\n+removeItem()\n+checkout()"
 
 [[nodes]]
 id = "order_item"
 type = "class"
 name = "OrderItem"
-attributes = "-quantity: Integer\\n-price: Decimal"
+attributes = "-quantity: Integer\n-price: Decimal"
 methods = "+getSubtotal()"
 
 [[nodes]]
 id = "product"
 type = "class"
 name = "Product"
-attributes = "-id: UUID\\n-name: String\\n-price: Decimal\\n-stock: Integer"
-methods = "+updateStock()\\n+getAvailability()"
+attributes = "-id: UUID\n-name: String\n-price: Decimal\n-stock: Integer"
+methods = "+updateStock()\n+getAvailability()"
 
 [[nodes]]
 id = "role"
 type = "enum"
 name = "Role"
-values = "ADMIN\\nCUSTOMER\\nGUEST"
+values = "ADMIN\nCUSTOMER\nGUEST"
 
 [[nodes]]
 id = "order_status"
 type = "enum"
 name = "OrderStatus"
-values = "PENDING\\nPAID\\nSHIPPED\\nDELIVERED\\nCANCELLED"
+values = "PENDING\nPAID\nSHIPPED\nDELIVERED\nCANCELLED"
 
 [[nodes]]
 id = "payment"
 type = "interface"
 name = "PaymentProcessor"
-methods = "+processPayment(amount): Boolean\\n+refund(transactionId): Boolean"
+methods = "+processPayment(amount): Boolean\n+refund(transactionId): Boolean"
 
 [[edges]]
 from = "user"

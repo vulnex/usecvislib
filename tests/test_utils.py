@@ -395,6 +395,15 @@ class TestDictFunctions:
         result = utils.stringify_dict(d)
         assert result == {"a": "1", "b": "True", "c": "3.14"}
 
+    def test_stringify_dict_expands_short_hex_colors(self):
+        """Graphviz renders #rgb as black, so color attrs are expanded."""
+        d = {"fontcolor": "#eee", "fillcolor": "#abc:#DEF", "color": "#123456", "label": "#fff"}
+        result = utils.stringify_dict(d)
+        assert result["fontcolor"] == "#eeeeee"
+        assert result["fillcolor"] == "#aabbcc:#DDEEFF"
+        assert result["color"] == "#123456"
+        assert result["label"] == "#fff"  # non-color attrs untouched
+
     def test_stringify_dict_empty(self):
         """Test stringify with empty dict."""
         assert utils.stringify_dict({}) == {}

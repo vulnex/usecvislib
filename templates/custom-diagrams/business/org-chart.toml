@@ -22,49 +22,49 @@ shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["title", "department", "email", "reports"]
 style = { fillcolor = "#2C3E50", fontcolor = "white", style = "filled,bold", width = "2" }
-label_template = "{name}\\n{title}"
+label_template = "{name}\n{title}"
 
 [schema.nodes.director]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["title", "department", "email"]
 style = { fillcolor = "#34495E", fontcolor = "white", width = "1.8" }
-label_template = "{name}\\n{title}"
+label_template = "{name}\n{title}"
 
 [schema.nodes.manager]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["title", "department", "email", "team_size"]
 style = { fillcolor = "#3498DB", fontcolor = "white", width = "1.6" }
-label_template = "{name}\\n{title}"
+label_template = "{name}\n{title}"
 
 [schema.nodes.team_lead]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["title", "team"]
 style = { fillcolor = "#1ABC9C", fontcolor = "white" }
-label_template = "{name}\\n{title}"
+label_template = "{name}\n{title}"
 
 [schema.nodes.employee]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["title", "skills"]
 style = { fillcolor = "#27AE60", fontcolor = "white" }
-label_template = "{name}\\n{title}"
+label_template = "{name}\n{title}"
 
 [schema.nodes.contractor]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["title", "company"]
 style = { fillcolor = "#95A5A6", fontcolor = "white", style = "filled,dashed" }
-label_template = "{name}\\n{title}"
+label_template = "{name}\n{title}"
 
 [schema.nodes.vacant]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["title"]
 style = { fillcolor = "#ECF0F1", fontcolor = "#7F8C8D", style = "dashed" }
-label_template = "{name}\\n(Vacant)"
+label_template = "{name}\n(Vacant)"
 
 [schema.nodes.department]
 shape = "package"

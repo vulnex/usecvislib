@@ -221,6 +221,10 @@ class MermaidDiagrams:
     # Allowed input file extensions
     ALLOWED_EXTENSIONS = [".mmd", ".mermaid", ".toml", ".tml", ".json", ".yaml", ".yml"]
 
+    # Background substituted for white under the dark theme (Mermaid's own dark-theme background)
+    DARK_BACKGROUND = "#333333"
+    _WHITE_BACKGROUNDS = frozenset({"white", "#fff", "#ffffff"})
+
     def __init__(self, theme: str = "default", validate_cli: bool = True):
         """Initialize MermaidDiagrams.
 
@@ -431,6 +435,11 @@ class MermaidDiagrams:
         if t not in self.THEMES:
             logger.warning(f"Unknown theme '{t}', using 'default'")
             t = "default"
+
+        # The dark theme draws light text; on the white default background
+        # (templates set it explicitly) most of it is unreadable.
+        if t == "dark" and str(bg).strip().lower() in self._WHITE_BACKGROUNDS:
+            bg = self.DARK_BACKGROUND
 
         # Validate output path
         output_path_obj = validate_output_path(output)

@@ -24,35 +24,35 @@ shape = "artifact"
 required_fields = ["name"]
 optional_fields = ["stereotype", "os", "ip", "image"]
 style = { fillcolor = "#3498DB", fontcolor = "white" }
-label_template = "<<device>>\\n{name}\\n{ip}"
+label_template = "<<device>>\n{name}\n{ip}"
 
 [schema.nodes.execution_env]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["technology", "image"]
 style = { fillcolor = "#27AE60", fontcolor = "white", style = "filled,rounded" }
-label_template = "<<executionEnvironment>>\\n{name}"
+label_template = "<<executionEnvironment>>\n{name}"
 
 [schema.nodes.artifact]
 shape = "note"
 required_fields = ["name"]
 optional_fields = ["version", "image"]
 style = { fillcolor = "#F39C12", fontcolor = "white" }
-label_template = "<<artifact>>\\n{name}\\n{version}"
+label_template = "<<artifact>>\n{name}\n{version}"
 
 [schema.nodes.container]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["container_image", "image"]
 style = { fillcolor = "#1ABC9C", fontcolor = "white" }
-label_template = "<<container>>\\n{name}"
+label_template = "<<container>>\n{name}"
 
 [schema.nodes.database]
 shape = "database"
 required_fields = ["name"]
 optional_fields = ["engine", "port", "image"]
 style = { fillcolor = "#9B59B6", fontcolor = "white" }
-label_template = "{name}\\n:{port}"
+label_template = "{name}\n:{port}"
 
 [schema.nodes.loadbalancer]
 shape = "trapezium"
@@ -66,7 +66,7 @@ shape = "ellipse"
 required_fields = ["name"]
 optional_fields = ["image"]
 style = { fillcolor = "#95A5A6", fontcolor = "white", style = "filled,dashed" }
-label_template = "<<CDN>>\\n{name}"
+label_template = "<<CDN>>\n{name}"
 
 [schema.edges.deploys]
 style = "dashed"

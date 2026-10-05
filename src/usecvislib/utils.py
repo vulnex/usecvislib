@@ -1511,8 +1511,25 @@ def deep_merge_dicts(dict1: dict[str, Any], dict2: dict[str, Any]) -> dict[str, 
     return result
 
 
+_GRAPHVIZ_COLOR_ATTRS = frozenset({"color", "fillcolor", "fontcolor", "bgcolor", "pencolor", "labelfontcolor"})
+_SHORT_HEX = re.compile(r"#([0-9a-fA-F])([0-9a-fA-F])([0-9a-fA-F])(?![0-9a-fA-F])")
+
+
+def expand_short_hex(value: str) -> str:
+    """Expand CSS-style ``#rgb`` colors to ``#rrggbb``.
+
+    Graphviz rejects 3-digit hex and silently falls back to black, so a
+    ``fontcolor = "#eee"`` meant for a dark theme renders invisible text.
+    Handles color lists (``#abc:#def``) as well as single colors.
+    """
+    return _SHORT_HEX.sub(lambda m: "#" + "".join(c * 2 for c in m.groups()), value)
+
+
 def stringify_dict(d: dict[str, Any]) -> dict[str, str]:
     """Convert all dictionary values to strings.
+
+    Color attributes also get ``#rgb`` expanded to ``#rrggbb`` (see
+    :func:`expand_short_hex`).
 
     Args:
         d: Dictionary with any value types.
@@ -1520,7 +1537,7 @@ def stringify_dict(d: dict[str, Any]) -> dict[str, str]:
     Returns:
         New dictionary with all values converted to strings.
     """
-    return {k: str(v) for k, v in d.items()}
+    return {k: expand_short_hex(str(v)) if k in _GRAPHVIZ_COLOR_ATTRS else str(v) for k, v in d.items()}
 
 
 def convert_dict_to_string(d: Any) -> Any:

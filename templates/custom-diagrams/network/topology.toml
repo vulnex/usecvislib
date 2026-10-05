@@ -28,7 +28,7 @@ shape = "diamond"
 required_fields = ["name"]
 optional_fields = ["ip", "model"]
 style = { fillcolor = "#F39C12", fontcolor = "white" }
-label_template = "{name}\\n{ip}"
+label_template = "{name}\n{ip}"
 
 [schema.nodes.switch]
 shape = "rectangle"
@@ -49,21 +49,21 @@ shape = "artifact"
 required_fields = ["name"]
 optional_fields = ["ip", "os", "role"]
 style = { fillcolor = "#27AE60", fontcolor = "white" }
-label_template = "{name}\\n{ip}\\n[{role}]"
+label_template = "{name}\n{ip}\n[{role}]"
 
 [schema.nodes.workstation]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["ip", "user"]
 style = { fillcolor = "#9B59B6", fontcolor = "white" }
-label_template = "{name}\\n{ip}"
+label_template = "{name}\n{ip}"
 
 [schema.nodes.wireless_ap]
 shape = "ellipse"
 required_fields = ["name"]
 optional_fields = ["ssid", "security"]
 style = { fillcolor = "#1ABC9C", fontcolor = "white" }
-label_template = "{name}\\n{ssid}"
+label_template = "{name}\n{ssid}"
 
 [schema.nodes.printer]
 shape = "rectangle"
@@ -77,7 +77,7 @@ shape = "database"
 required_fields = ["name"]
 optional_fields = ["capacity"]
 style = { fillcolor = "#8E44AD", fontcolor = "white" }
-label_template = "{name}\\n{capacity}"
+label_template = "{name}\n{capacity}"
 
 [schema.edges.ethernet]
 style = "solid"

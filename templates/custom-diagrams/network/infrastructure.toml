@@ -29,42 +29,42 @@ shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["location"]
 style = { fillcolor = "#1ABC9C", fontcolor = "white", style = "filled,rounded" }
-label_template = "{name}\\n{location}"
+label_template = "{name}\n{location}"
 
 [schema.nodes.vpc]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["cidr"]
 style = { fillcolor = "#9B59B6", fontcolor = "white" }
-label_template = "{name}\\n{cidr}"
+label_template = "{name}\n{cidr}"
 
 [schema.nodes.subnet]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["cidr", "type"]
 style = { fillcolor = "#27AE60", fontcolor = "white" }
-label_template = "{name}\\n{cidr}"
+label_template = "{name}\n{cidr}"
 
 [schema.nodes.ec2]
 shape = "artifact"
 required_fields = ["name"]
 optional_fields = ["type", "os"]
 style = { fillcolor = "#F39C12", fontcolor = "white" }
-label_template = "{name}\\n{type}"
+label_template = "{name}\n{type}"
 
 [schema.nodes.rds]
 shape = "database"
 required_fields = ["name"]
 optional_fields = ["engine", "size"]
 style = { fillcolor = "#E74C3C", fontcolor = "white" }
-label_template = "{name}\\n{engine}"
+label_template = "{name}\n{engine}"
 
 [schema.nodes.s3]
 shape = "ellipse"
 required_fields = ["name"]
 optional_fields = ["bucket"]
 style = { fillcolor = "#E67E22", fontcolor = "white" }
-label_template = "S3\\n{name}"
+label_template = "S3\n{name}"
 
 [schema.nodes.lambda]
 shape = "hexagon"
@@ -84,26 +84,26 @@ label_template = "{name}"
 shape = "ellipse"
 required_fields = ["name"]
 style = { fillcolor = "#95A5A6", fontcolor = "white" }
-label_template = "CDN\\n{name}"
+label_template = "CDN\n{name}"
 
 [schema.nodes.route53]
 shape = "rectangle"
 required_fields = ["name"]
 style = { fillcolor = "#16A085", fontcolor = "white" }
-label_template = "DNS\\n{name}"
+label_template = "DNS\n{name}"
 
 [schema.nodes.iam]
 shape = "octagon"
 required_fields = ["name"]
 style = { fillcolor = "#C0392B", fontcolor = "white" }
-label_template = "IAM\\n{name}"
+label_template = "IAM\n{name}"
 
 [schema.nodes.elasticache]
 shape = "hexagon"
 required_fields = ["name"]
 optional_fields = ["engine"]
 style = { fillcolor = "#D35400", fontcolor = "white" }
-label_template = "{name}\\n{engine}"
+label_template = "{name}\n{engine}"
 
 [schema.edges.network]
 style = "solid"

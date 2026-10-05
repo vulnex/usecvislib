@@ -144,6 +144,37 @@ class BinVis:
             "heatmap": {"colormap": "inferno", "figsize": [12, 12]},
         }
 
+    def _apply_theme(self, fig, axes: list) -> None:
+        """Apply the preset's optional ``theme`` (background / text colors).
+
+        Without it charts keep Matplotlib's white figure, which is why
+        ``bv_dark`` used to differ from the default only in its colormaps.
+        """
+        theme = self.style.get("theme") if isinstance(self.style, dict) else None
+        if not theme:
+            return
+        bg = theme.get("background")
+        text = theme.get("text")
+        if bg:
+            fig.set_facecolor(bg)
+        for ax in axes:
+            if bg:
+                ax.set_facecolor(theme.get("plot_background", bg))
+            if text:
+                ax.title.set_color(text)
+                ax.xaxis.label.set_color(text)
+                ax.yaxis.label.set_color(text)
+                ax.tick_params(colors=text)
+                for spine in ax.spines.values():
+                    spine.set_edgecolor(text)
+            if theme.get("grid"):
+                ax.grid(True, color=theme["grid"], alpha=0.4)
+            legend = ax.get_legend()
+            if legend is not None and bg:
+                legend.get_frame().set_facecolor(bg)
+                for t in legend.get_texts():
+                    t.set_color(text or t.get_color())
+
     def _default_config(self) -> dict[str, Any]:
         """Return default visualization configuration parameters.
 
@@ -599,12 +630,28 @@ class BinVis:
 
         positions, entropies = self.sliding_entropy(window_size, step)
 
-        _fig, ax = plt.subplots(figsize=style.get("figsize", [12, 4]))
+        fig, ax = plt.subplots(figsize=style.get("figsize", [12, 4]))
 
-        # Use config for fill alpha
+        # The curve is colored by entropy through the preset's colormap
+        # (low = structured/padding, high = packed or encrypted).
+        from matplotlib.collections import LineCollection
+
+        cmap = plt.get_cmap(style.get("colormap", "viridis"))
         fill_alpha = config.get("fill_alpha", 0.3)
-        ax.fill_between(positions, entropies, alpha=fill_alpha)
-        ax.plot(positions, entropies, linewidth=style.get("linewidth", 1.0))
+        ax.fill_between(positions, entropies, alpha=fill_alpha, color=cmap(0.5))
+        points = np.column_stack([positions, entropies]).reshape(-1, 1, 2)
+        if len(points) > 1:
+            line = LineCollection(
+                np.concatenate([points[:-1], points[1:]], axis=1),
+                cmap=cmap,
+                norm=plt.Normalize(0, 8),
+                linewidth=style.get("linewidth", 1.0),
+            )
+            line.set_array(np.asarray(entropies[:-1], dtype=float))
+            ax.add_collection(line)
+            ax.set_xlim(min(positions), max(positions))
+        else:
+            ax.plot(positions, entropies, linewidth=style.get("linewidth", 1.0), color=cmap(0.5))
 
         ax.set_xlabel("File Offset (bytes)")
         ax.set_ylabel("Entropy (bits)")
@@ -626,10 +673,11 @@ class BinVis:
                     alpha=threshold.get("alpha", 0.5),
                     label=threshold.get("label", ""),
                 )
-            ax.legend(loc="upper right", fontsize="small")
+            ax.legend(loc="best", fontsize="small")
 
+        self._apply_theme(fig, [ax])
         plt.tight_layout()
-        plt.savefig(output, dpi=config.get("dpi", 150), format=self.format)
+        plt.savefig(output, dpi=config.get("dpi", 150), format=self.format, facecolor=fig.get_facecolor())
         plt.close()
 
         logger.info(f"Saved entropy visualization to {output}")
@@ -657,7 +705,7 @@ class BinVis:
 
         distribution = self.byte_distribution()
 
-        _fig, ax = plt.subplots(figsize=style.get("figsize", [12, 6]))
+        fig, ax = plt.subplots(figsize=style.get("figsize", [12, 6]))
 
         # Use config for bar parameters
         ax.bar(
@@ -684,10 +732,11 @@ class BinVis:
                     color=region.get("color", "gray"),
                     label=region.get("label", ""),
                 )
-            ax.legend(loc="upper right", fontsize="small")
+            ax.legend(loc="best", fontsize="small")
 
+        self._apply_theme(fig, [ax])
         plt.tight_layout()
-        plt.savefig(output, dpi=config.get("dpi", 150), format=self.format)
+        plt.savefig(output, dpi=config.get("dpi", 150), format=self.format, facecolor=fig.get_facecolor())
         plt.close()
 
         logger.info(f"Saved distribution visualization to {output}")
@@ -726,16 +775,17 @@ class BinVis:
             pair_counts[pair] += 1
 
         # Create polar plot
-        _fig, ax = plt.subplots(figsize=style.get("figsize", [8, 8]), subplot_kw={"projection": "polar"})
+        fig, ax = plt.subplots(figsize=style.get("figsize", [8, 8]), subplot_kw={"projection": "polar"})
 
         # Group by first byte (direction) and aggregate second byte (magnitude)
         directions = np.zeros(256)
         for (b1, _b2), count in pair_counts.items():
             directions[b1] += count
 
-        # Normalize
+        # Log-normalize: one dominant byte (0x00 is often a third of a binary)
+        # would otherwise flatten every other direction to nothing.
         if directions.max() > 0:
-            directions = directions / directions.max()
+            directions = np.log1p(directions) / np.log1p(directions.max())
 
         # Create bars
         theta = np.linspace(0, 2 * np.pi, 256, endpoint=False)
@@ -744,19 +794,21 @@ class BinVis:
         # Use config for bar alpha
         bars = ax.bar(theta, directions, width=width, alpha=config.get("bar_alpha", 0.7))
 
-        # Color by value
+        # Color by magnitude, skipping each colormap's extreme ends (several
+        # presets' maps start at white, which made the bars invisible).
         cmap = plt.get_cmap(style.get("colormap", "plasma"))
-        for i, bar in enumerate(bars):
-            bar.set_facecolor(cmap(i / 255))
+        for value, bar in zip(directions, bars, strict=True):
+            bar.set_facecolor(cmap(0.25 + 0.65 * value))
 
-        ax.set_title(f"Byte Pattern Wind Rose: {os.path.basename(self.inputfile)}")
+        ax.set_title(f"Byte Pattern Wind Rose (log scale): {os.path.basename(self.inputfile)}")
 
         # Use config for rticks and rlabel position
         ax.set_rticks(config.get("rticks", [0.25, 0.5, 0.75, 1.0]))
         ax.set_rlabel_position(config.get("rlabel_position", 0))
 
+        self._apply_theme(fig, [ax])
         plt.tight_layout()
-        plt.savefig(output, dpi=config.get("dpi", 150), format=self.format)
+        plt.savefig(output, dpi=config.get("dpi", 150), format=self.format, facecolor=fig.get_facecolor())
         plt.close()
 
         logger.info(f"Saved windrose visualization to {output}")
@@ -801,12 +853,15 @@ class BinVis:
         height = len(data_array) // block_size
         image = data_array.reshape((height, block_size))
 
-        _fig, ax = plt.subplots(figsize=style.get("figsize", [12, 12]))
+        fig, ax = plt.subplots(figsize=style.get("figsize", [12, 12]))
 
-        # Use config for interpolation and aspect
+        # Use config for interpolation and aspect; a fixed 0-255 scale keeps
+        # colors comparable across files.
         im = ax.imshow(
             image,
             cmap=style.get("colormap", "inferno"),
+            vmin=0,
+            vmax=255,
             aspect=config.get("aspect", "auto"),
             interpolation=config.get("interpolation", "nearest"),
         )
@@ -816,11 +871,14 @@ class BinVis:
         ax.set_title(f"Binary Heatmap: {os.path.basename(self.inputfile)}")
 
         # Use config for colorbar
+        axes = [ax]
         if config.get("show_colorbar", True):
-            plt.colorbar(im, ax=ax, label=config.get("colorbar_label", "Byte Value"))
+            cbar = plt.colorbar(im, ax=ax, label=config.get("colorbar_label", "Byte Value"))
+            axes.append(cbar.ax)
 
+        self._apply_theme(fig, axes)
         plt.tight_layout()
-        plt.savefig(output, dpi=config.get("dpi", 150), format=self.format)
+        plt.savefig(output, dpi=config.get("dpi", 150), format=self.format, facecolor=fig.get_facecolor())
         plt.close()
 
         logger.info(f"Saved heatmap visualization to {output}")

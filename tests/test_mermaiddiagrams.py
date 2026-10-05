@@ -491,3 +491,36 @@ class TestMermaidDiagramsValidation:
         errors = md.validate()
         assert len(errors) > 0
         assert "Parse error" in errors[0]
+
+
+class TestMermaidDarkBackground:
+    """The dark theme must not render light text on a white background."""
+
+    @staticmethod
+    def _rendered_background(tmp_path, source, **render_kwargs):
+        calls = []
+
+        def fake_mmdc(cmd, **kwargs):
+            calls.append(cmd)
+            Path(cmd[cmd.index("-o") + 1]).write_bytes(b"\x89PNG")
+            return MagicMock(returncode=0, stdout="", stderr="")
+
+        md = MermaidDiagrams(validate_cli=False)
+        md._cli_validated = True
+        md.load_from_string(source, format="mermaid")
+        with patch("subprocess.run", side_effect=fake_mmdc):
+            md.render(str(tmp_path / "out"), format="png", **render_kwargs)
+        cmd = calls[-1]
+        return cmd[cmd.index("-b") + 1]
+
+    def test_dark_theme_replaces_white(self, tmp_path, sample_flowchart):
+        bg = self._rendered_background(tmp_path, sample_flowchart, theme="dark", background="white")
+        assert bg == MermaidDiagrams.DARK_BACKGROUND
+
+    def test_dark_theme_keeps_transparent(self, tmp_path, sample_flowchart):
+        assert self._rendered_background(tmp_path, sample_flowchart, theme="dark", background="transparent") == (
+            "transparent"
+        )
+
+    def test_default_theme_keeps_white(self, tmp_path, sample_flowchart):
+        assert self._rendered_background(tmp_path, sample_flowchart, theme="default", background="white") == "white"

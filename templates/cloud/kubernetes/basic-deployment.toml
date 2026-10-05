@@ -75,7 +75,7 @@ label = "Storage"
 # External
 [[nodes]]
 id = "users"
-icon = "k8s.others.Crd"
+icon = "k8s.others.CRD"
 label = "External Traffic"
 
 # Edges

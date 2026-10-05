@@ -29,7 +29,7 @@ shape = "ellipse"
 required_fields = ["name"]
 optional_fields = ["id", "description"]
 style = { fillcolor = "#3498DB", fontcolor = "white" }
-label_template = "{id}\\n{name}"
+label_template = "{id}\n{name}"
 
 [schema.nodes.data_store]
 shape = "rectangle"

@@ -28,6 +28,12 @@ figsize = [12, 12]
 # Dark - Dark theme suitable for presentations
 # =============================================================================
 [bv_dark]
+[bv_dark.theme]
+background = "#1e1e2e"
+plot_background = "#262637"
+text = "#e0e0e0"
+grid = "#55556a"
+
 [bv_dark.entropy]
 colormap = "magma"
 figsize = [12, 4]
@@ -36,7 +42,7 @@ linewidth = 1.5
 [bv_dark.distribution]
 colormap = "Greys"
 figsize = [12, 6]
-bar_color = "#2c3e50"
+bar_color = "#8ab4f8"
 
 [bv_dark.windrose]
 colormap = "twilight"
@@ -65,7 +71,7 @@ colormap = "Spectral"
 figsize = [10, 10]
 
 [bv_security.heatmap]
-colormap = "hot"
+colormap = "YlOrRd"
 figsize = [14, 14]
 
 # =============================================================================
@@ -83,7 +89,7 @@ figsize = [14, 6]
 bar_color = "#0077b6"
 
 [bv_ocean.windrose]
-colormap = "PuBu"
+colormap = "YlGnBu"
 figsize = [10, 10]
 
 [bv_ocean.heatmap]

@@ -218,6 +218,27 @@ class TestRender:
         out = _build(RANSOM, tmp_path, styleid="tl_dark")
         assert out.exists()
 
+    @pytest.mark.parametrize("mode", SUPPORTED_MODES)
+    def test_dark_preset_themes_plot_area(self, tmp_path, mode):
+        # tl_dark only colored the figure; the plot area stayed white under
+        # light event text.
+        import matplotlib.colors as mcolors
+
+        tl = IncidentTimeline(RANSOM, str(tmp_path / "o"), styleid="tl_dark", mode=mode)
+        tl.load()
+        tl.render()
+        ax = tl._fig.axes[0]
+        assert mcolors.to_hex(ax.get_facecolor()) == tl.style["figure"]["facecolor"]
+        legend = ax.get_legend()
+        if legend is not None:
+            assert mcolors.to_hex(legend.get_frame().get_facecolor()) == tl.style["figure"]["facecolor"]
+
+    def test_multi_day_vertical_axis_shows_dates(self, tmp_path):
+        tl = IncidentTimeline(INSIDER, str(tmp_path / "o"), mode="vertical")
+        tl.load()
+        tl.render()
+        assert "%m-%d" in tl._fig.axes[0].yaxis.get_major_formatter().fmt
+
     def test_empty_timeline_still_renders(self, tmp_path):
         src = tmp_path / "empty.tml"
         src.write_text('[incident]\nname="x"\nevents = []\n')

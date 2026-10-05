@@ -584,13 +584,17 @@ class CustomDiagrams:
         Returns:
             Constructed label string
         """
-        label = template
+        # A literal backslash-n (TOML "\\n", a common way to write a DOT line
+        # break) means a line break; escape_dot_label would otherwise escape
+        # the backslash and print "\n" in the diagram.
+        label = template.replace("\\n", "\n")
 
         # Replace placeholders with values
         for key, value in data.items():
             placeholder = "{" + key + "}"
             if placeholder in label:
-                label = label.replace(placeholder, str(value) if value else "")
+                text = str(value).replace("\\n", "\n") if value else ""
+                label = label.replace(placeholder, text)
 
         # Remove any unreplaced placeholders
         label = re.sub(r"\{[^}]+\}", "", label)

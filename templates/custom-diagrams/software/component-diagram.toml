@@ -22,7 +22,7 @@ shape = "component"
 required_fields = ["name"]
 optional_fields = ["stereotype", "version"]
 style = { fillcolor = "#3498DB", fontcolor = "white" }
-label_template = "<<component>>\\n{name}"
+label_template = "<<component>>\n{name}"
 
 [schema.nodes.interface]
 shape = "circle"
@@ -40,20 +40,20 @@ label_template = ""
 shape = "package"
 required_fields = ["name"]
 style = { fillcolor = "#ECF0F1", fontcolor = "#2C3E50" }
-label_template = "<<package>>\\n{name}"
+label_template = "<<package>>\n{name}"
 
 [schema.nodes.subsystem]
 shape = "artifact"
 required_fields = ["name"]
 style = { fillcolor = "#9B59B6", fontcolor = "white" }
-label_template = "<<subsystem>>\\n{name}"
+label_template = "<<subsystem>>\n{name}"
 
 [schema.nodes.artifact]
 shape = "note"
 required_fields = ["name"]
 optional_fields = ["type"]
 style = { fillcolor = "#1ABC9C", fontcolor = "white" }
-label_template = "<<artifact>>\\n{name}"
+label_template = "<<artifact>>\n{name}"
 
 [schema.edges.dependency]
 style = "dashed"

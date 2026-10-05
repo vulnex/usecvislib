@@ -31,11 +31,11 @@ exploit_edge = {color = "#e74c3c", style = "bold", fontname = "Arial", fontsize 
 # =============================================================================
 [ag_dark]
 graph = {rankdir = "LR", bgcolor = "#1a1a2e", fontname = "Arial", fontcolor = "white", splines = "ortho"}
-host = {shape = "box3d", style = "filled", fillcolor = "#16213e", fontcolor = "#eee", fontname = "Arial", fontsize = "11", penwidth = "2", color = "#4a90d9"}
+host = {shape = "box3d", style = "filled", fillcolor = "#16213e", fontcolor = "#eeeeee", fontname = "Arial", fontsize = "11", penwidth = "2", color = "#4a90d9"}
 vulnerability = {shape = "diamond", style = "filled", fillcolor = "#2d132c", fontcolor = "#ff6b6b", fontname = "Arial", fontsize = "10", penwidth = "2", color = "#ff6b6b"}
 privilege = {shape = "ellipse", style = "filled", fillcolor = "#3d2914", fontcolor = "#feca57", fontname = "Arial", fontsize = "10", penwidth = "2", color = "#feca57"}
 service = {shape = "component", style = "filled", fillcolor = "#1e3a2c", fontcolor = "#5ed98a", fontname = "Arial", fontsize = "10", penwidth = "2", color = "#5ed98a"}
-edge = {color = "#6c757d", fontname = "Arial", fontsize = "9", fontcolor = "#aaa"}
+edge = {color = "#6c757d", fontname = "Arial", fontsize = "9", fontcolor = "#aaaaaa"}
 network_edge = {color = "#4a90d9", style = "dashed", fontname = "Arial", fontsize = "9", penwidth = "1.5", fontcolor = "#4a90d9"}
 exploit_edge = {color = "#ff6b6b", style = "bold", fontname = "Arial", fontsize = "9", penwidth = "2.5", fontcolor = "#ff6b6b"}
 
