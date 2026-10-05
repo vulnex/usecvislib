@@ -85,19 +85,19 @@ node = {margin = 0.12, fontcolor = "#00cc00", fillcolor = "#0a0a0a", shape = "re
 edge = {color = "#00ff00", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
 
 # =============================================================================
-# Minimal - Clean minimalist black and white
+# Minimal - Soft borderless grey cards, muted edges
 # =============================================================================
 [at_minimal]
-root = {margin = 0.15, fontcolor = "black", fillcolor = "white", shape = "rectangle", style = "filled", fontname = "Helvetica", fontsize = "13", penwidth = "2", color = "black"}
-node = {margin = 0.12, fontcolor = "black", fillcolor = "white", shape = "rectangle", style = "filled", fontname = "Helvetica", fontsize = "11", penwidth = "1", color = "#333333"}
-edge = {color = "#333333", style = "solid", penwidth = "1", arrowsize = "0.7"}
+root = {margin = 0.15, fontcolor = "#111827", fillcolor = "#e5e7eb", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica-Bold", fontsize = "13", penwidth = "0", color = "#e5e7eb"}
+node = {margin = 0.12, fontcolor = "#374151", fillcolor = "#f3f4f6", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica", fontsize = "11", penwidth = "0", color = "#f3f4f6"}
+edge = {color = "#9ca3af", style = "solid", penwidth = "1", arrowsize = "0.6"}
 
 # =============================================================================
-# Plain - No colors, just black outlines (for printing/documents)
+# Plain - No colors, black outlines, serif type (for printing/documents)
 # =============================================================================
 [at_plain]
-root = {margin = 0.15, fontcolor = "black", shape = "rectangle", style = "", fontname = "Helvetica", fontsize = "13", penwidth = "1.5", color = "black"}
-node = {margin = 0.12, fontcolor = "black", shape = "rectangle", style = "", fontname = "Helvetica", fontsize = "11", penwidth = "1", color = "black"}
+root = {margin = 0.15, fontcolor = "black", shape = "rectangle", style = "", fontname = "Times New Roman", fontsize = "13", penwidth = "1.5", color = "black"}
+node = {margin = 0.12, fontcolor = "black", shape = "rectangle", style = "", fontname = "Times New Roman", fontsize = "11", penwidth = "1", color = "black"}
 edge = {color = "black", style = "solid", penwidth = "1", arrowsize = "0.7"}
 
 # =============================================================================
@@ -198,12 +198,12 @@ layout = {h_gap = 42, v_gap = 80}
 meta = {engine = "svg"}
 title = {show = true, size = 16}
 page = {background = "#ffffff", padding = 48, text = "#111827"}
-font = {family = "Helvetica Neue, Arial, sans-serif", size = 13, root_size = 16}
-card = {radius = 8, padding_x = 18, padding_y = 12, border_width = 1.0, min_width = 110, max_label_width = 300}
+font = {family = "Calibri, Carlito, Segoe UI, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 3, padding_x = 18, padding_y = 12, border_width = 1.3, min_width = 110, max_label_width = 300}
 node = {fill = "gradient:#3d5a80>#33506f", border = "#1e3a5f", text = "#ffffff"}
 root = {fill = "gradient:#1e3a5f>#16324f", border = "#0d1b2a", text = "#ffffff"}
 edge = {color = "#6b7b8c", width = 1.5, routing = "curve"}
-effects = {shadow = true, shadow_blur = 2.0, hover_glow = false}
+effects = {shadow = false, shadow_blur = 0, hover_glow = false}
 severity = {use_cvss_colors = true}
 badges = {cvss = true, fill = "#0f172a", text = "#ffffff"}
 layout = {h_gap = 44, v_gap = 82}

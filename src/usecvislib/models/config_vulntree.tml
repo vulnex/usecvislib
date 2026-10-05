@@ -112,11 +112,11 @@ layout = {h_gap = 44, v_gap = 82}
 meta = {engine = "svg"}
 title = {show = true, size = 15}
 page = {background = "#ffffff", padding = 48, text = "#16324f"}
-font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
-card = {radius = 6, padding_x = 15, padding_y = 10, border_width = 1.0, min_width = 136, max_label_width = 205}
+font = {family = "Calibri, Carlito, Segoe UI, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 3, padding_x = 15, padding_y = 10, border_width = 1.3, min_width = 136, max_label_width = 205}
 node = {fill = "#2f855a", border = "#3d5a80", text = "#ffffff"}
 edge = {color = "#6b7b8c", width = 1.5, routing = "ortho"}
-effects = {shadow = true, shadow_blur = 1.8, hover_glow = false}
+effects = {shadow = false, shadow_blur = 0, hover_glow = false}
 severity = {use_cvss_colors = true}
 badges = {cvss = true, fill = "#16324f", text = "#ffffff"}
 vulntree = {direct_border = "#16324f", direct_border_width = 2.2, exploited_color = "#111827", exploited_width = 2.6}

@@ -287,3 +287,18 @@ class TestGroupClusters:
         clusters = {g.get("data-cluster-id") for g in root.iter(f"{SVG_NS}g") if "usv-cluster" in g.get("class", "")}
         groups = {m.get("group") for m in _loaded(FIXTURE)._modules.values() if m.get("group")}
         assert len(clusters) == len(groups)
+
+
+class TestCouplingPreset:
+    def test_coupling_heat_colors_by_degree(self):
+        # dg_coupling's documented intent: high-connection modules are warmer.
+        dg = DependencyGraph(FIXTURE, "unused", styleid="dg_coupling")
+        dg.load()
+        degree = {}
+        for dep in dg._dependencies:
+            for end in (dep["from"], dep["to"]):
+                degree[end] = degree.get(end, 0) + 1
+        hottest = max(degree, key=degree.get)
+        coolest = min((m for m in dg._modules if m in degree), key=degree.get)
+        assert dg._coupling_color(hottest) != dg._coupling_color(coolest)
+        assert dg._coupling_color(hottest) == "#c01e1e"

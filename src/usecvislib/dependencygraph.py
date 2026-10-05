@@ -310,7 +310,9 @@ class DependencyGraph(VisualizationBase):
                 type_style = self.DEPENDENCY_STYLES.get(dep_type, {})
                 edge_attrs.update(type_style)
 
-            edge_attrs["penwidth"] = self.WEIGHT_MAP.get(weight, "2")
+            # Optional preset multiplier (dg_coupling emphasises coupling weight)
+            scale = float(edge_attrs.pop("weight_scale", 1.0))
+            edge_attrs["penwidth"] = f"{float(self.WEIGHT_MAP.get(weight, '2')) * scale:g}"
 
             edge_attrs = utils.stringify_dict(edge_attrs)
             self.graph.edge(utils.sanitize_node_id(src), utils.sanitize_node_id(tgt), **edge_attrs)
@@ -341,7 +343,12 @@ class DependencyGraph(VisualizationBase):
             node_attrs = {**module_style}
             # Apply group color
             group_color = self.GROUP_COLORS.get(group, self.DEFAULT_INTERNAL_COLOR)
-            if "filled" in str(node_attrs.get("style", "")):
+            if node_attrs.pop("color_by", None) == "coupling":
+                # Heat map: more dependencies in + out -> warmer fill
+                fill = self._coupling_color(mod_id)
+                node_attrs["fillcolor"] = fill
+                node_attrs["fontcolor"] = "white" if utils.is_dark_color(fill) else "#1f2937"
+            elif "filled" in str(node_attrs.get("style", "")):
                 node_attrs.update(group_color)
             else:
                 # Outline presets (dg_minimal) have no fill for white group text
@@ -362,6 +369,26 @@ class DependencyGraph(VisualizationBase):
 
         node_attrs = utils.stringify_dict(node_attrs)
         graph.node(utils.sanitize_node_id(mod_id), label, **node_attrs)
+
+    # Coupling heat ramp (low -> high degree)
+    _COUPLING_RAMP = ((0xFF, 0xF3, 0xB0), (0xF4, 0xA2, 0x59), (0xC0, 0x1E, 0x1E))
+
+    def _coupling_color(self, mod_id: str) -> str:
+        """Heat color for a module by its dependency degree (in + out)."""
+        degree: dict[str, int] = {}
+        for dep in self._dependencies:
+            for end in (dep.get("from"), dep.get("to")):
+                if end:
+                    degree[end] = degree.get(end, 0) + 1
+        top = max(degree.values(), default=0)
+        t = degree.get(mod_id, 0) / top if top else 0.0
+        (r0, g0, b0), (r1, g1, b1) = (
+            (self._COUPLING_RAMP[0], self._COUPLING_RAMP[1])
+            if t <= 0.5
+            else (self._COUPLING_RAMP[1], self._COUPLING_RAMP[2])
+        )
+        u = t * 2 if t <= 0.5 else (t - 0.5) * 2
+        return "#{:02x}{:02x}{:02x}".format(*(round(a + (b - a) * u) for a, b in ((r0, r1), (g0, g1), (b0, b1))))
 
     def _draw_impl(self, outputfile: str) -> None:
         if self.graph is None:

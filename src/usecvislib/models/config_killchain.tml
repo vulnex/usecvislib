@@ -25,21 +25,21 @@ detected = {fillcolor = "#27ae60", fontcolor = "#ffffff"}
 partial = {fillcolor = "#e0a53f", fontcolor = "#1a2733"}
 not_detected = {fillcolor = "#e74c3c", fontcolor = "#ffffff"}
 
-# Kill Chain Light - minimal white, hairline borders
+# Kill Chain Light - white page, outline-only phase columns, hairline borders
 [kc_light]
 graph = {rankdir = "LR", bgcolor = "#ffffff", fontname = "Helvetica", fontcolor = "#475569", fontsize = "16", pad = "0.4", nodesep = "0.26", ranksep = "0.58", labelloc = "t"}
-phase = {style = "filled,rounded", fillcolor = "#f1f5f9", color = "#e2e8f0", fontcolor = "#334155", fontname = "Helvetica-Bold", fontsize = "13", penwidth = "1"}
+phase = {style = "rounded,dashed", fillcolor = "#ffffff", color = "#cbd5e1", fontcolor = "#64748b", fontname = "Helvetica", fontsize = "13", penwidth = "1"}
 technique = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", fillcolor = "#e0a53f", color = "#cbd5e1", fontsize = "10", penwidth = "1"}
 edge = {color = "#cbd5e1", penwidth = "1.4", arrowhead = "vee", arrowsize = "0.7"}
 detected = {fillcolor = "#2fa84f", fontcolor = "#ffffff"}
 partial = {fillcolor = "#eab24a", fontcolor = "#1a2733"}
 not_detected = {fillcolor = "#e15b4c", fontcolor = "#ffffff"}
 
-# Kill Chain Coverage - light board with bold saturated coverage heat
+# Kill Chain Coverage - dark slate phase columns so saturated coverage heat pops
 [kc_coverage]
 graph = {rankdir = "LR", bgcolor = "#f5f7fa", fontname = "Helvetica", fontcolor = "#1e293b", fontsize = "16", pad = "0.4", nodesep = "0.3", ranksep = "0.68", labelloc = "t"}
-phase = {style = "filled,rounded", fillcolor = "#e2e8f0", color = "#94a3b8", fontcolor = "#0f172a", fontname = "Helvetica-Bold", fontsize = "13", penwidth = "1"}
-technique = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", fillcolor = "#e0a53f", color = "#475569", fontsize = "10", penwidth = "1.4"}
+phase = {style = "filled,rounded", fillcolor = "#334155", color = "#1e293b", fontcolor = "#f8fafc", fontname = "Helvetica-Bold", fontsize = "13", penwidth = "1"}
+technique = {shape = "box", style = "rounded,filled,bold", fontname = "Helvetica-Bold", fontcolor = "#ffffff", fillcolor = "#e0a53f", color = "#0f172a", fontsize = "10", penwidth = "2"}
 edge = {color = "#64748b", penwidth = "1.8", arrowhead = "vee", arrowsize = "0.7"}
 detected = {fillcolor = "#1f9d4d", fontcolor = "#ffffff"}
 partial = {fillcolor = "#f0a92e", fontcolor = "#1a2733"}
@@ -104,12 +104,12 @@ layout = {h_gap = 42, v_gap = 80}
 meta = {engine = "svg"}
 title = {show = true, size = 16}
 page = {background = "#ffffff", padding = 48, text = "#111827"}
-font = {family = "Helvetica Neue, Arial, sans-serif", size = 13, root_size = 16}
-card = {radius = 8, padding_x = 16, padding_y = 11, border_width = 1.0, min_width = 140, max_label_width = 200}
+font = {family = "Calibri, Carlito, Segoe UI, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 3, padding_x = 16, padding_y = 11, border_width = 1.3, min_width = 140, max_label_width = 200}
 node = {fill = "#3d5a80", border = "#1e3a5f", text = "#ffffff"}
 root = {fill = "#1e3a5f", border = "#0d1b2a", text = "#ffffff"}
 edge = {color = "#6b7b8c", width = 1.5, routing = "curve"}
-effects = {shadow = true, shadow_blur = 2.0, hover_glow = false}
+effects = {shadow = false, shadow_blur = 0, hover_glow = false}
 severity = {use_cvss_colors = false}
 badges = {coverage = true, fill = "#0f172a", text = "#ffffff"}
 killchain = {phase_fill = "#16324f", phase_text = "#ffffff", flow_color = "#6b7b8c"}

@@ -392,11 +392,11 @@ maestro = {agent_border = "#334155", critical_border = "#c0392b", layer_border =
 meta = {engine = "svg"}
 title = {show = true, size = 15}
 page = {background = "#ffffff", padding = 48, text = "#16324f"}
-font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
-card = {radius = 6, padding_x = 15, padding_y = 10, border_width = 1.0, min_width = 120, max_label_width = 225}
+font = {family = "Calibri, Carlito, Segoe UI, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 3, padding_x = 15, padding_y = 10, border_width = 1.3, min_width = 120, max_label_width = 225}
 node = {fill = "#90caf9", border = "#16324f", text = "#16324f"}
 edge = {color = "#6b7b8c", width = 1.5, routing = "spline", label_size = 10, label_color = "#4a5b6b"}
-effects = {shadow = true, shadow_blur = 1.8, hover_glow = false}
+effects = {shadow = false, shadow_blur = 0, hover_glow = false}
 cluster = {fill = "#f1f4f7", border = "#c3ced9", text = "#16324f", label_size = 12, radius = 6}
 maestro = {agent_border = "#4a5b6b", critical_border = "#b83227", layer_border = "#c3ced9", layer_text = "#16324f", chain_fallback = "#6b7b8c", text = "#16324f", rankdir = "LR", nodesep = 0.5, ranksep = 0.9}
 
