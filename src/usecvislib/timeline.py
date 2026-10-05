@@ -464,32 +464,50 @@ class IncidentTimeline(VisualizationBase):
         fig.tight_layout(rect=(0, 0, 1, 0.97))
         return fig
 
-    @staticmethod
-    def _label_slots(events: list[TimelineEvent], span: timedelta) -> list[tuple[int, str]]:
-        """Assign each event's label an offset slot to avoid overlap.
+    # Text metrics family for label placement (Matplotlib's bundled default).
+    _LABEL_FAMILY = "DejaVu Sans"
 
-        Greedily packs labels of time-clustered events into staggered tiers
-        alternating above (``bottom`` va) and below (``top`` va) the marker.
-        Events further apart than ~7% of the total span reuse the nearest
-        free tier, so sparse lanes stay clean while dense ones fan out.
+    def _place_row_labels(
+        self, events: list[TimelineEvent], labels: list[str], x_pts, fontsize: float, marker_pts: float
+    ) -> tuple[list[tuple[float, str]], float, float]:
+        """Place a row's labels so none overlap, in points around the marker row.
+
+        Uses the SVG engine's collision-aware placer with measured text: the
+        former time-threshold staggering ignored label width, so long labels
+        of nearby events overprinted each other.
+
+        Returns:
+            ([(dy offset points, va), ...], extent above, extent below).
         """
-        # (dy in points, matplotlib va). Alternates above / below, widening.
-        tiers = [(11, "bottom"), (-12, "top"), (25, "bottom"), (-26, "top"), (39, "bottom"), (-40, "top")]
-        threshold = (span.total_seconds() or 1) * 0.07
-        last_ts: list[Optional[datetime]] = [None] * len(tiers)
-        result: list[tuple[int, str]] = []
+        from .svgengine import metrics
+        from .svgengine.painters.timeline import _LabelPlacer
+
+        placer = _LabelPlacer()
         for ev in events:
-            for i, tier in enumerate(tiers):
-                prev = last_ts[i]
-                if prev is None or (ev.timestamp - prev).total_seconds() >= threshold:
-                    result.append(tier)
-                    last_ts[i] = ev.timestamp
-                    break
-            else:
-                # Every tier is still occupied by a near neighbour; reuse tier 0.
-                result.append(tiers[0])
-                last_ts[0] = ev.timestamp
-        return result
+            x = x_pts(ev.timestamp)
+            placer.block(x - marker_pts, -marker_pts, x + marker_pts, marker_pts)
+        slots = []
+        for ev, label in zip(events, labels, strict=True):
+            lines = label.split("\n")
+            w = max(metrics.measure_text(line, self._LABEL_FAMILY, fontsize) for line in lines)
+            h = len(lines) * fontsize * 1.25
+            top = placer.place(x_pts(ev.timestamp), w, h)
+            # placer y grows downward; Matplotlib offset points grow upward
+            slots.append((-(top + h), "bottom") if top < 0 else (-top, "top"))
+        return slots, placer.up, placer.down
+
+    def _x_points(self, axes_width_in: float):
+        """Map a timestamp to an approximate x position in points on the axes."""
+        start = min(e.timestamp for e in self.events)
+        ends = [e.end_time for e in self.events] + [p.end for p in self.phases]
+        span = max((max(ends) - start).total_seconds(), 1.0)
+        width_pts = axes_width_in * 72.0
+        margin = 0.05 * span  # Matplotlib's default x margin
+
+        def x_pts(t) -> float:
+            return ((t - start).total_seconds() + margin) / (span + 2 * margin) * width_pts
+
+        return x_pts
 
     def _render_swimlane(self, plt, style: dict[str, Any], fig_cfg: dict[str, Any]) -> Any:
         import matplotlib.dates as mdates
@@ -499,7 +517,19 @@ class IncidentTimeline(VisualizationBase):
         ev_cfg = {**self._default_style()["event"], **style.get("event", {})}
         lane_cfg = {**self._default_style()["lane"], **style.get("lane", {})}
 
-        height = max(3.0, 0.9 * len(lanes) + 2.0)
+        x_pts = self._x_points(fig_cfg["width"] * 0.8)
+        marker_pts = (ev_cfg["marker_size"] ** 0.5) / 2
+        placements = {}
+        pitch_pts = 0.0
+        for lane in lanes:
+            lane_events = grouped.get(lane, [])
+            labels = [ev.title if not ev.technique else f"{ev.title}\n{ev.technique}" for ev in lane_events]
+            slots, up, down = self._place_row_labels(lane_events, labels, x_pts, ev_cfg["fontsize"], marker_pts)
+            placements[lane] = (labels, slots)
+            pitch_pts = max(pitch_pts, up + down + 12)
+        # Each lane is one y unit: make it tall enough for its label stack.
+        lane_in = max(0.9, pitch_pts / 72.0)
+        height = max(3.0, lane_in * len(lanes) + 2.0)
         fig, ax = plt.subplots(figsize=(fig_cfg["width"], height), dpi=fig_cfg["dpi"], facecolor=fig_cfg["facecolor"])
         y_of = {lane: i for i, lane in enumerate(reversed(lanes))}
 
@@ -511,12 +541,11 @@ class IncidentTimeline(VisualizationBase):
                 y - 0.5, y + 0.5, color=lane_cfg["color"], alpha=lane_cfg["band_alpha"] if y % 2 else 0.0, zorder=0
             )
 
-        span = self.time_span() or timedelta(minutes=1)
         for lane in lanes:
             y = y_of[lane]
             lane_events = grouped.get(lane, [])
-            slots = self._label_slots(lane_events, span)
-            for ev, (dy, va) in zip(lane_events, slots, strict=True):
+            labels, slots = placements[lane]
+            for ev, label, (dy, va) in zip(lane_events, labels, slots, strict=True):
                 x = mdates.date2num(ev.timestamp)
                 if ev.duration:
                     x_end = mdates.date2num(ev.end_time)
@@ -526,7 +555,6 @@ class IncidentTimeline(VisualizationBase):
                 ax.scatter(
                     x, y, s=ev_cfg["marker_size"], c=ev.color, edgecolors=ev_cfg["edgecolor"], linewidths=0.8, zorder=3
                 )
-                label = ev.title if not ev.technique else f"{ev.title}\n{ev.technique}"
                 ax.annotate(
                     label,
                     (x, y),
@@ -567,8 +595,16 @@ class IncidentTimeline(VisualizationBase):
                 row, width, left=x, height=0.6, color=ev.color, edgecolor=ev_cfg["edgecolor"], linewidth=0.6, zorder=3
             )
             tag = f"  {ev.title}" + (f" [{ev.technique}]" if ev.technique else "")
+            # After the bar: inside it, dark text sat on dark severity fills.
             ax.text(
-                x, row, tag, va="center", ha="left", fontsize=ev_cfg["fontsize"], color=ev_cfg["text_color"], zorder=4
+                x + width,
+                row,
+                tag,
+                va="center",
+                ha="left",
+                fontsize=ev_cfg["fontsize"],
+                color=ev_cfg["text_color"],
+                zorder=4,
             )
 
         ax.set_yticks(range(n))
@@ -629,7 +665,15 @@ class IncidentTimeline(VisualizationBase):
         import matplotlib.dates as mdates
 
         ev_cfg = {**self._default_style()["event"], **style.get("event", {})}
-        fig, ax = plt.subplots(figsize=(fig_cfg["width"], 2.6), dpi=fig_cfg["dpi"], facecolor=fig_cfg["facecolor"])
+        x_pts = self._x_points(fig_cfg["width"] * 0.9)
+        marker_pts = (ev_cfg["marker_size"] ** 0.5) / 2
+        labels = [ev.title for ev in self.events]
+        slots, up, down = self._place_row_labels(self.events, labels, x_pts, ev_cfg["fontsize"], marker_pts)
+        # The marker row is centered (ylim -1..1): each half holds one stack,
+        # plus the phase-name band along the top edge.
+        phase_band = 18.0 if self.phases else 0.0
+        height = max(2.6, 2 * (max(up, down) + 14 + phase_band) / 72.0 + 1.2)
+        fig, ax = plt.subplots(figsize=(fig_cfg["width"], height), dpi=fig_cfg["dpi"], facecolor=fig_cfg["facecolor"])
 
         self._draw_phase_bands(ax, style)
         xs = [mdates.date2num(ev.timestamp) for ev in self.events]
@@ -638,13 +682,14 @@ class IncidentTimeline(VisualizationBase):
             ax.scatter(
                 xs[i], 0, s=ev_cfg["marker_size"], c=ev.color, edgecolors=ev_cfg["edgecolor"], linewidths=0.8, zorder=3
             )
+            dy, va = slots[i]
             ax.annotate(
-                ev.title,
+                labels[i],
                 (xs[i], 0),
-                xytext=(0, 12 if i % 2 == 0 else -12),
+                xytext=(0, dy),
                 textcoords="offset points",
                 ha="center",
-                va="bottom" if i % 2 == 0 else "top",
+                va=va,
                 fontsize=ev_cfg["fontsize"],
                 color=ev_cfg["text_color"],
                 rotation=0,

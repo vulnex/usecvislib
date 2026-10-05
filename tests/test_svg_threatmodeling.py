@@ -254,3 +254,27 @@ class TestIcons:
         root = ET.fromstring(_render(template, tmp_path))
         images = [el for el in root.iter(f"{SVG_NS}image") if el.get("href", "").startswith("data:image/")]
         assert len(images) == expected
+
+
+class TestPytmLabels:
+    def test_html_label_line_breaks(self):
+        # pytm emits "\n" inside HTML-like boundary labels, printed literally.
+        from usecvislib.threatmodeling import PyTMWrapper
+
+        dot = 'subgraph cluster_x {\n    label = <<i>Internet\\n(Untrusted)</i>>;\n    a [label="x\\ny"];\n}'
+        fixed = PyTMWrapper._fix_pytm_dot(dot)
+        assert "<i>Internet<br/>(Untrusted)</i>" in fixed
+        assert 'a [label="x\\ny"]' in fixed  # plain labels keep their DOT escape
+
+    def test_datastores_become_labelled_cylinders(self):
+        # pytm's image + xlabel data stores let names drift off their icons.
+        from usecvislib.threatmodeling import PyTMWrapper
+
+        dot = (
+            'datastore_db_1 [\n    shape = none;\n    fixedsize = shape;\n    image = "/x/ds.png";\n'
+            '    imagescale = true;\n    xlabel = "Audit Log";\n    label = "";\n]'
+        )
+        fixed = PyTMWrapper._fix_pytm_dot(dot)
+        assert "shape = cylinder;" in fixed
+        assert 'label = "Audit Log";' in fixed
+        assert "image" not in fixed and "xlabel" not in fixed

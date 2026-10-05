@@ -31,6 +31,7 @@ Elements supported:
 from __future__ import annotations
 
 import html as html_module
+import re
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Optional
 
@@ -322,7 +323,7 @@ class PyTMWrapper:
 
         if self._pytm_available and self.tm:
             with contextlib.suppress(Exception):
-                dot_content = self.tm.dfd()
+                dot_content = self._fix_pytm_dot(self.tm.dfd())
 
         if not dot_content:
             dot_content = self._generate_dot()
@@ -331,6 +332,36 @@ class PyTMWrapper:
         graph.format = self.format
         output_path = graph.render(self.outputfile, cleanup=True)
         return output_path
+
+    @staticmethod
+    def _fix_pytm_dot(dot: str) -> str:
+        """Repair two pytm DFD rendering quirks.
+
+        - Boundary names are wrapped as ``label = <<i>Internet\\n(Untrusted)</i>>``;
+          Graphviz prints a literal "\\n" there (only ``<br/>`` breaks a line
+          in HTML-like labels).
+        - Data stores are an image with the name as an ``xlabel``, which
+          Graphviz places loosely: names drifted off their icons and onto each
+          other. They become labelled cylinders (the usecvislib engine's DFD
+          convention).
+        """
+        lines = dot.splitlines()
+        for i, line in enumerate(lines):
+            if "label = <" in line or "label=<" in line:
+                lines[i] = line.replace("\\n", "<br/>")
+        dot = "\n".join(lines)
+
+        def as_cylinder(match: re.Match) -> str:
+            block = match.group(0)
+            xlabel = re.search(r'xlabel = ("[^"]*");', block)
+            if not xlabel:
+                return block
+            block = re.sub(r"\n\s*(?:image|imagescale|fixedsize) = [^;]*;", "", block)
+            block = block.replace("shape = none;", "shape = cylinder;")
+            block = re.sub(r'\n\s*xlabel = "[^"]*";', "", block)
+            return block.replace('label = "";', f"label = {xlabel.group(1)};")
+
+        return re.sub(r"datastore_\w+ \[.*?\]", as_cylinder, dot, flags=re.S)
 
     @staticmethod
     def _escape_dot_string(s: str) -> str:

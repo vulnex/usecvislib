@@ -255,26 +255,30 @@ class TestRender:
             IncidentTimeline(RANSOM, str(tmp_path / "o"), format="dot")
 
 
-class TestLabelSlots:
-    def test_far_apart_events_share_top_tier(self):
-        span = timedelta(hours=10)
-        evs = [
-            TimelineEvent("E1", parse_timestamp("2026-01-01T00:00:00Z"), "a"),
-            TimelineEvent("E2", parse_timestamp("2026-01-01T05:00:00Z"), "b"),
-        ]
-        slots = IncidentTimeline._label_slots(evs, span)
-        assert slots[0] == slots[1]  # both use tier 0, no collision
+class TestLabelPlacement:
+    def _tl(self, tmp_path):
+        tl = IncidentTimeline(INSIDER, str(tmp_path / "o"))
+        tl.load()
+        return tl
 
-    def test_clustered_events_stagger(self):
-        span = timedelta(hours=10)
-        base = "2026-01-01T00:0{}:00Z"
-        evs = [TimelineEvent(f"E{i}", parse_timestamp(base.format(i)), "x") for i in range(3)]
-        slots = IncidentTimeline._label_slots(evs, span)
-        # Tightly clustered -> distinct tiers (no two identical in a row)
-        assert len({s for s in slots}) >= 2
+    def test_clustered_long_labels_do_not_overlap(self, tmp_path):
+        # Placement used a time threshold that ignored label width, so long
+        # labels of nearby events overprinted each other.
+        tl = self._tl(tmp_path)
+        base = parse_timestamp("2026-01-01T00:00:00Z")
+        evs = [TimelineEvent(f"E{i}", base + timedelta(minutes=2 * i), "x") for i in range(5)]
+        labels = ["A rather long event label that is wide"] * 5
+        x_pts = lambda t: (t - base).total_seconds() / 60.0 * 4  # noqa: E731 - 4pt per minute
+        slots, up, down = tl._place_row_labels(evs, labels, x_pts, 8.0, 5.0)
+        assert len(set(slots)) == 5  # every label got its own slot
+        assert up > 0 and down > 0
 
-    def test_empty_events(self):
-        assert IncidentTimeline._label_slots([], timedelta(hours=1)) == []
+    def test_far_apart_events_share_nearest_slot(self, tmp_path):
+        tl = self._tl(tmp_path)
+        base = parse_timestamp("2026-01-01T00:00:00Z")
+        evs = [TimelineEvent("E1", base, "a"), TimelineEvent("E2", base + timedelta(hours=5), "b")]
+        slots, _, _ = tl._place_row_labels(evs, ["a", "b"], lambda t: (t - base).total_seconds() / 10, 8.0, 5.0)
+        assert slots[0] == slots[1]
 
 
 class TestBuilder:
