@@ -213,7 +213,15 @@ def _paint_clusters(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any]) -> N
     label_size = float(cfg.get("label_size", 12))
     radius = float(cfg.get("radius", 10))
 
+    # Outer clusters first so nested ones paint on top of their parent
+    depth = {}
+    by_id = {g.id: g for g in scene.groups}
     for grp in scene.groups:
+        d, cur = 0, grp
+        while cur.parent in by_id and d < len(by_id):
+            cur, d = by_id[cur.parent], d + 1
+        depth[grp.id] = d
+    for grp in sorted(scene.groups, key=lambda g: depth[g.id]):
         if grp.width <= 0 or grp.height <= 0:
             continue
         fill = grp.fill or default_fill

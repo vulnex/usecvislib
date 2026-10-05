@@ -220,3 +220,31 @@ class TestCli:
                 ["-i", FIXTURE, "-o", str(tmp_path / "x"), "-f", "dot", "-m", "12", "-v", "graph", "--render-engine", "svg"]
             )
         assert exc.value.code == 2
+
+
+@requires_dot
+class TestCrowdedLayers:
+    def test_cluster_threshold_nests_type_subclusters(self, tmp_path):
+        # The SVG engine ignored [render] cluster_threshold; crowded layers
+        # now get per-type sub-clusters nested in the layer cluster.
+        src = Path(TEMPLATE_DIR / "multi-agent-support.toml").read_text(encoding="utf-8")
+        crowded = tmp_path / "crowded.toml"
+        crowded.write_text(src + "\n[render]\ncluster_threshold = 2\n", encoding="utf-8")
+        root = ET.fromstring(_render(str(crowded), tmp_path, name="crowded"))
+        clusters = {g.get("data-label") for g in root.iter(f"{SVG_NS}g") if "usv-cluster" in g.get("class", "")}
+        assert "task-oriented (4)" in clusters
+
+    def test_oracle_places_nested_cluster_inside_parent(self):
+        from usecvislib.svgengine.layout import GraphvizJsonLayout
+        from usecvislib.svgengine.scene import Scene, SceneGroup, SceneNode
+
+        scene = Scene(module="t")
+        for nid in ("a", "b", "c"):
+            scene.nodes.append(SceneNode(id=nid, label=nid, width=80, height=30))
+        outer = SceneGroup(id="outer", label="Outer", members=["a", "b", "c"])
+        inner = SceneGroup(id="inner", label="Inner", members=["b", "c"], parent="outer")
+        scene.groups.extend([outer, inner])
+        GraphvizJsonLayout().solve(scene)
+        assert inner.width > 0 and outer.width > 0
+        assert outer.x <= inner.x and inner.x + inner.width <= outer.x + outer.width
+        assert outer.y <= inner.y and inner.y + inner.height <= outer.y + outer.height

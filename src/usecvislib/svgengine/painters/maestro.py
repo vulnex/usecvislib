@@ -144,6 +144,25 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                 text_color=ma.get("layer_text", "#374151"),
             )
         )
+        # Crowded layer: dashed per-type sub-clusters inside it, as the
+        # Graphviz graph view does past [render] cluster_threshold.
+        if viz.clustering_enabled and len(members) > viz.cluster_threshold:
+            by_type: dict[str, list] = {}
+            for agent in members:
+                by_type.setdefault(agent.type or "agent", []).append(agent)
+            for agent_type, typed in by_type.items():
+                scene.groups.append(
+                    SceneGroup(
+                        id=utils.sanitize_node_id(f"{layer_key}_{agent_type}"),
+                        label=f"{agent_type} ({len(typed)})",
+                        members=[a.id for a in typed],
+                        fill=cluster_fill,
+                        border=ma.get("layer_border", "#bdbdbd"),
+                        text_color=ma.get("layer_text", "#374151"),
+                        dashed=True,
+                        parent=utils.sanitize_node_id(layer_key),
+                    )
+                )
     # Security-layer agents (floating, outside any cluster).
     for agent in by_layer.get(security_key, []):
         add_agent(agent, security_key)

@@ -605,21 +605,47 @@ class GraphvizJsonLayout:
             "  node [shape=box, fixedsize=true];",
         ]
 
-        member_of: dict[str, str] = {}
-        for group in scene.groups:
-            for member in group.members:
-                member_of.setdefault(member, group.id)
+        # A node belongs to the innermost group listing it; groups may nest
+        # via `parent`, emitted as nested cluster subgraphs.
+        group_ids = {g.id for g in scene.groups}
+        depth: dict[str, int] = {}
 
+        def group_depth(group) -> int:
+            if group.id not in depth:
+                parent = next((g for g in scene.groups if g.id == group.parent), None)
+                depth[group.id] = 0 if parent is None or group.parent not in group_ids else group_depth(parent) + 1
+            return depth[group.id]
+
+        member_of: dict[str, str] = {}
+        for group in sorted(scene.groups, key=group_depth):
+            for member in group.members:
+                member_of[member] = group.id  # deeper groups override
+
+        children_of: dict[Optional[str], list] = {}
         for group in scene.groups:
-            members = [n for n in scene.nodes if member_of.get(n.id) == group.id]
-            if not members:
-                continue
-            lines.append(f'  subgraph "cluster_{_dot_escape(group.id)}" {{')
+            parent = group.parent if group.parent in group_ids else None
+            children_of.setdefault(parent, []).append(group)
+
+        def has_content(group) -> bool:
+            return any(member_of.get(n.id) == group.id for n in scene.nodes) or any(
+                has_content(child) for child in children_of.get(group.id, [])
+            )
+
+        def emit(group, indent: str) -> None:
+            if not has_content(group):
+                return
+            lines.append(f'{indent}subgraph "cluster_{_dot_escape(group.id)}" {{')
             if group.label:
-                lines.append(f'    label="{_dot_escape(group.label)}";')
-            for node in members:
-                lines.append(f"  {self._node_line(node)}")
-            lines.append("  }")
+                lines.append(f'{indent}  label="{_dot_escape(group.label)}";')
+            for child in children_of.get(group.id, []):
+                emit(child, indent + "  ")
+            for node in scene.nodes:
+                if member_of.get(node.id) == group.id:
+                    lines.append(f"{indent}{self._node_line(node)}")
+            lines.append(f"{indent}}}")
+
+        for group in children_of.get(None, []):
+            emit(group, "  ")
 
         for node in scene.nodes:
             if node.id not in member_of:
