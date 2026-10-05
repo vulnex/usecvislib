@@ -497,6 +497,12 @@ class CloudDiagrams:
         if not self._loaded:
             raise ValidationError("No configuration loaded. Call load() first.")
 
+        # Fail early with a clear message: an unknown icon otherwise surfaces
+        # as an ImportError deep inside the generated diagrams script.
+        bad_icons = [f"{n.icon} (node: {n.id})" for n in self.nodes if n.icon and not self._validate_icon(n.icon)]
+        if bad_icons:
+            raise IconNotFoundError(f"Unknown diagrams icon(s): {', '.join(bad_icons)}")
+
         self._validate_diagrams_available()
 
         fmt = format or self.config.outformat
@@ -589,6 +595,13 @@ class CloudDiagrams:
         lines.append(f'    outformat="{format}",')
         lines.append(f"    show={show},")
         lines.append(f'    direction="{direction_escaped}",')
+        # Template graph_attr was parsed but never passed on; default to a
+        # tighter pad than the library's 2.0in (large empty margins).
+        graph_attr = {"pad": "0.5", **{str(k): str(v) for k, v in self.config.graph_attr.items()}}
+        attr_items = ", ".join(
+            f'"{_escape_python_string(k)}": "{_escape_python_string(v)}"' for k, v in graph_attr.items()
+        )
+        lines.append(f"    graph_attr={{{attr_items}}},")
         lines.append("):")
 
         # Track node variable names for edge references
@@ -787,7 +800,11 @@ class CloudDiagrams:
             edge_params = []
             if edge.label:
                 label_escaped = _escape_python_string(edge.label)
-                edge_params.append(f'label="{label_escaped}"')
+                # The library routes with splines=ortho by default, which cannot
+                # place edge labels (they float away); xlabel sits by the edge.
+                ortho = str(self.config.graph_attr.get("splines", "ortho")) == "ortho"
+                label_key = "xlabel" if ortho else "label"
+                edge_params.append(f'{label_key}="{label_escaped}"')
             if edge.color:
                 color_escaped = _escape_python_string(edge.color)
                 edge_params.append(f'color="{color_escaped}"')

@@ -790,3 +790,24 @@ class TestCloudDiagramsInternalMethods:
         assert cd._get_icon_class_name("aws.compute.EC2") == "EC2"
         assert cd._get_icon_class_name("aws:EC2") == "EC2"
         assert cd._get_icon_class_name("EC2") == "EC2"
+
+
+class TestTemplateIcons:
+    def test_all_templates_use_valid_icons(self):
+        # basic-deployment.toml shipped k8s.others.Crd / k8s.storage.CM, which
+        # only failed as an ImportError inside the generated script.
+        import glob
+
+        pytest.importorskip("diagrams")
+        root = Path(__file__).parent.parent / "templates" / "cloud"
+        for path in sorted(glob.glob(str(root / "*" / "*.toml"))):
+            cd = CloudDiagrams()
+            cd.load(path)
+            assert cd.validate() == [], path
+
+    def test_render_rejects_unknown_icon_early(self, tmp_path):
+        pytest.importorskip("diagrams")
+        cd = CloudDiagrams()
+        cd.load_from_string('[diagram]\ntitle = "x"\n[[nodes]]\nid = "a"\nicon = "aws.compute.NoSuchThing"\nlabel = "a"\n')
+        with pytest.raises(IconNotFoundError):
+            cd.render(str(tmp_path / "out"), format="png")

@@ -289,6 +289,7 @@ class ComponentDiagram(VisualizationBase):
             raise ComponentDiagramError("Graph not rendered. Call render() first.")
 
         try:
+            utils.ortho_edge_xlabels(self.graph)
             self.graph.render(outputfile, cleanup=True)
             self.logger.debug("Successfully wrote component diagram visualization")
         except Exception as e:

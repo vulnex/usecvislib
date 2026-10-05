@@ -560,6 +560,7 @@ class KillChain(VisualizationBase):
     def _draw_impl(self, outputfile: str) -> None:
         if self.dot is None:
             raise KillChainError("Graph not rendered; call render() first")
+        utils.ortho_edge_xlabels(self.dot)
         self.dot.render(outputfile, cleanup=True)
 
     def _validate_impl(self) -> list[str]:

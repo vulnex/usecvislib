@@ -391,6 +391,7 @@ class AttackTrees(VisualizationBase):
             raise AttackTreeError("Graph not rendered. Call render() first.")
 
         try:
+            utils.ortho_edge_xlabels(self.dot)
             self.dot.render(outputfile, cleanup=True)
             self.logger.debug("Successfully wrote attack tree visualization")
         except Exception as e:

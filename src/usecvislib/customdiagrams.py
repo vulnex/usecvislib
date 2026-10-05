@@ -48,6 +48,7 @@ from .utils import (
     RenderError,
     ValidationError,
     escape_dot_label,
+    ortho_edge_xlabels,
     parse_content,
     process_node_image,
     sanitize_node_id,
@@ -437,6 +438,7 @@ class CustomDiagrams:
         for edge in self.edges:
             self._add_edge(graph, edge)
 
+        ortho_edge_xlabels(graph)
         return graph
 
     def _add_node(self, graph: Union[gv.Digraph, gv.Graph], node: dict) -> None:

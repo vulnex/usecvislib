@@ -1541,6 +1541,27 @@ def is_dark_color(color: str) -> bool:
     return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2] < 0.18
 
 
+_ORTHO_SPLINES = re.compile(r"""splines\s*=\s*["']?ortho\b""")
+_EDGE_LABEL = re.compile(r"([\[\s,])label=")
+
+
+def ortho_edge_xlabels(graph: Any) -> None:
+    """Turn edge ``label`` into ``xlabel`` when a graph routes with ``splines=ortho``.
+
+    Graphviz's orthogonal router does not support edge labels ("Orthogonal
+    edges do not currently handle edge labels. Try using xlabels."): labels
+    end up far from their edges and stretch the layout with empty bands.
+    ``xlabel`` is placed after routing, next to the edge. Mutates the DOT
+    body of a ``graphviz.Digraph``/``Graph`` in place; no-op otherwise.
+    """
+    body = getattr(graph, "body", None)
+    if body is None or not _ORTHO_SPLINES.search(graph.source):
+        return
+    for i, line in enumerate(body):
+        if " -> " in line or " -- " in line:
+            body[i] = _EDGE_LABEL.sub(r"\1xlabel=", line)
+
+
 def stringify_dict(d: dict[str, Any]) -> dict[str, str]:
     """Convert all dictionary values to strings.
 

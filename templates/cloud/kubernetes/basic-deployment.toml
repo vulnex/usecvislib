@@ -64,12 +64,12 @@ label = "Storage"
 
     [[clusters.nodes]]
     id = "cm"
-    icon = "k8s.storage.CM"
+    icon = "k8s.podconfig.CM"
     label = "ConfigMap"
 
     [[clusters.nodes]]
     id = "secret"
-    icon = "k8s.storage.Secret"
+    icon = "k8s.podconfig.Secret"
     label = "Secret"
 
 # External
