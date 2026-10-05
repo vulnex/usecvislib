@@ -30,7 +30,7 @@ not_detected = {fillcolor = "#e74c3c", fontcolor = "#ffffff"}
 graph = {rankdir = "LR", bgcolor = "#ffffff", fontname = "Helvetica", fontcolor = "#475569", fontsize = "16", pad = "0.4", nodesep = "0.26", ranksep = "0.58", labelloc = "t"}
 phase = {style = "rounded,dashed", fillcolor = "#ffffff", color = "#cbd5e1", fontcolor = "#64748b", fontname = "Helvetica", fontsize = "13", penwidth = "1"}
 technique = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", fillcolor = "#e0a53f", color = "#cbd5e1", fontsize = "10", penwidth = "1"}
-edge = {color = "#cbd5e1", penwidth = "1.4", arrowhead = "vee", arrowsize = "0.7"}
+edge = {color = "#8a9bb0", penwidth = "1.5", arrowhead = "vee", arrowsize = "0.7"}
 detected = {fillcolor = "#2fa84f", fontcolor = "#ffffff"}
 partial = {fillcolor = "#eab24a", fontcolor = "#1a2733"}
 not_detected = {fillcolor = "#e15b4c", fontcolor = "#ffffff"}

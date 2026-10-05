@@ -634,18 +634,59 @@ class IncidentTimeline(VisualizationBase):
         return self._finish(fig, ax, style)
 
     def _render_vertical(self, plt, style: dict[str, Any], fig_cfg: dict[str, Any]) -> Any:
-        import matplotlib.dates as mdates
-
         ev_cfg = {**self._default_style()["event"], **style.get("event", {})}
+        phase_cfg = {**self._default_style()["phase"], **style.get("phase", {})}
         n = len(self.events)
         height = max(4.0, 0.6 * n + 2.0)
         fig, ax = plt.subplots(
             figsize=(max(8.0, fig_cfg["width"] * 0.6), height), dpi=fig_cfg["dpi"], facecolor=fig_cfg["facecolor"]
         )
 
-        self._draw_phase_bands(ax, style, vertical=True)
+        # Rows instead of raw time: events minutes apart had overlapping
+        # markers. Time maps to n rows with a minimum gap between events;
+        # phase bounds map piecewise-linearly between the adjusted rows (as
+        # in the SVG engine), and each event's time labels the axis.
+        stamps = [ev.timestamp for ev in self.events] + [p.start for p in self.phases] + [p.end for p in self.phases]
+        t_min = min(stamps)
+        total = max((max(stamps) - t_min).total_seconds(), 1.0)
 
-        ys = [mdates.date2num(ev.timestamp) for ev in self.events]
+        def y_raw(t) -> float:
+            return (t - t_min).total_seconds() / total * max(n, 1)
+
+        ys: list[float] = []
+        for ev in self.events:
+            raw = y_raw(ev.timestamp)
+            ys.append(max(raw, ys[-1] + 0.8) if ys else raw)
+        knots = sorted(zip((y_raw(ev.timestamp) for ev in self.events), ys, strict=False))
+
+        def y_of(t) -> float:
+            raw = y_raw(t)
+            if not knots or raw <= knots[0][0]:
+                return raw + (knots[0][1] - knots[0][0] if knots else 0.0)
+            for (r0, a0), (r1, a1) in zip(knots, knots[1:], strict=False):
+                if raw <= r1:
+                    return a0 + (a1 - a0) * ((raw - r0) / (r1 - r0) if r1 > r0 else 1.0)
+            return raw + knots[-1][1] - knots[-1][0]
+
+        for ph in self.phases:
+            lo, hi = y_of(ph.start), y_of(ph.end)
+            ax.axhspan(lo, hi, color=ph.color, alpha=phase_cfg["alpha"], zorder=0)
+            # Phase name in the left gutter at the top of its band (it was
+            # missing in vertical mode)
+            ax.text(
+                0.005,
+                lo,
+                f" {ph.name}",
+                transform=ax.get_yaxis_transform(),
+                ha="left",
+                va="top",
+                fontsize=phase_cfg["fontsize"],
+                color=ph.color,
+                fontweight="bold",
+                clip_on=True,
+                zorder=2,
+            )
+
         ax.plot([0.5] * n, ys, color="#cbd5e1", linewidth=2, zorder=1)
         for i, ev in enumerate(self.events):
             y = ys[i]
@@ -666,11 +707,13 @@ class IncidentTimeline(VisualizationBase):
                 zorder=4,
             )
 
+        lo_all = min([*ys, *(y_of(p.start) for p in self.phases)], default=0.0)
+        hi_all = max([*ys, *(y_of(p.end) for p in self.phases)], default=1.0)
+        ax.set_ylim(hi_all + 0.4, lo_all - 0.4)  # inverted: earliest on top
         ax.set_xlim(-0.2, 1.2)
         ax.set_xticks([])
-        ax.yaxis_date()
-        ax.yaxis.set_major_formatter(mdates.DateFormatter(self._time_format()))
-        ax.invert_yaxis()
+        ax.set_yticks(ys)
+        ax.set_yticklabels([ev.timestamp.strftime(self._time_format()) for ev in self.events])
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.spines["bottom"].set_visible(False)

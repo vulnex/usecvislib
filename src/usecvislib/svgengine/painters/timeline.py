@@ -468,9 +468,13 @@ def _render_vertical(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
             "end" if side > 0 else "start",
         )
 
-    # Phase bands span the labels actually drawn (no name text: the side
-    # annotations occupy that gutter, as in the Matplotlib vertical mode).
-    band_x0, band_x1 = bounds.min_x - 12.0, bounds.max_x + 12.0
+    # Phase bands span the labels actually drawn plus a right-hand column
+    # holding each phase's name at the top of its band (names were missing).
+    name_size = float(font["size"]) * 0.85
+    names_x = bounds.max_x + 20.0
+    names_w = max((metrics.measure_text(ph.name, family, name_size) for ph in viz.phases), default=0.0)
+    band_x0 = bounds.min_x - 12.0
+    band_x1 = names_x + names_w + 12.0 if viz.phases else bounds.max_x + 12.0
     alpha = float(tl["phase_alpha"])
     for ph in viz.phases:
         y0, y1 = y_of(ph.start), y_of(ph.end)
@@ -479,6 +483,7 @@ def _render_vertical(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
         g.append(shapes.band(band_x0, y0, band_x1 - band_x0, h, ph.color, opacity=alpha))
         ops.groups.append(g)
         bounds.rect(band_x0, y0, band_x1 - band_x0, h)
+        _anchored_label(ops.labels, bounds, names_x, y0 + name_size * 1.2, ph.name, name_size, family, ph.color, "start")
 
     # Legend right of everything drawn, so it never covers a label.
     _legend(viz, theme, ops, bounds, bounds.max_x + 24.0, content_top + 4.0, float(font["size"]) * 0.85, family)

@@ -14,6 +14,7 @@
 """Tests for the Incident Timeline module (CLI mode 10)."""
 
 import glob
+import re
 from datetime import timedelta
 from pathlib import Path
 
@@ -237,7 +238,9 @@ class TestRender:
         tl = IncidentTimeline(INSIDER, str(tmp_path / "o"), mode="vertical")
         tl.load()
         tl.render()
-        assert "%m-%d" in tl._fig.axes[0].yaxis.get_major_formatter().fmt
+        # vertical mode labels each event row with its time
+        labels = [t.get_text() for t in tl._fig.axes[0].get_yticklabels()]
+        assert labels and all(re.match(r"\d{2}-\d{2} \d{2}:\d{2}", t) for t in labels)
 
     def test_empty_timeline_still_renders(self, tmp_path):
         src = tmp_path / "empty.tml"

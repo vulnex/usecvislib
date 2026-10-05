@@ -151,10 +151,12 @@ def _layout(viz, scene, phases, theme):
         max((by_id[t].height for rows in grid.values() if (t := rows.get(row))), default=0.0)
         for row in range(row_count)
     ]
-    row_centers = []
+    # Cards are top-aligned in their row: centred, a taller (wrapped) card
+    # rose above its row neighbours
+    row_tops = []
     top = _header_height(theme) + _HEADER_GAP
     for height in row_heights:
-        row_centers.append(top + height / 2)
+        row_tops.append(top)
         top += height + _CARD_GAP
 
     boxes: dict[str, tuple[float, float, float]] = {}
@@ -162,7 +164,7 @@ def _layout(viz, scene, phases, theme):
         for row, tech_id in grid.get(lane.id, {}).items():
             if tech_id:
                 by_id[tech_id].x = lane.x
-                by_id[tech_id].y = row_centers[row]
+                by_id[tech_id].y = row_tops[row] + by_id[tech_id].height / 2
         boxes[lane.id] = (lane.x, lane.width, top)
     return boxes
 
@@ -296,7 +298,11 @@ def render_svg(viz) -> str:
                 forward = b.x > a.x
                 x1 = a.x + a.width / 2 if forward else a.x - a.width / 2
                 x2 = b.x - b.width / 2 if forward else b.x + b.width / 2
-                d = shapes.curve_path_d(x1, a.y, x2, b.y, horizontal=True)
+                # Anchor at the shorter card's mid-height below each top, so a
+                # flow between top-aligned cards of different heights stays level
+                mid = min(a.height, b.height) / 2
+                ya, yb = a.y - a.height / 2 + mid, b.y - b.height / 2 + mid
+                d = shapes.curve_path_d(x1, ya, x2, yb, horizontal=True)
             g = shapes.group(
                 ["usv-edge", "usv-edge--incident"],
                 {"from": src_id, "to": dst_id, "incident": incident.incident_id},
