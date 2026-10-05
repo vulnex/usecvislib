@@ -448,23 +448,24 @@ class CustomDiagrams:
         """
         node_id = sanitize_node_id(node["id"])
         node_type = node.get("type")
-
-        # Process node data copy to avoid modifying original
-        node_data = node.copy()
-
-        # Process and validate image attribute if present
-        process_node_image(node_data, node_id, logger)
-
-        # Get schema for this node type
         type_schema = self.schema_validator.node_types.get(node_type)
+
+        # Label from the template (or name) using the node's own data
+        label = self._build_label(type_schema.label_template, node) if type_schema else str(node.get("name", node_id))
+
+        # Icon nodes: process_node_image swaps the attributes for an HTML
+        # icon-over-text label, so give it the finished text label. (It used
+        # to receive the data dict, which it clears - losing icon and label.)
+        if node.get("image"):
+            icon_attrs = {"image": node["image"], "label": label}
+            process_node_image(icon_attrs, node_id, logger)
+            if "image" not in icon_attrs and str(icon_attrs.get("label", "")).startswith("<"):
+                graph.node(node_id, **icon_attrs)
+                return
+
         if not type_schema:
             # If no schema, use basic box shape
-            node_attrs = {"label": escape_dot_label(str(node_data.get("name", node_id)))}
-            # Add image if present
-            if "image" in node_data:
-                node_attrs["image"] = node_data["image"]
-                node_attrs["labelloc"] = "b"  # Label below image
-            graph.node(node_id, **node_attrs)
+            graph.node(node_id, label=escape_dot_label(label))
             return
 
         # Get shape attributes from registry
@@ -477,14 +478,6 @@ class CustomDiagrams:
         # Strip style attributes when a non-default style is selected
         # This allows the selected style to override schema-defined colors
         shape_attrs = self._strip_style_attrs(shape_attrs)
-
-        # Build label from template
-        label = self._build_label(type_schema.label_template, node_data)
-
-        # Add image if present
-        if "image" in node_data:
-            shape_attrs["image"] = node_data["image"]
-            shape_attrs["labelloc"] = "b"  # Label below image
 
         # Add node to graph
         graph.node(node_id, label=escape_dot_label(label), **shape_attrs)

@@ -27,7 +27,7 @@ import logging
 from typing import Any, Optional
 
 from ... import utils
-from ...constants import cvss_to_color, cvss_to_severity_label
+from ...constants import cvss_to_color, cvss_to_severity_label, cvss_to_text_color
 from ...cvss_unified import get_cvss_score_unified as get_cvss_score
 from ...settings import is_cvss_enabled
 from .. import images, metrics, shapes, themes
@@ -160,7 +160,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
                 if use_cvss_colors and not image_href:
                     fill = cvss_to_color(score)
                     if not attrs.get("fontcolor"):
-                        text_color = "#ffffff"
+                        text_color = cvss_to_text_color(score)
                 if "CVSS" not in label:
                     marker = "*" if cvss_vector and cvss_value is None else ""
                     label = f"{label}\n(CVSS: {score} - {severity_label}){marker}"

@@ -392,3 +392,12 @@ class TestCVSSEdgeCases:
         assert success is True
         # Score should be a clean decimal
         assert score == round(score, 1)
+
+
+class TestCvssTextColor:
+    def test_dark_text_on_medium_amber_only(self):
+        from usecvislib.constants import cvss_to_text_color
+
+        assert cvss_to_text_color(5.0) == "#1f2937"  # amber medium fill
+        for score in (9.8, 7.5, 2.0):
+            assert cvss_to_text_color(score) == "#ffffff"

@@ -31,7 +31,7 @@ import logging
 from typing import Any
 
 from ... import utils
-from ...constants import cvss_to_color, cvss_to_severity_label
+from ...constants import cvss_to_color, cvss_to_severity_label, cvss_to_text_color
 from ...cvss_unified import get_cvss_score_unified as get_cvss_score
 from ...settings import is_cvss_enabled
 from .. import metrics, themes
@@ -124,6 +124,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
             lines.append(f"CVSS {score:g} · {cvss_to_severity_label(score)}")
             if use_cvss_colors:
                 fill = cvss_to_color(score)
+                text_color = cvss_to_text_color(score)
             if severity in ("low", "none"):
                 text_color = "#000000"
         add_node(vuln_id, lines, "vulnerability", fill, severity=severity, cvss=cvss, text_color=text_color)

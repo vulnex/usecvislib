@@ -628,3 +628,18 @@ class TestLabelLineBreaks:
             # escape_dot_label turns a real newline into "\n"; a doubled
             # backslash means a literal backslash-n would be printed.
             assert "\\\\n" not in source, path.name
+
+
+class TestIconNodes:
+    def test_icon_nodes_keep_icon_and_label(self):
+        # process_node_image cleared the node data, so icon nodes lost both
+        # the image and the templated label.
+        path = Path(__file__).parent.parent / "templates" / "custom-diagrams" / "software" / "deployment-diagram_icons.toml"
+        cd = CustomDiagrams()
+        cd.load(path)
+        source = cd.get_dot_source()
+        icon_nodes = [n for n in cd.nodes if n.get("image")]
+        assert icon_nodes
+        assert source.count("<IMG SRC=") == len(icon_nodes)
+        for node in icon_nodes:
+            assert str(node.get("name")) in source

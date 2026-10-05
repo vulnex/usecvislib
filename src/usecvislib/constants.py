@@ -379,6 +379,15 @@ def cvss_to_color(cvss_score: float) -> str:
     return RISK_COLORS[risk_level]
 
 
+def cvss_to_text_color(cvss_score: float) -> str:
+    """Readable label color on a :func:`cvss_to_color` fill.
+
+    White everywhere except the amber MEDIUM fill, where white text reads at
+    about 2:1; dark text there reaches ~9:1.
+    """
+    return "#1f2937" if cvss_to_risk_level(cvss_score) == RiskLevel.MEDIUM else "#ffffff"
+
+
 def validate_cvss_score(cvss_score: Any) -> tuple[bool, Optional[float], Optional[str]]:
     """Validate a CVSS score value.
 

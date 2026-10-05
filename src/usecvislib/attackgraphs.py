@@ -44,7 +44,7 @@ from graphviz import Digraph
 
 from . import utils
 from .base import VisualizationBase
-from .constants import cvss_to_color, cvss_to_severity_label, validate_cvss_score
+from .constants import cvss_to_color, cvss_to_severity_label, cvss_to_text_color, validate_cvss_score
 from .cvss_unified import get_cvss_score_unified as get_cvss_score
 from .cvss_unified import validate_vector as validate_cvss_vector
 from .settings import is_cvss_enabled
@@ -507,7 +507,7 @@ class AttackGraphs(VisualizationBase):
                     # Set fontcolor to white for readability on CVSS-colored backgrounds
                     # (only if user hasn't explicitly set fontcolor)
                     if "fontcolor" not in vuln_data:
-                        node_attrs["fontcolor"] = "white"
+                        node_attrs["fontcolor"] = cvss_to_text_color(resolved_score)
 
             # For nodes with icons, set fontcolor to black for readability
             if has_image and "fontcolor" not in vuln_data:
