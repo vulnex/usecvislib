@@ -159,15 +159,47 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], deps: d
             exploited = bool(dep and any(v.exploited for v in dep.vulnerabilities))
             color = exploited_color if exploited else base_color
             width = exploited_width if exploited else base_width
-            d = shapes.ortho_path_d(
-                parent.x, p_bottom, child.x, child.y - child.height / 2, corner=10.0, horizontal=False, mid=bus
-            )
+            d = _edge_path_d(scene, parent, child, p_bottom, bus)
             classes = ["usv-edge", "usv-edge--dep"]
             if exploited:
                 classes.append("usv-edge--exploited")
             group = shapes.group(classes, {"from": edge.src, "to": edge.dst})
             group.append(shapes.edge_path(d, color, width, marker_url=canvas.arrow_marker(color)))
             canvas.add("edges", group)
+
+
+def _edge_path_d(scene: Scene, parent, child, p_bottom: float, bus: float) -> str:
+    """Bus-style connector; edges that skip rows detour around blocking nodes.
+
+    A dependency reached at two depths (express -> qs and express ->
+    body-parser -> qs) sits on the deeper row, often straight below an
+    intermediate node; the plain vertical drop would run hidden behind it.
+    """
+    c_top = child.y - child.height / 2
+    blocking = [
+        n
+        for n in scene.nodes
+        if n is not parent
+        and n is not child
+        and abs(n.x - child.x) < n.width / 2 + 2
+        and n.y + n.height / 2 > bus
+        and n.y - n.height / 2 < c_top
+    ]
+    if not blocking:
+        return shapes.ortho_path_d(parent.x, p_bottom, child.x, c_top, corner=10.0, horizontal=False, mid=bus)
+    lane_x = max(n.x + n.width / 2 for n in blocking) + 18.0
+    approach_y = (max(n.y + n.height / 2 for n in blocking) + c_top) / 2
+    offset = min(child.width / 4, 14.0)  # land beside the straight-in edge's arrow
+    return shapes.rounded_polyline_d(
+        [
+            (parent.x, p_bottom),
+            (parent.x, bus),
+            (lane_x, bus),
+            (lane_x, approach_y),
+            (child.x + offset, approach_y),
+            (child.x + offset, c_top),
+        ]
+    )
 
 
 def render_svg(viz) -> str:
@@ -231,8 +263,14 @@ def render_svg(viz) -> str:
     for node in real:
         dep = viz.dependencies[node.id]
         sev = dep.highest_severity
-        fill = SEVERITY_COLORS[sev]
-        text_color = "#000000" if sev == VulnSeverity.LOW else "#ffffff"
+        if sev == VulnSeverity.NONE:
+            # Clean packages take the preset's node colors (sv_dark/sv_corporate
+            # tune them); CVE severity colors stay fixed across presets.
+            fill = theme["node"].get("fill", SEVERITY_COLORS[sev])
+            text_color = theme["node"].get("text", "#ffffff")
+        else:
+            fill = SEVERITY_COLORS[sev]
+            text_color = "#000000" if sev == VulnSeverity.LOW else "#ffffff"
         border = vt["direct_border"] if dep.direct else default_border
         border_width = float(vt["direct_border_width"]) if dep.direct else float(card_cfg["border_width"])
 

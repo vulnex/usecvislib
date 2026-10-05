@@ -64,7 +64,7 @@ class TidyTreeLayout:
         if root_id not in nodes:
             logger.warning(f"Layout root '{root_id}' not found in scene; skipping layout")
             return
-        children = scene.children_map()
+        children, depth, order = self._tree_from_dag(scene, root_id, nodes)
 
         # In LR orientation a node's "breadth" (cross-axis size) is its
         # height and its "depth" (main-axis size) is its width.
@@ -98,18 +98,7 @@ class TidyTreeLayout:
                 if kid not in reachable and kid in nodes:
                     stack.append((kid, False))
 
-        # Depth of each reachable node, then per-depth row size.
-        depth: dict[str, int] = {root_id: 0}
-        order: list[str] = [root_id]
-        queue = [root_id]
-        while queue:
-            node_id = queue.pop(0)
-            for kid in children.get(node_id, []):
-                if kid in reachable and kid not in depth:
-                    depth[kid] = depth[node_id] + 1
-                    order.append(kid)
-                    queue.append(kid)
-
+        # Per-depth row size.
         max_depth = max(depth.values())
         row_size = [0.0] * (max_depth + 1)
         for node_id, d in depth.items():
@@ -170,6 +159,75 @@ class TidyTreeLayout:
         # Orphans: a row below (TB) / right of (LR) the tree.
         orphans = [n for n in scene.nodes if n.id not in reachable]
         self._place_orphans(scene, orphans, root_id)
+
+    @staticmethod
+    def _tree_from_dag(scene: Scene, root_id: str, nodes: dict) -> tuple[dict, dict, list]:
+        """Spanning tree, row depths and BFS order for a DAG rooted at ``root_id``.
+
+        A node's row is its LONGEST path from the root (as Graphviz ranks
+        it), and its tree parent is a parent on the row directly above. With
+        first-parent attachment and shortest depth, a node fed from two
+        depths landed on the same row as its deeper parent, so that edge ran
+        sideways and looped back into it. Cycles (invalid for a tree, but
+        tolerated) fall back to the first parent.
+
+        Returns:
+            (children, depth, order): tree parent -> children in edge order,
+            node -> row index, and breadth-first order over the tree.
+        """
+        parents_of: dict[str, list[str]] = {}
+        kids_all: dict[str, list[str]] = {}
+        for edge in scene.edges:
+            src, dst = edge.src, edge.dst
+            if src == dst or src not in nodes or dst not in nodes or dst == root_id:
+                continue
+            if src not in parents_of.setdefault(dst, []):
+                parents_of[dst].append(src)
+                kids_all.setdefault(src, []).append(dst)
+
+        reachable = {root_id}
+        queue = [root_id]
+        while queue:
+            for kid in kids_all.get(queue.pop(0), []):
+                if kid not in reachable:
+                    reachable.add(kid)
+                    queue.append(kid)
+
+        # Longest-path depth via Kahn's algorithm over the reachable subgraph.
+        indegree = {n: sum(1 for p in parents_of.get(n, []) if p in reachable) for n in reachable}
+        longest = dict.fromkeys(reachable, 0)
+        ready = [n for n in reachable if indegree[n] == 0]
+        while ready:
+            node_id = ready.pop()
+            for kid in kids_all.get(node_id, []):
+                longest[kid] = max(longest[kid], longest[node_id] + 1)
+                indegree[kid] -= 1
+                if indegree[kid] == 0:
+                    ready.append(kid)
+
+        tree_parent: dict[str, str] = {}
+        for node_id in reachable - {root_id}:
+            parents = [p for p in parents_of.get(node_id, []) if p in reachable]
+            above = [p for p in parents if longest[p] == longest[node_id] - 1]
+            tree_parent[node_id] = (above or parents)[0]
+
+        children: dict[str, list[str]] = {}
+        for edge in scene.edges:  # edge order keeps sibling order stable
+            if tree_parent.get(edge.dst) == edge.src and edge.dst not in children.get(edge.src, []):
+                children.setdefault(edge.src, []).append(edge.dst)
+
+        # Final rows follow the tree (equal to the longest path on a DAG).
+        depth = {root_id: 0}
+        order = [root_id]
+        queue = [root_id]
+        while queue:
+            node_id = queue.pop(0)
+            for kid in children.get(node_id, []):
+                if kid not in depth:
+                    depth[kid] = depth[node_id] + 1
+                    order.append(kid)
+                    queue.append(kid)
+        return children, depth, order
 
     # Weight of a single-parent (tree) node in the row solve: sticky against
     # displacement, but still movable when a sink needs to squeeze past.

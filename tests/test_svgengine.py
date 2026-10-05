@@ -186,6 +186,19 @@ class TestTidyTreeLayout:
         orphan = scene.node_by_id("orphan")
         assert orphan.y > scene.node_by_id("a").y  # placed below the tree
 
+    def test_node_fed_from_two_depths_sits_below_deepest_parent(self):
+        # r -> a -> c and r -> c: c used to share a row with a (shortest
+        # depth), so the a -> c edge ran sideways and looped back.
+        scene = _tree_scene({"r": ["a", "c"], "a": ["c"]})
+        TidyTreeLayout().solve(scene, "r")
+        a, c = scene.node_by_id("a"), scene.node_by_id("c")
+        assert c.y > a.y
+
+    def test_cycle_does_not_crash(self):
+        scene = _tree_scene({"r": ["a"], "a": ["b"], "b": ["a"]})
+        TidyTreeLayout().solve(scene, "r")
+        assert scene.node_by_id("b").y > scene.node_by_id("r").y
+
     def test_multi_parent_child_placed_once(self):
         scene = _tree_scene({"r": ["a", "b"], "a": ["shared"], "b": ["shared"]})
         TidyTreeLayout().solve(scene, "r")

@@ -192,3 +192,36 @@ class TestCli:
         with pytest.raises(SystemExit) as exc:
             usecvis.main(["-i", FIXTURE, "-o", str(tmp_path / "x"), "-f", "dot", "-m", "11", "--render-engine", "svg"])
         assert exc.value.code == 2
+
+
+class TestRowSkippingEdges:
+    def test_skip_edge_does_not_run_through_intermediate_node(self, tmp_path):
+        # express -> qs and express -> body-parser -> qs: qs sits below
+        # body-parser, and the express -> qs drop used to hide behind it.
+        import re
+
+        root = ET.fromstring(_render(str(TEMPLATE_DIR / "npm_supply_chain.tml"), tmp_path))
+        ns = "{http://www.w3.org/2000/svg}"
+        rects = {}
+        for g in root.iter(f"{ns}g"):
+            if "usv-node" in g.get("class", "").split():
+                r = g.find(f"{ns}rect")
+                if r is not None:
+                    x, y = float(r.get("x")), float(r.get("y"))
+                    rects[g.get("data-node-id")] = (x, y, x + float(r.get("width")), y + float(r.get("height")))
+        edge = next(g for g in root.iter(f"{ns}g") if g.get("data-from") == "express" and g.get("data-to") == "qs")
+        d = edge.find(f"{ns}path").get("d")
+        nums = [float(v) for v in re.findall(r"-?\d+(?:\.\d+)?", d)]
+        points = list(zip(nums[0::2], nums[1::2], strict=False))
+        x0, y0, x1, y1 = rects["body-parser"]
+        for (ax, ay), (bx, by) in zip(points, points[1:], strict=False):
+            if abs(ax - bx) < 0.5:  # vertical run
+                lo, hi = sorted((ay, by))
+                assert not (x0 < ax < x1 and lo < y1 and hi > y0), "edge runs through body-parser"
+
+
+class TestCleanPackageFill:
+    def test_preset_clean_fill_applied(self, tmp_path):
+        # Clean packages ignored the preset and were always #4caf50.
+        content = _render(FIXTURE, tmp_path, styleid="sv_dark")
+        assert "#2e7d32" in content

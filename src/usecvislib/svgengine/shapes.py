@@ -346,8 +346,9 @@ def ortho_path_d(
             f"Q {fmt(mid_x)} {fmt(y2)} {fmt(mid_x + r)} {fmt(y2)} "
             f"L {fmt(x2)} {fmt(y2)}"
         )
-    if abs(x1 - x2) < 0.5:
-        return f"M {fmt(x1)} {fmt(y1)} L {fmt(x2)} {fmt(y2)}"
+    if abs(x1 - x2) < 3.0:
+        # Near-collinear: a 1-2px offset would otherwise draw a tiny S-jog.
+        return f"M {fmt(x2)} {fmt(y1)} L {fmt(x2)} {fmt(y2)}"
     mid_y = mid if mid is not None else (y1 + y2) / 2
     r = max(0.0, min(corner, abs(x2 - x1) / 2, abs(mid_y - y1), abs(y2 - mid_y)))
     direction = 1 if x2 > x1 else -1
@@ -359,6 +360,34 @@ def ortho_path_d(
         f"Q {fmt(x2)} {fmt(mid_y)} {fmt(x2)} {fmt(mid_y + r)} "
         f"L {fmt(x2)} {fmt(y2)}"
     )
+
+
+def rounded_polyline_d(points: list[tuple[float, float]], corner: float = 10.0) -> str:
+    """Axis-aligned polyline through ``points`` with rounded corners.
+
+    Each interior vertex is replaced by a quadratic curve whose radius is
+    capped at half of either adjacent segment.
+    """
+    if len(points) < 2:
+        return ""
+    parts = [f"M {fmt(points[0][0])} {fmt(points[0][1])}"]
+    for (px, py), (cx, cy), (nx, ny) in zip(points, points[1:], points[2:], strict=False):
+        len_in = abs(cx - px) + abs(cy - py)
+        len_out = abs(nx - cx) + abs(ny - cy)
+        r = max(0.0, min(corner, len_in / 2, len_out / 2))
+        if r == 0:
+            parts.append(f"L {fmt(cx)} {fmt(cy)}")
+            continue
+
+        def toward(ax, ay, bx, by, dist):
+            length = abs(bx - ax) + abs(by - ay)
+            return ax + (bx - ax) * dist / length, ay + (by - ay) * dist / length
+
+        ix, iy = toward(cx, cy, px, py, r)
+        ox, oy = toward(cx, cy, nx, ny, r)
+        parts.append(f"L {fmt(ix)} {fmt(iy)} Q {fmt(cx)} {fmt(cy)} {fmt(ox)} {fmt(oy)}")
+    parts.append(f"L {fmt(points[-1][0])} {fmt(points[-1][1])}")
+    return " ".join(parts)
 
 
 def curve_path_d(x1: float, y1: float, x2: float, y2: float, horizontal: bool = False) -> str:

@@ -46,6 +46,9 @@ _COVERAGE_FILLS = {
     "partial": "#e0a53f",
     "gap": "#e74c3c",
 }
+# Card text per coverage: white on amber read at ~2:1, so partial uses dark
+# text (as the Graphviz path does).
+_COVERAGE_TEXT = {"covered": "#ffffff", "partial": "#1f2937", "gap": "#ffffff"}
 
 _PHASE_GAP = 26.0  # horizontal gap between phase columns
 _CARD_GAP = 12.0  # vertical gap between stacked technique cards
@@ -298,7 +301,7 @@ def render_svg(viz) -> str:
             )
         )
         text_h = len(node.lines) * size * metrics.LINE_HEIGHT
-        g.extend(shapes.text_lines(node.x, node.y - text_h / 2, node.lines, size, "#ffffff"))
+        g.extend(shapes.text_lines(node.x, node.y - text_h / 2, node.lines, size, _COVERAGE_TEXT[cover]))
         canvas.add("nodes", g)
 
         if tech is not None and theme["badges"].get("coverage", True):

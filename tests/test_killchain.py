@@ -350,3 +350,17 @@ class TestBuilder:
 
         data = KillChainBuilder("Custom", framework="custom", phases=["A", "B"]).build()
         assert data["killchain"]["phases"] == ["A", "B"]
+
+
+class TestSvgCardText:
+    def test_partial_coverage_cards_use_dark_text(self, tmp_path):
+        # White text on the amber "partial" card read at about 2:1.
+        import xml.etree.ElementTree as ET
+
+        ns = "{http://www.w3.org/2000/svg}"
+        root = ET.fromstring(_render_svg(APT, tmp_path))
+        partial = [g for g in root.iter(f"{ns}g") if "usv-cover--partial" in g.get("class", "").split()]
+        assert partial, "fixture should have partially covered techniques"
+        for g in partial:
+            fills = {t.get("fill") for t in g.iter(f"{ns}text")}
+            assert fills == {"#1f2937"}
