@@ -187,7 +187,16 @@ class TestShineTextFit:
         from usecvislib.attacktrees import AttackTrees
         from usecvislib.svgengine import apply_shine_file
 
-        template = Path(__file__).parent.parent / "templates" / "attack-trees" / "insider_threat.tml"
+        # A zero-margin ellipse sized exactly to its Times label (presets now
+        # pad nodes, so the shipped templates no longer overflow)
+        template = tmp_path / "tight.tml"
+        template.write_text(
+            '[tree]\nname = "t"\nroot = "Malicious Insider"\n'
+            '[nodes."Malicious Insider"]\nshape = "ellipse"\nmargin = "0"\n'
+            '[nodes."Leak"]\nshape = "ellipse"\nmargin = "0"\n'
+            '[edges]\n"Malicious Insider" = [{to = "Leak"}]\n',
+            encoding="utf-8",
+        )
         AttackTrees(str(template), str(tmp_path / "t"), "svg").build()
         shined = Path(apply_shine_file(str(tmp_path / "t.svg"))).read_text(encoding="utf-8")
         assert 'lengthAdjust="spacingAndGlyphs"' in shined

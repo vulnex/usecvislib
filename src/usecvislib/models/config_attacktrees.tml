@@ -6,18 +6,18 @@
 # Default Style - Clean and simple
 # =============================================================================
 [at_default]
-root = {margin = 0, fontcolor = "white", shape = "rectangle", style = "filled"}
-node = {margin = 0, fontcolor = "white", shape = "rectangle", style = "filled"}
+root = {margin = "0.12,0.06", fontcolor = "white", shape = "rectangle", style = "filled"}
+node = {margin = "0.12,0.06", fontcolor = "white", shape = "rectangle", style = "filled"}
 edge = {color = "black", style = "solid"}
 
 [at_white_black]
-root = {margin = 0, fontcolor = "white", fillcolor = "black", shape = "rectangle", style = "filled"}
-node = {margin = 0, fontcolor = "white", fillcolor = "black", shape = "rectangle", style = "filled"}
+root = {margin = "0.12,0.06", fontcolor = "white", fillcolor = "black", shape = "rectangle", style = "filled"}
+node = {margin = "0.12,0.06", fontcolor = "white", fillcolor = "black", shape = "rectangle", style = "filled"}
 edge = {color = "black", style = "solid"}
 
 [at_black_white]
-root = {margin = 0, fontcolor = "black", fillcolor = "white", shape = "rectangle", style = "filled"}
-node = {margin = 0, fontcolor = "black", fillcolor = "white", shape = "rectangle", style = "filled"}
+root = {margin = "0.12,0.06", fontcolor = "black", fillcolor = "white", shape = "rectangle", style = "filled"}
+node = {margin = "0.12,0.06", fontcolor = "black", fillcolor = "white", shape = "rectangle", style = "filled"}
 edge = {color = "black", style = "solid"}
 
 # =============================================================================
