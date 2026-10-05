@@ -36,7 +36,7 @@ from ...cvss_unified import get_cvss_score_unified as get_cvss_score
 from ...settings import is_cvss_enabled
 from .. import metrics, themes
 from ..scene import Scene, SceneEdge, SceneNode
-from .graph import render_graph_svg
+from .graph import attach_icon, render_graph_svg
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +155,17 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
         raise utils.RenderError("Attack graph has no nodes to render")
 
     _build_edges(scene, data, ag)
+    _attach_icons(scene, data, theme)
     return scene
+
+
+def _attach_icons(scene: Scene, data: dict, theme: dict) -> None:
+    """Embed ``image`` icons for the node kinds the Graphviz path supports."""
+    for section in ("hosts", "vulnerabilities", "privileges", "services"):
+        for node_id, item in _items(data.get(section, {})):
+            node = scene.node_by_id(node_id)
+            if node is not None and isinstance(item, dict) and item.get("image"):
+                attach_icon(node, item["image"], theme)
 
 
 def _build_edges(scene: Scene, data: dict, ag: dict) -> None:

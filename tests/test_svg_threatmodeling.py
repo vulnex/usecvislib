@@ -236,3 +236,21 @@ class TestCli:
         with pytest.raises(SystemExit) as exc:
             usecvis.main(["-i", FIXTURE, "-o", str(tmp_path / "x"), "-f", "dot", "-m", "1", "--render-engine", "svg"])
         assert exc.value.code == 2
+
+
+@requires_dot
+class TestIcons:
+    def test_icon_template_embeds_images(self, tmp_path):
+        # The SVG engine used to ignore `image`, drawing plain shapes only.
+        template = str(TEMPLATE_DIR / "web_app_icons.toml")
+        tm = _loaded(template)
+        expected = sum(
+            1
+            for section in ("externals", "processes", "datastores")
+            for elem in tm.inputdata.get(section, {}).values()
+            if isinstance(elem, dict) and elem.get("image")
+        )
+        assert expected > 0
+        root = ET.fromstring(_render(template, tmp_path))
+        images = [el for el in root.iter(f"{SVG_NS}image") if el.get("href", "").startswith("data:image/")]
+        assert len(images) == expected

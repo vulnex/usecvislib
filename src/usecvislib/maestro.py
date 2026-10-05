@@ -28,6 +28,7 @@ each agent touches and the architecture patterns declared by the model.
 import itertools
 import json
 import os
+import zlib
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
@@ -109,6 +110,26 @@ SEVERITY_COLORS = {
     "high": "#fb8c00",
     "critical": "#e53935",
     "unknown": "#9e9e9e",
+}
+
+# Darker severity text for the graph-view count row on light node fills
+# (the bright SEVERITY_COLORS read as near-invisible on pastel cards).
+SEVERITY_TEXT_ON_LIGHT = {
+    "low": "#1b5e20",
+    "medium": "#7a5400",
+    "high": "#b23c00",
+    "critical": "#b71c1c",
+}
+
+# Graph-view layer palette: (cluster fill, agent fill) per primary layer.
+GRAPH_LAYER_PALETTE = {
+    MaestroLayer.AGENT_ECOSYSTEM.value: ("#e3f2fd", "#90caf9"),
+    MaestroLayer.AGENT_FRAMEWORKS.value: ("#f3e5f5", "#ce93d8"),
+    MaestroLayer.FOUNDATION_MODELS.value: ("#e8f5e9", "#a5d6a7"),
+    MaestroLayer.DATA_OPERATIONS.value: ("#fff3e0", "#ffcc80"),
+    MaestroLayer.INFRASTRUCTURE.value: ("#fce4ec", "#f48fb1"),
+    MaestroLayer.OBSERVABILITY.value: ("#e0f7fa", "#80deea"),
+    MaestroLayer.SECURITY.value: ("#fff8e1", "#ffe082"),
 }
 
 
@@ -995,6 +1016,10 @@ class MaestroThreatModel(VisualizationBase):
     # 8-color palette for chain edges. Hashing the chain id into this list
     # keeps colors stable across re-renders of the same model. Picked to be
     # legible against light AND dark style preset backgrounds.
+    # Graph-view theme state, set per render by _render_graph.
+    _graph_dark = False
+    _graph_agent_fill = "#0f3460"
+
     _CHAIN_PALETTE = (
         "#1976d2",  # blue
         "#d32f2f",  # red
@@ -1007,8 +1032,12 @@ class MaestroThreatModel(VisualizationBase):
     )
 
     def _chain_color(self, chain_id: str) -> str:
-        """Deterministic color for a cross-layer chain, hashed from its id."""
-        idx = abs(hash(chain_id)) % len(self._CHAIN_PALETTE)
+        """Deterministic color for a cross-layer chain, hashed from its id.
+
+        crc32, not ``hash()``: str hashing is randomized per process, so
+        colors changed between runs.
+        """
+        idx = zlib.crc32(chain_id.encode("utf-8")) % len(self._CHAIN_PALETTE)
         return self._CHAIN_PALETTE[idx]
 
     def _primary_layer(self, agent: Agent) -> str:
@@ -1044,7 +1073,8 @@ class MaestroThreatModel(VisualizationBase):
                 ("low", counts["low"]),
             ):
                 if n > 0:
-                    color = SEVERITY_COLORS.get(sev, "#9e9e9e")
+                    palette = SEVERITY_COLORS if self._graph_dark else SEVERITY_TEXT_ON_LIGHT
+                    color = palette.get(sev, "#9e9e9e")
                     parts.append(f"<FONT COLOR='{color}'>{sev[0].upper()}:{n}</FONT>")
             sev_row = f"<BR/><FONT POINT-SIZE='9'>{' '.join(parts)}</FONT>"
 
@@ -1090,17 +1120,10 @@ class MaestroThreatModel(VisualizationBase):
             if requested in ("all", "first", "off"):
                 chain_labels_mode = requested
 
-        # Background layer palette — reused from the layered view so users
-        # recognise layer colors across views.
-        layer_colors = {
-            MaestroLayer.AGENT_ECOSYSTEM.value: "#e3f2fd",
-            MaestroLayer.AGENT_FRAMEWORKS.value: "#f3e5f5",
-            MaestroLayer.FOUNDATION_MODELS.value: "#e8f5e9",
-            MaestroLayer.DATA_OPERATIONS.value: "#fff3e0",
-            MaestroLayer.INFRASTRUCTURE.value: "#fce4ec",
-            MaestroLayer.OBSERVABILITY.value: "#e0f7fa",
-            MaestroLayer.SECURITY.value: "#fff8e1",
-        }
+        # Dark presets (ma_dark, ma_blueprint) keep their own dark cluster and
+        # agent fills and carry the layer identity in the borders; light
+        # presets use the pastel layer palette with dark text.
+        self._graph_dark = utils.is_dark_color(str(graph_style.get("bgcolor", "white")))
 
         self.graph = Digraph(name=title, format=self.format)
         graph_attrs = utils.stringify_dict(graph_style.copy())
@@ -1122,9 +1145,12 @@ class MaestroThreatModel(VisualizationBase):
             by_primary_layer.setdefault(key, []).append(agent)
 
         agent_attrs = utils.stringify_dict(agent_style)
-        # Drop the preset's fillcolor — we override per-node with the agent's
-        # primary-layer color so the visual links agent to layer at a glance.
-        agent_attrs.pop("fillcolor", None)
+        # Light presets: the per-node fill is the agent's primary-layer color
+        # (links agent to layer at a glance), so text must be dark. Dark
+        # presets keep the preset's own fill and light text.
+        self._graph_agent_fill = agent_attrs.pop("fillcolor", "#0f3460")
+        if not self._graph_dark:
+            agent_attrs["fontcolor"] = "#1f2937"
 
         # Render one cluster per layer in canonical display order, but skip
         # empty layers.
@@ -1135,7 +1161,12 @@ class MaestroThreatModel(VisualizationBase):
                 continue
 
             display_name = self._layer_display_name(layer_key)
-            cluster_fill = layer_colors.get(layer_key, "#f5f5f5")
+            pastel, accent = GRAPH_LAYER_PALETTE.get(layer_key, ("#f5f5f5", "#bdbdbd"))
+            if self._graph_dark:
+                cluster_fill = str(layer_style.get("fillcolor", "#16213e"))
+                cluster_border = accent
+            else:
+                cluster_fill, cluster_border = pastel, "#bdbdbd"
 
             with self.graph.subgraph(name=f"cluster_graph_{layer_key}") as sub:
                 sub_attrs = utils.stringify_dict(layer_style.copy())
@@ -1146,7 +1177,7 @@ class MaestroThreatModel(VisualizationBase):
                     label=display_name,
                     style="filled,rounded",
                     fillcolor=cluster_fill,
-                    color="#bdbdbd",
+                    color=cluster_border,
                     **{k: v for k, v in sub_attrs.items() if k not in ("label", "style")},
                 )
 
@@ -1190,21 +1221,16 @@ class MaestroThreatModel(VisualizationBase):
         """Place a single agent node inside its primary-layer cluster."""
         node_id = utils.sanitize_node_id(f"graph_agent_{agent.id}")
         label = self._agent_graph_label(agent)
-        # Per-agent fill from primary layer color (darker variant of the
-        # cluster fill for contrast).
-        node_fill = {
-            MaestroLayer.AGENT_ECOSYSTEM.value: "#90caf9",
-            MaestroLayer.AGENT_FRAMEWORKS.value: "#ce93d8",
-            MaestroLayer.FOUNDATION_MODELS.value: "#a5d6a7",
-            MaestroLayer.DATA_OPERATIONS.value: "#ffcc80",
-            MaestroLayer.INFRASTRUCTURE.value: "#f48fb1",
-            MaestroLayer.OBSERVABILITY.value: "#80deea",
-            MaestroLayer.SECURITY.value: "#ffe082",
-        }.get(layer_key, "#90caf9")
+        # Light presets: per-agent fill from the primary layer (a darker
+        # variant of the cluster fill). Dark presets: the preset's own fill,
+        # with the layer color carried by the border.
+        layer_accent = GRAPH_LAYER_PALETTE.get(layer_key, ("#f5f5f5", "#90caf9"))[1]
+        node_fill = self._graph_agent_fill if self._graph_dark else layer_accent
         # Border severity-driven: red & thicker if agent owns any critical
         # unmitigated threat.
         worst = self._max_severity_for_agent(agent.id)
-        border_color = SEVERITY_COLORS.get(worst, "#616161") if worst == "critical" else "#616161"
+        default_border = layer_accent if self._graph_dark else "#616161"
+        border_color = SEVERITY_COLORS.get(worst, "#616161") if worst == "critical" else default_border
         penwidth = "2" if worst == "critical" else "1.2"
         sub.node(
             node_id,

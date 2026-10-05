@@ -29,10 +29,29 @@ node-kind semantics live in the caller; none leak here.
 
 from typing import Any
 
-from .. import metrics, shapes
+from .. import images, metrics, shapes
 from ..canvas import SvgCanvas
 from ..layout import GraphvizJsonLayout
 from ..scene import Scene
+
+# Gap between an embedded icon and the label block below it (px).
+_IMAGE_TEXT_GAP = 4.0
+
+
+def attach_icon(node, image_ref: Any, theme: dict[str, Any]) -> None:
+    """Embed an ``image`` reference (bundled:/file path) at the top of a node card.
+
+    Resolves to a base64 data URI (unresolvable references are skipped with a
+    warning by the resolver, leaving the plain card) and grows the card so
+    the icon sits above the label.
+    """
+    href = images.resolve_data_uri(str(image_ref), node.id) if image_ref else None
+    if not href:
+        return
+    img = float(theme["images"]["size"])
+    node.image_href = href
+    node.height += img + _IMAGE_TEXT_GAP
+    node.width = max(node.width, img + 2 * float(theme["card"]["padding_x"]))
 
 
 def _border_point(node, toward_x: float, toward_y: float) -> tuple[float, float]:
@@ -287,7 +306,15 @@ def _paint_nodes(
 
         lines = node.lines or [node.label]
         text_h = len(lines) * size * metrics.LINE_HEIGHT
-        group.extend(shapes.text_lines(node.x, node.y - text_h / 2, lines, size, text_color))
+        if node.image_href:
+            # Icon centered at the top, label block below it
+            img = float(theme["images"]["size"])
+            img_top = node.y - (img + _IMAGE_TEXT_GAP + text_h) / 2
+            group.append(shapes.image(node.x - img / 2, img_top, img, img, node.image_href))
+            text_top = img_top + img + _IMAGE_TEXT_GAP
+        else:
+            text_top = node.y - text_h / 2
+        group.extend(shapes.text_lines(node.x, text_top, lines, size, text_color))
         canvas.add("nodes", group)
 
         if node.cvss is not None and node.cvss > 0 and theme["badges"].get("cvss", True):

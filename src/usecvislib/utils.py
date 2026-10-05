@@ -1525,6 +1525,22 @@ def expand_short_hex(value: str) -> str:
     return _SHORT_HEX.sub(lambda m: "#" + "".join(c * 2 for c in m.groups()), value)
 
 
+def is_dark_color(color: str) -> bool:
+    """True if a ``#rgb`` / ``#rrggbb`` color (or "black") is dark.
+
+    Uses WCAG relative luminance; unknown names count as light, matching the
+    white default most presets fall back to.
+    """
+    value = expand_short_hex(str(color).strip().lower())
+    if value == "black":
+        return True
+    if not re.fullmatch(r"#[0-9a-f]{6}", value):
+        return False
+    channels = [int(value[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+    lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2] < 0.18
+
+
 def stringify_dict(d: dict[str, Any]) -> dict[str, str]:
     """Convert all dictionary values to strings.
 

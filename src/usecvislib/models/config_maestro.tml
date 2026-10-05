@@ -347,7 +347,32 @@ node = {fill = "#90caf9", border = "#94a3b8", text = "#1f2937"}
 edge = {color = "#64748b", width = 1.6, routing = "spline", label_size = 10, label_color = "#94a3b8"}
 effects = {shadow = true, shadow_blur = 2.6, hover_glow = true}
 cluster = {fill = "#1e293b", border = "#475569", text = "#cbd5e1", label_size = 12, radius = 10}
-maestro = {agent_border = "#94a3b8", critical_border = "#ff6b6b", layer_border = "#475569", layer_text = "#cbd5e1", chain_fallback = "#64748b", text = "#1f2937", rankdir = "LR", nodesep = 0.5, ranksep = 0.9}
+[sv_dark.maestro]
+agent_border = "#94a3b8"
+critical_border = "#ff6b6b"
+layer_border = "#475569"
+layer_text = "#cbd5e1"
+chain_fallback = "#64748b"
+text = "#1f2937"
+rankdir = "LR"
+nodesep = 0.5
+ranksep = 0.9
+
+# Dark-tinted layer clusters: the default pastels left the light layer titles unreadable
+[sv_dark.maestro.layers.agent-ecosystem]
+cluster = "#1e3a5f"
+[sv_dark.maestro.layers.agent-frameworks]
+cluster = "#3b2450"
+[sv_dark.maestro.layers.foundation-models]
+cluster = "#1f3d2b"
+[sv_dark.maestro.layers.data-operations]
+cluster = "#4a3418"
+[sv_dark.maestro.layers.infrastructure]
+cluster = "#4a1f33"
+[sv_dark.maestro.layers.observability]
+cluster = "#163f45"
+[sv_dark.maestro.layers.security]
+cluster = "#4a3f12"
 
 # SVG Security - high-contrast
 [sv_security]

@@ -31,7 +31,7 @@ from typing import Any
 from ... import utils
 from .. import metrics, themes
 from ..scene import Scene, SceneEdge, SceneGroup, SceneNode
-from .graph import render_graph_svg
+from .graph import attach_icon, render_graph_svg
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +100,11 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
 
     _build_boundaries(scene, data, dfd)
     _build_flows(scene, data, dfd)
+    for section, _kind, _shape in _ELEMENT_KINDS:
+        for elem_id, elem in _items(data.get(section, {})):
+            node = scene.node_by_id(elem_id)
+            if node is not None and isinstance(elem, dict) and elem.get("image"):
+                attach_icon(node, elem["image"], theme)
     return scene
 
 

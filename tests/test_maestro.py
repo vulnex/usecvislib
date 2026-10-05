@@ -532,6 +532,46 @@ attack_chain = ["T-L1-001", "T-L2-002", "T-L4-006"]
             assert "cluster_graph_foundation-models" in dot_source
             assert "cluster_graph_data-operations" in dot_source
 
+    def _graph_source(self, styleid=""):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            input_path = os.path.join(tmpdir, "model.toml")
+            with open(input_path, "w") as f:
+                f.write(self.GRAPH_CONFIG)
+            m = MaestroThreatModel(
+                input_path, os.path.join(tmpdir, "g"), format="dot", styleid=styleid,
+                view="graph", validate_paths=False,
+            )
+            m.load().render()
+            return m.graph.source
+
+    def test_chain_color_stable_across_processes(self):
+        # hash() on str is randomized per process; colors used to change per run.
+        import subprocess
+        import sys
+
+        code = (
+            "from usecvislib.maestro import MaestroThreatModel as M;"
+            "print(M('d.toml','o',validate_paths=False)._chain_color('CL-route-pivot'))"
+        )
+        src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src")
+        env = {**os.environ, "PYTHONHASHSEED": "random", "PYTHONPATH": src}
+        colors = {
+            subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, env=env).stdout.strip()
+            for _ in range(3)
+        }
+        assert len(colors) == 1 and colors != {""}
+
+    def test_dark_preset_keeps_dark_fills_and_light_text(self):
+        source = self._graph_source("ma_dark")
+        assert "#e8f5e9" not in source  # no pastel cluster fills on a dark page
+        assert "#0f3460" in source  # the preset's own agent fill
+        assert "fontcolor=white" in source
+
+    def test_light_preset_uses_dark_text_on_pastel_agents(self):
+        source = self._graph_source("ma_default")
+        assert "#a5d6a7" in source  # pastel layer agent fill
+        assert 'fontcolor="#1f2937"' in source
+
     def test_graph_view_emits_chain_edges_between_targeted_agents(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             input_path = os.path.join(tmpdir, "model.toml")
