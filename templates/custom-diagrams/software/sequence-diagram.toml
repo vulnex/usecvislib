@@ -9,7 +9,7 @@ description = "Object interaction over time"
 layout = "hierarchical"
 direction = "TB"
 style = "cd_default"
-splines = "ortho"
+splines = "spline"
 nodesep = 1.0
 ranksep = 0.5
 

@@ -291,8 +291,7 @@ class TestTemplateSettings:
         cd = CustomDiagrams()
         cd.load(template_path)
 
-        valid_layouts = {"hierarchical", "circular", "force", "grid", "radial", "compact", "sfdp"}
-        assert cd.settings.layout in valid_layouts
+        assert cd.settings.layout in CustomDiagrams.LAYOUTS
 
     @pytest.mark.parametrize("category,template_path", get_all_templates())
     def test_template_has_valid_direction(self, category, template_path):

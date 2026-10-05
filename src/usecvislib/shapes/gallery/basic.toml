@@ -18,7 +18,7 @@ id = "square"
 name = "Square"
 category = "basic"
 description = "A square shape with equal sides"
-graphviz = { shape = "box", style = "filled", width = "1", height = "1", fixedsize = "true" }
+graphviz = { shape = "square", style = "filled" }
 default_style = { fillcolor = "#FFFFFF", color = "#333333" }
 icon = "square"
 ports = ["n", "s", "e", "w"]
@@ -40,7 +40,7 @@ id = "circle"
 name = "Circle"
 category = "basic"
 description = "A perfect circle shape"
-graphviz = { shape = "circle", style = "filled", fixedsize = "true" }
+graphviz = { shape = "circle", style = "filled" }
 default_style = { fillcolor = "#FFFFFF", color = "#333333" }
 icon = "circle"
 ports = ["n", "s", "e", "w"]

@@ -6,7 +6,7 @@
 [diagram]
 title = "Risk Assessment Matrix"
 description = "Likelihood vs Impact risk visualization"
-layout = "grid"
+layout = "hierarchical"
 direction = "TB"
 style = "cd_default"
 splines = "ortho"

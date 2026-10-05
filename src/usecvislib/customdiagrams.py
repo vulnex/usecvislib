@@ -35,6 +35,7 @@ Example:
 import logging
 import re
 from dataclasses import dataclass, field
+from itertools import pairwise
 from pathlib import Path
 from typing import Any, Optional, Union
 
@@ -205,6 +206,7 @@ class CustomDiagrams:
         "radial": "twopi",  # Radial layout
         "compact": "patchwork",  # Space-filling layout
         "sfdp": "sfdp",  # Scalable force-directed
+        "swimlane": "dot",  # Clusters stacked as lanes, flow along rankdir
     }
 
     # Supported output formats
@@ -396,8 +398,15 @@ class CustomDiagrams:
         Returns:
             Graphviz Digraph object
         """
-        # Determine layout engine
+        # Determine layout engine. Only dot and fdp draw clusters; the other
+        # engines silently ignore them, so clustered nodes piled on top of
+        # each other (risk-matrix used "grid" -> neato).
         engine = self.LAYOUTS.get(self.settings.layout, "dot")
+        if self.clusters and engine not in ("dot", "fdp"):
+            logger.warning(
+                f"Layout '{self.settings.layout}' ({engine}) cannot draw clusters; using 'force' (fdp) instead"
+            )
+            engine = "fdp"
 
         # Create graph
         graph = gv.Digraph(
@@ -419,6 +428,10 @@ class CustomDiagrams:
 
         if self.settings.bgcolor:
             graph.attr(bgcolor=self.settings.bgcolor)
+
+        if engine != "dot":
+            # Force/spring engines otherwise let nodes and labels overlap
+            graph.attr(overlap="false", sep="+12", esep="+8")
 
         # Set default node attributes
         graph.attr("node", fontname=self.settings.fontname)
@@ -535,6 +548,7 @@ class CustomDiagrams:
             Set of node IDs that are in clusters
         """
         clustered_nodes: set[str] = set()
+        lane_anchors: list[tuple[str, list[str]]] | None = [] if self.settings.layout == "swimlane" else None
 
         # Get cluster style from style config
         style_config = self._get_style_config()
@@ -559,6 +573,12 @@ class CustomDiagrams:
                     for key, value in cluster_style.items():
                         subgraph.attr(**{key: str(value)})
 
+                # Swimlanes: an invisible anchor at the lane's leading edge
+                if lane_anchors is not None:
+                    anchor = f"_lane_{sanitize_node_id(cluster['id'])}"
+                    subgraph.node(anchor, label="", style="invis", width="0", height="0", margin="0")
+                    lane_anchors.append((anchor, cluster.get("nodes", [])))
+
                 # Add nodes to cluster
                 for node_id in cluster.get("nodes", []):
                     # Find node data
@@ -567,7 +587,25 @@ class CustomDiagrams:
                         self._add_node(subgraph, node_data)
                         clustered_nodes.add(node_id)
 
+        if lane_anchors:
+            self._stack_lanes(graph, lane_anchors)
+
         return clustered_nodes
+
+    @staticmethod
+    def _stack_lanes(graph: gv.Digraph, lane_anchors: list[tuple[str, list[str]]]) -> None:
+        """Stack swimlane clusters in declared order across the flow direction.
+
+        Plain dot places clusters wherever the (often cyclic) process edges
+        pull them, so lanes scattered diagonally. All lane anchors share the
+        first rank (newrank lets rank=same span clusters) and are chained in
+        order, which stacks the lanes; each anchor leads its lane's nodes.
+        """
+        graph.attr(newrank="true")
+        anchors = [a for a, _ in lane_anchors]
+        graph.body.append("\t{rank=same; " + "; ".join(f'"{a}"' for a in anchors) + "}\n")
+        for upper, lower in pairwise(anchors):
+            graph.edge(upper, lower, style="invis")
 
     def _build_label(self, template: str, data: dict) -> str:
         """Build node label from template and data.

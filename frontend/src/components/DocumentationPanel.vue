@@ -462,6 +462,10 @@ type = "flow"</code></pre>
             <td><code>force</code></td>
             <td>Force-directed layout (fdp, neato, sfdp)</td>
           </tr>
+          <tr>
+            <td><code>swimlane</code></td>
+            <td>Clusters stacked as lanes, process flow along the direction</td>
+          </tr>
         </table>
 
         <h4>Style Presets</h4>

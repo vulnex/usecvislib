@@ -732,8 +732,9 @@ async def get_custom_diagram_layouts(request: Request):
         "descriptions": {
             CustomDiagramLayout.HIERARCHICAL.value: "Top-down or left-right tree layout (dot)",
             CustomDiagramLayout.CIRCULAR.value: "Circular arrangement of nodes (circo)",
-            CustomDiagramLayout.FORCE.value: "Force-directed graph layout (neato)",
+            CustomDiagramLayout.FORCE.value: "Force-directed graph layout (fdp)",
             CustomDiagramLayout.RADIAL.value: "Radial layout from center (twopi)",
-            CustomDiagramLayout.GRID.value: "Grid-based layout (osage)",
+            CustomDiagramLayout.GRID.value: "Spring-model layout (neato); clustered diagrams fall back to fdp",
+            CustomDiagramLayout.SWIMLANE.value: "Clusters stacked as lanes, flow along the direction (dot)",
         },
     }

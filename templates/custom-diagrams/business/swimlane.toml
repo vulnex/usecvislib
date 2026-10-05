@@ -6,7 +6,7 @@
 [diagram]
 title = "Swimlane Diagram"
 description = "Cross-functional process diagram with swimlanes"
-layout = "hierarchical"
+layout = "swimlane"
 direction = "LR"
 style = "cd_default"
 splines = "ortho"

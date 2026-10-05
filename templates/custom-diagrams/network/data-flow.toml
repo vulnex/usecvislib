@@ -36,7 +36,7 @@ shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["type"]
 style = { fillcolor = "#27AE60", fontcolor = "white", style = "filled,rounded" }
-label_template = "D{id}  {name}"
+label_template = "D{store_id} | {name}"
 
 [schema.nodes.trust_boundary]
 shape = "rectangle"

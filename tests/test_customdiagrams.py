@@ -643,3 +643,27 @@ class TestIconNodes:
         assert source.count("<IMG SRC=") == len(icon_nodes)
         for node in icon_nodes:
             assert str(node.get("name")) in source
+
+
+class TestLayoutModes:
+    TEMPLATES = Path(__file__).parent.parent / "templates" / "custom-diagrams"
+
+    def _cd(self, rel):
+        cd = CustomDiagrams()
+        cd.load(self.TEMPLATES / rel)
+        return cd
+
+    def test_swimlane_stacks_lanes_in_order(self):
+        # Plain dot scattered the lane clusters diagonally.
+        cd = self._cd("business/swimlane.toml")
+        source = cd.get_dot_source()
+        anchors = [f'"_lane_{c["id"]}"' for c in cd.clusters]
+        assert "newrank=true" in source
+        assert "{rank=same; " + "; ".join(anchors) + "}" in source
+
+    def test_cluster_capable_engine_used_when_clusters_present(self):
+        # neato/circo/twopi ignore clusters, so clustered nodes overlapped.
+        cd = self._cd("security/risk-matrix.toml")
+        cd.settings.layout = "grid"
+        cd.validate(raise_on_error=False)
+        assert cd._render_impl().engine == "fdp"

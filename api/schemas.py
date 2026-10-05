@@ -1280,6 +1280,7 @@ class CustomDiagramLayout(str, Enum):
     FORCE = "force"
     CIRCULAR = "circular"
     GRID = "grid"
+    SWIMLANE = "swimlane"
 
 
 class CustomDiagramDirection(str, Enum):
