@@ -48,7 +48,7 @@ _TYPE_SHAPE = {
     "cache": "card",
     "queue": "card",
     "cli": "card",
-    "database": "chamfer",
+    "database": "cylinder",
     "storage": "chamfer",
     "external_service": "pill",
 }
@@ -120,7 +120,8 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                     kind="node",
                     lines=lines,
                     width=max(min_w, text_w + 2 * pad_x),
-                    height=text_h + 2 * pad_y,
+                    # Cylinders get extra room for the lid above the label
+                    height=text_h + 2 * pad_y + (12.0 if _TYPE_SHAPE.get(comp_type) == "cylinder" else 0.0),
                     shape=_TYPE_SHAPE.get(comp_type, "card"),
                     fill=cd["component"],
                     border=cd["component_border"],

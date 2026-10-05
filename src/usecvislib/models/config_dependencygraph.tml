@@ -222,6 +222,7 @@ penwidth = "1"
 # SVG Default - slate cards on soft grey
 [sv_default]
 meta = {engine = "svg"}
+cluster = {fill = "#eef2f7", border = "#cbd5e1", text = "#334155", label_size = 12, radius = 10}
 title = {show = true, size = 15}
 page = {background = "#f8fafc", padding = 44, text = "#111827"}
 font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
@@ -234,6 +235,7 @@ dependencygraph = {internal = "#5dade2", external_fill = "#e5e9ef", external_bor
 # SVG Dark - slate night-ops board
 [sv_dark]
 meta = {engine = "svg"}
+cluster = {fill = "#1e293b", border = "#334155", text = "#cbd5e1", label_size = 12, radius = 10}
 title = {show = true, size = 15}
 page = {background = "#0f172a", padding = 44, text = "#e2e8f0"}
 font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
@@ -246,6 +248,7 @@ dependencygraph = {internal = "#4a90d9", external_fill = "#1e293b", external_bor
 # SVG Security - high-contrast, coupling-forward
 [sv_security]
 meta = {engine = "svg"}
+cluster = {fill = "#e5e9ef", border = "#94a3b8", text = "#0f172a", label_size = 12, radius = 8}
 title = {show = true, size = 16}
 page = {background = "#f5f7fa", padding = 46, text = "#0f172a"}
 font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
@@ -258,6 +261,7 @@ dependencygraph = {internal = "#2c3e50", external_fill = "#e5e9ef", external_bor
 # SVG Corporate - professional blue-on-white for reports
 [sv_corporate]
 meta = {engine = "svg"}
+cluster = {fill = "#f1f4f7", border = "#c3ced9", text = "#16324f", label_size = 12, radius = 6}
 title = {show = true, size = 15}
 page = {background = "#ffffff", padding = 48, text = "#16324f"}
 font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
@@ -270,6 +274,7 @@ dependencygraph = {internal = "#2f5f8a", external_fill = "#f1f4f7", external_bor
 # SVG Minimal - flat outline, no depth
 [sv_minimal]
 meta = {engine = "svg"}
+cluster = {fill = "#f4f6f8", border = "#e2e8f0", text = "#64748b", label_size = 12, radius = 4}
 title = {show = false, size = 14}
 page = {background = "#ffffff", padding = 40, text = "#475569"}
 font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 15}

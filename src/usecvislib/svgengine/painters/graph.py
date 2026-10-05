@@ -306,7 +306,10 @@ def _paint_nodes(
 
         lines = node.lines or [node.label]
         text_h = len(lines) * size * metrics.LINE_HEIGHT
-        if node.image_href:
+        if node.shape == "cylinder":
+            # Keep the label below the lid's front rim
+            text_top = node.y - text_h / 2 + min(8.0, node.height * 0.16) / 2
+        elif node.image_href:
             # Icon centered at the top, label block below it
             img = float(theme["images"]["size"])
             img_top = node.y - (img + _IMAGE_TEXT_GAP + text_h) / 2
@@ -344,6 +347,8 @@ def _node_body(node, x: float, y: float, radius: float, fill: str, border: str, 
     if shape == "chamfer":
         cut = min(12.0, node.height * 0.32)
         return shapes.chamfer_card(x, y, node.width, node.height, cut, fill, border, border_width, shadow_url)
+    if shape == "cylinder":
+        return shapes.cylinder(x, y, node.width, node.height, fill, border, border_width, shadow_url)
     if shape == "diamond":
         return shapes.diamond(node.x, node.y, node.width, node.height, fill, border, border_width, shadow_url)
     return shapes.card(x, y, node.width, node.height, radius, fill, border, border_width, shadow_url)

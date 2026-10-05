@@ -20,9 +20,8 @@ to SLOC, connected by dependency edges whose width reflects the declared
 weight and whose style reflects the type, with circular-dependency edges
 drawn bold and red plus a ``⚠ circular`` label.
 
-Groups become node color families (the Graphviz path already color-codes by
-group); the general-graph path does not yet draw cluster boxes, so the layer
-subgraphs are conveyed through color rather than background rectangles.
+Groups become node color families plus labelled cluster boxes, matching the
+Graphviz path's per-group subgraphs.
 
 Layout is delegated to the engine's ``GraphvizJsonLayout`` oracle and the
 painting to the shared :func:`.graph.render_graph_svg`. This painter's whole
@@ -36,7 +35,7 @@ from typing import Any
 
 from ... import utils
 from .. import metrics, themes
-from ..scene import Scene, SceneEdge, SceneNode
+from ..scene import Scene, SceneEdge, SceneGroup, SceneNode
 from .graph import render_graph_svg
 
 logger = logging.getLogger(__name__)
@@ -147,6 +146,16 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
 
     if not scene.nodes:
         raise utils.RenderError("Dependency graph has no nodes to render")
+
+    # One labelled cluster per group, as the Graphviz path draws (colors come
+    # from the theme's cluster block).
+    members_by_group: dict[str, list[str]] = {}
+    for node in scene.nodes:
+        group = node.data.get("group")
+        if group:
+            members_by_group.setdefault(group, []).append(node.id)
+    for group, members in members_by_group.items():
+        scene.groups.append(SceneGroup(id=utils.sanitize_node_id(group), label=group, members=members))
 
     _build_edges(scene, viz, dg)
     return scene

@@ -760,9 +760,22 @@ class MaestroThreatModel(VisualizationBase):
 
             previous_layer_key = layer_key
 
-        # Cross-layer threats — dashed edges between agents in their layers
-        for clt in self.cross_layer_threats.values():
-            self._render_cross_layer(clt, cross_style)
+        # Cross-layer threats — dashed edges between agents in their layers,
+        # labelled by id; the names go in one note (full names on parallel
+        # edges ran into each other).
+        drawn = [clt for clt in self.cross_layer_threats.values() if self._render_cross_layer(clt, cross_style)]
+        if drawn:
+            rows = "".join(f"{utils.escape_dot_label(c.id)} — {utils.escape_dot_label(c.name)}\\l" for c in drawn)
+            self.graph.node(
+                utils.sanitize_node_id("cross_layer_legend"),
+                f"Cross-layer threats\\l{rows}",
+                shape="note",
+                style="filled",
+                fillcolor="#ffebee",
+                fontname=str(cross_style.get("fontname", "Arial")),
+                fontsize="9",
+                fontcolor="#b71c1c",
+            )
 
         self.logger.debug(
             f"Rendered MAESTRO model with {len(self.agents)} agents, "
@@ -876,6 +889,16 @@ class MaestroThreatModel(VisualizationBase):
                     label = self._agent_label_for_layer(agent, layer_key)
                     cluster.node(node_id, label, **agent_attrs)
 
+    @staticmethod
+    def _severity_badge(worst: str, count: int) -> str:
+        """Open-threat line: a severity-colored marker, then plain text.
+
+        Coloring the whole line read poorly on the preset agent fills (red /
+        orange text on blue); the text now keeps the node's font color.
+        """
+        color = SEVERITY_COLORS.get(worst, "#9e9e9e")
+        return f"<BR/><FONT POINT-SIZE='9'><FONT COLOR='{color}'>\u25cf</FONT> {count} open ({worst})</FONT>"
+
     def _agent_label(self, agent: Agent) -> str:
         """Aggregate label (all layers) — kept for callers that want the
         whole-agent view; the layered renderer uses _agent_label_for_layer."""
@@ -892,8 +915,7 @@ class MaestroThreatModel(VisualizationBase):
         )
         severity_label = ""
         if threat_count > 0:
-            color = SEVERITY_COLORS.get(worst, "#9e9e9e")
-            severity_label = f"<BR/><FONT POINT-SIZE='9' COLOR='{color}'>{threat_count} open ({worst})</FONT>"
+            severity_label = self._severity_badge(worst, threat_count)
         return (
             f"<<B>{utils.escape_dot_label(agent.name)}</B>"
             f"<BR/><FONT POINT-SIZE='9'><I>{utils.escape_dot_label(agent.type)} "
@@ -922,8 +944,7 @@ class MaestroThreatModel(VisualizationBase):
                 (t.severity for t in layer_threats),
                 key=lambda s: SEVERITY_RANK.get(s, 0),
             )
-            color = SEVERITY_COLORS.get(worst, "#9e9e9e")
-            severity_label = f"<BR/><FONT POINT-SIZE='9' COLOR='{color}'>{len(layer_threats)} open ({worst})</FONT>"
+            severity_label = self._severity_badge(worst, len(layer_threats))
         return (
             f"<<B>{utils.escape_dot_label(agent.name)}</B>"
             f"<BR/><FONT POINT-SIZE='9'><I>{utils.escape_dot_label(agent.type)} "
@@ -980,7 +1001,7 @@ class MaestroThreatModel(VisualizationBase):
         preventive_count = sum(1 for m in self.mitigations.values() if m.type == "preventive" and m.implemented)
         return f"Security & Compliance\\n{preventive_count} preventive | {detective_count} detective"
 
-    def _render_cross_layer(self, clt: CrossLayerThreat, cross_style: dict[str, Any]) -> None:
+    def _render_cross_layer(self, clt: CrossLayerThreat, cross_style: dict[str, Any]) -> bool:
         """Render a cross-layer threat as a dashed chain of edges between the
         layer-scoped agent nodes corresponding to each chain step."""
         edge_attrs = utils.stringify_dict(cross_style)
@@ -1006,20 +1027,22 @@ class MaestroThreatModel(VisualizationBase):
                     chain_node_ids.append(self._agent_node_id(agent.id, layer_value))
 
         if len(chain_node_ids) < 2:
-            return
+            return False
 
-        label = f" {clt.id}: {clt.name}"
+        label = f" {clt.id}"
+        tooltip = f"{clt.id}: {clt.name}"
         for src, tgt in itertools.pairwise(chain_node_ids):
-            self.graph.edge(src, tgt, label=label, **edge_attrs)
+            self.graph.edge(src, tgt, label=label, tooltip=tooltip, **edge_attrs)
             label = ""  # Only label the first edge of the chain
+        return True
 
-    # 8-color palette for chain edges. Hashing the chain id into this list
-    # keeps colors stable across re-renders of the same model. Picked to be
-    # legible against light AND dark style preset backgrounds.
     # Graph-view theme state, set per render by _render_graph.
     _graph_dark = False
     _graph_agent_fill = "#0f3460"
 
+    # 8-color palette for chain edges. Hashing the chain id into this list
+    # keeps colors stable across re-renders of the same model. Picked to be
+    # legible against light AND dark style preset backgrounds.
     _CHAIN_PALETTE = (
         "#1976d2",  # blue
         "#d32f2f",  # red

@@ -835,3 +835,16 @@ class TestTemplate:
         assert m.threats["T-L2-002@support_agent"].status == "in-progress"
         assert "T-L2-005@support_agent" in m.threats
         assert m.threats["T-L2-005@support_agent"].status == "mitigated"
+
+
+class TestLayeredLabels:
+    def test_cross_layer_edges_use_ids_with_legend(self):
+        # Full "id: name" labels on dense parallel edges ran into each other.
+        template = os.path.join(os.path.dirname(__file__), "..", "templates", "maestro", "multi-agent-support.toml")
+        m = MaestroThreatModel(template, "out", format="dot", view="layered", validate_paths=False)
+        m.load().render()
+        source = m.graph.source
+        assert "cross_layer_legend" in source
+        for clt in m.cross_layer_threats.values():
+            assert f'label=" {clt.id}"' in source
+            assert f'label=" {clt.id}: ' not in source

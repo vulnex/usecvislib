@@ -277,3 +277,13 @@ class TestCli:
         with pytest.raises(SystemExit) as exc:
             usecvis.main(["-i", FIXTURE, "-o", str(tmp_path / "x"), "-f", "dot", "-m", "8", "--render-engine", "svg"])
         assert exc.value.code == 2
+
+
+@requires_dot
+class TestGroupClusters:
+    def test_one_cluster_per_group(self, tmp_path):
+        # The SVG engine conveyed groups by color only; Graphviz draws boxes.
+        root = ET.fromstring(_render(FIXTURE, tmp_path))
+        clusters = {g.get("data-cluster-id") for g in root.iter(f"{SVG_NS}g") if "usv-cluster" in g.get("class", "")}
+        groups = {m.get("group") for m in _loaded(FIXTURE)._modules.values() if m.get("group")}
+        assert len(clusters) == len(groups)

@@ -233,3 +233,11 @@ class TestCli:
         with pytest.raises(SystemExit) as exc:
             usecvis.main(["-i", FIXTURE, "-o", str(tmp_path / "x"), "-f", "dot", "-m", "7", "--render-engine", "svg"])
         assert exc.value.code == 2
+
+
+@requires_dot
+class TestDatabaseShape:
+    def test_database_renders_as_cylinder(self, tmp_path):
+        # database and storage used to share the chamfer shape.
+        content = _render(FIXTURE, tmp_path)
+        assert "usv-cylinder" in content

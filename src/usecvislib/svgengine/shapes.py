@@ -124,6 +124,33 @@ def chamfer_card(
     return ET.Element("polygon", attrs)
 
 
+def cylinder(
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    fill: str,
+    stroke: str,
+    stroke_width: float,
+    filter_url: str = "",
+) -> ET.Element:
+    """Database cylinder: elliptical top/bottom caps plus the front rim of the lid."""
+    rx = width / 2
+    ry = min(8.0, height * 0.16)
+    body = (
+        f"M {fmt(x)} {fmt(y + ry)} A {fmt(rx)} {fmt(ry)} 0 0 1 {fmt(x + width)} {fmt(y + ry)} "
+        f"L {fmt(x + width)} {fmt(y + height - ry)} A {fmt(rx)} {fmt(ry)} 0 0 1 {fmt(x)} {fmt(y + height - ry)} Z"
+    )
+    g = ET.Element("g", {"class": "usv-cylinder"})
+    attrs = {"d": body, "fill": fill, "stroke": stroke, "stroke-width": fmt(stroke_width)}
+    if filter_url:
+        attrs["filter"] = filter_url
+    g.append(ET.Element("path", attrs))
+    rim = f"M {fmt(x)} {fmt(y + ry)} A {fmt(rx)} {fmt(ry)} 0 0 0 {fmt(x + width)} {fmt(y + ry)}"
+    g.append(ET.Element("path", {"d": rim, "fill": "none", "stroke": stroke, "stroke-width": fmt(stroke_width)}))
+    return g
+
+
 def dot(
     cx: float,
     cy: float,
