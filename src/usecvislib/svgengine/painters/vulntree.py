@@ -107,16 +107,17 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str]:
             )
         )
 
+    visible_set = set(visible)
     for dep_id in visible:
         for child in deps[dep_id].dependencies:
-            if child in visible:
+            if child in visible_set:
                 scene.edges.append(SceneEdge(src=dep_id, dst=child, kind="dep"))
 
     # Choose (or synthesize) a single layout root.
-    visible_roots = [r for r in viz.root_packages if r in visible]
+    visible_roots = [r for r in viz.root_packages if r in visible_set]
     if not visible_roots:
         child_ids = {e.dst for e in scene.edges}
-        visible_roots = [n for n in visible if n not in child_ids] or [next(iter(visible))]
+        visible_roots = [n for n in visible if n not in child_ids] or [visible[0]]
 
     if len(visible_roots) == 1:
         return scene, visible_roots[0]

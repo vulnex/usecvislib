@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **SVG output with icons is self-contained.** Graphviz SVGs (every Graphviz module) and cloud-diagram SVGs linked node icons by absolute file path: temp thumbnails deleted at exit, or the icon's location in `site-packages`. Shared SVGs showed no icons and disclosed local paths, often including the user's home directory. Local images are now embedded as `data:` URIs (`utils.embed_svg_images`, applied by the new `utils.render_graph`). DOT output still references icon files, since Graphviz needs them to render.
+- **Vulnerability tree output is reproducible.** Nodes and edges were emitted in set order, which follows Python's per-process string hash seed, so the same input gave different SVG bytes (and potentially a different Graphviz layout) on each run. `_visible_nodes()` now returns dependencies in declaration order.
 
 ## [0.6.0] - 2026-09-23
 

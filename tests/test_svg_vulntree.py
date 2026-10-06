@@ -14,6 +14,9 @@
 """Tests for the Vulnerability Dependency Tree SVG painter (Phase 2, mode 11)."""
 
 import glob
+import os
+import subprocess
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -225,3 +228,32 @@ class TestCleanPackageFill:
         # Clean packages ignored the preset and were always #4caf50.
         content = _render(FIXTURE, tmp_path, styleid="sv_dark")
         assert "#2e7d32" in content
+
+
+class TestDeterministicOutput:
+    # Nodes and edges were emitted in set order, which follows the
+    # per-process string hash seed: the same input gave different SVG bytes
+    # from one run to the next.
+    def test_visible_nodes_follow_declaration_order(self):
+        vt = _loaded(str(TEMPLATE_DIR / "npm_supply_chain.tml"))
+        declared = list(vt.dependencies)
+        visible = vt._visible_nodes()
+        assert visible == [d for d in declared if d in visible]
+
+    @pytest.mark.parametrize("mode", SUPPORTED_MODES)
+    def test_same_svg_under_any_hash_seed(self, tmp_path, mode):
+        script = (
+            "import sys; from usecvislib.vulntree import VulnDependencyTree as V;"
+            "V(sys.argv[1], sys.argv[2], format='svg', mode=sys.argv[3], render_engine='svg').build()"
+        )
+        outputs = set()
+        for seed in ("1", "2", "3"):
+            out = tmp_path / f"seed{seed}"
+            env = {**os.environ, "PYTHONHASHSEED": seed, "PYTHONPATH": str(TESTS_DIR.parent / "src")}
+            subprocess.run(
+                [sys.executable, "-c", script, str(TEMPLATE_DIR / "npm_supply_chain.tml"), str(out), mode],
+                env=env,
+                check=True,
+            )
+            outputs.add((tmp_path / f"seed{seed}.svg").read_text(encoding="utf-8"))
+        assert len(outputs) == 1

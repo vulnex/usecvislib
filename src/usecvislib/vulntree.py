@@ -305,16 +305,21 @@ class VulnDependencyTree(VisualizationBase):
 
         return {dep_id: rank_of(dep_id, frozenset()) for dep_id in self.dependencies}
 
-    def _visible_nodes(self) -> set[str]:
-        """Nodes shown for the active mode."""
+    def _visible_nodes(self) -> list[str]:
+        """Nodes shown for the active mode, in declaration order.
+
+        A list, not a set: renderers emit nodes and edges in this order, and
+        set order changes with the per-process string hash seed, so output
+        would differ from run to run.
+        """
         reachable = self._reachable()
         if self.mode == "tree":
-            return reachable
+            return [dep_id for dep_id in self.dependencies if dep_id in reachable]
         threshold = (
             _SEVERITY_RANK[VulnSeverity.HIGH] if self.mode == "critical_path" else _SEVERITY_RANK[VulnSeverity.LOW]
         )
         subtree = self._subtree_min_rank()
-        return {dep_id for dep_id in reachable if subtree.get(dep_id, 99) <= threshold}
+        return [dep_id for dep_id in self.dependencies if dep_id in reachable and subtree.get(dep_id, 99) <= threshold]
 
     # ------------------------------------------------------------------ render
 
@@ -329,6 +334,7 @@ class VulnDependencyTree(VisualizationBase):
         self.dot.attr(label=name, labelloc="t", fontsize="16")
 
         visible = self._visible_nodes()
+        visible_set = set(visible)
         edge_style = utils.stringify_dict(style.get("edge", self._default_style()["edge"]))
         exploited_style = style.get("exploited", self._default_style()["exploited"])
 
@@ -339,7 +345,7 @@ class VulnDependencyTree(VisualizationBase):
         for dep_id in visible:
             dep = self.dependencies[dep_id]
             for child in dep.dependencies:
-                if child in visible:
+                if child in visible_set:
                     attrs = dict(edge_style)
                     if self.dependencies[child].vulnerabilities and any(
                         v.exploited for v in self.dependencies[child].vulnerabilities
