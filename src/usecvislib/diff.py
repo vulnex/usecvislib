@@ -444,7 +444,9 @@ def compare_files(old_file: str, new_file: str, visualization_type: str) -> Diff
         old_file: Path to old file.
         new_file: Path to new file.
         visualization_type: Type of visualization.
-            Options: "attack_tree", "attack_graph", "threat_model"
+            Options: "attack_tree", "attack_graph", "threat_model",
+            "privilege_gradient", "component_diagram", "dependency_graph",
+            "kill_chain", "incident_timeline", "vuln_tree", "maestro"
 
     Returns:
         DiffResult with changes.
@@ -456,16 +458,10 @@ def compare_files(old_file: str, new_file: str, visualization_type: str) -> Diff
         ...     "attack_graph"
         ... )
     """
-    # Import visualization classes
-    from .attackgraphs import AttackGraphs
-    from .attacktrees import AttackTrees
-    from .threatmodeling import ThreatModeling
+    # The diff compares the loaded config data, so every file-based module works
+    from .batch import BatchProcessor
 
-    classes = {
-        "attack_tree": AttackTrees,
-        "attack_graph": AttackGraphs,
-        "threat_model": ThreatModeling,
-    }
+    classes = {name: cls for name, cls in BatchProcessor._get_modules().items() if name != "binary"}
 
     if visualization_type not in classes:
         raise ValueError(f"Unknown type: {visualization_type}")

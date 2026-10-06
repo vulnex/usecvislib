@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cloud diagrams with an empty cluster render.** A cluster without nodes generated an empty `with Cluster(...):` block, so the diagram failed with a Python `IndentationError`. It now renders as an empty cluster and logs a warning.
 - **Batch processing covers every file-based module.** `BatchProcessor` / `process_batch()` accepted only `attack_tree`, `attack_graph`, `threat_model` and `binary`; `privilege_gradient`, `component_diagram`, `dependency_graph`, `kill_chain`, `incident_timeline`, `vuln_tree` and `maestro` raised "Unknown module type". They now build through the shared `build()` path.
 - **Reports list only files they wrote.** `ReportGenerator.generate_report()` listed a CSV per config section, but no visualization class provides `export_csv`, so none of those CSVs were written. Tabular sections (lists of objects, or objects keyed by ID) are now written directly, and only files that exist are returned.
+- **`compare_files()` covers every file-based module.** It accepted only `attack_tree`, `attack_graph` and `threat_model`, although the diff itself works on any loaded config; it now accepts the same module types as batch processing (except `binary`).
 
 ## [0.6.0] - 2026-09-23
 

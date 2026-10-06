@@ -376,3 +376,35 @@ class TestVisualizationDiff:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+@pytest.mark.parametrize(
+    "viz_type,template",
+    [
+        ("kill_chain", "kill-chains/apt_intrusion.tml"),
+        ("vuln_tree", "vuln-trees/java_log4shell.tml"),
+        ("maestro", "maestro/single-agent-rag.toml"),
+        ("component_diagram", "architecture/component-diagram-example.json"),
+    ],
+)
+def test_compare_files_supports_newer_modules(tmp_path, viz_type, template):
+    # compare_files() only knew attack trees, attack graphs and threat models.
+    import shutil
+
+    from usecvislib.diff import compare_files
+
+    src = os.path.join(os.path.dirname(__file__), "..", "templates", template)
+    old = tmp_path / f"old{os.path.splitext(template)[1]}"
+    new = tmp_path / f"new{os.path.splitext(template)[1]}"
+    shutil.copy(src, old)
+    shutil.copy(src, new)
+    assert not compare_files(str(old), str(new), viz_type).has_changes
+
+    # Rename the first named element: the diff must report the change
+    text = new.read_text(encoding="utf-8")
+    first_name = text.split('name = "', 1)[1].split('"', 1)[0] if 'name = "' in text else None
+    if first_name is None:
+        first_name = text.split('"name": "', 1)[1].split('"', 1)[0]
+    new.write_text(text.replace(first_name, first_name + " v2"), encoding="utf-8")
+    changes = compare_files(str(old), str(new), viz_type).changes
+    assert changes
