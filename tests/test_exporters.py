@@ -395,3 +395,30 @@ class TestReportGenerator:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+_TEMPLATES = os.path.join(os.path.dirname(__file__), "..", "templates")
+
+
+@pytest.mark.parametrize(
+    "module,cls,template,csv_section",
+    [
+        ("attackgraphs", "AttackGraphs", "attack-graphs/corporate_network.tml", "hosts"),
+        ("killchain", "KillChain", "kill-chains/apt_intrusion.tml", "techniques"),
+        ("timeline", "IncidentTimeline", "timelines/phishing_compromise.tml", "events"),
+        ("vulntree", "VulnDependencyTree", "vuln-trees/java_log4shell.tml", "dependencies"),
+        ("maestro", "MaestroThreatModel", "maestro/single-agent-rag.toml", "agents"),
+    ],
+)
+def test_report_lists_only_files_it_wrote(tmp_path, module, cls, template, csv_section):
+    # Real visualization classes have no export_csv, so CSV paths were listed
+    # for files that were never written.
+    import importlib
+
+    viz_class = getattr(importlib.import_module(f"usecvislib.{module}"), cls)
+    viz = viz_class(os.path.join(_TEMPLATES, template), str(tmp_path / "unused"), validate_paths=False)
+    outputs = ReportGenerator(viz).generate_report(str(tmp_path / "report"))
+
+    assert {"json", "md", f"csv_{csv_section}"} <= set(outputs)
+    for path in outputs.values():
+        assert os.path.getsize(path) > 0, path

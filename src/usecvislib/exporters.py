@@ -399,6 +399,17 @@ class Exporter:
         return md_str
 
 
+def _section_rows(inputdata: dict[str, Any], section: str) -> list[dict[str, Any]]:
+    """Rows for a CSV of one config section: a list of dicts, or a dict of dicts
+    keyed by ID. Anything else (scalars, metadata tables) has no rows."""
+    data = inputdata.get(section)
+    if isinstance(data, list):
+        return [row for row in data if isinstance(row, dict)]
+    if isinstance(data, dict) and data and all(isinstance(v, dict) for v in data.values()):
+        return [{"id": key, **value} for key, value in data.items()]
+    return []
+
+
 class ReportGenerator:
     """Generate comprehensive reports from visualization data.
 
@@ -464,8 +475,14 @@ class ReportGenerator:
                 try:
                     csv_file = str(output_path / f"{prefix}_{section}.csv")
                     if hasattr(self.viz, "export_csv"):
-                        self.viz.export_csv(csv_file, section=section)
-                    outputs[f"csv_{section}"] = csv_file
+                        rows = self.viz.export_csv(csv_file, section=section)
+                    else:
+                        # No visualization class mixes in ExportMixin: write the
+                        # section directly (a path used to be listed for a CSV
+                        # that was never written)
+                        rows = exporter.to_csv(_section_rows(self.viz.inputdata, section), csv_file)
+                    if rows:
+                        outputs[f"csv_{section}"] = csv_file
                 except (ValueError, KeyError) as e:
                     logger.debug(f"Could not export section {section}: {e}")
 
