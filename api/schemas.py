@@ -134,6 +134,7 @@ class BinVisType(str, Enum):
     DISTRIBUTION = "distribution"
     WINDROSE = "windrose"
     HEATMAP = "heatmap"
+    DIGRAPH = "digraph"
 
 
 # =============================================================================
@@ -216,7 +217,7 @@ class WindRoseConfig(BaseModel):
         description="Radial tick positions",
         max_length=20,  # SECURITY: Limit to prevent DoS
     )
-    rlabel_position: float = Field(default=0, description="Radial label position in degrees")
+    rlabel_position: float = Field(default=22.5, description="Radial label position in degrees")
 
     model_config = ConfigDict(json_schema_extra={"example": {"bar_alpha": 0.7, "rticks": [0.25, 0.5, 0.75, 1.0]}})
 
@@ -236,13 +237,28 @@ class HeatmapConfig(BaseModel):
     )
 
 
+class DigraphConfig(BaseModel):
+    """Configuration for the byte-pair (digraph) visualization."""
+
+    dpi: int = Field(default=150, description="Output image DPI", gt=0)
+    show_ascii_guides: bool = Field(default=True, description="Mark the printable ASCII range (0x20-0x7E)")
+    show_colorbar: bool = Field(default=True, description="Show colorbar")
+
+    model_config = ConfigDict(json_schema_extra={"example": {"show_ascii_guides": True}})
+
+
 class BinVisConfig(BaseModel):
-    """Complete binary visualization configuration."""
+    """Complete binary visualization configuration.
+
+    Only the fields a client sends are applied; the others keep the library's
+    defaults.
+    """
 
     entropy_analysis: Optional[EntropyConfig] = Field(default=None, description="Entropy analysis settings")
     byte_distribution: Optional[ByteDistributionConfig] = Field(default=None, description="Byte distribution settings")
     wind_rose: Optional[WindRoseConfig] = Field(default=None, description="Wind rose settings")
     heatmap: Optional[HeatmapConfig] = Field(default=None, description="Heatmap settings")
+    digraph: Optional[DigraphConfig] = Field(default=None, description="Byte-pair digraph settings")
 
     model_config = ConfigDict(
         json_schema_extra={

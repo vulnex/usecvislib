@@ -14,12 +14,14 @@ REST API for generating security visualizations from uploaded files.
 
 import asyncio
 import logging
+import math
 import os
 import shutil
 import sys
+import time
 from contextlib import asynccontextmanager, suppress
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from slowapi import _rate_limit_exceeded_handler
@@ -180,9 +182,11 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     # SECURITY: Use API_KEY_HEADER_NAME to support custom header names
     allow_headers=["Content-Type", "Accept", API_KEY_HEADER_NAME],
+    # Readable by browser clients: download names and the 429 retry hint
+    expose_headers=["Content-Disposition", "Retry-After"],
     # SECURITY: Cache preflight requests for 1 hour to reduce OPTIONS requests
     max_age=3600,
 )
@@ -195,7 +199,24 @@ app.add_middleware(RequestLoggingMiddleware)
 
 # Rate limiting
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+
+def rate_limit_exceeded(request: Request, exc: RateLimitExceeded) -> Response:
+    """slowapi's 429 response plus ``Retry-After`` (seconds until the window
+    resets), so clients can say when to retry. slowapi only adds it when
+    header injection is enabled, which needs a ``response`` parameter on
+    every endpoint."""
+    response = _rate_limit_exceeded_handler(request, exc)
+    current = getattr(request.state, "view_rate_limit", None)
+    try:
+        reset_at, _remaining = limiter.limiter.get_window_stats(current[0], *current[1])
+        response.headers["Retry-After"] = str(max(1, math.ceil(reset_at - time.time())))
+    except Exception:  # a missing hint must not break the 429
+        response.headers["Retry-After"] = "60"
+    return response
+
+
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded)
 
 # =============================================================================
 # Router Includes

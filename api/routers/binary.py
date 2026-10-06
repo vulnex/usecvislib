@@ -7,13 +7,14 @@
 # Copyright (c) 2025 VULNEX. All rights reserved.
 #
 
+import base64
 import json
 import logging
 import os
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from usecvislib import BinVis
 from usecvislib.utils import ConfigError, FileError, RenderError
@@ -46,31 +47,45 @@ logger = logging.getLogger("usecvislib.api")
 router = APIRouter(tags=["Binary Visualization"])
 
 
+# BinVisConfig section -> BinVis.config section
+_CONFIG_SECTIONS = {
+    "entropy_analysis": "entropy_analysis",
+    "byte_distribution": "byte_distribution",
+    "wind_rose": "wind_rose",
+    "heatmap": "heatmap",
+    "digraph": "digraph",
+}
+
+# Shown in chart titles: printable text only, and no "$" (Matplotlib mathtext)
+_TITLE_MAX_LENGTH = 120
+
+
 def apply_binvis_config(bv: BinVis, config: BinVisConfig) -> None:
     """Apply API config schema to BinVis instance.
+
+    Only fields the client actually sent are merged (``exclude_unset``):
+    dumping the whole model wrote every schema default back over the
+    library's defaults, so a one-field update reset its siblings.
 
     Args:
         bv: BinVis instance to configure
         config: BinVisConfig schema with user settings
     """
-    if config.entropy_analysis:
-        entropy_dict = config.entropy_analysis.model_dump(exclude_none=True)
-        # Convert thresholds to list of dicts
-        if "thresholds" in entropy_dict:
-            entropy_dict["thresholds"] = [t.model_dump() for t in config.entropy_analysis.thresholds]
-        bv.config["entropy_analysis"].update(entropy_dict)
+    for field, section in _CONFIG_SECTIONS.items():
+        model = getattr(config, field)
+        if model is not None:
+            bv.config.setdefault(section, {}).update(model.model_dump(exclude_unset=True))
 
-    if config.byte_distribution:
-        dist_dict = config.byte_distribution.model_dump(exclude_none=True)
-        if "regions" in dist_dict:
-            dist_dict["regions"] = [r.model_dump() for r in config.byte_distribution.regions]
-        bv.config["byte_distribution"].update(dist_dict)
 
-    if config.wind_rose:
-        bv.config["wind_rose"].update(config.wind_rose.model_dump(exclude_none=True))
+def chart_title(title: Optional[str]) -> str:
+    """Display name for chart titles: the client's title, cleaned, or none.
 
-    if config.heatmap:
-        bv.config["heatmap"].update(config.heatmap.model_dump(exclude_none=True))
+    The uploaded file's server-side temp name is never used.
+    """
+    if not title:
+        return ""
+    cleaned = "".join(ch for ch in title if ch.isprintable()).replace("$", "").strip()
+    return cleaned[:_TITLE_MAX_LENGTH]
 
 
 @router.post(
@@ -97,6 +112,10 @@ async def visualize_binary(
     style: BinVisStyle = Query(default=BinVisStyle.DEFAULT, description="Style preset"),
     visualization_type: BinVisType = Query(default=BinVisType.ENTROPY, description="Visualization type"),
     config_json: Optional[str] = Form(default=None, description="JSON string with visualization configuration"),
+    title: Optional[str] = Form(
+        default=None,
+        description="Name shown in chart titles (e.g. the file name). Omitted: titles carry no name.",
+    ),
 ):
     """
     Generate a visualization from an uploaded binary file.
@@ -104,18 +123,26 @@ async def visualize_binary(
     Visualization types:
     - **entropy**: Sliding window entropy analysis
     - **distribution**: Byte frequency histogram
-    - **windrose**: Byte pair pattern visualization
+    - **windrose**: Polar histogram of byte values (log scale)
     - **heatmap**: 2D file structure visualization
-    - **all**: Generate all visualization types (returns entropy only via API)
+    - **digraph**: Byte-pair plot: how often byte B follows byte A (256x256, log scale)
+    - **all**: All five charts in one response, as JSON:
+      `{"charts": [{"type", "content_type", "filename", "data" (base64)}]}`
 
-    Configuration options (pass as JSON in config_json):
+    Configuration options (pass as JSON in config_json). Only the fields you
+    send change; everything else keeps its default:
     - **entropy_analysis**: window_size, step, thresholds, fill_alpha, show_grid
     - **byte_distribution**: bar_width, bar_alpha, regions, show_regions
     - **wind_rose**: bar_alpha, rticks, rlabel_position
     - **heatmap**: block_size, interpolation, aspect, show_colorbar
+    - **digraph**: show_ascii_guides, show_colorbar
+
+    **title**: optional name for the chart titles. Without it the titles carry
+    no file name (the uploaded file's name is not sent back).
     """
     input_path = None
     output_path = None
+    output_paths: list[str] = []
 
     try:
         # Save uploaded binary file (with larger size limit)
@@ -129,7 +156,7 @@ async def visualize_binary(
 
         output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
 
-        bv = BinVis(input_path, output_base, format=format.value, styleid=style.value)
+        bv = BinVis(input_path, output_base, format=format.value, styleid=style.value, display_name=chart_title(title))
 
         # Apply config from JSON if provided
         if config_json:
@@ -146,15 +173,33 @@ async def visualize_binary(
         # SECURITY: Prevents resource exhaustion from large binary files
         vis_type = visualization_type.value
         if vis_type == "all":
-            await run_sync_with_timeout(
-                lambda: bv.BuildBinVis("all"), REQUEST_TIMEOUT_VISUALIZE, "binary visualization (all)"
+            # Known up front so a timeout part-way still cleans up every chart
+            output_paths = [f"{output_base}_{t.value}.{format.value}" for t in BinVisType if t != BinVisType.ALL]
+            output_paths = await run_sync_with_timeout(
+                bv.visualize_all, REQUEST_TIMEOUT_VISUALIZE, "binary visualization (all)"
             )
-            output_path = f"{output_base}_entropy.{format.value}"
-        else:
-            await run_sync_with_timeout(
-                lambda: bv.BuildBinVis(vis_type), REQUEST_TIMEOUT_VISUALIZE, f"binary visualization ({vis_type})"
-            )
-            output_path = f"{output_base}_{vis_type}.{format.value}"
+            if not all(os.path.exists(p) for p in output_paths):
+                raise HTTPException(status_code=500, detail="Failed to generate visualization")
+            charts = []
+            for path in output_paths:
+                chart_type = os.path.splitext(path)[0].rsplit("_", 1)[-1]
+                with open(path, "rb") as f:
+                    data = base64.b64encode(f.read()).decode("ascii")
+                charts.append(
+                    {
+                        "type": chart_type,
+                        "content_type": get_content_type(format),
+                        "filename": f"binary_{chart_type}.{format.value}",
+                        "data": data,
+                    }
+                )
+            cleanup_files(input_path, *output_paths)
+            return JSONResponse({"charts": charts})
+
+        await run_sync_with_timeout(
+            lambda: bv.BuildBinVis(vis_type), REQUEST_TIMEOUT_VISUALIZE, f"binary visualization ({vis_type})"
+        )
+        output_path = f"{output_base}_{vis_type}.{format.value}"
 
         if not os.path.exists(output_path):
             cleanup_files(input_path)
@@ -170,19 +215,19 @@ async def visualize_binary(
         )
 
     except (FileNotFoundError, FileError, ConfigError) as e:
-        cleanup_files(input_path, output_path)
+        cleanup_files(input_path, output_path, *output_paths)
         raise HTTPException(status_code=400, detail=str(e)) from e
     except ValueError as e:
-        cleanup_files(input_path, output_path)
+        cleanup_files(input_path, output_path, *output_paths)
         raise HTTPException(status_code=400, detail=str(e)) from e
     except RenderError as e:
-        cleanup_files(input_path, output_path)
+        cleanup_files(input_path, output_path, *output_paths)
         raise HTTPException(status_code=400, detail=str(e)) from e
     except HTTPException:
-        cleanup_files(input_path, output_path)
+        cleanup_files(input_path, output_path, *output_paths)
         raise
     except Exception as e:
-        cleanup_files(input_path, output_path)
+        cleanup_files(input_path, output_path, *output_paths)
         logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
         raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
