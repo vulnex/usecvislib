@@ -192,7 +192,7 @@ block_size = 128"
             <span class="info-icon">🌀</span>
             <div>
               <strong>Wind Rose</strong>
-              <p>Polar visualization of byte pair patterns. Reveals repeating structures.</p>
+              <p>Polar histogram of byte values (log scale): each direction is one byte value.</p>
             </div>
           </div>
           <div class="info-item">
@@ -200,6 +200,13 @@ block_size = 128"
             <div>
               <strong>Heatmap</strong>
               <p>2D view of the file structure. Each row represents a block of bytes.</p>
+            </div>
+          </div>
+          <div class="info-item">
+            <span class="info-icon">🔢</span>
+            <div>
+              <strong>Byte Pair Digraph</strong>
+              <p>How often each byte follows another (256×256, log scale). Code, text, UTF-16 and encrypted data each leave a distinct pattern.</p>
             </div>
           </div>
         </div>
@@ -255,7 +262,8 @@ const visTypes = [
   { value: 'entropy', label: 'Entropy Analysis', icon: '📈' },
   { value: 'distribution', label: 'Byte Distribution', icon: '📊' },
   { value: 'windrose', label: 'Wind Rose', icon: '🌀' },
-  { value: 'heatmap', label: 'Heatmap', icon: '🗺️' }
+  { value: 'heatmap', label: 'Heatmap', icon: '🗺️' },
+  { value: 'digraph', label: 'Byte Pair Digraph', icon: '🔢' }
 ]
 
 function formatStyleName(s) {

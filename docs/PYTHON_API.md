@@ -1083,7 +1083,7 @@ bv.visualize_distribution()
 
 ##### `visualize_windrose(output: str = None) -> None`
 
-Create wind rose diagram showing byte pair patterns.
+Create a wind rose: a polar histogram of byte values (log scale), one direction per byte value.
 
 ```python
 bv = BinVis("binary.exe", "analysis")
@@ -1103,6 +1103,19 @@ bv.visualize_heatmap(block_size=512)
 # Creates: analysis_heatmap.png
 ```
 
+##### `visualize_digraph(output: str = None) -> None`
+
+Create a byte-pair (digraph) plot: a 256x256 image of how often byte B follows byte A, log scale, with guides at the printable ASCII range. `byte_pair_counts()` returns the underlying counts as a NumPy array.
+
+```python
+bv = BinVis("binary.exe", "analysis")
+bv.load()
+bv.visualize_digraph()
+# Creates: analysis_digraph.png
+```
+
+Chart titles include the input file's name. Pass `display_name="..."` to `BinVis()` to show another name, or `display_name=""` for titles without one.
+
 ##### `visualize_all(output_prefix: str = None) -> List[str]`
 
 Generate all visualization types.
@@ -1112,7 +1125,7 @@ bv = BinVis("binary.exe", "analysis")
 outputs = bv.visualize_all()
 print(outputs)
 # ['analysis_entropy.png', 'analysis_distribution.png',
-#  'analysis_windrose.png', 'analysis_heatmap.png']
+#  'analysis_windrose.png', 'analysis_heatmap.png', 'analysis_digraph.png']
 ```
 
 ##### `BuildBinVis(visualization: str = "all") -> None`
@@ -1130,6 +1143,7 @@ bv.BuildBinVis("entropy")
 bv.BuildBinVis("distribution")
 bv.BuildBinVis("windrose")
 bv.BuildBinVis("heatmap")
+bv.BuildBinVis("digraph")
 ```
 
 ##### `get_file_stats() -> Dict[str, Any]`
@@ -3102,6 +3116,7 @@ BinaryVisualization.ENTROPY       # "entropy"
 BinaryVisualization.DISTRIBUTION  # "distribution"
 BinaryVisualization.WINDROSE      # "windrose"
 BinaryVisualization.HEATMAP       # "heatmap"
+BinaryVisualization.DIGRAPH       # "digraph"
 BinaryVisualization.ALL           # "all"
 ```
 

@@ -368,8 +368,10 @@ export async function analyzeStride(file) {
  * @param {File} file - Binary file to visualize
  * @param {string} format - Output format (png, svg, pdf)
  * @param {string} style - Style preset (bv_default, etc.)
- * @param {string} visType - Visualization type (entropy, distribution, windrose, heatmap)
+ * @param {string} visType - Visualization type (entropy, distribution, windrose, heatmap, digraph)
  * @param {string|null} configJson - Optional JSON string with visualization config
+ *
+ * The file's own name is sent as the chart title (the server otherwise shows no name).
  */
 export async function visualizeBinary(file, format = 'png', style = 'bv_default', visType = 'entropy', configJson = null) {
   const formData = new FormData()
@@ -378,6 +380,9 @@ export async function visualizeBinary(file, format = 'png', style = 'bv_default'
   // Add config JSON if provided
   if (configJson) {
     formData.append('config_json', configJson)
+  }
+  if (file?.name) {
+    formData.append('title', file.name)
   }
 
   const response = await api.post(

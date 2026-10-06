@@ -55,7 +55,7 @@ def Usage() -> None:
     for line in _style_usage_lines():
         print(line)
     print("  -v, --visualization     Visualization type for binary mode:")
-    print("                            all, entropy, distribution, windrose, heatmap")
+    print("                            all, entropy, distribution, windrose, heatmap, digraph")
     print("                          MAESTRO view (mode 12):")
     print("                            layered (default), graph, heatmap")
     print("                          Incident Timeline mode (mode 10):")
@@ -63,7 +63,7 @@ def Usage() -> None:
     print("                          Vulnerability Tree mode (mode 11):")
     print("                            tree (default), vulnerable_only, critical_path")
     print("  -C, --config <file>     Configuration file for binary visualization parameters")
-    print("                          (TOML format, controls entropy/distribution/windrose/heatmap settings)")
+    print("                          (TOML format, controls entropy/distribution/windrose/heatmap/digraph settings)")
     print("  -r, --report            Generate STRIDE report (threat modeling only)")
     print("  -p, --paths <src,tgt>   Find attack paths between nodes (attack graphs)")
     print("  -c, --critical          Analyze critical nodes (attack graphs)")
@@ -478,7 +478,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             bv = binvis.BinVis(inputfile, outputfile, format, styleid, configfile)
 
             # Validate visualization type
-            valid_vis = ["all", "entropy", "distribution", "windrose", "heatmap"]
+            valid_vis = ["all", "entropy", "distribution", "windrose", "heatmap", "digraph"]
             if visualization not in valid_vis:
                 error_exit(f"Invalid visualization: {visualization}. Must be one of: {', '.join(valid_vis)}")
 

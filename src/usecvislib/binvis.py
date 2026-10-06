@@ -66,6 +66,7 @@ class BinVis:
         styleid: str = "",
         configfile: str = "",
         validate_paths: bool = True,
+        display_name: Optional[str] = None,
     ) -> None:
         """Initialize BinVis with input/output paths and styling options.
 
@@ -78,6 +79,9 @@ class BinVis:
                 parameters. If not provided, uses default parameters.
             validate_paths: Whether to validate paths on initialization.
                 Set to False for deferred validation (e.g., API usage).
+            display_name: Name shown in chart titles. None (default) uses the
+                input file's name; "" gives titles without a name (the API
+                uses this so server temp file names never appear).
 
         Raises:
             SecurityError: If path validation fails (when validate_paths=True).
@@ -91,6 +95,7 @@ class BinVis:
         self.stylefile = "config_binvis.tml"
         self.styleid = styleid
         self.configfile = configfile
+        self.display_name = display_name
         self.format = format
         self.data: Optional[bytes] = None
         self.style: dict[str, Any] = {}
@@ -144,6 +149,7 @@ class BinVis:
             "distribution": {"colormap": "Blues", "figsize": [12, 6], "bar_color": "#3498db"},
             "windrose": {"colormap": "plasma", "figsize": [8, 8]},
             "heatmap": {"colormap": "inferno", "figsize": [12, 12]},
+            "digraph": {"colormap": "inferno", "figsize": [9, 8]},
         }
 
     def _apply_theme(self, fig, axes: list) -> None:
@@ -177,6 +183,11 @@ class BinVis:
                 legend.get_frame().set_facecolor(bg)
                 for t in legend.get_texts():
                     t.set_color(text or t.get_color())
+
+    def _title(self, chart: str) -> str:
+        """Chart title, with the display name when there is one."""
+        name = os.path.basename(self.inputfile) if self.display_name is None else self.display_name
+        return f"{chart}: {name}" if name else chart
 
     def _dark_theme(self) -> bool:
         """True when the preset's plot background is dark."""
@@ -243,6 +254,7 @@ class BinVis:
                 "show_colorbar": True,
                 "colorbar_label": "Byte Value",
             },
+            "digraph": {"dpi": 150, "show_ascii_guides": True, "show_colorbar": True},
         }
 
     def loadconfig(self, configfile: Optional[str] = None) -> None:
@@ -574,10 +586,8 @@ class BinVis:
         if not data:
             return 0.0
 
-        byte_counts = Counter(data)
-        total = len(data)
-        probabilities = [count / total for count in byte_counts.values()]
-        return entropy(probabilities, base=base)
+        counts = np.bincount(np.frombuffer(data, dtype=np.uint8), minlength=256)
+        return float(entropy(counts[counts > 0], base=base))
 
     def sliding_entropy(self, window_size: int = 256, step: int = 64) -> tuple[np.ndarray, np.ndarray]:
         """Calculate entropy using a sliding window across the file.
@@ -592,16 +602,26 @@ class BinVis:
         if self.data is None:
             self.load()
 
-        data = self.data
-        positions = []
-        entropies = []
+        data = np.frombuffer(self.data, dtype=np.uint8)
+        if len(data) < window_size:
+            return np.array([], dtype=int), np.array([], dtype=float)
 
-        for i in range(0, len(data) - window_size + 1, step):
-            window = data[i : i + window_size]
-            positions.append(i)
-            entropies.append(self.calculate_entropy(window))
-
-        return np.array(positions), np.array(entropies)
+        # Vectorised in batches of windows: a per-window Counter took about a
+        # minute on a 50 MB file. Each batch counts byte values per window
+        # with one bincount over (window index * 256 + byte value).
+        windows = np.lib.stride_tricks.sliding_window_view(data, window_size)[::step]
+        positions = np.arange(len(windows)) * step
+        entropies = np.empty(len(windows))
+        batch = max(1, (1 << 22) // window_size)  # about 4M bytes per batch
+        log_window = np.log2(window_size)
+        for start in range(0, len(windows), batch):
+            chunk = windows[start : start + batch]
+            rows = np.arange(len(chunk), dtype=np.int64)[:, None] * 256
+            counts = np.bincount((rows + chunk).ravel(), minlength=len(chunk) * 256).reshape(len(chunk), 256)
+            # H = log2(N) - sum(c * log2(c)) / N, with 0 * log2(0) = 0
+            c_log_c = np.where(counts > 0, counts * np.log2(np.maximum(counts, 1)), 0.0)
+            entropies[start : start + len(chunk)] = log_window - c_log_c.sum(axis=1) / window_size
+        return positions, np.maximum(entropies, 0.0)
 
     def byte_distribution(self) -> np.ndarray:
         """Calculate byte frequency distribution.
@@ -612,11 +632,10 @@ class BinVis:
         if self.data is None:
             self.load()
 
-        distribution = np.zeros(256)
-        for byte in self.data:
-            distribution[byte] += 1
-
-        return distribution / len(self.data) if self.data else distribution
+        if not self.data:
+            return np.zeros(256)
+        counts = np.bincount(np.frombuffer(self.data, dtype=np.uint8), minlength=256)
+        return counts / len(self.data)
 
     def visualize_entropy(
         self, window_size: Optional[int] = None, step: Optional[int] = None, output: Optional[str] = None
@@ -679,7 +698,7 @@ class BinVis:
 
         ax.set_xlabel("File Offset (bytes)")
         ax.set_ylabel("Entropy (bits)")
-        ax.set_title(f"Entropy Analysis: {os.path.basename(self.inputfile)}")
+        ax.set_title(self._title("Entropy Analysis"))
         ax.set_ylim(0, 8)
 
         # Use config for grid
@@ -743,7 +762,7 @@ class BinVis:
 
         ax.set_xlabel("Byte Value (0-255)")
         ax.set_ylabel("Frequency")
-        ax.set_title(f"Byte Distribution: {os.path.basename(self.inputfile)}")
+        ax.set_title(self._title("Byte Distribution"))
         ax.set_xlim(-1, 256)
 
         # Highlight special regions from config
@@ -766,11 +785,28 @@ class BinVis:
 
         logger.info(f"Saved distribution visualization to {output}")
 
-    def visualize_windrose(self, output: Optional[str] = None) -> None:
-        """Create wind rose diagram showing byte pair patterns.
+    def byte_pair_counts(self) -> np.ndarray:
+        """Count adjacent byte pairs.
 
-        The wind rose shows the distribution of byte values in a polar format,
-        useful for identifying patterns in binary data.
+        Returns:
+            256x256 array where ``[a, b]`` is how often byte ``b`` directly
+            follows byte ``a``. One vectorised pass (the previous per-byte
+            Python loop dominated rendering time on large files).
+        """
+        if self.data is None:
+            self.load()
+        data = np.frombuffer(self.data, dtype=np.uint8)
+        if len(data) < 2:
+            return np.zeros((256, 256), dtype=np.int64)
+        pairs = data[:-1].astype(np.uint32) * 256 + data[1:]
+        return np.bincount(pairs, minlength=65536).reshape(256, 256)
+
+    def visualize_windrose(self, output: Optional[str] = None) -> None:
+        """Create a wind rose: a polar histogram of byte values.
+
+        Each of the 256 directions is one byte value; the bar length is how
+        often that value occurs (log scale). For how bytes follow each other,
+        see :meth:`visualize_digraph`.
 
         Args:
             output: Output file path. Uses self.outputfile if None.
@@ -790,22 +826,11 @@ class BinVis:
         style = self.style.get("windrose", self._default_style()["windrose"])
         config = self.config.get("wind_rose", self._default_config()["wind_rose"])
 
-        if self.data is None:
-            self.load()
-
-        # Calculate byte pair frequencies
-        pair_counts = Counter()
-        for i in range(len(self.data) - 1):
-            pair = (self.data[i], self.data[i + 1])
-            pair_counts[pair] += 1
+        # Occurrences of each byte value (as the first byte of a pair, as before)
+        directions = self.byte_pair_counts().sum(axis=1).astype(float)
 
         # Create polar plot
         fig, ax = plt.subplots(figsize=style.get("figsize", [8, 8]), subplot_kw={"projection": "polar"})
-
-        # Group by first byte (direction) and aggregate second byte (magnitude)
-        directions = np.zeros(256)
-        for (b1, _b2), count in pair_counts.items():
-            directions[b1] += count
 
         # Log-normalize: one dominant byte (0x00 is often a third of a binary)
         # would otherwise flatten every other direction to nothing.
@@ -825,7 +850,7 @@ class BinVis:
         for value, bar in zip(directions, bars, strict=True):
             bar.set_facecolor(cmap(0.25 + 0.65 * value))
 
-        ax.set_title(f"Byte Pattern Wind Rose (log scale): {os.path.basename(self.inputfile)}")
+        ax.set_title(self._title("Byte Value Wind Rose (log scale)"))
 
         # Use config for rticks and rlabel position
         ax.set_rticks(config.get("rticks", [0.25, 0.5, 0.75, 1.0]))
@@ -899,7 +924,7 @@ class BinVis:
 
         ax.set_xlabel("Byte Offset in Block")
         ax.set_ylabel("Block Number")
-        ax.set_title(f"Binary Heatmap: {os.path.basename(self.inputfile)}")
+        ax.set_title(self._title("Binary Heatmap"))
 
         # Use config for colorbar
         axes = [ax]
@@ -913,6 +938,69 @@ class BinVis:
         plt.close()
 
         logger.info(f"Saved heatmap visualization to {output}")
+
+    def visualize_digraph(self, output: Optional[str] = None) -> None:
+        """Create a byte-pair (digraph) plot.
+
+        A 256x256 image where the pixel at (next byte, first byte) shows how
+        often that pair occurs, on a log scale. Code, text, UTF-16, compressed
+        and encrypted data each leave a distinctive pattern; random data is
+        uniform. Dashed guides mark the printable ASCII range (0x20-0x7E).
+
+        Args:
+            output: Output file path. Uses ``<outputfile>_digraph.<format>`` if None.
+
+        Raises:
+            SecurityError: If output path validation fails.
+        """
+        output = str(utils.validate_output_path(output)) if output else f"{self.outputfile}_digraph.{self.format}"
+
+        logger.debug(f"Creating digraph visualization at {output}")
+
+        # Presets without a digraph section reuse their heatmap colors
+        heatmap_style = self.style.get("heatmap", {}) if isinstance(self.style, dict) else {}
+        style = {**self._default_style()["digraph"], **heatmap_style, "figsize": [9, 8]}
+        style.update(self.style.get("digraph", {}) if isinstance(self.style, dict) else {})
+        config = self.config.get("digraph", self._default_config()["digraph"])
+
+        counts = self.byte_pair_counts()
+        image = np.log1p(counts.astype(float))
+
+        fig, ax = plt.subplots(figsize=style.get("figsize", [9, 8]))
+        im = ax.imshow(
+            image,
+            cmap=style.get("colormap", "inferno"),
+            origin="upper",
+            interpolation="nearest",
+            vmin=0,
+            vmax=max(float(image.max()), 1.0),
+        )
+        ticks = [*range(0, 256, 32), 255]
+        ax.set_xticks(ticks)
+        ax.set_yticks(ticks)
+        ax.set_xticklabels([f"0x{t:02X}" for t in ticks], fontsize="small")
+        ax.set_yticklabels([f"0x{t:02X}" for t in ticks], fontsize="small")
+        ax.set_xlabel("Next Byte")
+        ax.set_ylabel("First Byte")
+        ax.set_title(self._title("Byte Pair Digraph (log scale)"))
+
+        if config.get("show_ascii_guides", True):
+            guide = self._threshold_color("#8a8a8a")
+            for edge in (0x20 - 0.5, 0x7F - 0.5):
+                ax.axhline(edge, color=guide, linestyle="--", linewidth=0.8, alpha=0.8)
+                ax.axvline(edge, color=guide, linestyle="--", linewidth=0.8, alpha=0.8)
+
+        axes = [ax]
+        if config.get("show_colorbar", True):
+            cbar = plt.colorbar(im, ax=ax, label="log(1 + pair count)", fraction=0.046, pad=0.04)
+            axes.append(cbar.ax)
+
+        self._apply_theme(fig, axes)
+        plt.tight_layout()
+        plt.savefig(output, dpi=config.get("dpi", 150), format=self.format, facecolor=fig.get_facecolor())
+        plt.close()
+
+        logger.info(f"Saved digraph visualization to {output}")
 
     def visualize_all(self, output_prefix: Optional[str] = None) -> list[str]:
         """Generate all visualization types.
@@ -950,6 +1038,9 @@ class BinVis:
         self.visualize_heatmap(output=f"{prefix}_heatmap.{self.format}")
         outputs.append(f"{prefix}_heatmap.{self.format}")
 
+        self.visualize_digraph(output=f"{prefix}_digraph.{self.format}")
+        outputs.append(f"{prefix}_digraph.{self.format}")
+
         logger.info(f"Generated {len(outputs)} visualizations")
         return outputs
 
@@ -979,7 +1070,8 @@ class BinVis:
 
         Args:
             visualization: Type of visualization to generate.
-                Options: 'entropy', 'distribution', 'windrose', 'heatmap', 'all'
+                Options: 'entropy', 'distribution', 'windrose', 'heatmap',
+                'digraph', 'all'
         """
         self.load()
 
@@ -993,6 +1085,8 @@ class BinVis:
             self.visualize_windrose()
         elif visualization == "heatmap":
             self.visualize_heatmap()
+        elif visualization == "digraph":
+            self.visualize_digraph()
         else:
             raise ValueError(f"Unknown visualization type: {visualization}")
 

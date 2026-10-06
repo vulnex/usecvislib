@@ -111,7 +111,7 @@ label = "Low entropy (sparse data)"
 # =============================================================================
 # Wind Rose Configuration
 # =============================================================================
-# Controls the polar byte pair pattern visualization
+# Controls the polar histogram of byte values (one direction per byte value)
 
 [wind_rose]
 # Bar transparency
@@ -152,3 +152,18 @@ show_colorbar = true
 
 # Colorbar label text
 colorbar_label = "Byte Value"
+
+# =============================================================================
+# Byte-Pair Digraph Configuration
+# =============================================================================
+# Controls the 256x256 plot of how often byte B follows byte A (log scale)
+
+[digraph]
+# Output image DPI
+dpi = 150
+
+# Dashed guides at the printable ASCII range (0x20-0x7E)
+show_ascii_guides = true
+
+# Show colorbar legend
+show_colorbar = true

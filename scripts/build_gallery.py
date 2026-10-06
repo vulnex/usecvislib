@@ -73,7 +73,7 @@ GRAPH_MODULES = [
 ]
 TIMELINE_VIEWS = ("swimlane", "gantt", "vertical", "compact")
 MAESTRO_VIEWS = ("layered", "graph", "heatmap")
-BINVIS_VIEWS = ("entropy", "distribution", "windrose", "heatmap")
+BINVIS_VIEWS = ("entropy", "distribution", "windrose", "heatmap", "digraph")
 BINVIS_INPUTS = {
     "ls_binary": "/bin/ls",
     "png_file": str(REPO / "usecvislib_logo.png"),

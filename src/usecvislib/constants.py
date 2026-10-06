@@ -142,6 +142,7 @@ class BinaryVisualization(str, Enum):
     DISTRIBUTION = "distribution"
     WINDROSE = "windrose"
     HEATMAP = "heatmap"
+    DIGRAPH = "digraph"
     ALL = "all"
 
     @classmethod

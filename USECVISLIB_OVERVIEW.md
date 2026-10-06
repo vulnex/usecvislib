@@ -56,7 +56,7 @@ USecVisLib provides **fourteen** distinct visualization types, each purpose-buil
 | **Privilege Gradient** | Trust-zone & privilege-level visualization | Zone-inversion detection, escalation pathways |
 | **Component Diagrams** | Software component architecture | Layered architecture, sync/async/event connections |
 | **Dependency Graphs** | Module/package dependency mapping | SLOC-based sizing, circular-dependency detection |
-| **Binary Analysis** | Binary file pattern visualization | Entropy, byte distribution, wind rose, heatmap |
+| **Binary Analysis** | Binary file pattern visualization | Entropy, byte distribution, wind rose, heatmap, byte-pair digraph |
 
 ### Spotlight: MAESTRO — Threat Modeling for Agentic AI
 

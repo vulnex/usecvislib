@@ -32,7 +32,7 @@ A comprehensive Python library and web application for creating security visuali
 | **Kill Chain / MITRE ATT&CK** | Attack progression through a standardized framework | Cyber Kill Chain / ATT&CK / custom axes, detection-gap coverage heat, incident paths, Graphviz + SVG engines, 8 style presets |
 | **Incident Timeline** | Chronology of a security incident for IR | Swimlane / gantt / vertical / compact modes, severity markers, response-phase bands, MTTD/MTTC/MTTR metrics, ATT&CK tagging, 6 style presets |
 | **Vulnerability Dependency Tree** | Software supply-chain / SCA analysis | Dependency tree with CVE annotations, severity heat, exploited-edge highlighting, tree / vulnerable-only / critical-path modes, impact propagation + remediation, 5 style presets |
-| **Binary Analysis** | Binary file pattern visualization | Entropy, byte distribution, wind rose, heatmap |
+| **Binary Analysis** | Binary file pattern visualization | Entropy, byte distribution, wind rose, heatmap, byte-pair digraph |
 
 ### Platform Features
 

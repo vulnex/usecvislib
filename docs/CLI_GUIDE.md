@@ -384,11 +384,14 @@ usecvis -m 2 -i binary.exe -o analysis -v entropy
 # Byte distribution
 usecvis -m 2 -i binary.exe -o analysis -v distribution
 
-# Wind rose pattern
+# Wind rose (byte values in polar form)
 usecvis -m 2 -i binary.exe -o analysis -v windrose
 
 # File structure heatmap
 usecvis -m 2 -i binary.exe -o analysis -v heatmap
+
+# Byte-pair digraph
+usecvis -m 2 -i binary.exe -o analysis -v digraph
 ```
 
 #### Visualization Types
@@ -397,8 +400,9 @@ usecvis -m 2 -i binary.exe -o analysis -v heatmap
 |------|-------------|-------------|
 | `entropy` | Sliding window entropy analysis | `*_entropy.png` |
 | `distribution` | Byte frequency histogram | `*_distribution.png` |
-| `windrose` | Byte pair pattern polar chart | `*_windrose.png` |
+| `windrose` | Polar histogram of byte values (log scale) | `*_windrose.png` |
 | `heatmap` | 2D file structure visualization | `*_heatmap.png` |
+| `digraph` | Byte-pair plot: how often byte B follows byte A (256x256, log scale) | `*_digraph.png` |
 | `all` | Generate all visualizations | All of the above |
 
 #### Output Statistics

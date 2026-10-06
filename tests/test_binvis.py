@@ -606,6 +606,7 @@ class TestBinVisVisualization:
                     assert os.path.exists(f"{output}_distribution.png")
                     assert os.path.exists(f"{output}_windrose.png")
                     assert os.path.exists(f"{output}_heatmap.png")
+                    assert os.path.exists(f"{output}_digraph.png")
             finally:
                 os.unlink(f.name)
 
@@ -651,7 +652,7 @@ class TestBinVisStyling:
     def test_dark_preset_has_dark_background(self, tmp_path):
         from PIL import Image
 
-        for chart in ("entropy", "distribution", "windrose", "heatmap"):
+        for chart in ("entropy", "distribution", "windrose", "heatmap", "digraph"):
             img = Image.open(self._render(tmp_path, "bv_dark", chart)).convert("L")
             assert img.getpixel((2, 2)) < 80, chart
 
@@ -662,3 +663,104 @@ class TestBinVisStyling:
         colors = img.getcolors(img.width * img.height)
         non_white = sum(count for count, rgb in colors if min(rgb) < 230)
         assert non_white / (img.width * img.height) > 0.05
+
+
+class TestBytePairs:
+    """Byte-pair counts (vectorised), the wind rose built on them, and the digraph."""
+
+    @staticmethod
+    def _binvis(tmp_path, data, **kwargs):
+        path = tmp_path / "sample.bin"
+        path.write_bytes(data)
+        return BinVis(str(path), str(tmp_path / "out"), format="png", validate_paths=False, **kwargs)
+
+    def test_pair_counts_match_naive_loop(self, tmp_path):
+        from collections import Counter
+
+        data = random.Random(1).randbytes(5000) + b"\x00" * 300
+        counts = self._binvis(tmp_path, data).byte_pair_counts()
+        naive = Counter(zip(data, data[1:]))
+        assert counts.shape == (256, 256)
+        assert counts.sum() == len(data) - 1
+        assert all(counts[a, b] == n for (a, b), n in naive.items())
+
+    def test_pair_counts_tiny_input(self, tmp_path):
+        assert self._binvis(tmp_path, b"A").byte_pair_counts().sum() == 0
+
+    def test_windrose_direction_is_first_byte_count(self, tmp_path):
+        # Same data as the old per-pair loop: occurrences of each value as a first byte
+        data = b"AAAB" * 10
+        directions = self._binvis(tmp_path, data).byte_pair_counts().sum(axis=1)
+        assert directions[ord("A")] == 30 and directions[ord("B")] == 9
+
+    def test_digraph_text_concentrates_in_printable_square(self, tmp_path):
+        text = (b"The quick brown fox jumps over the lazy dog. " * 200)
+        counts = self._binvis(tmp_path, text).byte_pair_counts()
+        assert counts[0x20:0x7F, 0x20:0x7F].sum() == counts.sum()
+
+    def test_digraph_renders_every_format(self, tmp_path):
+        for fmt in ("png", "svg", "pdf"):
+            bv = self._binvis(tmp_path, random.Random(2).randbytes(4096))
+            bv.format = fmt
+            bv.BuildBinVis("digraph")
+            assert (tmp_path / f"out_digraph.{fmt}").stat().st_size > 0
+
+    def test_visualize_all_includes_digraph(self, tmp_path):
+        outputs = self._binvis(tmp_path, bytes(range(256)) * 4).visualize_all()
+        assert [os.path.basename(o) for o in outputs] == [
+            "out_entropy.png",
+            "out_distribution.png",
+            "out_windrose.png",
+            "out_heatmap.png",
+            "out_digraph.png",
+        ]
+
+
+class TestChartTitles:
+    """display_name: the file name by default, a chosen name, or none."""
+
+    def test_default_uses_file_name(self, tmp_path):
+        bv = TestBytePairs._binvis(tmp_path, b"abc")
+        assert bv._title("Binary Heatmap") == "Binary Heatmap: sample.bin"
+
+    def test_custom_and_empty_names(self, tmp_path):
+        assert TestBytePairs._binvis(tmp_path, b"abc", display_name="fw.img")._title("X") == "X: fw.img"
+        assert TestBytePairs._binvis(tmp_path, b"abc", display_name="")._title("X") == "X"
+
+
+class TestVectorisedStatistics:
+    """The NumPy entropy and distribution match the previous per-byte loops."""
+
+    def test_sliding_entropy_matches_counter_version(self, tmp_path):
+        from collections import Counter
+
+        import numpy as np
+        from scipy.stats import entropy as scipy_entropy
+
+        data = random.Random(3).randbytes(20000) + b"\x00" * 3000 + bytes(range(256)) * 10
+        bv = TestBytePairs._binvis(tmp_path, data)
+        for window, step in ((256, 64), (1000, 333), (64, 64)):
+            positions, values = bv.sliding_entropy(window, step)
+            expected_pos = list(range(0, len(data) - window + 1, step))
+            expected = [
+                scipy_entropy(list(Counter(data[i : i + window]).values()), base=2) for i in expected_pos
+            ]
+            assert positions.tolist() == expected_pos
+            assert np.allclose(values, expected)
+
+    def test_sliding_entropy_short_input(self, tmp_path):
+        positions, values = TestBytePairs._binvis(tmp_path, b"abc").sliding_entropy(256, 64)
+        assert len(positions) == 0 and len(values) == 0
+
+    def test_distribution_and_entropy_match_counter_version(self, tmp_path):
+        from collections import Counter
+
+        import numpy as np
+        from scipy.stats import entropy as scipy_entropy
+
+        data = random.Random(4).randbytes(9000) + b"A" * 1000
+        bv = TestBytePairs._binvis(tmp_path, data)
+        counts = Counter(data)
+        expected = np.array([counts.get(v, 0) for v in range(256)]) / len(data)
+        assert np.allclose(bv.byte_distribution(), expected)
+        assert np.isclose(bv.calculate_entropy(data), scipy_entropy(list(counts.values()), base=2))
