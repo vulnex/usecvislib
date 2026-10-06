@@ -140,13 +140,27 @@ class BatchProcessor:
             from .attackgraphs import AttackGraphs
             from .attacktrees import AttackTrees
             from .binvis import BinVis
+            from .componentdiagram import ComponentDiagram
+            from .dependencygraph import DependencyGraph
+            from .killchain import KillChain
+            from .maestro import MaestroThreatModel
+            from .privilegegradient import PrivilegeGradient
             from .threatmodeling import ThreatModeling
+            from .timeline import IncidentTimeline
+            from .vulntree import VulnDependencyTree
 
             cls._MODULES = {
                 "attack_tree": AttackTrees,
                 "attack_graph": AttackGraphs,
                 "threat_model": ThreatModeling,
                 "binary": BinVis,
+                "privilege_gradient": PrivilegeGradient,
+                "component_diagram": ComponentDiagram,
+                "dependency_graph": DependencyGraph,
+                "kill_chain": KillChain,
+                "incident_timeline": IncidentTimeline,
+                "vuln_tree": VulnDependencyTree,
+                "maestro": MaestroThreatModel,
             }
         return cls._MODULES
 
@@ -163,7 +177,9 @@ class BatchProcessor:
 
         Args:
             module_type: Type of visualization to process.
-                Options: "attack_tree", "attack_graph", "threat_model", "binary"
+                Options: "attack_tree", "attack_graph", "threat_model", "binary",
+                "privilege_gradient", "component_diagram", "dependency_graph",
+                "kill_chain", "incident_timeline", "vuln_tree", "maestro"
             output_dir: Directory for output files.
             format: Output format (png, svg, pdf, dot).
             style: Optional style ID to apply.
@@ -298,6 +314,8 @@ class BatchProcessor:
             instance.BuildAttackGraph()
         elif self.module_type == "threat_model":
             instance.BuildThreatModel()
+        else:
+            instance.build()
 
         # Collect stats if requested
         if collect_stats:

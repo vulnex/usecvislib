@@ -232,3 +232,27 @@ class TestProcessBatchFunction:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "..", "templates")
+
+
+@pytest.mark.skipif(not __import__("shutil").which("dot"), reason="graphviz 'dot' binary not installed")
+@pytest.mark.parametrize(
+    "module_type,template",
+    [
+        ("privilege_gradient", "privilege-gradient/corporate_network.tml"),
+        ("component_diagram", "architecture/component-diagram-example.json"),
+        ("dependency_graph", "architecture/dependency-graph-example.json"),
+        ("kill_chain", "kill-chains/apt_intrusion.tml"),
+        ("incident_timeline", "timelines/phishing_compromise.tml"),
+        ("vuln_tree", "vuln-trees/java_log4shell.tml"),
+        ("maestro", "maestro/single-agent-rag.toml"),
+    ],
+)
+def test_batch_supports_every_file_based_module(tmp_path, module_type, template):
+    # Only attack trees/graphs, threat models and binaries were accepted;
+    # other module types raised "Unknown module type".
+    result = process_batch(module_type, [os.path.join(TEMPLATES_DIR, template)], str(tmp_path))
+    assert result.failure_count == 0, result.failures
+    assert list(tmp_path.glob("*.png"))

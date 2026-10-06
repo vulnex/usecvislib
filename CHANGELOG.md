@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Vulnerability tree output is reproducible.** Nodes and edges were emitted in set order, which follows Python's per-process string hash seed, so the same input gave different SVG bytes (and potentially a different Graphviz layout) on each run. `_visible_nodes()` now returns dependencies in declaration order.
 - **Custom diagrams with force layouts are reproducible.** The `force`, `grid` and `sfdp` layouts (Graphviz `fdp`, `neato`, `sfdp`) started from a random placement, so a diagram such as the network topology template changed size and shape on every render. They now use a fixed seed (`start=1`).
 - **Cloud diagrams with an empty cluster render.** A cluster without nodes generated an empty `with Cluster(...):` block, so the diagram failed with a Python `IndentationError`. It now renders as an empty cluster and logs a warning.
+- **Batch processing covers every file-based module.** `BatchProcessor` / `process_batch()` accepted only `attack_tree`, `attack_graph`, `threat_model` and `binary`; `privilege_gradient`, `component_diagram`, `dependency_graph`, `kill_chain`, `incident_timeline`, `vuln_tree` and `maestro` raised "Unknown module type". They now build through the shared `build()` path.
 
 ## [0.6.0] - 2026-09-23
 
