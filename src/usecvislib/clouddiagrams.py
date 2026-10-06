@@ -641,6 +641,10 @@ class CloudDiagrams:
             cluster_label_escaped = _escape_python_string(cluster.label)
             lines.append("")
             lines.append(f'    with Cluster("{cluster_label_escaped}"):')
+            if not cluster.nodes:
+                # An empty "with" block is a syntax error in the generated script
+                logger.warning(f"Cloud cluster '{cluster.id}' has no nodes; it is drawn empty")
+                lines.append("        pass")
 
             for node in cluster.nodes:
                 var_name = self._safe_var_name(node.id)

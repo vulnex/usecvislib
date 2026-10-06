@@ -425,6 +425,23 @@ class TestCloudDiagramsCodeGeneration:
         assert "direction=" in code
         assert "with Diagram(" in code
 
+    def test_empty_cluster_generates_valid_python(self):
+        """A cluster without nodes produced an empty "with" block: a syntax error."""
+        import json
+
+        config = {
+            "diagram": {"title": "Empty Cluster"},
+            "nodes": [{"id": "users", "icon": "aws.general.Users", "label": "Users"}],
+            "clusters": [{"id": "vpc", "label": "VPC", "nodes": []}],
+        }
+        cd = CloudDiagrams(validate_diagrams=False)
+        cd.load_from_string(json.dumps(config), format="json")
+
+        code = cd.to_python_code()
+
+        compile(code, "<cloud diagram>", "exec")
+        assert 'with Cluster("VPC"):\n        pass' in code
+
     def test_save_python(self, sample_toml_config, tmp_path):
         """Test saving Python code to file."""
         cd = CloudDiagrams(validate_diagrams=False)
