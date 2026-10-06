@@ -5,24 +5,7 @@ All notable changes to USecVisLib will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-
-- **Render gallery** at https://vulnex.github.io/usecvislib-gallery/ (repository [vulnex/usecvislib-gallery](https://github.com/vulnex/usecvislib-gallery)): every bundled template rendered with every engine, view and style preset, in PNG, SVG, PDF and DOT. The README and the CLI, template, custom-diagram, MAESTRO and Python API guides link to it.
-- `scripts/build_gallery.py` regenerates the gallery inside the API Docker image. It fails if any render errors or if an output contains a home-directory path or an e-mail address.
-
-### Fixed
-
-- **SVG output with icons is self-contained.** Graphviz SVGs (every Graphviz module) and cloud-diagram SVGs linked node icons by absolute file path: temp thumbnails deleted at exit, or the icon's location in `site-packages`. Shared SVGs showed no icons and disclosed local paths, often including the user's home directory. Local images are now embedded as `data:` URIs (`utils.embed_svg_images`, applied by the new `utils.render_graph`). DOT output still references icon files, since Graphviz needs them to render.
-- **Vulnerability tree output is reproducible.** Nodes and edges were emitted in set order, which follows Python's per-process string hash seed, so the same input gave different SVG bytes (and potentially a different Graphviz layout) on each run. `_visible_nodes()` now returns dependencies in declaration order.
-- **Custom diagrams with force layouts are reproducible.** The `force`, `grid` and `sfdp` layouts (Graphviz `fdp`, `neato`, `sfdp`) started from a random placement, so a diagram such as the network topology template changed size and shape on every render. They now use a fixed seed (`start=1`).
-- **Cloud diagrams with an empty cluster render.** A cluster without nodes generated an empty `with Cluster(...):` block, so the diagram failed with a Python `IndentationError`. It now renders as an empty cluster and logs a warning.
-- **Batch processing covers every file-based module.** `BatchProcessor` / `process_batch()` accepted only `attack_tree`, `attack_graph`, `threat_model` and `binary`; `privilege_gradient`, `component_diagram`, `dependency_graph`, `kill_chain`, `incident_timeline`, `vuln_tree` and `maestro` raised "Unknown module type". They now build through the shared `build()` path.
-- **Reports list only files they wrote.** `ReportGenerator.generate_report()` listed a CSV per config section, but no visualization class provides `export_csv`, so none of those CSVs were written. Tabular sections (lists of objects, or objects keyed by ID) are now written directly, and only files that exist are returned.
-- **`compare_files()` covers every file-based module.** It accepted only `attack_tree`, `attack_graph` and `threat_model`, although the diff itself works on any loaded config; it now accepts the same module types as batch processing (except `binary`).
-
-## [0.6.0] - 2026-09-23
+## [0.6.0] - 2026-10-06
 
 ### Added
 
@@ -74,6 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Emitted SVG carries the full interactivity contract (`data-node-id`, `usv-sev--*` / `usv-node--direct` / `usv-edge--exploited` classes, per-package CVSS badge) with no active content; PNG/PDF via cairosvg.
   - Wired through the CLI (`-m 11 --render-engine svg`), the REST API (`render_engine` on `POST /visualize/vuln-tree`, `sv_*` values on `VulnTreeStyle`), and the frontend `VulnTreePanel.vue` (engine toggle + inlined `InteractiveSvg` display path).
   - 30 tests in `tests/test_svg_vulntree.py` (contract, all templates × modes, exploited/direct semantics, engine-mismatch guards, cairosvg raster, CLI end-to-end).
+- **Render gallery** at https://vulnex.github.io/usecvislib-gallery/ (repository [vulnex/usecvislib-gallery](https://github.com/vulnex/usecvislib-gallery)): every bundled template rendered with every engine, view and style preset, in PNG, SVG, PDF and DOT. The README and the CLI, template, custom-diagram, MAESTRO and Python API guides link to it.
+- `scripts/build_gallery.py` regenerates the gallery inside the API Docker image. It fails if any render errors or if an output contains a home-directory path or an e-mail address.
 
 ### Security
 
@@ -83,6 +68,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **matplotlib pinned to 3.10.8** (was `>=3.7.0`) so text metrics — and therefore SVG-engine layout and golden-file bytes — are identical across the Python 3.10–3.13 CI matrix and dev machines; the attack-tree SVG golden was regenerated against the pinned version.
 - Frontend main content now widens to fill the viewport (capped at 2200px) instead of a fixed narrow column, and the footer copyright reads 2025-2026 (release year through current year).
+
+### Fixed
+
+- **SVG output with icons is self-contained.** Graphviz SVGs (every Graphviz module) and cloud-diagram SVGs linked node icons by absolute file path: temp thumbnails deleted at exit, or the icon's location in `site-packages`. Shared SVGs showed no icons and disclosed local paths, often including the user's home directory. Local images are now embedded as `data:` URIs (`utils.embed_svg_images`, applied by the new `utils.render_graph`). DOT output still references icon files, since Graphviz needs them to render.
+- **Vulnerability tree output is reproducible.** Nodes and edges were emitted in set order, which follows Python's per-process string hash seed, so the same input gave different SVG bytes (and potentially a different Graphviz layout) on each run. `_visible_nodes()` now returns dependencies in declaration order.
+- **Custom diagrams with force layouts are reproducible.** The `force`, `grid` and `sfdp` layouts (Graphviz `fdp`, `neato`, `sfdp`) started from a random placement, so a diagram such as the network topology template changed size and shape on every render. They now use a fixed seed (`start=1`).
+- **Cloud diagrams with an empty cluster render.** A cluster without nodes generated an empty `with Cluster(...):` block, so the diagram failed with a Python `IndentationError`. It now renders as an empty cluster and logs a warning.
+- **Batch processing covers every file-based module.** `BatchProcessor` / `process_batch()` accepted only `attack_tree`, `attack_graph`, `threat_model` and `binary`; `privilege_gradient`, `component_diagram`, `dependency_graph`, `kill_chain`, `incident_timeline`, `vuln_tree` and `maestro` raised "Unknown module type". They now build through the shared `build()` path.
+- **Reports list only files they wrote.** `ReportGenerator.generate_report()` listed a CSV per config section, but no visualization class provides `export_csv`, so none of those CSVs were written. Tabular sections (lists of objects, or objects keyed by ID) are now written directly, and only files that exist are returned.
+- **`compare_files()` covers every file-based module.** It accepted only `attack_tree`, `attack_graph` and `threat_model`, although the diff itself works on any loaded config; it now accepts the same module types as batch processing (except `binary`).
+
+## [0.5.0] - 2026-08-27
 
 ### Added
 
