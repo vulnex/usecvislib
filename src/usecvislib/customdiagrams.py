@@ -442,6 +442,9 @@ class CustomDiagrams:
         if engine != "dot":
             # Force/spring engines otherwise let nodes and labels overlap
             graph.attr(overlap="false", sep="+12", esep="+8")
+        if engine in ("fdp", "neato", "sfdp"):
+            # Fixed seed for the initial placement: the same diagram renders the same way every time
+            graph.attr(start="1")
 
         # Set default node attributes
         graph.attr("node", fontname=self.settings.fontname)

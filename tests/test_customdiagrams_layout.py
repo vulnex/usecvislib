@@ -86,3 +86,13 @@ def test_import_attack_graph_keeps_attack_path():
     assert steps
     exploits = {n["id"] for n in cd.nodes if n["type"] == "exploit"}
     assert all(e["from"] in exploits or e["to"] in exploits for e in steps)
+
+
+def test_force_layouts_use_a_fixed_seed():
+    # fdp started from a random placement, so the force-layout topology
+    # template came out with a different size and shape on every render.
+    cd = CustomDiagrams()
+    cd.load(str(TEMPLATES / "network/topology.toml"))
+    graph = cd._render_impl()
+    assert graph.engine == "fdp"
+    assert re.search(r"\bstart=1\b", graph.source)
