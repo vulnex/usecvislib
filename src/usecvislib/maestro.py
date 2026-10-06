@@ -1542,7 +1542,7 @@ class MaestroThreatModel(VisualizationBase):
             raise MaestroError("Graph not rendered. Call render() first.")
         try:
             utils.ortho_edge_xlabels(self.graph)
-            self.graph.render(outputfile, cleanup=True)
+            utils.render_graph(self.graph, outputfile)
             self.logger.debug("Successfully wrote MAESTRO visualization")
         except Exception as e:
             self.logger.error(f"Failed to render graph to {outputfile}: {e}")

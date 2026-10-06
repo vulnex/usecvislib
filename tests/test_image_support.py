@@ -17,6 +17,7 @@ This module tests the image validation and processing features:
 """
 
 import os
+import shutil
 import pytest
 import tempfile
 from pathlib import Path
@@ -31,6 +32,7 @@ from usecvislib.utils import (
     SecurityError,
     IMAGE_EXTENSIONS,
     IMAGE_MAX_SIZE,
+    embed_svg_images,
 )
 
 
@@ -328,6 +330,77 @@ class TestImageEdgeCases:
             shutil.copy(temp_image_file, dotted_name)
             result = validate_image_path(dotted_name)
             assert result.exists()
+
+
+# =============================================================================
+# Self-contained SVG output (embed_svg_images / render_graph)
+# =============================================================================
+
+TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+HAVE_DOT = shutil.which("dot") is not None
+
+
+def _local_image_hrefs(svg_text):
+    """<image> references that are not data: URIs (local paths leak and break)."""
+    import re
+
+    return [h for h in re.findall(r"<image\b[^>]*?href=\"([^\"]*)\"", svg_text) if not h.startswith("data:")]
+
+
+class TestEmbedSvgImages:
+    """Graphviz linked icons by absolute path: broken elsewhere, and it leaked
+    the local directory layout (often the user's home directory)."""
+
+    def test_local_image_becomes_data_uri(self, tmp_path):
+        icon = tmp_path / "icon.png"
+        icon.write_bytes(b"\x89PNG\r\n\x1a\nfake")
+        svg = tmp_path / "out.svg"
+        svg.write_text(f'<svg><image xlink:href="{icon}" width="36px"/></svg>', encoding="utf-8")
+
+        assert embed_svg_images(svg) == 1
+        text = svg.read_text(encoding="utf-8")
+        assert str(tmp_path) not in text
+        assert 'xlink:href="data:image/png;base64,iVBORw0KGgpmYWtl"' in text
+
+    def test_remote_data_and_fragment_refs_kept(self, tmp_path):
+        body = (
+            '<svg><image xlink:href="https://example.org/a.png"/>'
+            '<image href="data:image/png;base64,AAAA"/><image xlink:href="#sprite"/></svg>'
+        )
+        svg = tmp_path / "out.svg"
+        svg.write_text(body, encoding="utf-8")
+
+        assert embed_svg_images(svg) == 0
+        assert svg.read_text(encoding="utf-8") == body
+
+    def test_missing_file_path_is_dropped(self, tmp_path):
+        svg = tmp_path / "out.svg"
+        svg.write_text('<svg><image xlink:href="/home/someone/gone.png"/></svg>', encoding="utf-8")
+
+        assert embed_svg_images(svg) == 0
+        assert svg.read_text(encoding="utf-8") == '<svg><image xlink:href=""/></svg>'
+
+    @pytest.mark.skipif(not HAVE_DOT, reason="graphviz 'dot' binary not installed")
+    def test_attack_tree_icons_embedded(self, tmp_path):
+        from usecvislib.attacktrees import AttackTrees
+
+        out = tmp_path / "tree"
+        AttackTrees(str(TEMPLATES_DIR / "attack-trees" / "aws_cloud_security_icons.toml"), str(out), "svg").BuildAttackTree()
+        text = out.with_suffix(".svg").read_text(encoding="utf-8")
+        assert "data:image/png;base64," in text
+        assert _local_image_hrefs(text) == []
+
+    @pytest.mark.skipif(not HAVE_DOT, reason="graphviz 'dot' binary not installed")
+    def test_cloud_diagram_icons_embedded(self, tmp_path):
+        pytest.importorskip("diagrams")
+        from usecvislib.clouddiagrams import CloudDiagrams
+
+        cd = CloudDiagrams()
+        cd.load(str(TEMPLATES_DIR / "cloud" / "aws" / "web-application.toml"))
+        result = cd.render(str(tmp_path / "cloud"), format="svg", show=False)
+        text = Path(result.output_path).read_text(encoding="utf-8")
+        assert "data:image/png;base64," in text
+        assert _local_image_hrefs(text) == []
 
 
 if __name__ == '__main__':

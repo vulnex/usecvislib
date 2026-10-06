@@ -331,7 +331,7 @@ class PyTMWrapper:
 
         graph = gv.Source(dot_content)
         graph.format = self.format
-        output_path = graph.render(self.outputfile, cleanup=True)
+        output_path = utils.render_graph(graph, self.outputfile)
         return output_path
 
     @staticmethod
@@ -1028,7 +1028,7 @@ class ThreatModeling(VisualizationBase):
 
         try:
             utils.ortho_edge_xlabels(self.graph)
-            self.graph.render(outputfile, cleanup=True)
+            utils.render_graph(self.graph, outputfile)
             self.logger.debug("Successfully wrote threat model visualization")
         except Exception as e:
             self.logger.error(f"Failed to render graph to {outputfile}: {e}")

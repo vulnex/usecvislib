@@ -1579,6 +1579,68 @@ def ortho_edge_xlabels(graph: Any) -> None:
             body[i] = _EDGE_LABEL.sub(r"\1xlabel=", line)
 
 
+_SVG_IMAGE_HREF = re.compile(r"""(<image\b[^>]*?\b(?:xlink:)?href=)(["'])(.*?)\2""", re.DOTALL)
+_IMAGE_MIME = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".svg": "image/svg+xml",
+}
+
+
+def embed_svg_images(svg_path: Union[str, Path]) -> int:
+    """Inline the local images an SVG links to as ``data:`` URIs, in place.
+
+    Graphviz writes node icons as ``<image xlink:href="/abs/path/icon.png">``.
+    Such an SVG shows no icons on any other machine (the thumbnails are temp
+    files deleted at exit) and discloses local paths, often including the
+    user's home directory. Remote (``http``), ``data:`` and fragment references
+    are kept; a missing local file is replaced by an empty href so no path is
+    written out.
+
+    Returns:
+        Number of images embedded.
+    """
+    import base64
+    import html as _html
+
+    path = Path(svg_path)
+    text = path.read_text(encoding="utf-8")
+    embedded = 0
+
+    def inline(match: "re.Match[str]") -> str:
+        nonlocal embedded
+        prefix, quote, href = match.groups()
+        ref = _html.unescape(href)
+        if ref.startswith(("data:", "#", "http://", "https://")):
+            return match.group(0)
+        local = Path(ref[7:] if ref.startswith("file://") else ref)
+        mime = _IMAGE_MIME.get(local.suffix.lower())
+        if mime and local.is_file():
+            embedded += 1
+            return f"{prefix}{quote}data:{mime};base64,{base64.b64encode(local.read_bytes()).decode('ascii')}{quote}"
+        logger.warning(f"SVG image not embedded (missing or unsupported): {local.name}")
+        return f"{prefix}{quote}{quote}"
+
+    new_text = _SVG_IMAGE_HREF.sub(inline, text)
+    if new_text != text:
+        path.write_text(new_text, encoding="utf-8")
+    return embedded
+
+
+def render_graph(graph: Any, outputfile: str, **kwargs: Any) -> str:
+    """Render a ``graphviz`` graph to ``outputfile`` and make SVG output self-contained.
+
+    Same as ``graph.render(outputfile, cleanup=True)``, plus
+    :func:`embed_svg_images` when the output is SVG.
+    """
+    rendered = graph.render(outputfile, cleanup=True, **kwargs)
+    if str(rendered).lower().endswith(".svg"):
+        embed_svg_images(rendered)
+    return rendered
+
+
 def readable_text_color(fill: Any, light: str = "#ffffff", dark: str = "#1f2937") -> Optional[str]:
     """Pick the label color (light or dark) with the better contrast on ``fill``.
 

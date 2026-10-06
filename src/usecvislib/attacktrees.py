@@ -416,7 +416,7 @@ class AttackTrees(VisualizationBase):
 
         try:
             utils.ortho_edge_xlabels(self.dot)
-            self.dot.render(outputfile, cleanup=True)
+            utils.render_graph(self.dot, outputfile)
             self.logger.debug("Successfully wrote attack tree visualization")
         except Exception as e:
             self.logger.error(f"Failed to render graph to {outputfile}: {e}")

@@ -51,6 +51,7 @@ from .utils import (
     ReadConfigFile,
     RenderError,
     ValidationError,
+    embed_svg_images,
     parse_content,
     validate_output_path,
 )
@@ -561,6 +562,9 @@ class CloudDiagrams:
                 else:
                     raise CloudDiagramError(f"Output file was not created: {output_file}")
 
+            if fmt == "svg":
+                # The diagrams package links icons by their site-packages path
+                embed_svg_images(output_file)
             logger.info(f"Rendered cloud diagram to {output_file}")
 
             return CloudDiagramResult(output_path=output_file, format=fmt, stats=self.get_stats(), success=True)

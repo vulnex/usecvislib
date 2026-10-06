@@ -52,6 +52,7 @@ from .utils import (
     ortho_edge_xlabels,
     parse_content,
     process_node_image,
+    render_graph,
     sanitize_node_id,
 )
 
@@ -748,11 +749,7 @@ class CustomDiagrams:
             # Render to file
             output_path = Path(output)
             try:
-                rendered_path = graph.render(
-                    filename=str(output_path.with_suffix("")),
-                    cleanup=True,
-                    view=view,
-                )
+                rendered_path = render_graph(graph, str(output_path.with_suffix("")), view=view)
             except gv.CalledProcessError as e:
                 # Graphviz's ortho router aborts on some layouts (maze.c
                 # assertion, SIGABRT); fall back to polyline routing.
@@ -765,11 +762,7 @@ class CustomDiagrams:
                 finally:
                     self.settings.splines = "ortho"
                 graph.format = output_format
-                rendered_path = graph.render(
-                    filename=str(output_path.with_suffix("")),
-                    cleanup=True,
-                    view=view,
-                )
+                rendered_path = render_graph(graph, str(output_path.with_suffix("")), view=view)
 
             logger.info(f"Diagram rendered to {rendered_path}")
 

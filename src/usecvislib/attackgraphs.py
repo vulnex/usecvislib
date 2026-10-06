@@ -675,7 +675,7 @@ class AttackGraphs(VisualizationBase):
 
         try:
             utils.ortho_edge_xlabels(self.graph)
-            self.graph.render(outputfile, cleanup=True)
+            utils.render_graph(self.graph, outputfile)
             self.logger.debug("Successfully wrote attack graph visualization")
         except Exception as e:
             self.logger.error(f"Failed to render graph to {outputfile}: {e}")

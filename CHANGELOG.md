@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Render gallery** at https://vulnex.github.io/usecvislib-gallery/ (repository [vulnex/usecvislib-gallery](https://github.com/vulnex/usecvislib-gallery)): every bundled template rendered with every engine, view and style preset, in PNG, SVG, PDF and DOT. The README and the CLI, template, custom-diagram, MAESTRO and Python API guides link to it.
 - `scripts/build_gallery.py` regenerates the gallery inside the API Docker image. It fails if any render errors or if an output contains a home-directory path or an e-mail address.
 
+### Fixed
+
+- **SVG output with icons is self-contained.** Graphviz SVGs (every Graphviz module) and cloud-diagram SVGs linked node icons by absolute file path: temp thumbnails deleted at exit, or the icon's location in `site-packages`. Shared SVGs showed no icons and disclosed local paths, often including the user's home directory. Local images are now embedded as `data:` URIs (`utils.embed_svg_images`, applied by the new `utils.render_graph`). DOT output still references icon files, since Graphviz needs them to render.
+
 ## [0.6.0] - 2026-09-23
 
 ### Added
