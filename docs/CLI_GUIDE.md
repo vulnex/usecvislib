@@ -167,6 +167,8 @@ usecvis -i attack.toml -o output -m 0 -f svg --shine
 
 ## Visualization Modes
 
+The [render gallery](https://vulnex.github.io/usecvislib-gallery/) shows the output of every mode below for each bundled template, engine (`--render-engine`), view (`-v`) and style preset (`-s`).
+
 ### Attack Trees (Mode 0)
 
 Attack trees represent security threats as hierarchical structures showing how an attacker might achieve goals.
@@ -1841,6 +1843,7 @@ See [UI Guide](UI_GUIDE.md#api-authentication) for configuring authentication in
 - [UI Guide](UI_GUIDE.md) - Web interface documentation
 - [README](../README.md) - Project overview and installation
 - [Templates](../templates/) - Example configuration files
+- [Render Gallery](https://vulnex.github.io/usecvislib-gallery/) - Every template, engine and style preset, rendered
 
 ---
 

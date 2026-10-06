@@ -347,6 +347,8 @@ Matplotlib-rendered matrix of agents (rows) × layers (columns). Each cell is co
 
 ## Style Presets
 
+All presets, views and example templates are rendered in the [render gallery](https://vulnex.github.io/usecvislib-gallery/#maestro).
+
 | Preset | When to use |
 |---|---|
 | `ma_default` | Presentations, screen viewing — light pastel bands with color-coded layers. |
@@ -574,4 +576,5 @@ Copy and adapt these to your model. For minimum-friction starting points:
 - [`docs/CLI_GUIDE.md`](CLI_GUIDE.md) — full CLI reference (all modes)
 - [`docs/PYTHON_API.md`](PYTHON_API.md) — programmatic API for the entire library
 - [`docs/UI_GUIDE.md`](UI_GUIDE.md) — Vue frontend usage guide
+- [Render gallery](https://vulnex.github.io/usecvislib-gallery/#maestro) — every MAESTRO template, view and style preset, rendered
 - [Cloud Security Alliance — MAESTRO blog post](https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro)

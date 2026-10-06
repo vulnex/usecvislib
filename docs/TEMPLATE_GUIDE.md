@@ -36,6 +36,8 @@ USecVisLib supports multiple configuration formats for defining security visuali
 | Component Diagrams | `-m 7` | `title` + `layers` | Layered architecture visualization |
 | Dependency Graphs | `-m 8` | `title` + `modules` | Module dependency analysis |
 
+Every template in `templates/` is rendered with each engine and style preset in the [render gallery](https://vulnex.github.io/usecvislib-gallery/), so you can see what a config produces before you edit it.
+
 ---
 
 ## Supported Formats
@@ -2448,6 +2450,8 @@ Use absolute or relative paths for custom icons:
 ---
 
 ## Available Styles
+
+To compare presets visually, see the `_styles (all presets)` section of each module in the [render gallery](https://vulnex.github.io/usecvislib-gallery/).
 
 ### Attack Tree Styles
 

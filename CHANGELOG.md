@@ -5,6 +5,13 @@ All notable changes to USecVisLib will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Render gallery** at https://vulnex.github.io/usecvislib-gallery/ (repository [vulnex/usecvislib-gallery](https://github.com/vulnex/usecvislib-gallery)): every bundled template rendered with every engine, view and style preset, in PNG, SVG, PDF and DOT. The README and the CLI, template, custom-diagram, MAESTRO and Python API guides link to it.
+- `scripts/build_gallery.py` regenerates the gallery inside the API Docker image. It fails if any render errors or if an output contains a home-directory path or an e-mail address.
+
 ## [0.6.0] - 2026-09-23
 
 ### Added

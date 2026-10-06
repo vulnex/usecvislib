@@ -100,6 +100,7 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S101", "S105", "S106", "S314", "T20"]  # S314: tests parse locally generated SVG
 "src/usecvislib/usecvis.py" = ["T201"]  # CLI entry point: print() is the intended output channel
+"scripts/*.py" = ["T201"]  # developer scripts report progress with print()
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

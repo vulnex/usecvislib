@@ -3682,6 +3682,7 @@ generate_security_report("threat_model.toml", "./reports")
 - [Custom Diagrams Guide](CUSTOM_DIAGRAMS_GUIDE.md) - Custom diagrams documentation
 - [README](../README.md) - Project overview and installation
 - [Templates](../templates/) - Example configuration files
+- [Render Gallery](https://vulnex.github.io/usecvislib-gallery/) - Every template, engine and style preset, rendered
 
 ---
 

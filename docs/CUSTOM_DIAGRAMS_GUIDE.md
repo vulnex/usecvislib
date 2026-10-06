@@ -418,6 +418,8 @@ ranksep = 1.0   # Vertical spacing (inches)
 
 ## Style Presets
 
+Every preset and template is rendered in the [render gallery](https://vulnex.github.io/usecvislib-gallery/#custom-diagrams).
+
 ### Available Styles
 
 | Style ID | Description |
@@ -1216,6 +1218,7 @@ cd = CustomDiagrams()
 - [Python API Guide](PYTHON_API.md) - Full Python API documentation
 - [README](../README.md) - Project overview and installation
 - [Templates](../templates/custom-diagrams/) - Template files
+- [Render Gallery](https://vulnex.github.io/usecvislib-gallery/#custom-diagrams) - Every template and style preset, rendered
 
 ---
 

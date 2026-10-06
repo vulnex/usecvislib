@@ -46,6 +46,29 @@ A comprehensive Python library and web application for creating security visuali
 - **Zoomable Visualizations** - Pan and zoom controls on all images
 - **Live Editor** - Syntax highlighting with real-time validation
 
+## Gallery
+
+**[Browse the render gallery →](https://vulnex.github.io/usecvislib-gallery/)**
+
+Every bundled template rendered with every engine (Graphviz, SVG engine, Matplotlib, pytm), every view and every style preset, in PNG, SVG, PDF and DOT. It's the quickest way to pick a preset or compare engines before writing a config. Jump to a module:
+[Attack Trees](https://vulnex.github.io/usecvislib-gallery/#attack-trees) ·
+[Threat Modeling](https://vulnex.github.io/usecvislib-gallery/#threat-modeling) ·
+[Binary Visualization](https://vulnex.github.io/usecvislib-gallery/#binary-visualization) ·
+[Attack Graphs](https://vulnex.github.io/usecvislib-gallery/#attack-graphs) ·
+[Custom Diagrams](https://vulnex.github.io/usecvislib-gallery/#custom-diagrams) ·
+[Cloud Diagrams](https://vulnex.github.io/usecvislib-gallery/#cloud-diagrams) ·
+[Mermaid](https://vulnex.github.io/usecvislib-gallery/#mermaid) ·
+[Privilege Gradient](https://vulnex.github.io/usecvislib-gallery/#privilege-gradient) ·
+[Component Diagram](https://vulnex.github.io/usecvislib-gallery/#component-diagram) ·
+[Dependency Graph](https://vulnex.github.io/usecvislib-gallery/#dependency-graph) ·
+[Kill Chain](https://vulnex.github.io/usecvislib-gallery/#kill-chain) ·
+[Incident Timeline](https://vulnex.github.io/usecvislib-gallery/#incident-timeline) ·
+[Vulnerability Tree](https://vulnex.github.io/usecvislib-gallery/#vulnerability-tree) ·
+[MAESTRO](https://vulnex.github.io/usecvislib-gallery/#maestro) ·
+[Shine Pack](https://vulnex.github.io/usecvislib-gallery/#shine-pack)
+
+The images live in a separate repository, [vulnex/usecvislib-gallery](https://github.com/vulnex/usecvislib-gallery), so they don't add weight to this one. To regenerate them, run `scripts/build_gallery.py` (see the script header).
+
 ## Screenshots
 
 ### Attack Trees
@@ -616,6 +639,8 @@ usecvislib/
 │   ├── privilege-gradient/   # Privilege gradient templates
 │   ├── architecture/         # Component diagram & dependency graph templates
 │   └── maestro/              # MAESTRO agentic threat model templates
+├── scripts/
+│   └── build_gallery.py      # Regenerates the render gallery (vulnex/usecvislib-gallery)
 ├── tests/                    # Unit tests (1500+ tests)
 ├── docker-compose.yml        # Docker Compose config
 ├── Dockerfile                # Docker image
