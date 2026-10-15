@@ -38,6 +38,7 @@ from ..schemas import (
     InversionsResponse,
     OutputFormat,
     PrivilegeGradientStyle,
+    RenderEngine,
     TemplateMetadata,
 )
 
@@ -71,6 +72,10 @@ async def visualize_privilege_gradient(
     file: UploadFile = File(..., description="Configuration file containing privilege gradient definition"),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     style: PrivilegeGradientStyle = Query(default=PrivilegeGradientStyle.DEFAULT, description="Style preset"),
+    render_engine: RenderEngine = Query(
+        default=RenderEngine.GRAPHVIZ,
+        description="Rendering engine: graphviz (default) or svg (modern cards over a Graphviz-computed layout, sv_* styles)",
+    ),
 ):
     """
     Generate a privilege gradient graph visualization from an uploaded configuration file.
@@ -89,7 +94,12 @@ async def visualize_privilege_gradient(
         output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
         input_for_viz = resolve_images_to_temp(input_path, temps)
 
-        pg = PrivilegeGradient(input_for_viz, output_base, format=format.value, styleid=style.value)
+        styleid = style.value
+        if render_engine == RenderEngine.SVG and style == PrivilegeGradientStyle.DEFAULT:
+            styleid = ""  # let the engine pick sv_default
+        pg = PrivilegeGradient(
+            input_for_viz, output_base, format=format.value, styleid=styleid, render_engine=render_engine.value
+        )
         await run_sync_with_timeout(
             pg.BuildPrivilegeGradient,
             REQUEST_TIMEOUT_VISUALIZE,

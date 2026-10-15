@@ -151,6 +151,16 @@ DEFAULTS: dict[str, Any] = {
     # Component Diagram (mode 7): a single component fill (types vary by
     # shape, not color — matching the Graphviz path), one connection color,
     # and a pastel palette cycled across layer clusters.
+    "privilegegradient": {
+        "component_border": "#1e293b",
+        "inversion": "#cc0000",
+        "inversion_width": 3.0,
+        "rankdir": "LR",
+        "nodesep": 0.6,
+        "ranksep": 1.0,
+        # Influence type colors when the file defines none (dark presets use theirs)
+        "type_colors": {"data": "#3498db", "feedback": "#e67e22", "resource": "#27ae60", "control": "#8e44ad"},
+    },
     "componentdiagram": {
         "component": "#4a90d9",
         "component_border": "#1e293b",

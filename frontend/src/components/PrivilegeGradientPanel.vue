@@ -76,9 +76,16 @@
             </select>
           </div>
           <div class="option-group">
+            <label>Engine</label>
+            <select v-model="renderEngine">
+              <option value="graphviz">Graphviz</option>
+              <option value="svg">SVG (modern)</option>
+            </select>
+          </div>
+          <div class="option-group">
             <label>Style</label>
             <select v-model="style">
-              <option v-for="s in styles" :key="s" :value="s">{{ formatStyleName(s) }}</option>
+              <option v-for="s in availableStyles" :key="s" :value="s">{{ formatStyleName(s) }}</option>
             </select>
           </div>
         </div>
@@ -222,6 +229,21 @@ const props = defineProps({
 })
 
 // Watch for clean trigger from parent
+// Declared before the watch below, which reads it immediately
+const renderEngine = ref('graphviz')
+
+// SVG-engine presets (sv_*) and Graphviz presets (pg_*) are not interchangeable
+const SVG_ENGINE_STYLES = ['sv_default', 'sv_dark', 'sv_security', 'sv_corporate', 'sv_minimal']
+const availableStyles = computed(() => {
+  if (renderEngine.value === 'svg') return SVG_ENGINE_STYLES
+  const fromProps = (props.styles || []).filter((s) => s.startsWith('pg_'))
+  return fromProps.length ? fromProps : props.styles
+})
+
+watch(renderEngine, (engine) => {
+  style.value = engine === 'svg' ? 'sv_default' : 'pg_default'
+})
+
 const cleanTrigger = inject('cleanTrigger')
 watch(cleanTrigger, () => {
   resetPanel()
@@ -341,6 +363,7 @@ function resetPanel() {
   fileFormat.value = 'toml'
   format.value = 'png'
   style.value = 'pg_default'
+  renderEngine.value = 'graphviz'
   isConfigValid.value = false
   templateMismatch.value = null
   clearResults()
@@ -360,7 +383,13 @@ async function generateVisualization() {
   validation.value = null
 
   try {
-    const blob = await visualizePrivilegeGradientFromContent(editorContent.value, format.value, style.value, fileFormat.value)
+    const blob = await visualizePrivilegeGradientFromContent(
+      editorContent.value,
+      format.value,
+      style.value,
+      fileFormat.value,
+      renderEngine.value
+    )
     imageBlob.value = blob
     imageUrl.value = createImageUrl(blob)
   } catch (err) {

@@ -76,3 +76,77 @@ data_influence = {color = "#4682b4", style = "solid", fontname = "Arial", fontsi
 feedback_influence = {color = "#b8860b", style = "dashed", fontname = "Arial", fontsize = "9", fontcolor = "#b8860b", penwidth = "1.5", arrowhead = "vee"}
 resource_influence = {color = "#3d5a80", style = "dotted", fontname = "Arial", fontsize = "9", fontcolor = "#3d5a80", penwidth = "2", arrowhead = "diamond"}
 control_influence = {color = "#6b7b8c", style = "bold", fontname = "Arial", fontsize = "9", fontcolor = "#6b7b8c", penwidth = "2", arrowhead = "dot"}
+
+# =============================================================================
+# SVG-engine presets (render_engine="svg"). Selected via `--render-engine svg`
+# (CLI) or `render_engine="svg"` (API/library). Zones keep their own colors
+# from the file (fill, border, text) on light presets; dark presets set
+# `zone_fill` / `zone_text` / `component_fill` and keep the zone color in the
+# borders, as the Graphviz pg_dark preset does. `type_colors` are the influence
+# colors used when the file defines none (dark presets always use theirs).
+# =============================================================================
+
+# SVG Default - clean modern trust zones
+[sv_default]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#f8fafc", padding = 44, text = "#111827"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 10, padding_x = 16, padding_y = 11, border_width = 1.0, min_width = 116, max_label_width = 200}
+node = {fill = "#4a90d9", border = "#1e293b", text = "#ffffff"}
+edge = {color = "#64748b", width = 1.6, routing = "spline", label_size = 10, label_color = "#475569"}
+effects = {shadow = true, shadow_blur = 2.2, hover_glow = true}
+cluster = {fill = "#eef2f7", border = "#cbd5e1", text = "#334155", label_size = 12, radius = 12}
+privilegegradient = {component_border = "#1e293b", inversion = "#cc0000", inversion_width = 3.0, rankdir = "LR", nodesep = 0.6, ranksep = 1.0}
+
+# SVG Dark - night-ops board; zone colors move to the borders
+[sv_dark]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#0f172a", padding = 44, text = "#e2e8f0"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 10, padding_x = 16, padding_y = 11, border_width = 1.6, min_width = 116, max_label_width = 200}
+node = {fill = "#2e2e52", border = "#475569", text = "#e2e8f0"}
+edge = {color = "#64748b", width = 1.6, routing = "spline", label_size = 10, label_color = "#cbd5e1"}
+effects = {shadow = true, shadow_blur = 2.6, hover_glow = true}
+cluster = {fill = "#1e293b", border = "#334155", text = "#cbd5e1", label_size = 12, radius = 12}
+privilegegradient = {dark = true, zone_fill = "#1b2238", zone_text = "#e2e8f0", component_fill = "#2e2e52", component_border = "#475569", inversion = "#ff4d4d", inversion_width = 3.0, rankdir = "LR", nodesep = 0.6, ranksep = 1.0, type_colors = {data = "#4a90d9", feedback = "#f0a030", resource = "#5ed98a", control = "#c77dff"}}
+
+# SVG Security - high-contrast
+[sv_security]
+meta = {engine = "svg"}
+title = {show = true, size = 16}
+page = {background = "#f5f7fa", padding = 46, text = "#0f172a"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 8, padding_x = 16, padding_y = 11, border_width = 1.4, min_width = 124, max_label_width = 210}
+node = {fill = "#2c3e50", border = "#0f172a", text = "#ffffff"}
+edge = {color = "#475569", width = 1.9, routing = "spline", label_size = 10, label_color = "#334155"}
+effects = {shadow = true, shadow_blur = 2.4, hover_glow = true}
+cluster = {fill = "#e5e9ef", border = "#94a3b8", text = "#0f172a", label_size = 12, radius = 8}
+privilegegradient = {component_border = "#0f172a", inversion = "#b91c1c", inversion_width = 3.4, rankdir = "LR", nodesep = 0.65, ranksep = 1.1}
+
+# SVG Corporate - professional, square-ish cards for reports
+[sv_corporate]
+meta = {engine = "svg"}
+title = {show = true, size = 15}
+page = {background = "#ffffff", padding = 48, text = "#16324f"}
+font = {family = "Calibri, Carlito, Segoe UI, Arial, sans-serif", size = 13, root_size = 16}
+card = {radius = 3, padding_x = 15, padding_y = 10, border_width = 1.3, min_width = 120, max_label_width = 205}
+node = {fill = "#2f5f8a", border = "#16324f", text = "#ffffff"}
+edge = {color = "#6b7b8c", width = 1.5, routing = "spline", label_size = 10, label_color = "#4a5b6b"}
+effects = {shadow = false, shadow_blur = 0, hover_glow = false}
+cluster = {fill = "#f1f4f7", border = "#c3ced9", text = "#16324f", label_size = 12, radius = 6}
+privilegegradient = {component_border = "#16324f", inversion = "#c0392b", inversion_width = 3.0, rankdir = "LR", nodesep = 0.6, ranksep = 1.0}
+
+# SVG Minimal - flat outline, no depth
+[sv_minimal]
+meta = {engine = "svg"}
+title = {show = false, size = 14}
+page = {background = "#ffffff", padding = 40, text = "#475569"}
+font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 15}
+card = {radius = 4, padding_x = 14, padding_y = 9, border_width = 1.0, min_width = 112, max_label_width = 195}
+node = {fill = "#5b7896", border = "#cbd5e1", text = "#ffffff"}
+edge = {color = "#94a3b8", width = 1.3, routing = "spline", label_size = 10, label_color = "#64748b"}
+effects = {shadow = false, shadow_blur = 0, hover_glow = false}
+cluster = {fill = "#f8fafc", border = "#e2e8f0", text = "#475569", label_size = 11, radius = 6}
+privilegegradient = {component_border = "#cbd5e1", inversion = "#dc2626", inversion_width = 2.6, rankdir = "LR", nodesep = 0.55, ranksep = 0.9}

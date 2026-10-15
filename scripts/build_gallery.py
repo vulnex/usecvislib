@@ -57,7 +57,7 @@ GRAPH_MODULES = [
     (AT, 0, "attack-trees/*", True, None, "attacktrees", "attack-trees/ransomware_attack.tml"),
     (TM, 1, "threat-models/*", True, None, "threatmodeling", "threat-models/ecommerce_platform.tml"),
     (AG, 3, "attack-graphs/*", True, None, "attackgraphs", "attack-graphs/corporate_network.tml"),
-    (PG, 6, "privilege-gradient/*", False, None, "privilegegradient", "privilege-gradient/corporate_network.tml"),
+    (PG, 6, "privilege-gradient/*", True, None, "privilegegradient", "privilege-gradient/corporate_network.tml"),
     (CO, 7, "architecture/component-*", True, None, "componentdiagram", "architecture/component-diagram-example.json"),
     (DG, 8, "architecture/dependency-*", True, None, "dependencygraph", "architecture/dependency-graph-example.json"),
     (KC, 9, "kill-chains/*", True, None, "killchain", "kill-chains/apt_intrusion.tml"),

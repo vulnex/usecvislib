@@ -482,8 +482,13 @@ def edge_path(
     width: float,
     dashed: bool = False,
     marker_url: str = "",
+    dash: Optional[str] = None,
 ) -> ET.Element:
-    """Edge stroke along a path, with optional dash pattern and arrowhead."""
+    """Edge stroke along a path, with optional dash pattern and arrowhead.
+
+    ``dash`` is an explicit stroke-dasharray (e.g. "1.5 4" for dotted) and
+    overrides ``dashed``.
+    """
     attrs = {
         "d": d,
         "fill": "none",
@@ -491,7 +496,9 @@ def edge_path(
         "stroke-width": fmt(width),
         "stroke-linecap": "round",
     }
-    if dashed:
+    if dash:
+        attrs["stroke-dasharray"] = dash
+    elif dashed:
         attrs["stroke-dasharray"] = f"{fmt(width * 3)} {fmt(width * 2.5)}"
     if marker_url:
         attrs["marker-end"] = marker_url

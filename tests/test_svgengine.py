@@ -207,11 +207,30 @@ class TestTidyTreeLayout:
 
 class TestEngineWiring:
     def test_unsupported_module_raises(self, tmp_path):
-        # PrivilegeGradient (mode 6) has no SVG painter registered yet.
-        from usecvislib.privilegegradient import PrivilegeGradient
+        # A module with no SVG painter registered (every graph module has one now)
+        from usecvislib.base import VisualizationBase
+
+        class NoPainter(VisualizationBase):
+            def _default_style(self):
+                return {}
+
+            def _load_impl(self):
+                return {}
+
+            def _render_impl(self):
+                pass
+
+            def _draw_impl(self, outputfile):
+                pass
+
+            def _validate_impl(self):
+                return []
+
+            def _get_stats_impl(self):
+                return {}
 
         with pytest.raises(EngineNotSupportedError):
-            PrivilegeGradient(FIXTURE, str(tmp_path / "x"), "svg", render_engine="svg")
+            NoPainter(FIXTURE, str(tmp_path / "x"), "svg", render_engine="svg")
 
     def test_dot_format_raises(self, tmp_path):
         from usecvislib.attacktrees import AttackTrees

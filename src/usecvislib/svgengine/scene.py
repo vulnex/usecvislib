@@ -62,6 +62,7 @@ class SceneNode:
     sources: int = 0  # distinct reporting sources; >= 2 draws a "confirmed by N" chip
     inferred: bool = False  # a hypothesis, not an observation: dashed outline, usv-node--inferred
     diff: Optional[str] = None  # drift view: "added" | "removed" | "modified" | "unchanged"
+    layout_only: bool = False  # an invisible layout anchor: sent to the oracle, never painted
     data: dict[str, str] = field(default_factory=dict)  # extra data-* attributes
 
 
@@ -83,6 +84,9 @@ class SceneEdge:
     data: dict[str, str] = field(default_factory=dict)  # extra data-* attributes
     inferred: bool = False  # a hypothesis, not an observation: usv-edge--inferred
     diff: Optional[str] = None  # drift view: "added" | "removed" | "unchanged"
+    dash: Optional[str] = None  # stroke-dasharray, overrides `dashed` (e.g. "1.5 4" for dotted)
+    layout_only: bool = False  # an invisible layout constraint: sent to the oracle, never painted
+    weight: Optional[int] = None  # oracle edge weight (keeps layout-only chains straight)
 
 
 @dataclass

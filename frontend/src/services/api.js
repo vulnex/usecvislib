@@ -970,12 +970,12 @@ export async function analyzeVulnerabilityImpactFromContent(content, vulnId, con
  * @param {string} format - Output format (png, svg, pdf)
  * @param {string} style - Style preset
  */
-export async function visualizePrivilegeGradient(file, format = 'png', style = 'pg_default') {
+export async function visualizePrivilegeGradient(file, format = 'png', style = 'pg_default', renderEngine = 'graphviz') {
   const formData = new FormData()
   formData.append('file', file)
 
   const response = await api.post(
-    `/visualize/privilege-gradient?format=${format}&style=${style}`,
+    `/visualize/privilege-gradient?format=${format}&style=${style}&render_engine=${renderEngine}`,
     formData,
     {
       responseType: 'blob',
@@ -988,9 +988,9 @@ export async function visualizePrivilegeGradient(file, format = 'png', style = '
 /**
  * Generate privilege gradient visualization from text content
  */
-export async function visualizePrivilegeGradientFromContent(content, outputFormat = 'png', style = 'pg_default', configFormat = 'toml') {
+export async function visualizePrivilegeGradientFromContent(content, outputFormat = 'png', style = 'pg_default', configFormat = 'toml', renderEngine = 'graphviz') {
   const file = createFileFromContent(content, 'privilege_gradient', configFormat)
-  return visualizePrivilegeGradient(file, outputFormat, style)
+  return visualizePrivilegeGradient(file, outputFormat, style, renderEngine)
 }
 
 /**

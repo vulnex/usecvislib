@@ -27,7 +27,7 @@ badges, and the title — emitting the standard interactivity contract. All
 node-kind semantics live in the caller; none leak here.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 from ... import utils
 from .. import images, metrics, shapes
@@ -102,7 +102,16 @@ def _reserve_label_sizes(scene: Scene, theme: dict[str, Any]) -> None:
             edge.label_height = size * 1.5
 
 
-def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str, *, rankdir: str = "LR") -> str:
+def render_graph_svg(
+    viz,
+    scene: Scene,
+    theme: dict[str, Any],
+    module_slug: str,
+    *,
+    rankdir: str = "LR",
+    nodesep: Optional[float] = None,
+    ranksep: Optional[float] = None,
+) -> str:
     """Render a general-graph ``Scene`` to SVG text via the Graphviz oracle.
 
     Args:
@@ -111,6 +120,8 @@ def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str,
         theme: The resolved ``sv_*`` theme dict.
         module_slug: Module slug for CSS classes / data attributes.
         rankdir: Layout direction passed to the oracle ("LR" | "TB" | ...).
+        nodesep, ranksep: Oracle spacing in inches (default: the theme's
+            ``attackgraph`` spacing, which the first painters shared).
     """
     from ... import utils
 
@@ -126,8 +137,8 @@ def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str,
     ag = theme.get("attackgraph", {})
     GraphvizJsonLayout(
         rankdir=rankdir,
-        nodesep=float(ag.get("nodesep", 0.4)),
-        ranksep=float(ag.get("ranksep", 0.7)),
+        nodesep=float(nodesep if nodesep is not None else ag.get("nodesep", 0.4)),
+        ranksep=float(ranksep if ranksep is not None else ag.get("ranksep", 0.7)),
     ).solve(scene)
 
     font = theme["font"]
@@ -154,10 +165,11 @@ def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str,
     pad = float(page["padding"])
     # Bounds span nodes and any placed cluster rectangles (clusters extend
     # beyond their members by the reserved padding + label band).
-    xs_lo = [n.x - n.width / 2 for n in scene.nodes]
-    ys_lo = [n.y - n.height / 2 for n in scene.nodes]
-    xs_hi = [n.x + n.width / 2 for n in scene.nodes]
-    ys_hi = [n.y + n.height / 2 for n in scene.nodes]
+    drawn = [n for n in scene.nodes if not n.layout_only]
+    xs_lo = [n.x - n.width / 2 for n in drawn]
+    ys_lo = [n.y - n.height / 2 for n in drawn]
+    xs_hi = [n.x + n.width / 2 for n in drawn]
+    ys_hi = [n.y + n.height / 2 for n in drawn]
     for grp in scene.groups:
         if grp.width > 0 and grp.height > 0:
             xs_lo.append(grp.x)
@@ -209,15 +221,29 @@ _DIFF_CHIPS = {"added": "+", "removed": "\u2212", "modified": "~"}
 
 
 def _paint_legend(canvas: SvgCanvas, theme: dict[str, Any], items: list, x: float, y: float) -> None:
-    """One legend row: a colored swatch and a label per (label, color) item."""
+    """One legend row: a swatch and a label per item.
+
+    An item is (label, color) for an outlined box, or (label, color, line) for a
+    short line in an edge style, where ``line`` is {"width", "dashed", "dash"}.
+    """
     font = theme["font"]
     size = float(font["size"]) * 0.85
     text_color = theme["page"]["text"]
     g = shapes.group(["usv-legend"])
-    for label, color in items:
-        g.append(shapes.card(x, y - size * 0.85, size * 1.6, size, 3.0, "none", color, 2.0))
-        g.append(shapes.anchored_text(x + size * 2.1, y, label, size, text_color, anchor="start"))
-        x += size * 2.1 + metrics.measure_text(label, font["family"], size) + 24.0
+    for item in items:
+        label, color = item[0], item[1]
+        line = item[2] if len(item) > 2 else None
+        if line is not None:
+            mid = y - size * 0.35
+            d = f"M {shapes.fmt(x)} {shapes.fmt(mid)} L {shapes.fmt(x + size * 2.6)} {shapes.fmt(mid)}"
+            width = float(line.get("width", 2.0))
+            g.append(shapes.edge_path(d, color, width, dashed=bool(line.get("dashed")), dash=line.get("dash")))
+            swatch_w = size * 2.6
+        else:
+            g.append(shapes.card(x, y - size * 0.85, size * 1.6, size, 3.0, "none", color, 2.0))
+            swatch_w = size * 1.6
+        g.append(shapes.anchored_text(x + swatch_w + size * 0.5, y, label, size, text_color, anchor="start"))
+        x += swatch_w + size * 0.5 + metrics.measure_text(label, font["family"], size) + 24.0
     canvas.add("labels", g)
 
 
@@ -279,7 +305,7 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], edge_cf
     for edge in scene.edges:
         src = by_id.get(edge.src)
         dst = by_id.get(edge.dst)
-        if src is None or dst is None:
+        if src is None or dst is None or edge.layout_only:
             continue
         color = edge.color or base_color
         width = edge.width if edge.width is not None else base_width
@@ -310,7 +336,9 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], edge_cf
         group = shapes.group(classes, data)
         if edge.diff == "removed":
             group.set("opacity", shapes.fmt(float(diff_cfg.get("removed_opacity", 0.35))))
-        group.append(shapes.edge_path(d, color, width, dashed=dashed, marker_url=canvas.arrow_marker(color)))
+        group.append(
+            shapes.edge_path(d, color, width, dashed=dashed, marker_url=canvas.arrow_marker(color), dash=edge.dash)
+        )
         canvas.add("edges", group)
 
         if edge.label:
@@ -337,6 +365,8 @@ def _paint_nodes(
     default_text = node_cfg.get("text", "#ffffff")
 
     for node in scene.nodes:
+        if node.layout_only:
+            continue
         fill = node.fill or default_fill
         border = node.border or default_border
         text_color = node.text_color or default_text

@@ -307,6 +307,13 @@ class PrivilegeGradientStyle(str, Enum):
     NEON = "pg_neon"
     CORPORATE = "pg_corporate"
 
+    # SVG engine presets (require render_engine=svg)
+    SVG_DEFAULT = "sv_default"
+    SVG_DARK = "sv_dark"
+    SVG_SECURITY = "sv_security"
+    SVG_CORPORATE = "sv_corporate"
+    SVG_MINIMAL = "sv_minimal"
+
 
 class ComponentDiagramStyle(str, Enum):
     """Available component diagram styles."""

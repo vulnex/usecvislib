@@ -77,7 +77,8 @@ def Usage() -> None:
     print("  --render-engine <eng>   Rendering engine: graphviz (default) or svg")
     print("                          svg: modern hand-painted output with the mode's sv_* styles (see -s)")
     print("                          Currently supported for modes 0 (Attack Trees), 1 (Threat Model/DFD),")
-    print("                          3 (Attack Graphs), 7 (Component Diagram), 8 (Dependency Graph),")
+    print("                          3 (Attack Graphs), 6 (Privilege Gradient), 7 (Component Diagram),")
+    print("                          8 (Dependency Graph),")
     print("                          9 (Kill Chain), 10 (Incident Timeline), 11 (Vuln Dependency Tree),")
     print("                          12 (MAESTRO, -v graph view only)")
     print("")
@@ -455,10 +456,10 @@ def main(argv: Optional[list[str]] = None) -> int:
     if render_engine not in ("graphviz", "svg"):
         error_exit(f"Invalid render engine: {render_engine}. Must be graphviz or svg.")
     if render_engine == "svg":
-        if mode not in (0, 1, 3, 7, 8, 9, 10, 11, 12):
+        if mode not in (0, 1, 3, 6, 7, 8, 9, 10, 11, 12):
             error_exit(
                 "Render engine 'svg' currently supports modes 0 (Attack Trees), 1 (Threat Model / DFD), "
-                "3 (Attack Graphs), 7 (Component Diagram), 8 (Dependency Graph), 9 (Kill Chain), "
+                "3 (Attack Graphs), 6 (Privilege Gradient), 7 (Component Diagram), 8 (Dependency Graph), 9 (Kill Chain), "
                 "10 (Incident Timeline), 11 (Vuln Dependency Tree), 12 (MAESTRO, graph view); "
                 f"got mode {mode}."
             )
@@ -682,7 +683,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             # Privilege Gradient Graphs
             from . import privilegegradient
 
-            pg = privilegegradient.PrivilegeGradient(inputfile, outputfile, format, styleid)
+            pg = privilegegradient.PrivilegeGradient(
+                inputfile, outputfile, format, styleid, render_engine=render_engine
+            )
             pg.BuildPrivilegeGradient()
             print(f"Privilege gradient graph generated: {outputfile}.{format}")
 

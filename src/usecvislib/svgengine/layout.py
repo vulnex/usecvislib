@@ -741,14 +741,20 @@ class GraphvizJsonLayout:
         of whichever fonts the Graphviz host has installed. The chosen label
         center comes back as the edge's ``lp``.
         """
-        if not edge.label or edge.label_width <= 0 or edge.label_height <= 0:
-            return ""
-        w = max(1, round(edge.label_width))
-        h = max(1, round(edge.label_height))
-        return (
-            ' [label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="0" CELLSPACING="0">'
-            f'<TR><TD WIDTH="{w}" HEIGHT="{h}" FIXEDSIZE="TRUE"></TD></TR></TABLE>>]'
-        )
+        attrs = []
+        if getattr(edge, "layout_only", False):
+            # Ordering constraint only (e.g. zone anchors left to right)
+            attrs.append("style=invis")
+        if getattr(edge, "weight", None) is not None:
+            attrs.append(f"weight={int(edge.weight)}")
+        if edge.label and edge.label_width > 0 and edge.label_height > 0:
+            w = max(1, round(edge.label_width))
+            h = max(1, round(edge.label_height))
+            attrs.append(
+                'label=<<TABLE BORDER="0" CELLBORDER="0" CELLPADDING="0" CELLSPACING="0">'
+                f'<TR><TD WIDTH="{w}" HEIGHT="{h}" FIXEDSIZE="TRUE"></TD></TR></TABLE>>'
+            )
+        return f" [{', '.join(attrs)}]" if attrs else ""
 
     def _node_line(self, node) -> str:
         """DOT declaration for one node, sized in inches (px / 72)."""

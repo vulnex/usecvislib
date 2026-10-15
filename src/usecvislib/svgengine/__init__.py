@@ -43,6 +43,7 @@ _PAINTERS: dict[str, str] = {
     "AttackTrees": "usecvislib.svgengine.painters.attacktrees",
     "AttackGraphs": "usecvislib.svgengine.painters.attackgraphs",
     "ComponentDiagram": "usecvislib.svgengine.painters.componentdiagram",
+    "PrivilegeGradient": "usecvislib.svgengine.painters.privilegegradient",
     "DependencyGraph": "usecvislib.svgengine.painters.dependencygraph",
     "KillChain": "usecvislib.svgengine.painters.killchain",
     "MaestroThreatModel": "usecvislib.svgengine.painters.maestro",
