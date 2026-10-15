@@ -478,7 +478,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         holding what is kept; inversions are re-detected on that.
 
         Raises:
-            ValueError: If what would be drawn exceeds the graph size limit.
+            PrivilegeGradientError: If what would be drawn exceeds the graph size limit.
         """
         view = GradientView(self._zones, self._components, self._influences, self._inversions)
         if self.diff_marks is not None:
@@ -494,7 +494,10 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         if self.diff_marks is not None and not self.show_unchanged:
             self._changes_only(view)
         # The size limit applies to what is drawn, so a large gradient grouped and collapsed renders
-        utils.check_graph_complexity(len(view.components), len(view.influences))
+        try:
+            utils.check_graph_complexity(len(view.components), len(view.influences))
+        except ValueError as e:
+            raise PrivilegeGradientError(f"{e} Group components (group_by) and collapse them.") from e
         return view
 
     def drift_view(self) -> GradientView:

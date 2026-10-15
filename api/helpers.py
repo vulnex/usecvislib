@@ -626,6 +626,13 @@ class TempFiles:
 INTERNAL_ERROR_DETAIL = "An internal error occurred"
 
 
+def collapse_option(collapse: Optional[str]) -> Any:
+    """A ``collapse`` query value as the library takes it: none / all as booleans, else as given."""
+    if collapse is None:
+        return None
+    return {"none": False, "all": True}.get(collapse.strip().lower(), collapse)
+
+
 @contextmanager
 def handle_errors(
     temps: Optional[TempFiles] = None,

@@ -523,6 +523,18 @@ usecvis -m 3 -i network.toml -o graph --group-by zone --collapse users,servers
 
 The flags override `group_by` / `collapse` / `max_nodes` in the file's `[graph]` section. See "Grouping and collapse" in the template guide.
 
+The same flags group a privilege gradient's components within their zone (mode 6; group ids are `<zone>/<value>`):
+
+```bash
+# Group AD computers by role, collapse the largest groups until 200 components remain
+usecvis -m 6 -i ad_tiers.toml -o tiers --group-by role --collapse auto --max-nodes 200
+
+# Collapse only the Tier 2 workstations
+usecvis -m 6 -i ad_tiers.toml -o tiers --group-by role --collapse tier2/workstation
+```
+
+The flags override the file's `[gradient]` section; the statistics list each group's members and inversions. See "Privilege Gradients" in the template guide.
+
 #### Drift Between Two Versions
 
 ```bash

@@ -9,7 +9,7 @@
 
 import logging
 import os
-from typing import Any, Optional
+from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
@@ -27,6 +27,7 @@ from ..config import (
 )
 from ..helpers import (
     TempFiles,
+    collapse_option,
     file_response,
     handle_errors,
     resolve_images_to_temp,
@@ -46,13 +47,6 @@ from ..schemas import (
 )
 
 logger = logging.getLogger("usecvislib.api")
-
-
-def _collapse_option(collapse: Optional[str]) -> Any:
-    """The collapse query value as the library takes it."""
-    if collapse is None:
-        return None
-    return {"none": False, "all": True}.get(collapse.strip().lower(), collapse)
 
 
 router = APIRouter(tags=["Attack Graphs"])
@@ -165,7 +159,7 @@ async def visualize_attack_graph(
             styleid=styleid,
             render_engine=render_engine.value,
             group_by=group_by,
-            collapse=_collapse_option(collapse),
+            collapse=collapse_option(collapse),
             max_nodes=max_nodes,
         )
         await run_sync_with_timeout(

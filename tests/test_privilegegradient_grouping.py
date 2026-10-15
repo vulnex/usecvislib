@@ -16,7 +16,7 @@ from pathlib import Path
 import pytest
 
 from usecvislib.grouping import SUMMARY_PREFIX
-from usecvislib.privilegegradient import PrivilegeGradient
+from usecvislib.privilegegradient import PrivilegeGradient, PrivilegeGradientError
 from usecvislib.privilegegradient_view import component_groups, summary_label_lines
 from usecvislib.svgengine import themes
 from usecvislib.svgengine.painters import privilegegradient as painter
@@ -247,7 +247,7 @@ class TestSizeLimit:
         }
 
     def test_too_many_components_fail_fast(self, tmp_path):
-        with pytest.raises(ValueError, match="10001 nodes"):
+        with pytest.raises(PrivilegeGradientError, match="10001 nodes.*group_by"):
             _pg(tmp_path, self._big(10001)).render_view()
 
     def test_collapsed_they_render(self, tmp_path):
@@ -301,3 +301,85 @@ def test_template_svg_contract(tmp_path):
     clusters = [g for g in groups if "usv-cluster" in g.get("class", "") and g.get("data-collapsed") == "false"]
     assert {g.get("data-cluster-id") for g in clusters} >= {"tier1_app_server", "tier0_domain_controller"}
     assert any(g.get("data-edge-count") == "2" for g in groups)
+
+
+def test_builder():
+    from usecvislib.builders import PrivilegeGradientBuilder
+
+    builder = (
+        PrivilegeGradientBuilder("AD", use_default_zones=False)
+        .add_zone("tier2", "Tier 2", 0)
+        .add_component("ws1", "WS 1", "tier2", role="workstation")
+        .add_component("ws2", "WS 2", "tier2", role="workstation")
+        .set_grouping("role", collapse="auto", max_nodes=50)
+        .add_group("tier2/workstation", label="Workstations", collapsed=True)
+    )
+    data = builder.build()
+    assert data["gradient"]["group_by"] == "role" and data["gradient"]["collapse"] == "auto"
+    assert data["gradient"]["max_nodes"] == 50
+    assert data["groups"] == {"tier2/workstation": {"label": "Workstations", "collapsed": True}}
+    pg = builder.to_privilege_gradient("unused")
+    pg.load()
+    assert pg.render_view().summary_facts(WS)["label"] == "Workstations"
+
+
+@requires_dot
+def test_cli(tmp_path):
+    import os
+    import subprocess
+    import sys
+
+    path = tmp_path / "ad.json"
+    path.write_text(json.dumps(AD), encoding="utf-8")
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent / "src")}
+    out = subprocess.run(
+        [sys.executable, "-m", "usecvislib.usecvis", "-m", "6", "-i", str(path), "-o", str(tmp_path / "o"),
+         "-f", "svg", "--render-engine", "svg", "--group-by", "role", "--collapse", "tier2/workstation"],
+        capture_output=True, text=True, env=env, cwd=tmp_path,
+    )  # fmt: skip
+    assert out.returncode == 0, out.stderr
+    assert "tier2/workstation: 3 components, 4 inversions" in out.stdout
+    assert 'data-cluster-id="tier2_workstation"' in (tmp_path / "o.svg").read_text(encoding="utf-8")
+
+
+class TestApi:
+    @pytest.fixture
+    def client(self):
+        import os
+        import sys
+
+        sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
+        os.environ["USECVISLIB_AUTH_ENABLED"] = "false"
+        from fastapi.testclient import TestClient
+
+        from api.config import limiter
+        from api.main import app
+
+        limiter.reset()
+        yield TestClient(app)
+        limiter.reset()
+
+    @staticmethod
+    def _file(data=AD):
+        return {"file": ("ad.json", json.dumps(data).encode())}
+
+    def test_analyze_groups(self, client):
+        response = client.post("/analyze/privilege-gradient", params={"group_by": "role"}, files=self._file())
+        assert response.status_code == 200, response.text
+        assert response.json()["groups"]["tier2/workstation"] == {
+            "label": "workstation", "zone": "tier2", "members": 3, "inversions": 4, "max_severity": "high",
+        }  # fmt: skip
+
+    def test_size_limit_is_a_client_error(self, client):
+        response = client.post("/visualize/privilege-gradient", files=self._file(TestSizeLimit._big(10001)))
+        assert response.status_code == 400 and "group_by" in response.json()["detail"]
+
+    @requires_dot
+    def test_visualize_grouped(self, client):
+        response = client.post(
+            "/visualize/privilege-gradient",
+            params={"format": "svg", "render_engine": "svg", "group_by": "role", "collapse": "all"},
+            files=self._file(),
+        )
+        assert response.status_code == 200, response.text
+        assert 'data-collapsed="true"' in response.text and 'data-edge-count="2"' in response.text

@@ -84,9 +84,11 @@ def Usage() -> None:
     print("")
     print("  --group-by <field>      Attack graphs (mode 3): cluster hosts by a host field (e.g. zone),")
     print("                          or by network with ip/N (IPv4) or ip6/N (IPv6), e.g. ip/24")
-    print("  --collapse <which>      Attack graphs: draw groups as one summary node:")
+    print("                          Privilege gradients (mode 6): group components within their zone")
+    print("                          by a component field (e.g. role); group ids are <zone>/<value>")
+    print("  --collapse <which>      Modes 3 and 6: draw groups as one summary node:")
     print("                          none, all, auto (largest first until --max-nodes), or group ids a,b")
-    print("  --max-nodes <n>         Attack graphs: node target for --collapse auto (default 300)")
+    print("  --max-nodes <n>         Modes 3 and 6: node target for --collapse auto (default 300)")
     print("  --diff <old file>       Attack graphs (3), privilege gradients (6): draw the drift from <old file>")
     print("                          to -i (added, removed, modified elements and, mode 6, new / fixed")
     print("                          inversions highlighted)")
@@ -268,9 +270,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     direction = "TB"  # Cloud diagram direction
     shine = False  # Post-process SVG output with shine styling
     render_engine = "graphviz"  # Rendering engine: graphviz or svg
-    group_by = None  # Attack graph: host field (or ip/N) to cluster hosts by
-    collapse = None  # Attack graph: none | all | auto | comma-separated group ids
-    max_nodes = None  # Attack graph: node target for --collapse auto
+    group_by = None  # Modes 3 / 6: host field (or ip/N) / component field to group by
+    collapse = None  # Modes 3 / 6: none | all | auto | comma-separated group ids
+    max_nodes = None  # Modes 3 / 6: node target for --collapse auto
     diff_old = None  # Modes 3 and 6: earlier version to draw the drift from (-i is the later one)
     changes_only = False  # Drift: draw only changed elements and their neighbours
     diff_colors = None  # Drift: added=#..,removed=#..,modified=#..
@@ -696,7 +698,14 @@ def main(argv: Optional[list[str]] = None) -> int:
             from . import privilegegradient
 
             pg = privilegegradient.PrivilegeGradient(
-                inputfile, outputfile, format, styleid, render_engine=render_engine
+                inputfile,
+                outputfile,
+                format,
+                styleid,
+                render_engine=render_engine,
+                group_by=group_by,
+                collapse=collapse,
+                max_nodes=max_nodes,
             )
             pg.BuildPrivilegeGradient()
             print(f"Privilege gradient graph generated: {outputfile}.{format}")
@@ -711,6 +720,11 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  Inversions: {stats['total_inversions']}")
             if stats["max_trust_gap"] > 0:
                 print(f"  Max trust gap: {stats['max_trust_gap']}")
+            if stats.get("groups"):
+                print(f"\nGroups ({len(stats['groups'])}):")
+                for group_id, group in stats["groups"].items():
+                    inversions = f", {group['inversions']} inversions" if group["inversions"] else ""
+                    print(f"  {group_id}: {group['members']} components{inversions}")
 
             # Print inversions
             if stats["total_inversions"] > 0:

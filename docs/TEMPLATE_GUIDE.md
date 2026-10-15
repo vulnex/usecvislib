@@ -12,11 +12,12 @@ A comprehensive guide for creating configuration templates for USecVisLib visual
 6. [Custom Diagrams](#custom-diagrams)
 7. [Component Diagrams](#component-diagrams)
 8. [Dependency Graphs](#dependency-graphs)
-9. [Common Elements](#common-elements)
-10. [CVSS Integration](#cvss-integration)
-11. [Icons and Images](#icons-and-images)
-12. [Available Styles](#available-styles)
-13. [Best Practices](#best-practices)
+9. [Privilege Gradients](#privilege-gradients)
+10. [Common Elements](#common-elements)
+11. [CVSS Integration](#cvss-integration)
+12. [Icons and Images](#icons-and-images)
+13. [Available Styles](#available-styles)
+14. [Best Practices](#best-practices)
 
 ---
 
@@ -2394,6 +2395,82 @@ Circular dependencies are highlighted with red bold edges and a warning label. T
 ### Available Styles
 
 `dg_default`, `dg_dark`, `dg_minimal`, `dg_coupling`
+
+---
+
+## Privilege Gradients
+
+A privilege gradient places components in trust zones, ordered left to right by trust level, and connects them with typed influences. An influence from a lower-trust component into a higher-trust one is an **inversion** (a tiering violation), drawn in red with its severity: trust gap 1 medium (`!`), 2 high (`!!`), 3 or more critical (`!!!`).
+
+### Schema Structure
+
+```toml
+[gradient]
+name = "Corporate Network"
+
+[[zones]]                    # optional: five default zones Z0-Z4 are used when none are given
+id = "dmz"
+label = "DMZ"
+trust_level = 1              # higher is more trusted
+color = "#ffe0b2"            # zone fill
+border_color = "#e65100"     # zone border, and the fill of its components
+font_color = "#663300"
+
+[[components]]
+id = "web_server"
+label = "Web Server"
+zone = "dmz"
+
+[[influence_types]]          # optional: data, feedback, resource, control by default
+id = "data"
+label = "Data Flow"
+color = "#3498db"
+style = "solid"              # solid | dashed | dotted | bold
+
+[[influences]]
+from = "web_server"
+to = "db_server"
+type = "data"                # data | feedback | resource | control
+label = "SQL"
+```
+
+### Grouping and collapse
+
+Large gradients (for example a real Active Directory with thousands of computers) can group components within their zone, and draw a group as one summary component. Grouping is opt-in: without `group_by` (and without component `group` fields) the gradient renders exactly as before.
+
+```toml
+[gradient]
+name = "AD tiers"
+group_by = "role"          # component field to group on
+collapse = "auto"          # false (default) | true | "auto" | ["tier2/workstation", ...]
+max_nodes = 300            # target for "auto": components drawn
+
+[groups."tier2/workstation"]   # optional per group, by <zone>/<value>
+label = "Tier 2 workstations"
+color = "#ffe0b2"              # cluster fill
+collapsed = true               # always collapsed (or false: always expanded)
+
+[[components]]
+id = "ws_0101"
+zone = "tier2"
+role = "workstation"       # picked up by group_by = "role"
+# group = "helpdesk"       # or set the group directly (wins over group_by)
+```
+
+**Membership:** a component's `group`, else its `group_by` value. A group never spans zones: the same value in two zones is two groups, with ids `<zone>/<value>` (e.g. `tier1/server` and `tier2/server`). Components without either field stay ungrouped.
+
+**Expanded** groups are drawn as dashed clusters inside their zone.
+
+**Collapsed** groups become one summary component in their zone: the group's label, its member count and, when members take part in inversions, their count with the worst severity's markers (`!! 4 inversions`, inversion-coloured border). Influences between members are dropped; influences into or out of the group point at the summary, and influences that end up with the same endpoints and type are merged and labelled `×N`.
+
+- Every component of a zone has the same trust level, so a group never hides an inversion: no influence between two members can be one, and the influences merged into one edge share one trust gap and severity (a merged inversion reads `! INVERSION ! · ×2`).
+- `collapse = true` collapses every group with more than one member; a list collapses those groups; `"auto"` collapses the largest groups first until at most `max_nodes` components are drawn. A group's own `collapsed` setting always wins.
+- The size limit (10,000 components / 50,000 influences) applies to what is drawn, so a large gradient grouped and collapsed renders instead of being rejected.
+- Inversions, statistics and path analysis always use the full model. With grouping on, statistics add per-group counts (`groups`: zone, members, inversions, worst severity).
+- The same options exist as render parameters (`PrivilegeGradient(..., group_by=, collapse=, max_nodes=)`, `--group-by` / `--collapse` / `--max-nodes` with `-m 6`, and API query parameters), which override the file.
+- SVG output: group clusters are `usv-cluster` groups with `data-cluster-id`, `data-zone` and `data-collapsed="false"`; summary components have class `usv-node--group` with `data-collapsed="true"`, `data-cluster-id`, `data-member-count`, `data-inversion-count`, `data-max-severity`; merged edges carry `data-edge-count`.
+
+Example: `templates/privilege-gradient/ad_tiers_grouped.tml`.
 
 ---
 

@@ -991,6 +991,53 @@ class PrivilegeGradientBuilder:
         self._data["gradient"][key] = value
         return self
 
+    def set_grouping(
+        self, group_by: str = "role", collapse: Any = None, max_nodes: Optional[int] = None
+    ) -> PrivilegeGradientBuilder:
+        """Group components within their zone when rendered.
+
+        Args:
+            group_by: Component field to group on (default "role"); a component's
+                own ``group`` field wins. A group never spans zones: its id is
+                ``<zone>/<value>``.
+            collapse: Draw groups as one summary component: True / "all", "auto",
+                or a list of group ids. None leaves every group expanded.
+            max_nodes: Component target for collapse="auto" (default 300).
+
+        Returns:
+            Self for method chaining.
+        """
+        self._data["gradient"]["group_by"] = group_by
+        if collapse is not None:
+            self._data["gradient"]["collapse"] = list(collapse) if isinstance(collapse, list | tuple) else collapse
+        if max_nodes is not None:
+            self._data["gradient"]["max_nodes"] = max_nodes
+        return self
+
+    def add_group(
+        self, group_id: str, label: Optional[str] = None, color: Optional[str] = None, collapsed: Optional[bool] = None
+    ) -> PrivilegeGradientBuilder:
+        """Set a group's label, cluster color, or collapsed state.
+
+        Args:
+            group_id: The group, as ``<zone>/<value>`` (e.g. "tier2/workstation").
+            label: Display label (default: the value).
+            color: Cluster fill color.
+            collapsed: True / False to always collapse or expand this group.
+
+        Returns:
+            Self for method chaining.
+        """
+        group: dict[str, Any] = {}
+        if label is not None:
+            group["label"] = label
+        if color is not None:
+            group["color"] = color
+        if collapsed is not None:
+            group["collapsed"] = collapsed
+        self._data.setdefault("groups", {})[group_id] = group
+        return self
+
     def build(self) -> dict[str, Any]:
         """Build and return the data as a dictionary.
 

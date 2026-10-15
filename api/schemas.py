@@ -668,6 +668,16 @@ class GradientInversion(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class GradientGroupStats(BaseModel):
+    """Counts for one group of privilege-gradient components (group_by)."""
+
+    label: str
+    zone: str
+    members: int
+    inversions: int = Field(description="Inversions the group's members take part in")
+    max_severity: Optional[str] = Field(default=None, description="Worst of those inversions: medium, high, critical")
+
+
 class GradientStats(BaseModel):
     """Privilege gradient graph statistics response."""
 
@@ -679,6 +689,9 @@ class GradientStats(BaseModel):
     inversions: list[dict[str, Any]] = Field(default=[], max_length=1000)
     components_per_zone: dict[str, int] = Field(default={})
     max_trust_gap: int = Field(default=0)
+    groups: Optional[dict[str, GradientGroupStats]] = Field(
+        default=None, description="Per-group counts when components are grouped (group_by), by <zone>/<value>"
+    )
     metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
 
 

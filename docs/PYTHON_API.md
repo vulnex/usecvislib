@@ -20,6 +20,7 @@ Complete Python API reference for the Universal Security Visualization Library.
    - [CloudDiagrams](#clouddiagrams)
    - [ComponentDiagram](#componentdiagram)
    - [DependencyGraph](#dependencygraph)
+   - [PrivilegeGradient](#privilegegradient)
    - [CVSS Module](#cvss-module)
    - [Settings Module](#settings-module)
    - [Templates](#templates)
@@ -2105,6 +2106,48 @@ stats = dg.get_stats()
 
 ---
 
+### PrivilegeGradient
+
+Trust zones ordered by trust level, components in them, typed influences between them, and inversions (a lower-trust component influencing a higher-trust one) detected and drawn in red. Both engines (`render_engine="graphviz"` or `"svg"`).
+
+```python
+from usecvislib import PrivilegeGradient
+
+pg = PrivilegeGradient("ad_tiers.toml", "tiers", format="svg", render_engine="svg",
+                       group_by="role", collapse="auto", max_nodes=200)
+pg.build()
+pg.detect_inversions()          # [{"from", "to", "from_zone", "to_zone", "trust_gap", "severity", ...}]
+pg.get_stats()["groups"]        # per group: {"label", "zone", "members", "inversions", "max_severity"}
+```
+
+#### Constructor Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `inputfile` | str | required | Path to configuration file (TOML, JSON, or YAML) |
+| `outputfile` | str | required | Output file path (without extension) |
+| `format` | str | `"png"` | Output format: `"png"`, `"svg"`, `"pdf"` |
+| `styleid` | str | `None` | Style preset (`pg_*` for Graphviz, `sv_*` for the SVG engine) |
+| `render_engine` | str | `"graphviz"` | `"graphviz"` or `"svg"` |
+| `group_by` | str | `None` | Group components within their zone by this component field (overrides `gradient.group_by`) |
+| `collapse` | bool / str / list | `None` | `False` / `"none"`, `True` / `"all"`, `"auto"`, or group ids `<zone>/<value>` (overrides `gradient.collapse`) |
+| `max_nodes` | int | `None` | Component target for `collapse="auto"` (default 300) |
+
+The grouping options are described in "Grouping and collapse" under Privilege Gradients in the template guide. Inversions, statistics and analysis always use the full model; grouping only changes the picture.
+
+#### Methods
+
+| Method | Description |
+|--------|-------------|
+| `detect_inversions()` | Influences from a lower-trust zone into a higher-trust one, with trust gap and severity |
+| `get_inversion_summary()` | Inversion counts by severity |
+| `get_zone_influence_matrix()` | Influence counts between zones |
+| `find_influence_paths(source, target, max_paths=10)` | Influence paths between two components |
+| `analyze_critical_components(top_n=10)` | Components ranked by centrality |
+| `render_view()` | What both engines draw: zones, components, influences, inversions after grouping (and drift marks) |
+
+---
+
 ### CVSS Module
 
 Calculate and parse CVSS scores. Supports both CVSS 3.1 and CVSS 4.0.
@@ -2635,6 +2678,29 @@ graph = (
     .build()
 )
 ```
+
+---
+
+### PrivilegeGradientBuilder
+
+```python
+from usecvislib import PrivilegeGradientBuilder
+
+pg = (
+    PrivilegeGradientBuilder("AD tiers", use_default_zones=False)
+    .add_zone("tier2", "Tier 2 - Workstations", 0)
+    .add_zone("tier0", "Tier 0 - Identity", 2)
+    .add_component("ws_0101", "WS-0101", "tier2", role="workstation")
+    .add_component("dc_01", "DC-01", "tier0", role="domain_controller")
+    .add_control_influence("ws_0101", "dc_01", "RDP as Domain Admin")   # an inversion
+    .set_grouping("role", collapse="auto", max_nodes=200)
+    .add_group("tier2/workstation", label="Tier 2 workstations", collapsed=True)
+    .to_privilege_gradient("tiers", format="svg", render_engine="svg")
+)
+pg.build()
+```
+
+`set_grouping(group_by="role", collapse=None, max_nodes=None)` and `add_group(group_id, label=None, color=None, collapsed=None)` write the `[gradient]` grouping keys and the `[groups]` table.
 
 ---
 

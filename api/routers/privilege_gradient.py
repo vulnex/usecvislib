@@ -9,6 +9,7 @@
 
 import logging
 import os
+from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, File, Query, Request, UploadFile
 from fastapi.responses import FileResponse
@@ -26,6 +27,7 @@ from ..config import (
 )
 from ..helpers import (
     TempFiles,
+    collapse_option,
     file_response,
     handle_errors,
     resolve_images_to_temp,
@@ -76,6 +78,21 @@ async def visualize_privilege_gradient(
         default=RenderEngine.GRAPHVIZ,
         description="Rendering engine: graphviz (default) or svg (modern cards over a Graphviz-computed layout, sv_* styles)",
     ),
+    group_by: Optional[str] = Query(
+        default=None,
+        max_length=64,
+        description="Group components within their zone by this component field (e.g. role); group ids are "
+        "<zone>/<value>. Overrides gradient.group_by in the file.",
+    ),
+    collapse: Optional[str] = Query(
+        default=None,
+        max_length=1000,
+        description="Draw groups as one summary component: none, all, auto (largest first until max_nodes), "
+        "or comma-separated group ids. Overrides gradient.collapse in the file.",
+    ),
+    max_nodes: Optional[int] = Query(
+        default=None, ge=1, le=10000, description="Component target for collapse=auto (default 300)"
+    ),
 ):
     """
     Generate a privilege gradient graph visualization from an uploaded configuration file.
@@ -98,7 +115,14 @@ async def visualize_privilege_gradient(
         if render_engine == RenderEngine.SVG and style == PrivilegeGradientStyle.DEFAULT:
             styleid = ""  # let the engine pick sv_default
         pg = PrivilegeGradient(
-            input_for_viz, output_base, format=format.value, styleid=styleid, render_engine=render_engine.value
+            input_for_viz,
+            output_base,
+            format=format.value,
+            styleid=styleid,
+            render_engine=render_engine.value,
+            group_by=group_by,
+            collapse=collapse_option(collapse),
+            max_nodes=max_nodes,
         )
         await run_sync_with_timeout(
             pg.BuildPrivilegeGradient,
@@ -119,17 +143,21 @@ async def visualize_privilege_gradient(
 async def analyze_privilege_gradient(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing privilege gradient definition"),
+    group_by: Optional[str] = Query(
+        default=None, max_length=64, description="Report per-group counts for components grouped by this field"
+    ),
 ):
     """
     Analyze a privilege gradient graph and return statistics without generating visualization.
 
-    Returns zone counts, component counts, influence counts, and inversion details.
+    Returns zone counts, component counts, influence counts, and inversion details,
+    plus per-group counts when components are grouped.
     """
     temps = TempFiles()
     with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
         input_path = temps.add(save_upload_file(file))
-        pg = PrivilegeGradient(input_path, "unused")
+        pg = PrivilegeGradient(input_path, "unused", group_by=group_by)
         stats = pg.get_stats()
 
         metadata_obj = pg.get_metadata()
