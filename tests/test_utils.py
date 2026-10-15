@@ -1135,3 +1135,70 @@ class TestElementSources:
         assert element_sources({}) == (0, [])
         assert element_sources("web01") == (0, [])
         assert element_sources({"source_count": "many"}) == (0, [])
+
+
+class TestIconThumbnailCache:
+    """Large icons are thumbnailed into a shared cache, not a temp file per render."""
+
+    @pytest.fixture
+    def cache(self, tmp_path, monkeypatch):
+        import tempfile
+
+        monkeypatch.setattr(tempfile, "tempdir", str(tmp_path))
+        return tmp_path / "usecvislib_icon_cache"
+
+    @pytest.fixture
+    def big_icon(self, tmp_path):
+        pil = pytest.importorskip("PIL.Image")
+        path = tmp_path / "icons" / "big.png"
+        path.parent.mkdir()
+        pil.new("RGBA", (128, 96), (200, 30, 30, 255)).save(path)
+        return path
+
+    def test_reused_across_calls(self, cache, big_icon):
+        from usecvislib.utils import _cached_thumbnail
+
+        first = _cached_thumbnail(big_icon)
+        assert first is not None and first.parent == cache
+        mtime = first.stat().st_mtime_ns
+        assert _cached_thumbnail(big_icon) == first and first.stat().st_mtime_ns == mtime
+        from PIL import Image
+
+        with Image.open(first) as img:
+            assert max(img.size) == 48
+
+    def test_edited_icon_gets_a_new_entry(self, cache, big_icon):
+        import os
+
+        from usecvislib.utils import _cached_thumbnail
+
+        first = _cached_thumbnail(big_icon)
+        stat = big_icon.stat()
+        os.utime(big_icon, ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000))
+        assert _cached_thumbnail(big_icon) != first
+
+    def test_no_partial_files_left(self, cache, big_icon):
+        from usecvislib.utils import _cached_thumbnail
+
+        _cached_thumbnail(big_icon)
+        assert [p.name for p in cache.iterdir()] == [_cached_thumbnail(big_icon).name]
+
+    def test_symlinked_cache_dir_is_refused(self, cache, big_icon, tmp_path):
+        from usecvislib.utils import _cached_thumbnail
+
+        elsewhere = tmp_path / "elsewhere"
+        elsewhere.mkdir()
+        cache.symlink_to(elsewhere)
+        assert _cached_thumbnail(big_icon) is None
+        assert list(elsewhere.iterdir()) == []
+
+    def test_process_node_image_creates_no_temp_files(self, cache, big_icon, tmp_path):
+        from usecvislib.utils import process_node_image
+
+        before = set(tmp_path.iterdir())
+        for _ in range(3):
+            attrs = {"label": "Server", "image": str(big_icon)}
+            process_node_image(attrs, "server")
+            assert "_thumb48.png" in attrs["label"]
+        assert set(tmp_path.iterdir()) - before == {cache}
+        assert len(list(cache.iterdir())) == 1

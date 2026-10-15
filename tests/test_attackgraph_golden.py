@@ -49,11 +49,9 @@ FAMILY = "DejaVu Sans"
 UPDATE = os.environ.get("USECVISLIB_UPDATE_GOLDEN") == "1"
 requires_dot = pytest.mark.skipif(shutil.which("dot") is None, reason="SVG-engine layout needs Graphviz 'dot'")
 
-# Image paths that vary by machine or run end up in the DOT source: the resized-icon
-# cache (directory, and a file name hashed from the icon's absolute path), and
-# randomly named temp files (tmpXXXXXXXX.png)
+# Converted and resized icons live in a per-machine cache directory, under a file
+# name hashed from the icon's absolute path: both vary by machine
 _ICON_CACHE = re.compile(r"[^\"\s]*usecvislib_icon_cache/[0-9a-f]+")
-_TEMP_FILE = re.compile(r"[^\"\s]*/tmp[a-z0-9_]{8}\.(\w+)")
 
 
 def _check(actual: str, golden: Path) -> None:
@@ -69,8 +67,7 @@ def _dot_source(template: str, styleid: str) -> str:
     ag = AttackGraphs(str(TEMPLATE_DIR / template), os.path.join(tempfile.gettempdir(), "golden"), format="png", styleid=styleid)
     ag.load()
     ag.render()
-    source = _ICON_CACHE.sub("<ICON_CACHE>/<hash>", ag.graph.source)
-    return _TEMP_FILE.sub(r"<TEMP_FILE>.\1", source)
+    return _ICON_CACHE.sub("<ICON_CACHE>/<hash>", ag.graph.source)
 
 
 def _svg(template: str, styleid: str, tmp_path: Path) -> str:

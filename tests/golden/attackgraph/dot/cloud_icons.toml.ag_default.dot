@@ -6,27 +6,27 @@ digraph "Cloud Infrastructure Attack Graph with Icons" {
 <TR><TD>Attacker</TD></TR>
 </TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
 	waf [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
-<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<TEMP_FILE>.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<ICON_CACHE>/<hash>_thumb48.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
 <TR><TD>WAF/CDN</TD></TR>
 </TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
 	loadbalancer [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
-<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<TEMP_FILE>.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<ICON_CACHE>/<hash>_thumb48.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
 <TR><TD>Load Balancer</TD></TR>
 </TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
 	webserver [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
-<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<TEMP_FILE>.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<ICON_CACHE>/<hash>_thumb48.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
 <TR><TD>Web Server</TD></TR>
 </TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
 	appserver [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
-<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<TEMP_FILE>.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<ICON_CACHE>/<hash>_thumb48.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
 <TR><TD>Application Server</TD></TR>
 </TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
 	database [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
-<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<TEMP_FILE>.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<ICON_CACHE>/<hash>_thumb48.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
 <TR><TD>RDS Database</TD></TR>
 </TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
 	secrets [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
-<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<TEMP_FILE>.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<ICON_CACHE>/<hash>_thumb48.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
 <TR><TD>Secrets Manager</TD></TR>
 </TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
 	vuln_waf_bypass [label="WAF Bypass\n(CVSS: 4.8 - Medium)*" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 id=vuln_waf_bypass margin=0.1 shape=diamond style=filled]

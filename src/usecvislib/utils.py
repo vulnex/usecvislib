@@ -34,27 +34,11 @@ try:
     import tomllib  # Python 3.11+ standard library
 except ImportError:
     import tomli as tomllib  # Python 3.10: spec-compliant backport (the legacy `toml` package mis-parses arrays of tables)
-import atexit
 import contextlib
 import tempfile
 
 import toml  # Fallback for older parsing
 import yaml
-
-# Track temp files for cleanup on exit
-_temp_files_to_cleanup: list[str] = []
-
-
-def _cleanup_temp_files():
-    """Clean up any temporary files created during the session."""
-    for path in _temp_files_to_cleanup:
-        with contextlib.suppress(OSError):
-            Path(path).unlink(missing_ok=True)
-    _temp_files_to_cleanup.clear()
-
-
-atexit.register(_cleanup_temp_files)
-
 
 # Optional PIL for image resizing
 try:
@@ -463,6 +447,68 @@ def _validate_path_within_directory(path: Path, base_dir: Path) -> bool:
         return False
 
 
+def _icon_cache_dir() -> Optional[Path]:
+    """The shared cache directory for converted and resized icons, or None if unsafe.
+
+    SECURITY: TOCTOU-resistant: the directory is opened with O_NOFOLLOW, so a
+    symlink planted at the cache path is refused.
+    """
+    cache_dir = Path(tempfile.gettempdir()) / "usecvislib_icon_cache"
+    try:
+        cache_dir.mkdir(exist_ok=True)
+    except OSError as e:
+        logger.error(f"Security: Cannot create cache directory: {cache_dir}: {e}")
+        return None
+    try:
+        fd = os.open(str(cache_dir), os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        os.close(fd)
+    except OSError as e:
+        logger.error(f"Security: Cache path is not a safe directory (symlink or not a dir): {cache_dir}: {e}")
+        return None
+    return cache_dir
+
+
+def _cached_thumbnail(image_path: Path, size: int = 48) -> Optional[Path]:
+    """A thumbnail of an image (fitting size x size), cached by the image's path, size and mtime.
+
+    Replaces a fresh temp file per render, which a long-running process (the
+    API) only removed at exit. The cache grows with the number of distinct
+    icons, not with renders; an edited icon gets a new entry. Written to a
+    temp file in the cache directory and renamed into place, so concurrent
+    renders never read a half-written thumbnail.
+
+    Returns:
+        The thumbnail path, or None if it could not be made (caller keeps the original).
+    """
+    import hashlib
+
+    cache_dir = _icon_cache_dir()
+    if cache_dir is None:
+        return None
+    try:
+        stat = image_path.stat()
+        key = f"{image_path.resolve()}|{stat.st_size}|{stat.st_mtime_ns}|{size}"
+        digest = hashlib.sha256(key.encode()).hexdigest()[:16]
+        thumb = cache_dir / f"{digest}_thumb{size}{image_path.suffix or '.png'}"
+        if thumb.exists():
+            return thumb
+        with Image.open(image_path) as img:
+            img.thumbnail((size, size), Image.Resampling.LANCZOS)
+            fd, partial = tempfile.mkstemp(dir=cache_dir, suffix=thumb.suffix)
+            try:
+                with os.fdopen(fd, "wb") as f:
+                    img.save(f, format=img.format or None)
+                os.replace(partial, thumb)
+            except BaseException:
+                with contextlib.suppress(OSError):
+                    os.unlink(partial)
+                raise
+        return thumb
+    except Exception as e:
+        logger.debug(f"Could not make a thumbnail of {image_path}: {e}")
+        return None
+
+
 def _convert_svg_to_png(svg_path: Path, size: int = 48) -> Optional[Path]:
     """Convert SVG to PNG for Graphviz compatibility.
 
@@ -478,26 +524,11 @@ def _convert_svg_to_png(svg_path: Path, size: int = 48) -> Optional[Path]:
     """
     try:
         import hashlib
-        import tempfile
 
         import cairosvg
 
-        # Create a cache directory for converted icons
-        cache_dir = Path(tempfile.gettempdir()) / "usecvislib_icon_cache"
-
-        # SECURITY: TOCTOU-resistant directory creation using fd-based verification
-        try:
-            cache_dir.mkdir(exist_ok=True)
-        except OSError as e:
-            logger.error(f"Security: Cannot create cache directory: {cache_dir}: {e}")
-            return None
-
-        # Verify using O_DIRECTORY|O_NOFOLLOW to atomically open the real dir (not a symlink)
-        try:
-            fd = os.open(str(cache_dir), os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
-            os.close(fd)
-        except OSError as e:
-            logger.error(f"Security: Cache path is not a safe directory (symlink or not a dir): {cache_dir}: {e}")
+        cache_dir = _icon_cache_dir()
+        if cache_dir is None:
             return None
 
         # Generate cache filename based on SVG path hash
@@ -826,17 +857,11 @@ def process_node_image(
         if PIL_AVAILABLE:
             try:
                 with Image.open(resolved_path) as img:
-                    # Only resize if image is larger than 64 pixels
-                    if img.width > 64 or img.height > 64:
-                        # Create thumbnail maintaining aspect ratio
-                        img.thumbnail((48, 48), Image.Resampling.LANCZOS)
-                        # Save to temp file
-                        suffix = Path(resolved_path).suffix or ".png"
-                        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-                            img.save(tmp.name)
-                            display_path = tmp.name
-                            _temp_files_to_cleanup.append(tmp.name)
-                            log.debug(f"Created thumbnail for large icon: {resolved_path} -> {tmp.name}")
+                    large = img.width > 64 or img.height > 64
+                # Large images: a cached 48 px thumbnail (reused across renders)
+                if large and (thumb := _cached_thumbnail(Path(resolved_path))) is not None:
+                    display_path = str(thumb)
+                    log.debug(f"Thumbnail for large icon: {resolved_path} -> {thumb}")
             except Exception as e:
                 log.debug(f"Could not resize image {resolved_path}: {e}")
 
