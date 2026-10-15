@@ -1,0 +1,579 @@
+#
+# VULNEX -Universal Security Visualization Library-
+#
+# Attack Graph template: segmented enterprise network (~30 hosts in four zones).
+# Shows grouping and collapse: group by zone or by subnet (ip/24), and collapse
+# zones into summary nodes. Findings and steps are synthetic placeholders.
+#
+
+[graph]
+name = "Segmented Enterprise"
+description = "Hosts in four network zones; render with group_by"
+type = "Attack Graph"
+author = "VULNEX"
+group_by = "zone"
+
+[groups.dmz]
+label = "DMZ"
+
+[groups.users]
+label = "User LAN"
+
+[groups.servers]
+label = "Server VLAN"
+
+[groups.mgmt]
+label = "Management"
+
+[hosts.attacker]
+label = "Attacker"
+
+[hosts.web01]
+label = "web01"
+zone = "dmz"
+ip = "10.0.1.10"
+
+[hosts.web02]
+label = "web02"
+zone = "dmz"
+ip = "10.0.1.11"
+
+[hosts.web03]
+label = "web03"
+zone = "dmz"
+ip = "10.0.1.12"
+
+[hosts.lb01]
+label = "lb01"
+zone = "dmz"
+ip = "10.0.1.13"
+
+[hosts.mail01]
+label = "mail01"
+zone = "dmz"
+ip = "10.0.1.14"
+
+[hosts.ws01]
+label = "ws01"
+zone = "users"
+ip = "10.0.10.10"
+
+[hosts.ws02]
+label = "ws02"
+zone = "users"
+ip = "10.0.10.11"
+
+[hosts.ws03]
+label = "ws03"
+zone = "users"
+ip = "10.0.10.12"
+
+[hosts.ws04]
+label = "ws04"
+zone = "users"
+ip = "10.0.10.13"
+
+[hosts.ws05]
+label = "ws05"
+zone = "users"
+ip = "10.0.10.14"
+
+[hosts.ws06]
+label = "ws06"
+zone = "users"
+ip = "10.0.10.15"
+
+[hosts.ws07]
+label = "ws07"
+zone = "users"
+ip = "10.0.10.16"
+
+[hosts.ws08]
+label = "ws08"
+zone = "users"
+ip = "10.0.10.17"
+
+[hosts.ws09]
+label = "ws09"
+zone = "users"
+ip = "10.0.10.18"
+
+[hosts.ws10]
+label = "ws10"
+zone = "users"
+ip = "10.0.10.19"
+
+[hosts.ws11]
+label = "ws11"
+zone = "users"
+ip = "10.0.10.20"
+
+[hosts.ws12]
+label = "ws12"
+zone = "users"
+ip = "10.0.10.21"
+
+[hosts.ws13]
+label = "ws13"
+zone = "users"
+ip = "10.0.10.22"
+
+[hosts.ws14]
+label = "ws14"
+zone = "users"
+ip = "10.0.10.23"
+
+[hosts.app01]
+label = "app01"
+zone = "servers"
+ip = "10.0.20.10"
+
+[hosts.app02]
+label = "app02"
+zone = "servers"
+ip = "10.0.20.11"
+
+[hosts.app03]
+label = "app03"
+zone = "servers"
+ip = "10.0.20.12"
+
+[hosts.app04]
+label = "app04"
+zone = "servers"
+ip = "10.0.20.13"
+
+[hosts.db01]
+label = "db01"
+zone = "servers"
+ip = "10.0.20.14"
+
+[hosts.db02]
+label = "db02"
+zone = "servers"
+ip = "10.0.20.15"
+
+[hosts.file01]
+label = "file01"
+zone = "servers"
+ip = "10.0.20.16"
+
+[hosts.jump01]
+label = "jump01"
+zone = "mgmt"
+ip = "10.0.99.10"
+
+[hosts.dc01]
+label = "dc01"
+zone = "mgmt"
+ip = "10.0.99.11"
+
+[hosts.dc02]
+label = "dc02"
+zone = "mgmt"
+ip = "10.0.99.12"
+
+[hosts.backup01]
+label = "backup01"
+zone = "mgmt"
+ip = "10.0.99.13"
+
+[hosts.siem01]
+label = "siem01"
+zone = "mgmt"
+ip = "10.0.99.14"
+
+[vulnerabilities.finding_01]
+label = "Finding 01"
+host = "web01"
+cvss = 9.8
+
+[vulnerabilities.finding_02]
+label = "Finding 02"
+host = "lb01"
+cvss = 9.1
+
+[vulnerabilities.finding_03]
+label = "Finding 03"
+host = "web02"
+cvss = 5.3
+
+[vulnerabilities.finding_04]
+label = "Finding 04"
+host = "mail01"
+cvss = 8.8
+
+[vulnerabilities.finding_05]
+label = "Finding 05"
+host = "ws03"
+cvss = 7.8
+
+[vulnerabilities.finding_06]
+label = "Finding 06"
+host = "ws07"
+cvss = 8.1
+
+[vulnerabilities.finding_07]
+label = "Finding 07"
+host = "ws11"
+cvss = 7.2
+
+[vulnerabilities.finding_08]
+label = "Finding 08"
+host = "app02"
+cvss = 9.0
+
+[vulnerabilities.finding_09]
+label = "Finding 09"
+host = "app04"
+cvss = 8.8
+
+[vulnerabilities.finding_10]
+label = "Finding 10"
+host = "app03"
+cvss = 7.5
+
+[vulnerabilities.finding_11]
+label = "Finding 11"
+host = "db01"
+cvss = 8.6
+
+[vulnerabilities.finding_12]
+label = "Finding 12"
+host = "file01"
+cvss = 6.5
+
+[vulnerabilities.finding_13]
+label = "Finding 13"
+host = "dc01"
+cvss = 10.0
+
+[vulnerabilities.finding_14]
+label = "Finding 14"
+host = "jump01"
+cvss = 6.8
+
+[services.svc_web01]
+label = "HTTPS"
+host = "web01"
+port = 443
+
+[services.svc_lb01]
+label = "Gateway"
+host = "lb01"
+port = 443
+
+[services.svc_mail01]
+label = "Mail"
+host = "mail01"
+port = 443
+
+[services.svc_file01]
+label = "File share"
+host = "file01"
+port = 445
+
+[services.svc_db01]
+label = "Database"
+host = "db01"
+port = 1433
+
+[services.svc_dc01]
+label = "Directory"
+host = "dc01"
+port = 389
+
+[services.svc_jump01]
+label = "Remote desktop"
+host = "jump01"
+port = 3389
+
+[privileges.priv_web01]
+label = "user on web01"
+host = "web01"
+level = "user"
+
+[privileges.priv_ws03]
+label = "user on ws03"
+host = "ws03"
+level = "user"
+
+[privileges.priv_ws11]
+label = "admin on ws11"
+host = "ws11"
+level = "admin"
+
+[privileges.priv_app02]
+label = "user on app02"
+host = "app02"
+level = "user"
+
+[privileges.priv_db01]
+label = "admin on db01"
+host = "db01"
+level = "admin"
+
+[privileges.priv_jump01]
+label = "admin on jump01"
+host = "jump01"
+level = "admin"
+
+[privileges.priv_dc01]
+label = "root on dc01"
+host = "dc01"
+level = "root"
+
+[exploits.step_01]
+label = "Step 01"
+precondition = "attacker"
+postcondition = "priv_web01"
+
+[exploits.step_02]
+label = "Step 02"
+precondition = "priv_web01"
+postcondition = "priv_app02"
+
+[exploits.step_03]
+label = "Step 03"
+precondition = "priv_app02"
+postcondition = "priv_db01"
+
+[exploits.step_04]
+label = "Step 04"
+precondition = "attacker"
+postcondition = "priv_ws03"
+
+[exploits.step_05]
+label = "Step 05"
+precondition = "priv_ws03"
+postcondition = "priv_ws11"
+
+[exploits.step_06]
+label = "Step 06"
+precondition = "priv_ws11"
+postcondition = "priv_jump01"
+
+[exploits.step_07]
+label = "Step 07"
+precondition = "priv_jump01"
+postcondition = "priv_dc01"
+
+[network_edges.e001]
+from = "attacker"
+to = "web01"
+
+[network_edges.e002]
+from = "attacker"
+to = "web02"
+
+[network_edges.e003]
+from = "attacker"
+to = "web03"
+
+[network_edges.e004]
+from = "attacker"
+to = "lb01"
+
+[network_edges.e005]
+from = "attacker"
+to = "mail01"
+
+[network_edges.e006]
+from = "web01"
+to = "app01"
+
+[network_edges.e007]
+from = "web01"
+to = "app02"
+
+[network_edges.e008]
+from = "web02"
+to = "app01"
+
+[network_edges.e009]
+from = "web02"
+to = "app02"
+
+[network_edges.e010]
+from = "web03"
+to = "app01"
+
+[network_edges.e011]
+from = "web03"
+to = "app02"
+
+[network_edges.e012]
+from = "lb01"
+to = "app01"
+
+[network_edges.e013]
+from = "lb01"
+to = "app02"
+
+[network_edges.e014]
+from = "ws01"
+to = "app03"
+
+[network_edges.e015]
+from = "ws01"
+to = "file01"
+
+[network_edges.e016]
+from = "ws02"
+to = "app03"
+
+[network_edges.e017]
+from = "ws02"
+to = "file01"
+
+[network_edges.e018]
+from = "ws03"
+to = "app03"
+
+[network_edges.e019]
+from = "ws03"
+to = "file01"
+
+[network_edges.e020]
+from = "ws04"
+to = "app03"
+
+[network_edges.e021]
+from = "ws04"
+to = "file01"
+
+[network_edges.e022]
+from = "ws05"
+to = "app03"
+
+[network_edges.e023]
+from = "ws05"
+to = "file01"
+
+[network_edges.e024]
+from = "ws06"
+to = "app03"
+
+[network_edges.e025]
+from = "ws06"
+to = "file01"
+
+[network_edges.e026]
+from = "ws07"
+to = "app03"
+
+[network_edges.e027]
+from = "ws07"
+to = "file01"
+
+[network_edges.e028]
+from = "ws08"
+to = "app03"
+
+[network_edges.e029]
+from = "ws08"
+to = "file01"
+
+[network_edges.e030]
+from = "ws09"
+to = "app03"
+
+[network_edges.e031]
+from = "ws09"
+to = "file01"
+
+[network_edges.e032]
+from = "ws10"
+to = "app03"
+
+[network_edges.e033]
+from = "ws10"
+to = "file01"
+
+[network_edges.e034]
+from = "ws11"
+to = "app03"
+
+[network_edges.e035]
+from = "ws11"
+to = "file01"
+
+[network_edges.e036]
+from = "ws12"
+to = "app03"
+
+[network_edges.e037]
+from = "ws12"
+to = "file01"
+
+[network_edges.e038]
+from = "ws13"
+to = "app03"
+
+[network_edges.e039]
+from = "ws13"
+to = "file01"
+
+[network_edges.e040]
+from = "ws14"
+to = "app03"
+
+[network_edges.e041]
+from = "ws14"
+to = "file01"
+
+[network_edges.e042]
+from = "app01"
+to = "db01"
+
+[network_edges.e043]
+from = "app01"
+to = "db02"
+
+[network_edges.e044]
+from = "app02"
+to = "db01"
+
+[network_edges.e045]
+from = "app02"
+to = "db02"
+
+[network_edges.e046]
+from = "app03"
+to = "db01"
+
+[network_edges.e047]
+from = "app03"
+to = "db02"
+
+[network_edges.e048]
+from = "app04"
+to = "db01"
+
+[network_edges.e049]
+from = "app04"
+to = "db02"
+
+[network_edges.e050]
+from = "ws03"
+to = "jump01"
+
+[network_edges.e051]
+from = "ws07"
+to = "jump01"
+
+[network_edges.e052]
+from = "ws11"
+to = "jump01"
+
+[network_edges.e053]
+from = "jump01"
+to = "dc01"
+
+[network_edges.e054]
+from = "jump01"
+to = "backup01"
+
+[network_edges.e055]
+from = "dc01"
+to = "dc02"

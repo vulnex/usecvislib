@@ -507,6 +507,22 @@ usecvis -m 3 -i network.toml -o graph -c
 usecvis -m 3 -i network.toml -o graph -p attacker,priv_db_admin -c
 ```
 
+#### Grouping and Collapse
+
+```bash
+# Cluster hosts by their zone field
+usecvis -m 3 -i network.toml -o graph --group-by zone
+
+# Group a scan by /24 subnet and collapse the largest subnets until 200 nodes remain
+usecvis -m 3 -i scan.toml -o overview --group-by ip/24 --collapse auto --max-nodes 200
+
+# Collapse every group, or just some
+usecvis -m 3 -i network.toml -o graph --group-by zone --collapse all
+usecvis -m 3 -i network.toml -o graph --group-by zone --collapse users,servers
+```
+
+The flags override `group_by` / `collapse` / `max_nodes` in the file's `[graph]` section. See "Grouping and collapse" in the template guide.
+
 #### Example Configuration (TOML)
 
 ```toml

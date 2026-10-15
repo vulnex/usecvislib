@@ -474,6 +474,42 @@ network_edges (optional): array of objects
 └── label (optional): string - Connection label
 ```
 
+### Grouping and collapse
+
+Large graphs can cluster hosts into groups, and draw a group as one summary node. Grouping is opt-in: without `group_by` (and without host `group` fields) the graph renders exactly as before.
+
+```toml
+[graph]
+name = "Segmented Enterprise"
+group_by = "zone"          # host field to group on, or "ip/24" / "ip6/64" to group by network
+collapse = "auto"          # false (default) | true | "auto" | ["dmz", "users"]
+max_nodes = 300            # target for "auto"
+
+[groups.dmz]               # optional per group
+label = "DMZ"
+color = "#fde68a"          # cluster fill
+collapsed = false          # always expanded (or true: always collapsed)
+
+[hosts.web01]
+zone = "dmz"               # picked up by group_by = "zone"
+group = "dmz"              # or set the group directly (wins over group_by)
+```
+
+**Membership:** a host's `group`, else its `group_by` value (for `ip/N`, the network of its `ip`). Vulnerabilities, services and privileges follow their host. An exploit belongs to a group only when all its pre/postconditions are in that group. Hosts without a group stay outside the clusters.
+
+**Expanded** groups are drawn as labelled clusters around their members.
+
+**Collapsed** groups become one summary node: the group's label, its host / vulnerability / service counts, and the colour (and, in the SVG engine, the CVSS badge) of its highest-CVSS vulnerability. Members are folded into it. Edges inside the group are dropped; edges into or out of it point at the summary node, and edges that end up identical are merged and labelled `×N`.
+
+- `collapse = true` collapses every group with more than one member; a list collapses those groups; `"auto"` collapses the largest groups first until at most `max_nodes` nodes are drawn.
+- A group's own `collapsed` setting always wins.
+- The size limit (10,000 nodes / 50,000 edges) applies to what is drawn, so a large scan grouped by subnet and collapsed renders instead of being rejected.
+- Path analysis and statistics always use the full graph. With grouping on, statistics add per-group counts (`groups`).
+- The same options exist as render parameters (`AttackGraphs(..., group_by=, collapse=, max_nodes=)`, `--group-by` / `--collapse` / `--max-nodes`, and API query parameters), which override the file.
+- SVG output: clusters are `usv-cluster` groups with `data-cluster-id` and `data-collapsed="false"`; summary nodes have class `usv-node--group` with `data-collapsed="true"`, `data-cluster-id`, `data-member-count`, `data-hosts`, `data-vulnerabilities`, `data-max-cvss`; merged edges carry `data-edge-count`.
+
+Example: `templates/attack-graphs/segmented_enterprise.toml`.
+
 ### Multi-source findings
 
 When a finding was reported by several tools, any host, vulnerability, privilege, service or exploit can say so:

@@ -9,6 +9,7 @@
 
 import logging
 import os
+from typing import Any, Optional
 
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
@@ -46,6 +47,14 @@ from ..schemas import (
 
 logger = logging.getLogger("usecvislib.api")
 
+
+def _collapse_option(collapse: Optional[str]) -> Any:
+    """The collapse query value as the library takes it."""
+    if collapse is None:
+        return None
+    return {"none": False, "all": True}.get(collapse.strip().lower(), collapse)
+
+
 router = APIRouter(tags=["Attack Graphs"])
 
 # Errors in the uploaded definition: reported to the client as 400
@@ -77,6 +86,21 @@ async def visualize_attack_graph(
     render_engine: RenderEngine = Query(
         default=RenderEngine.GRAPHVIZ,
         description="Rendering engine: graphviz (default) or svg (modern cards over a Graphviz-computed layout, sv_* styles)",
+    ),
+    group_by: Optional[str] = Query(
+        default=None,
+        max_length=64,
+        description="Cluster hosts by this host field (e.g. zone), or by network with ip/N or ip6/N (e.g. ip/24). "
+        "Overrides graph.group_by in the file.",
+    ),
+    collapse: Optional[str] = Query(
+        default=None,
+        max_length=1000,
+        description="Draw groups as one summary node: none, all, auto (largest first until max_nodes), "
+        "or comma-separated group ids. Overrides graph.collapse in the file.",
+    ),
+    max_nodes: Optional[int] = Query(
+        default=None, ge=1, le=10000, description="Node target for collapse=auto (default 300)"
     ),
 ):
     """
@@ -135,7 +159,14 @@ async def visualize_attack_graph(
         # Generate visualization with timeout protection
         # SECURITY: Prevents resource exhaustion from complex/slow visualizations
         ag = AttackGraphs(
-            input_for_viz, output_base, format=format.value, styleid=styleid, render_engine=render_engine.value
+            input_for_viz,
+            output_base,
+            format=format.value,
+            styleid=styleid,
+            render_engine=render_engine.value,
+            group_by=group_by,
+            collapse=_collapse_option(collapse),
+            max_nodes=max_nodes,
         )
         await run_sync_with_timeout(
             ag.BuildAttackGraph, REQUEST_TIMEOUT_VISUALIZE, "attack graph visualization", on_abandon=temps.cleanup
@@ -151,6 +182,9 @@ async def visualize_attack_graph(
 async def analyze_attack_graph(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing attack graph definition"),
+    group_by: Optional[str] = Query(
+        default=None, max_length=64, description="Report per-group counts for hosts grouped by this field, or ip/N"
+    ),
 ):
     """
     Analyze an attack graph and return statistics without generating visualization.
@@ -161,7 +195,7 @@ async def analyze_attack_graph(
     with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
         input_path = temps.add(save_upload_file(file))
-        ag = AttackGraphs(input_path, "unused")
+        ag = AttackGraphs(input_path, "unused", group_by=group_by)
         stats = ag.get_graph_stats()
 
         # Get metadata

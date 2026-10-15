@@ -326,8 +326,20 @@ AttackGraphs(
     inputfile: str,      # Path to configuration file (TOML/JSON/YAML)
     outputfile: str,     # Output file path (without extension)
     format: str = "png", # Output format: png, pdf, svg, dot
-    styleid: str = "ag_default"  # Style identifier
+    styleid: str = "ag_default",  # Style identifier
+    render_engine: str = "graphviz",  # or "svg"
+    group_by: str = None,   # cluster hosts by a host field, or "ip/24" / "ip6/64"
+    collapse = None,        # True | "auto" | ["dmz", ...]: draw groups as one summary node
+    max_nodes: int = None,  # target for collapse="auto" (default 300)
 )
+```
+
+`group_by`, `collapse` and `max_nodes` override the same keys in the file's `[graph]` section. See "Grouping and collapse" in the template guide.
+
+```python
+ag = AttackGraphs("scan.toml", "overview", group_by="ip/24", collapse="auto", max_nodes=200)
+ag.build()
+ag.get_stats()["groups"]   # {"10.0.1.0/24": {"hosts": 12, "vulnerabilities": 7, "max_cvss": 9.8}, ...}
 ```
 
 #### Methods
@@ -2505,6 +2517,13 @@ graph = (
     .to_attack_graph("output")
     .build()
 )
+```
+
+Grouping: hosts get `zone="internal"` unless given one, so `set_grouping()` groups by zone by default.
+
+```python
+builder.set_grouping("zone", collapse="auto", max_nodes=200)   # or group_by="ip/24"
+builder.add_group("dmz", label="DMZ", color="#fde68a", collapsed=False)
 ```
 
 ### ThreatModelBuilder

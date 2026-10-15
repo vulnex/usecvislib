@@ -425,6 +425,52 @@ class AttackGraphBuilder:
         self._data["network_edges"].append(edge)
         return self
 
+    def set_grouping(
+        self, group_by: str = "zone", collapse: Any = None, max_nodes: Optional[int] = None
+    ) -> AttackGraphBuilder:
+        """Cluster hosts into groups when rendered.
+
+        Args:
+            group_by: Host field to group on (default "zone"), or "ip/N" /
+                "ip6/N" to group by network.
+            collapse: Draw groups as one summary node: True / "all", "auto",
+                or a list of group ids. None leaves every group expanded.
+            max_nodes: Node target for collapse="auto" (default 300).
+
+        Returns:
+            Self for method chaining.
+        """
+        self._data["graph"]["group_by"] = group_by
+        if collapse is not None:
+            self._data["graph"]["collapse"] = list(collapse) if isinstance(collapse, list | tuple) else collapse
+        if max_nodes is not None:
+            self._data["graph"]["max_nodes"] = max_nodes
+        return self
+
+    def add_group(
+        self, group_id: str, label: Optional[str] = None, color: Optional[str] = None, collapsed: Optional[bool] = None
+    ) -> AttackGraphBuilder:
+        """Set a group's label, cluster color, or collapsed state.
+
+        Args:
+            group_id: The group, as a host's group_by value (e.g. "dmz") or network ("10.0.1.0/24").
+            label: Display label (default: the group id).
+            color: Cluster fill color.
+            collapsed: True / False to always collapse or expand this group.
+
+        Returns:
+            Self for method chaining.
+        """
+        group: dict[str, Any] = {}
+        if label is not None:
+            group["label"] = label
+        if color is not None:
+            group["color"] = color
+        if collapsed is not None:
+            group["collapsed"] = collapsed
+        self._data.setdefault("groups", {})[group_id] = group
+        return self
+
     def set_graph_attribute(self, key: str, value: Any) -> AttackGraphBuilder:
         """Set a graph-level attribute.
 

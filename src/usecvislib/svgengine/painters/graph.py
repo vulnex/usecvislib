@@ -271,7 +271,7 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], edge_cf
             anchor = edge.label_pos or _edge_anchor(edge.points)
 
         classes = ["usv-edge", f"usv-edge--{edge.kind}"]
-        group = shapes.group(classes, {"from": edge.src, "to": edge.dst})
+        group = shapes.group(classes, {"from": edge.src, "to": edge.dst, **edge.data})
         group.append(shapes.edge_path(d, color, width, dashed=edge.dashed, marker_url=canvas.arrow_marker(color)))
         canvas.add("edges", group)
 

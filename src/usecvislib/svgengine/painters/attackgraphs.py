@@ -31,11 +31,12 @@ import logging
 from typing import Any
 
 from ... import utils
+from ...attackgraph_view import merged_label, summary_label_lines
 from ...constants import cvss_to_color, cvss_to_severity_label, cvss_to_text_color
 from ...cvss_unified import get_cvss_score_unified as get_cvss_score
 from ...settings import is_cvss_enabled
 from .. import metrics, themes
-from ..scene import Scene, SceneEdge, SceneNode
+from ..scene import Scene, SceneEdge, SceneGroup, SceneNode
 from .graph import attach_icon, render_graph_svg
 
 logger = logging.getLogger(__name__)
@@ -60,7 +61,8 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     """Translate the attack graph's render view into a fully-styled Scene."""
     # The view normalizes sections to dicts (idempotent), in case the painter
     # is reached on freshly-set inputdata
-    data = viz.render_view().data
+    view = viz.render_view()
+    data = view.data
     ag = theme["attackgraph"]
     font = theme["font"]
     card = theme["card"]
@@ -74,7 +76,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     name = data.get("graph", {}).get("name", "Attack Graph")
     scene = Scene(module=MODULE_SLUG, meta={"name": name})
 
-    def add_node(node_id, lines, kind, fill, severity=None, cvss=None, text_color=None, element=None):
+    def add_node(node_id, lines, kind, fill, severity=None, cvss=None, text_color=None, element=None, extra=None):
         if text_color is None:
             # white on the amber privilege fill read at ~2:1
             text_color = utils.readable_text_color(fill) or "#ffffff"
@@ -94,6 +96,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
             node_data["source-count"] = str(source_count)
         if source_names:
             node_data["sources"] = ",".join(source_names)
+        node_data.update(extra or {})
         scene.nodes.append(
             SceneNode(
                 id=node_id,
@@ -115,6 +118,10 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
 
     # Hosts
     for host_id, host in _items(data.get("hosts", {})):
+        mark = view.node_mark(host_id)
+        if mark is not None and mark.collapsed is not None:
+            _add_summary_node(add_node, host_id, mark, view, ag, use_cvss_colors, theme)
+            continue
         label = host.get("label", host_id) if isinstance(host, dict) else host_id
         add_node(host_id, _wrap(label, font, size, max_w), "host", ag["host"], element=host)
 
@@ -169,9 +176,67 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     if not scene.nodes:
         raise utils.RenderError("Attack graph has no nodes to render")
 
-    _build_edges(scene, data, ag)
+    _build_edges(scene, data, ag, view)
     _attach_icons(scene, data, theme)
+    _add_clusters(scene, view, theme)
     return scene
+
+
+def _add_summary_node(add_node, node_id, mark, view, ag, use_cvss_colors, theme) -> None:
+    """A collapsed group's summary node: counts, worst-severity fill and CVSS badge."""
+    facts = mark.collapsed
+    max_cvss = facts.get("max_cvss")
+    group = view.groups.get(mark.group)
+    fill = (group.color if group else None) or theme["cluster"]["fill"]
+    severity = None
+    text_color = None
+    if max_cvss is not None and is_cvss_enabled("attack_graph"):
+        severity = cvss_to_severity_label(max_cvss).lower()
+        if use_cvss_colors:
+            fill = cvss_to_color(max_cvss)
+            text_color = cvss_to_text_color(max_cvss)
+            if severity in ("low", "none"):
+                text_color = "#000000"
+    counts = {
+        "collapsed": "true",
+        "cluster-id": utils.sanitize_node_id(mark.group),
+        "member-count": str(facts.get("members", 0)),
+        "hosts": str(facts.get("hosts", 0)),
+        "vulnerabilities": str(facts.get("vulnerabilities", 0)),
+    }
+    if max_cvss is not None:
+        counts["max-cvss"] = f"{max_cvss:.1f}"
+    add_node(
+        node_id,
+        summary_label_lines(mark),
+        "group",
+        fill,
+        severity=severity,
+        cvss=max_cvss if severity else None,
+        text_color=text_color,
+        extra=counts,
+    )
+
+
+def _add_clusters(scene: Scene, view, theme: dict[str, Any]) -> None:
+    """Expanded groups as labelled clusters around their drawn members."""
+    drawn = {n.id for n in scene.nodes}
+    cluster = theme["cluster"]
+    for info in view.groups.values():
+        members = [m for m in info.members if m in drawn]
+        if info.collapsed or not members:
+            continue
+        scene.groups.append(
+            SceneGroup(
+                id=utils.sanitize_node_id(info.id),
+                label=info.label,
+                members=members,
+                fill=info.color or cluster["fill"],
+                border=cluster["border"],
+                text_color=cluster["text"],
+                data={"collapsed": "false"},
+            )
+        )
 
 
 def _attach_icons(scene: Scene, data: dict, theme: dict) -> None:
@@ -183,15 +248,27 @@ def _attach_icons(scene: Scene, data: dict, theme: dict) -> None:
                 attach_icon(node, item["image"], theme)
 
 
-def _build_edges(scene: Scene, data: dict, ag: dict) -> None:
+def _build_edges(scene: Scene, data: dict, ag: dict, view=None) -> None:
     """Add typed edges mirroring the Graphviz path; skip dangling endpoints."""
     node_ids = {n.id for n in scene.nodes}
     exploit_width = float(ag.get("exploit_edge_width", 2.4))
 
     def add_edge(src, dst, kind, color, width=None, dashed=False, label=None):
+        # N edges merged by a collapse: "\u00d7N" (and data-edge-count)
+        mark = view.edge_mark((src, dst, kind)) if view is not None else None
+        label = merged_label(mark, label)
         if src in node_ids and dst in node_ids:
             scene.edges.append(
-                SceneEdge(src=src, dst=dst, kind=kind, color=color, width=width, dashed=dashed, label=label or None)
+                SceneEdge(
+                    src=src,
+                    dst=dst,
+                    kind=kind,
+                    color=color,
+                    width=width,
+                    dashed=dashed,
+                    label=label or None,
+                    data={"edge-count": str(mark.count)} if mark is not None and mark.count > 1 else {},
+                )
             )
 
     # Network edges (explicit from/to, with optional label)

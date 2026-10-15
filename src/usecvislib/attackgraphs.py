@@ -43,12 +43,17 @@ import networkx as nx
 from graphviz import Digraph
 
 from . import utils
-from .attackgraph_view import RenderView, build_view
+from .attackgraph_view import RenderView, build_view, group_stats, merged_label, summary_label_lines
 from .base import VisualizationBase
 from .constants import cvss_to_color, cvss_to_severity_label, cvss_to_text_color, validate_cvss_score
 from .cvss_unified import get_cvss_score_unified as get_cvss_score
 from .cvss_unified import validate_vector as validate_cvss_vector
 from .settings import is_cvss_enabled
+
+# Cluster colors for grouped hosts (Graphviz engine); a group's own color overrides the fill
+_CLUSTER_FILL = "#eef2f7"
+_CLUSTER_BORDER = "#94a3b8"
+_CLUSTER_TEXT = "#334155"
 
 
 def _with_sources(label: str, element: Any, node_attrs: dict[str, Any]) -> str:
@@ -107,6 +112,9 @@ class AttackGraphs(VisualizationBase):
         styleid: str = "",
         validate_paths: bool = True,
         render_engine: str = "graphviz",
+        group_by: Optional[str] = None,
+        collapse: Any = None,
+        max_nodes: Optional[int] = None,
     ) -> None:
         """Initialize AttackGraphs with input/output paths and styling options.
 
@@ -117,6 +125,13 @@ class AttackGraphs(VisualizationBase):
             styleid: Style identifier from config. Defaults to ag_default.
             validate_paths: Whether to validate paths on initialization.
                 Set to False for deferred validation (e.g., API usage).
+            render_engine: "graphviz" (default) or "svg".
+            group_by: Group hosts into clusters by this host field, or by
+                network with "ip/N" / "ip6/N". Overrides ``graph.group_by``.
+            collapse: Draw groups as one summary node: True / "all", "auto"
+                (largest first until at most ``max_nodes`` nodes), or group
+                ids. Overrides ``graph.collapse``.
+            max_nodes: Target node count for collapse="auto" (default 300).
 
         Raises:
             SecurityError: If path validation fails (when validate_paths=True).
@@ -140,6 +155,11 @@ class AttackGraphs(VisualizationBase):
 
         # Attack graph specific state
         self.graph: Optional[Digraph] = None
+
+        # Render options (grouping and collapse); None falls back to the [graph] section
+        self.group_by = group_by
+        self.collapse = collapse
+        self.max_nodes = max_nodes
 
         # Internal graph representation for analysis
         self._adjacency: dict[str, set[str]] = {}
@@ -410,7 +430,10 @@ class AttackGraphs(VisualizationBase):
         are applied here. Analysis methods keep using the full ``inputdata``.
         """
         self._normalize_data()
-        return build_view(self.inputdata)
+        try:
+            return build_view(self.inputdata, self.group_by, self.collapse, self.max_nodes)
+        except ValueError as e:
+            raise AttackGraphError(str(e)) from e
 
     def _render_impl(self) -> None:
         """Build the attack graph from loaded data.
@@ -467,6 +490,10 @@ class AttackGraphs(VisualizationBase):
         # Add hosts
         hosts = data.get("hosts", {})
         for host_id, host_data in hosts.items():
+            mark = view.node_mark(host_id)
+            if mark is not None and mark.collapsed is not None:
+                self._add_summary_node(host_id, mark, view, host_style)
+                continue
             node_attrs = host_data.copy() if isinstance(host_data, dict) else {}
             # Check if node has an image and if user wants a styled background
             has_image = "image" in node_attrs and node_attrs["image"]
@@ -615,7 +642,7 @@ class AttackGraphs(VisualizationBase):
             target = edge_data.get("to")
             if source and target:
                 edge_attrs = utils.stringify_dict(network_edge_style.copy())
-                edge_label = edge_data.get("label", "")
+                edge_label = merged_label(view.edge_mark((source, target, "network")), edge_data.get("label", ""))
                 if edge_label:
                     edge_attrs["label"] = edge_label
                 self.graph.edge(utils.sanitize_node_id(source), utils.sanitize_node_id(target), **edge_attrs)
@@ -645,10 +672,14 @@ class AttackGraphs(VisualizationBase):
 
             for pre in preconditions:
                 edge_attrs = utils.stringify_dict(exploit_edge_style.copy())
+                if label := merged_label(view.edge_mark((pre, exploit_id, "exploit"))):
+                    edge_attrs["label"] = label
                 self.graph.edge(utils.sanitize_node_id(pre), utils.sanitize_node_id(exploit_id), **edge_attrs)
 
             for post in postconditions:
                 edge_attrs = utils.stringify_dict(exploit_edge_style.copy())
+                if label := merged_label(view.edge_mark((exploit_id, post, "exploit"))):
+                    edge_attrs["label"] = label
                 self.graph.edge(utils.sanitize_node_id(exploit_id), utils.sanitize_node_id(post), **edge_attrs)
 
         # Link vulnerabilities to hosts
@@ -667,7 +698,41 @@ class AttackGraphs(VisualizationBase):
                     utils.sanitize_node_id(host), utils.sanitize_node_id(svc_id), style="dotted", color="#95a5a6"
                 )
 
+        # Expanded groups as clusters. Mentioning an already-declared node inside
+        # a cluster subgraph makes it a member and keeps its attributes.
+        for info in view.groups.values():
+            if info.collapsed:
+                continue
+            with self.graph.subgraph(name=f"cluster_{utils.sanitize_node_id(info.id)}") as cluster:
+                cluster.attr(
+                    label=info.label,
+                    style="rounded,filled",
+                    fillcolor=info.color or _CLUSTER_FILL,
+                    color=_CLUSTER_BORDER,
+                    fontcolor=_CLUSTER_TEXT,
+                )
+                for member in info.members:
+                    cluster.node(utils.sanitize_node_id(member))
+
         self.logger.debug(f"Rendered attack graph with {len(hosts)} hosts")
+
+    def _add_summary_node(self, node_id: str, mark: Any, view: RenderView, host_style: dict[str, Any]) -> None:
+        """A collapsed group's summary node: folder shape, counts, worst-severity fill."""
+        facts = mark.collapsed
+        lines = summary_label_lines(mark)
+        attrs = utils.stringify_dict(host_style.copy())
+        attrs.update(shape="folder", style="filled")
+        max_cvss = facts.get("max_cvss")
+        if max_cvss is not None and is_cvss_enabled("attack_graph"):
+            lines.append(f"max CVSS {max_cvss:.1f} - {cvss_to_severity_label(max_cvss)}")
+            attrs["fillcolor"] = cvss_to_color(max_cvss)
+            attrs["fontcolor"] = cvss_to_text_color(max_cvss)
+        else:
+            group = view.groups.get(mark.group)
+            attrs["fillcolor"] = (group.color if group else None) or _CLUSTER_FILL
+            attrs["fontcolor"] = utils.readable_text_color(attrs["fillcolor"]) or "#1f2937"
+        attrs.pop("label", None)
+        self.graph.node(utils.sanitize_node_id(node_id), "\\n".join(lines), **attrs)
 
     def _exploit_node_style(self, exploit_edge_style: dict[str, Any]) -> dict[str, str]:
         """Graphviz attributes for exploit nodes, following the preset.
@@ -857,7 +922,7 @@ class AttackGraphs(VisualizationBase):
         avg_cvss = sum(cvss_scores) / len(cvss_scores) if cvss_scores else 0
         critical_vulns = len([c for c in cvss_scores if c >= 9.0])
 
-        return {
+        stats = {
             "name": graph_meta.get("name", "Unknown"),
             "total_hosts": len(hosts),
             "total_vulnerabilities": len(vulnerabilities),
@@ -871,6 +936,14 @@ class AttackGraphs(VisualizationBase):
             "average_cvss": round(avg_cvss, 2),
             "critical_vulnerabilities": critical_vulns,
         }
+        # Per-group counts when hosts are grouped (render option or graph.group_by)
+        try:
+            groups = group_stats(self.inputdata, self.group_by)
+        except ValueError:
+            groups = {}
+        if groups:
+            stats["groups"] = groups
+        return stats
 
     # Attack graph specific analysis methods
 

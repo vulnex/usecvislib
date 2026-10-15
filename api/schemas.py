@@ -614,6 +614,14 @@ class VulnTreeStats(BaseModel):
     metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
 
 
+class AttackGraphGroupStats(BaseModel):
+    """Counts for one group of hosts in an attack graph."""
+
+    hosts: int
+    vulnerabilities: int
+    max_cvss: Optional[float] = Field(default=None, description="Highest CVSS among the group's vulnerabilities")
+
+
 class GraphStats(BaseModel):
     """Attack graph statistics response."""
 
@@ -629,6 +637,9 @@ class GraphStats(BaseModel):
     total_edges: int
     average_cvss: float
     critical_vulnerabilities: int
+    groups: Optional[dict[str, AttackGraphGroupStats]] = Field(
+        default=None, description="Per-group counts when hosts are grouped (group_by)"
+    )
     metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")
 
 

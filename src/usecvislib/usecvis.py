@@ -81,6 +81,12 @@ def Usage() -> None:
     print("                          9 (Kill Chain), 10 (Incident Timeline), 11 (Vuln Dependency Tree),")
     print("                          12 (MAESTRO, -v graph view only)")
     print("")
+    print("  --group-by <field>      Attack graphs (mode 3): cluster hosts by a host field (e.g. zone),")
+    print("                          or by network with ip/N (IPv4) or ip6/N (IPv6), e.g. ip/24")
+    print("  --collapse <which>      Attack graphs: draw groups as one summary node:")
+    print("                          none, all, auto (largest first until --max-nodes), or group ids a,b")
+    print("  --max-nodes <n>         Attack graphs: node target for --collapse auto (default 300)")
+    print("")
     print("  --convert <format>      Convert input file to format: toml, json, yaml, mermaid")
     print("                          Output will be saved to <output>.<format_ext>")
     print("                          Mermaid output auto-detects visualization type")
@@ -256,6 +262,9 @@ def main(argv: Optional[list[str]] = None) -> int:
     direction = "TB"  # Cloud diagram direction
     shine = False  # Post-process SVG output with shine styling
     render_engine = "graphviz"  # Rendering engine: graphviz or svg
+    group_by = None  # Attack graph: host field (or ip/N) to cluster hosts by
+    collapse = None  # Attack graph: none | all | auto | comma-separated group ids
+    max_nodes = None  # Attack graph: node target for --collapse auto
 
     convert_format = ""  # Format to convert to: toml, json, yaml, mermaid
 
@@ -281,6 +290,9 @@ def main(argv: Optional[list[str]] = None) -> int:
                 "direction=",
                 "shine",
                 "render-engine=",
+                "group-by=",
+                "collapse=",
+                "max-nodes=",
             ],
         )
     except getopt.GetoptError as e:
@@ -325,6 +337,15 @@ def main(argv: Optional[list[str]] = None) -> int:
             shine = True
         elif opt == "--render-engine":
             render_engine = arg.lower()
+        elif opt == "--group-by":
+            group_by = arg
+        elif opt == "--collapse":
+            collapse = {"none": False, "all": True}.get(arg.strip().lower(), arg)
+        elif opt == "--max-nodes":
+            try:
+                max_nodes = int(arg)
+            except ValueError:
+                error_exit(f"--max-nodes must be a number, got '{arg}'")
         elif opt == "--convert":
             convert_format = arg.lower()
 
@@ -502,7 +523,16 @@ def main(argv: Optional[list[str]] = None) -> int:
             # Attack Graphs
             from . import attackgraphs
 
-            ag = attackgraphs.AttackGraphs(inputfile, outputfile, format, styleid, render_engine=render_engine)
+            ag = attackgraphs.AttackGraphs(
+                inputfile,
+                outputfile,
+                format,
+                styleid,
+                render_engine=render_engine,
+                group_by=group_by,
+                collapse=collapse,
+                max_nodes=max_nodes,
+            )
             ag.BuildAttackGraph()
             print(f"Attack graph generated: {outputfile}.{format}")
 

@@ -26,14 +26,28 @@ The view only changes the picture. Path analysis, centrality and statistics
 keep using the full ``inputdata`` and the NetworkX graph built at load time.
 """
 
+import ipaddress
+import logging
+import re
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 # (source id, target id, kind); kind is "network", "exploit" or "structural"
 EdgeKey = tuple[str, str, str]
 
 NODE_SECTIONS = ("hosts", "vulnerabilities", "privileges", "services", "exploits")
+
+# Id prefix of a collapsed group's summary node (double underscore, like the
+# kill chain's __slot_ placeholders, so it cannot clash with a sanitized user id)
+SUMMARY_PREFIX = "__group_"
+
+DEFAULT_MAX_NODES = 300
+
+# group_by = "ip/24" (IPv4, /8-/32) or "ip6/64" (IPv6, /16-/128)
+_IP_GROUPING = re.compile(r"^ip(6)?/(\d{1,3})$")
 
 
 @dataclass
@@ -75,9 +89,325 @@ class RenderView:
         return self.edges.get(key)
 
 
-def build_view(data: dict[str, Any]) -> RenderView:
-    """The view of normalized attack-graph data with no render options: the data as is."""
-    return RenderView(data=data)
+def build_view(
+    data: dict[str, Any],
+    group_by: Optional[str] = None,
+    collapse: Any = None,
+    max_nodes: Optional[int] = None,
+) -> RenderView:
+    """The view of normalized attack-graph data under the render options.
+
+    Each option falls back to the same key in the ``[graph]`` section. With
+    no grouping the view is the data as is (no copy), so output is unchanged.
+
+    Args:
+        data: Normalized attack-graph sections (dicts keyed by id).
+        group_by: Host field to group on, or ``"ip/N"`` / ``"ip6/N"`` to group
+            by network. A host's own ``group`` field always wins.
+        collapse: ``False``/``"none"`` (default), ``True``/``"all"``, ``"auto"``,
+            or group ids (a list, or a comma-separated string).
+        max_nodes: Target node count for ``collapse="auto"`` (default 300).
+
+    Raises:
+        ValueError: If ``group_by`` is a malformed ``ip/N`` / ``ip6/N`` rule.
+    """
+    graph = data.get("graph") if isinstance(data.get("graph"), dict) else {}
+    group_by = group_by if group_by is not None else graph.get("group_by")
+    collapse = collapse if collapse is not None else graph.get("collapse")
+    max_nodes = int(max_nodes if max_nodes is not None else graph.get("max_nodes", DEFAULT_MAX_NODES))
+
+    node_group = assign_groups(data, group_by)
+    if not node_group:
+        if _collapse_requested(collapse):
+            logger.warning("collapse needs groups (group_by or host 'group' fields); ignored")
+        return RenderView(data=data)
+
+    meta = data.get("groups") if isinstance(data.get("groups"), dict) else {}
+    view = RenderView(data=data)
+    for node_id, group_id in node_group.items():
+        info = view.groups.get(group_id)
+        if info is None:
+            group_meta = meta.get(group_id) if isinstance(meta.get(group_id), dict) else {}
+            info = GroupInfo(id=group_id, label=str(group_meta.get("label") or group_id), color=group_meta.get("color"))
+            view.groups[group_id] = info
+        info.members.append(node_id)
+        view.nodes[node_id] = ElementMark(group=group_id)
+
+    collapsed = _groups_to_collapse(data, view.groups, meta, collapse, max_nodes)
+    if collapsed:
+        for group_id in collapsed:
+            view.groups[group_id].collapsed = True
+        _collapse(view, collapsed)
+    return view
+
+
+def assign_groups(data: dict[str, Any], group_by: Optional[str]) -> dict[str, str]:
+    """Group of every grouped element, in section order (hosts first).
+
+    Hosts take their ``group`` field, else the ``group_by`` value; vulnerabilities,
+    services and privileges follow their host; an exploit joins a group only when
+    all of its pre/postcondition endpoints are in that one group.
+    """
+    host_group = _host_groups(data, group_by)
+    if not host_group:
+        return {}
+    node_group: dict[str, str] = dict(host_group)
+    for section, host_keys in (
+        ("vulnerabilities", ("host", "affected_host")),
+        ("privileges", ("host",)),
+        ("services", ("host",)),
+    ):
+        for element_id, element in _section_items(data.get(section, {})):
+            if not isinstance(element, dict):
+                continue
+            host = next((element.get(k) for k in host_keys if element.get(k)), None)
+            if host in host_group:
+                node_group[element_id] = host_group[host]
+    for exploit_id, exploit in _section_items(data.get("exploits", {})):
+        if not isinstance(exploit, dict):
+            continue
+        endpoints = _exploit_conditions(exploit, "precondition") + _exploit_conditions(exploit, "postcondition")
+        groups = {node_group.get(e) for e in endpoints}
+        if endpoints and len(groups) == 1 and None not in groups:
+            node_group[exploit_id] = groups.pop()
+    return node_group
+
+
+def _host_groups(data: dict[str, Any], group_by: Optional[str]) -> dict[str, str]:
+    """host id -> group id, for hosts that have one."""
+    ip_rule = _parse_ip_rule(group_by) if group_by else None
+    result: dict[str, str] = {}
+    for host_id, host in _section_items(data.get("hosts", {})):
+        if not isinstance(host, dict):
+            continue
+        group = host.get("group")
+        if not group and group_by:
+            group = _ip_network(host.get("ip"), *ip_rule) if ip_rule else host.get(group_by)
+        if group not in (None, "") and not isinstance(group, dict | list):
+            result[host_id] = str(group)
+    return result
+
+
+def _parse_ip_rule(group_by: str) -> Optional[tuple[int, int]]:
+    """(IP version, prefix) for an ``ip/N`` / ``ip6/N`` rule, None for a plain field name."""
+    match = _IP_GROUPING.match(str(group_by).strip())
+    if not match:
+        if str(group_by).strip().lower().startswith(("ip/", "ip6/")):
+            raise ValueError(f"group_by '{group_by}': expected ip/N (8-32) or ip6/N (16-128)")
+        return None
+    version, prefix = (6, int(match.group(2))) if match.group(1) else (4, int(match.group(2)))
+    low, high = (16, 128) if version == 6 else (8, 32)
+    if not low <= prefix <= high:
+        raise ValueError(f"group_by '{group_by}': the prefix must be {low}-{high} for IPv{version}")
+    return version, prefix
+
+
+def _ip_network(value: Any, version: int, prefix: int) -> Optional[str]:
+    """The /prefix network of an address of the given IP version, or None."""
+    try:
+        address = ipaddress.ip_address(str(value).strip())
+    except ValueError:
+        return None
+    if address.version != version:
+        return None
+    return str(ipaddress.ip_network(f"{address}/{prefix}", strict=False))
+
+
+def _collapse_requested(collapse: Any) -> bool:
+    if isinstance(collapse, str):
+        return collapse.strip().lower() not in ("", "none", "false", "no")
+    return bool(collapse)
+
+
+def _groups_to_collapse(
+    data: dict[str, Any], groups: dict[str, GroupInfo], meta: dict[str, Any], collapse: Any, max_nodes: int
+) -> list[str]:
+    """Ids of the groups to collapse, in group order."""
+    explicit = {
+        gid: bool(m["collapsed"])
+        for gid, m in meta.items()
+        if isinstance(m, dict) and "collapsed" in m and gid in groups
+    }
+    chosen: set[str] = set()
+    mode = collapse.strip().lower() if isinstance(collapse, str) else collapse
+    if mode is True or mode in ("all", "true", "yes"):
+        # A one-member group's summary would hide nothing
+        chosen = {gid for gid, info in groups.items() if len(info.members) > 1}
+    elif mode == "auto":
+        chosen = _auto_collapse(data, groups, explicit, max_nodes)
+    elif isinstance(collapse, list | tuple) or (isinstance(collapse, str) and _collapse_requested(collapse)):
+        wanted = [
+            str(g).strip() for g in (collapse.split(",") if isinstance(collapse, str) else collapse) if str(g).strip()
+        ]
+        unknown = [g for g in wanted if g not in groups]
+        if unknown:
+            logger.warning(f"collapse: no such group(s): {', '.join(unknown)}")
+        chosen = {g for g in wanted if g in groups}
+    for gid, value in explicit.items():  # a group's own setting always wins
+        (chosen.add if value else chosen.discard)(gid)
+    return [gid for gid in groups if gid in chosen]
+
+
+def _auto_collapse(
+    data: dict[str, Any], groups: dict[str, GroupInfo], explicit: dict[str, bool], max_nodes: int
+) -> set[str]:
+    """Collapse the largest groups first until at most ``max_nodes`` nodes are drawn."""
+    drawn = len(node_ids(data)) - sum(len(groups[g].members) - 1 for g, v in explicit.items() if v)
+    chosen: set[str] = set()
+    candidates = sorted(
+        (g for g in groups if g not in explicit and len(groups[g].members) > 1),
+        key=lambda g: (-len(groups[g].members), g),
+    )
+    for gid in candidates:
+        if drawn <= max_nodes:
+            break
+        chosen.add(gid)
+        drawn -= len(groups[gid].members) - 1
+    if drawn > max_nodes:
+        logger.warning(f"collapse='auto': {drawn} nodes remain with every group collapsed (target {max_nodes})")
+    return chosen
+
+
+def _collapse(view: RenderView, collapsed: list[str]) -> None:
+    """Replace each collapsed group's members by one summary node; re-point and merge edges.
+
+    Builds a new ``view.data`` (the input data is not modified).
+    """
+    from .cvss_unified import get_cvss_score_unified
+
+    data = view.data
+    summary_of = {member: SUMMARY_PREFIX + gid for gid in collapsed for member in view.groups[gid].members}
+
+    # Summary facts per group
+    for gid in collapsed:
+        info = view.groups[gid]
+        counts = dict.fromkeys(NODE_SECTIONS, 0)
+        max_cvss: Optional[float] = None
+        for section in NODE_SECTIONS:
+            for element_id, element in _section_items(data.get(section, {})):
+                if summary_of.get(element_id) != SUMMARY_PREFIX + gid:
+                    continue
+                counts[section] += 1
+                if section == "vulnerabilities" and isinstance(element, dict):
+                    score, _ = get_cvss_score_unified(element.get("cvss"), element.get("cvss_vector"))
+                    if score is not None and (max_cvss is None or score > max_cvss):
+                        max_cvss = score
+        view.nodes[SUMMARY_PREFIX + gid] = ElementMark(
+            group=gid, collapsed={**counts, "members": len(info.members), "max_cvss": max_cvss, "label": info.label}
+        )
+
+    new: dict[str, Any] = {
+        key: value for key, value in data.items() if key not in (*NODE_SECTIONS, "network_edges", "network")
+    }
+
+    # Hosts: each summary node takes the place of its group's first host
+    hosts: dict[str, Any] = {}
+    for host_id, host in _section_items(data.get("hosts", {})):
+        summary = summary_of.get(host_id)
+        if summary is None:
+            hosts[host_id] = host
+        elif summary not in hosts:
+            hosts[summary] = {"label": view.nodes[summary].collapsed["label"]}
+    new["hosts"] = hosts
+
+    for section in ("vulnerabilities", "privileges", "services"):
+        new[section] = {i: e for i, e in _section_items(data.get(section, {})) if i not in summary_of}
+
+    def repoint(endpoint: Any) -> Any:
+        return summary_of.get(endpoint, endpoint)
+
+    # Exploits: those inside a collapsed group are folded; the rest get re-pointed endpoints
+    exploits: dict[str, Any] = {}
+    for exploit_id, exploit in _section_items(data.get("exploits", {})):
+        if exploit_id in summary_of:
+            continue
+        if not isinstance(exploit, dict):
+            exploits[exploit_id] = exploit
+            continue
+        updated = {k: v for k, v in exploit.items() if k not in ("precondition", "postcondition")}
+        for key in ("precondition", "postcondition"):
+            merged: dict[Any, int] = {}
+            for endpoint in _exploit_conditions(exploit, key):
+                target = repoint(endpoint)
+                merged[target] = merged.get(target, 0) + 1
+            updated[f"{key}s"] = list(merged)
+            for target, count in merged.items():
+                if count > 1:
+                    edge = (target, exploit_id) if key == "precondition" else (exploit_id, target)
+                    view.edges[(*edge, "exploit")] = ElementMark(count=count)
+        exploits[exploit_id] = updated
+    new["exploits"] = exploits
+
+    # Network edges (the legacy lists folded in, in drawing order): drop edges inside one
+    # collapsed group, re-point the rest, merge duplicates
+    network: dict[tuple[Any, Any], dict[str, Any]] = {}
+    edge_counts: dict[tuple[Any, Any], int] = {}
+    originals = [e for _, e in _section_items(data.get("network_edges", {})) if isinstance(e, dict)]
+    legacy = data.get("network", {})
+    if isinstance(legacy, dict):
+        originals += [{"from": s, "to": t} for s, ts in legacy.items() if isinstance(ts, list) for t in ts]
+    for edge in originals:
+        src, dst = edge.get("from"), edge.get("to")
+        if not (src and dst):
+            continue
+        if src in summary_of and summary_of[src] == summary_of.get(dst):
+            continue
+        key = (repoint(src), repoint(dst))
+        edge_counts[key] = edge_counts.get(key, 0) + 1
+        network.setdefault(key, {**edge, "from": key[0], "to": key[1]})
+    new_edges: dict[str, Any] = {}
+    for i, (key, edge) in enumerate(network.items()):
+        if edge_counts[key] > 1:
+            view.edges[(key[0], key[1], "network")] = ElementMark(count=edge_counts[key])
+        new_edges[f"edge_{i}"] = edge
+    new["network_edges"] = new_edges
+    new["network"] = {}
+
+    view.data = new
+
+
+def merged_label(mark: Optional[ElementMark], label: Optional[str] = None) -> Optional[str]:
+    """Edge label: ``\u00d7N`` for N edges merged by a collapse, else the edge's own label."""
+    if mark is not None and mark.count > 1:
+        return f"\u00d7{mark.count}"
+    return label
+
+
+def summary_label_lines(mark: ElementMark) -> list[str]:
+    """Label lines of a collapsed group's summary node: its name, then member counts."""
+    facts = mark.collapsed or {}
+    parts = []
+    for section, one, many in (
+        ("hosts", "host", "hosts"),
+        ("vulnerabilities", "vuln", "vulns"),
+        ("services", "service", "services"),
+    ):
+        count = facts.get(section) or 0
+        if count:
+            parts.append(f"{count} {one if count == 1 else many}")
+    name = str(facts.get("label", ""))
+    return [name, " \u00b7 ".join(parts)] if parts else [name]
+
+
+def group_stats(data: dict[str, Any], group_by: Optional[str] = None) -> dict[str, dict[str, Any]]:
+    """Per-group counts for statistics: hosts, vulnerabilities and the highest CVSS."""
+    from .cvss_unified import get_cvss_score_unified
+
+    graph = data.get("graph") if isinstance(data.get("graph"), dict) else {}
+    node_group = assign_groups(data, group_by if group_by is not None else graph.get("group_by"))
+    stats: dict[str, dict[str, Any]] = {}
+    for section in ("hosts", "vulnerabilities"):
+        for element_id, element in _section_items(data.get(section, {})):
+            gid = node_group.get(element_id)
+            if gid is None:
+                continue
+            entry = stats.setdefault(gid, {"hosts": 0, "vulnerabilities": 0, "max_cvss": None})
+            entry[section] += 1
+            if section == "vulnerabilities" and isinstance(element, dict):
+                score, _ = get_cvss_score_unified(element.get("cvss"), element.get("cvss_vector"))
+                if score is not None and (entry["max_cvss"] is None or score > entry["max_cvss"]):
+                    entry["max_cvss"] = score
+    return stats
 
 
 def _section_items(section: Any) -> list[tuple[Any, Any]]:

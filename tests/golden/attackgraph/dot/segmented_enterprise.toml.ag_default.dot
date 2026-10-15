@@ -1,0 +1,235 @@
+digraph "Segmented Enterprise" {
+	bgcolor=white fontname=Arial nodesep=0.5 rankdir=LR ranksep=0.8 splines=ortho
+	label="Segmented Enterprise" labelloc=t
+	attacker [label=Attacker fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled]
+	web01 [label=web01 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=dmz]
+	web02 [label=web02 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=dmz]
+	web03 [label=web03 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=dmz]
+	lb01 [label=lb01 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=dmz]
+	mail01 [label=mail01 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=dmz]
+	ws01 [label=ws01 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws02 [label=ws02 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws03 [label=ws03 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws04 [label=ws04 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws05 [label=ws05 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws06 [label=ws06 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws07 [label=ws07 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws08 [label=ws08 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws09 [label=ws09 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws10 [label=ws10 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws11 [label=ws11 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws12 [label=ws12 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws13 [label=ws13 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	ws14 [label=ws14 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=users]
+	app01 [label=app01 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=servers]
+	app02 [label=app02 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=servers]
+	app03 [label=app03 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=servers]
+	app04 [label=app04 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=servers]
+	db01 [label=db01 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=servers]
+	db02 [label=db02 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=servers]
+	file01 [label=file01 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=servers]
+	jump01 [label=jump01 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=mgmt]
+	dc01 [label=dc01 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=mgmt]
+	dc02 [label=dc02 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=mgmt]
+	backup01 [label=backup01 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=mgmt]
+	siem01 [label=siem01 fillcolor="#4a90d9" fontcolor=white fontname=Arial fontsize=11 margin=0.15 shape=box3d style=filled zone=mgmt]
+	finding_01 [label="Finding 01\n(CVSS: 9.8 - Critical)" fillcolor="#8b0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_02 [label="Finding 02\n(CVSS: 9.1 - Critical)" fillcolor="#8b0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_03 [label="Finding 03\n(CVSS: 5.3 - Medium)" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_04 [label="Finding 04\n(CVSS: 8.8 - High)" fillcolor="#e74c3c" fontcolor="#ffffff" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_05 [label="Finding 05\n(CVSS: 7.8 - High)" fillcolor="#e74c3c" fontcolor="#ffffff" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_06 [label="Finding 06\n(CVSS: 8.1 - High)" fillcolor="#e74c3c" fontcolor="#ffffff" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_07 [label="Finding 07\n(CVSS: 7.2 - High)" fillcolor="#e74c3c" fontcolor="#ffffff" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_08 [label="Finding 08\n(CVSS: 9.0 - Critical)" fillcolor="#8b0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_09 [label="Finding 09\n(CVSS: 8.8 - High)" fillcolor="#e74c3c" fontcolor="#ffffff" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_10 [label="Finding 10\n(CVSS: 7.5 - High)" fillcolor="#e74c3c" fontcolor="#ffffff" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_11 [label="Finding 11\n(CVSS: 8.6 - High)" fillcolor="#e74c3c" fontcolor="#ffffff" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_12 [label="Finding 12\n(CVSS: 6.5 - Medium)" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_13 [label="Finding 13\n(CVSS: 10.0 - Critical)" fillcolor="#8b0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	finding_14 [label="Finding 14\n(CVSS: 6.8 - Medium)" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 margin=0.1 shape=diamond style=filled]
+	priv_web01 [label="user on web01\n[user]" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 margin=0.1 shape=ellipse style=filled]
+	priv_ws03 [label="user on ws03\n[user]" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 margin=0.1 shape=ellipse style=filled]
+	priv_ws11 [label="admin on ws11\n[admin]" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 margin=0.1 shape=ellipse style=filled]
+	priv_app02 [label="user on app02\n[user]" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 margin=0.1 shape=ellipse style=filled]
+	priv_db01 [label="admin on db01\n[admin]" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 margin=0.1 shape=ellipse style=filled]
+	priv_jump01 [label="admin on jump01\n[admin]" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 margin=0.1 shape=ellipse style=filled]
+	priv_dc01 [label="root on dc01\n[root]" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 margin=0.1 shape=ellipse style=filled]
+	svc_web01 [label="HTTPS\n:443" fillcolor="#27ae60" fontcolor=white fontname=Arial fontsize=10 margin=0.1 shape=component style=filled]
+	svc_lb01 [label="Gateway\n:443" fillcolor="#27ae60" fontcolor=white fontname=Arial fontsize=10 margin=0.1 shape=component style=filled]
+	svc_mail01 [label="Mail\n:443" fillcolor="#27ae60" fontcolor=white fontname=Arial fontsize=10 margin=0.1 shape=component style=filled]
+	svc_file01 [label="File share\n:445" fillcolor="#27ae60" fontcolor=white fontname=Arial fontsize=10 margin=0.1 shape=component style=filled]
+	svc_db01 [label="Database\n:1433" fillcolor="#27ae60" fontcolor=white fontname=Arial fontsize=10 margin=0.1 shape=component style=filled]
+	svc_dc01 [label="Directory\n:389" fillcolor="#27ae60" fontcolor=white fontname=Arial fontsize=10 margin=0.1 shape=component style=filled]
+	svc_jump01 [label="Remote desktop\n:3389" fillcolor="#27ae60" fontcolor=white fontname=Arial fontsize=10 margin=0.1 shape=component style=filled]
+	attacker -> web01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	attacker -> web02 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	attacker -> web03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	attacker -> lb01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	attacker -> mail01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	web01 -> app01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	web01 -> app02 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	web02 -> app01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	web02 -> app02 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	web03 -> app01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	web03 -> app02 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	lb01 -> app01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	lb01 -> app02 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws01 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws01 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws02 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws02 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws03 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws03 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws04 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws04 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws05 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws05 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws06 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws06 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws07 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws07 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws08 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws08 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws09 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws09 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws10 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws10 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws11 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws11 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws12 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws12 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws13 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws13 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws14 -> app03 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws14 -> file01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	app01 -> db01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	app01 -> db02 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	app02 -> db01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	app02 -> db02 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	app03 -> db01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	app03 -> db02 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	app04 -> db01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	app04 -> db02 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws03 -> jump01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws07 -> jump01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ws11 -> jump01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	jump01 -> dc01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	jump01 -> backup01 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	dc01 -> dc02 [color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	step_01 [label="Step 01" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	attacker -> step_01 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_01 -> priv_web01 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_02 [label="Step 02" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	priv_web01 -> step_02 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_02 -> priv_app02 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_03 [label="Step 03" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	priv_app02 -> step_03 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_03 -> priv_db01 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_04 [label="Step 04" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	attacker -> step_04 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_04 -> priv_ws03 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_05 [label="Step 05" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	priv_ws03 -> step_05 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_05 -> priv_ws11 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_06 [label="Step 06" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	priv_ws11 -> step_06 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_06 -> priv_jump01 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_07 [label="Step 07" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	priv_jump01 -> step_07 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	step_07 -> priv_dc01 [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	web01 -> finding_01 [color="#95a5a6" style=dotted]
+	lb01 -> finding_02 [color="#95a5a6" style=dotted]
+	web02 -> finding_03 [color="#95a5a6" style=dotted]
+	mail01 -> finding_04 [color="#95a5a6" style=dotted]
+	ws03 -> finding_05 [color="#95a5a6" style=dotted]
+	ws07 -> finding_06 [color="#95a5a6" style=dotted]
+	ws11 -> finding_07 [color="#95a5a6" style=dotted]
+	app02 -> finding_08 [color="#95a5a6" style=dotted]
+	app04 -> finding_09 [color="#95a5a6" style=dotted]
+	app03 -> finding_10 [color="#95a5a6" style=dotted]
+	db01 -> finding_11 [color="#95a5a6" style=dotted]
+	file01 -> finding_12 [color="#95a5a6" style=dotted]
+	dc01 -> finding_13 [color="#95a5a6" style=dotted]
+	jump01 -> finding_14 [color="#95a5a6" style=dotted]
+	web01 -> svc_web01 [color="#95a5a6" style=dotted]
+	lb01 -> svc_lb01 [color="#95a5a6" style=dotted]
+	mail01 -> svc_mail01 [color="#95a5a6" style=dotted]
+	file01 -> svc_file01 [color="#95a5a6" style=dotted]
+	db01 -> svc_db01 [color="#95a5a6" style=dotted]
+	dc01 -> svc_dc01 [color="#95a5a6" style=dotted]
+	jump01 -> svc_jump01 [color="#95a5a6" style=dotted]
+	subgraph cluster_dmz {
+		color="#94a3b8" fillcolor="#eef2f7" fontcolor="#334155" label=DMZ style="rounded,filled"
+		web01
+		web02
+		web03
+		lb01
+		mail01
+		finding_01
+		finding_02
+		finding_03
+		finding_04
+		priv_web01
+		svc_web01
+		svc_lb01
+		svc_mail01
+	}
+	subgraph cluster_users {
+		color="#94a3b8" fillcolor="#eef2f7" fontcolor="#334155" label="User LAN" style="rounded,filled"
+		ws01
+		ws02
+		ws03
+		ws04
+		ws05
+		ws06
+		ws07
+		ws08
+		ws09
+		ws10
+		ws11
+		ws12
+		ws13
+		ws14
+		finding_05
+		finding_06
+		finding_07
+		priv_ws03
+		priv_ws11
+		step_05
+	}
+	subgraph cluster_servers {
+		color="#94a3b8" fillcolor="#eef2f7" fontcolor="#334155" label="Server VLAN" style="rounded,filled"
+		app01
+		app02
+		app03
+		app04
+		db01
+		db02
+		file01
+		finding_08
+		finding_09
+		finding_10
+		finding_11
+		finding_12
+		priv_app02
+		priv_db01
+		svc_file01
+		svc_db01
+		step_03
+	}
+	subgraph cluster_mgmt {
+		color="#94a3b8" fillcolor="#eef2f7" fontcolor="#334155" label=Management style="rounded,filled"
+		jump01
+		dc01
+		dc02
+		backup01
+		siem01
+		finding_13
+		finding_14
+		priv_jump01
+		priv_dc01
+		svc_dc01
+		svc_jump01
+		step_07
+	}
+}
