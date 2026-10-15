@@ -26,15 +26,19 @@ import logging
 import os
 import re
 import tempfile
+from collections.abc import Callable
+from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Any, Optional, Union
 
-from .attackgraph_view import NODE_SECTIONS, DiffMarks, _exploit_conditions, _section_items, iter_edges
+from .attackgraph_view import NODE_SECTIONS, _exploit_conditions, _section_items, iter_edges
 from .diff import DiffResult, VisualizationDiff
+from .drift import DiffMarks
 
 logger = logging.getLogger(__name__)
 
-SUPPORTED_TYPES = ("attack_graph",)
+# Modules render_diff() supports; filled in below the adapters (see _ADAPTERS)
+SUPPORTED_TYPES: tuple[str, ...] = ()
 DIFF_KEYS = ("added", "removed", "modified")
 
 _HEX_COLOR = re.compile(r"^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$")
@@ -117,28 +121,29 @@ def render_diff(
         NotImplementedError: For an unsupported visualization type.
         ValueError: For invalid diff_colors.
     """
-    if visualization_type not in SUPPORTED_TYPES:
+    adapter = _ADAPTERS.get(visualization_type)
+    if adapter is None:
         raise NotImplementedError(
             f"render_diff() supports {', '.join(SUPPORTED_TYPES)}; '{visualization_type}' is not supported yet"
         )
     colors = resolve_diff_colors(diff_colors)
     ignore = list(ignore_paths or [])
 
-    old_data = normalize_attack_graph(_attack_graph_data(old))
-    new_data = normalize_attack_graph(_attack_graph_data(new))
+    old_data = adapter.normalize(adapter.load(old))
+    new_data = adapter.normalize(adapter.load(new))
     result = VisualizationDiff(
         SimpleNamespace(inputdata=old_data, _loaded=True, inputfile=_source(old)),
         SimpleNamespace(inputdata=new_data, _loaded=True, inputfile=_source(new)),
     ).compare(ignore_paths=ignore)
-    merged, marks = merge_attack_graphs(old_data, new_data, ignore)
-
-    from .attackgraphs import AttackGraphs
+    if adapter.metadata is not None:
+        result.metadata.update(adapter.metadata(old_data, new_data))
+    merged, marks = adapter.merge(old_data, new_data, ignore)
 
     fd, merged_path = tempfile.mkstemp(suffix=".json", prefix="usecvislib_drift_")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(merged, f)
-        ag = AttackGraphs(
+        viz = adapter.make(
             merged_path,
             output,
             format=format,
@@ -148,13 +153,38 @@ def render_diff(
             collapse=collapse,
             max_nodes=max_nodes,
         )
-        ag.diff_marks = marks
-        ag.diff_colors = colors
-        ag.show_unchanged = show_unchanged
-        ag.build()
+        viz.diff_marks = marks
+        viz.diff_colors = colors
+        viz.show_unchanged = show_unchanged
+        viz.build()
     finally:
         os.unlink(merged_path)
     return result
+
+
+@dataclass(frozen=True)
+class _DriftAdapter:
+    """What render_diff() needs from a module.
+
+    load: a version (path or instance) -> its loaded data
+    normalize: data -> canonical data for comparing (a copy)
+    merge: (old, new, ignore_paths) -> (merged data, DiffMarks)
+    make: (merged file, output, **render options) -> a visualization instance
+        with ``diff_marks`` / ``diff_colors`` / ``show_unchanged`` attributes
+    metadata: optional (old, new) -> extra DiffResult metadata
+    """
+
+    load: Callable[[Any], dict[str, Any]]
+    normalize: Callable[[dict[str, Any]], dict[str, Any]]
+    merge: Callable[[dict[str, Any], dict[str, Any], Optional[list[str]]], tuple[dict[str, Any], DiffMarks]]
+    make: Callable[..., Any]
+    metadata: Optional[Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]] = None
+
+
+def _make_attack_graph(path: str, output: str, **options: Any) -> Any:
+    from .attackgraphs import AttackGraphs
+
+    return AttackGraphs(path, output, **options)
 
 
 def _attack_graph_data(version: Union[str, Any]) -> dict[str, Any]:
@@ -287,3 +317,14 @@ def _edge_ignored(key: tuple[str, str, str], merged: dict[str, Any], ignored) ->
         return ignored(f"exploits.{exploit_id}")
     section = "vulnerabilities" if dst in merged.get("vulnerabilities", {}) else "services"
     return ignored(f"{section}.{dst}")
+
+
+_ADAPTERS: dict[str, _DriftAdapter] = {
+    "attack_graph": _DriftAdapter(
+        load=_attack_graph_data,
+        normalize=normalize_attack_graph,
+        merge=merge_attack_graphs,
+        make=_make_attack_graph,
+    ),
+}
+SUPPORTED_TYPES = tuple(_ADAPTERS)

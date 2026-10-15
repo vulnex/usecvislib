@@ -30,13 +30,31 @@ import ipaddress
 import logging
 import re
 from collections.abc import Iterator
-from dataclasses import dataclass, field
 from typing import Any, Optional
+
+# Shared drift / render marks, re-exported (other modules import them from here).
+# An attack graph's edge kinds are "network", "exploit" and "structural".
+from .drift import DiffMarks, EdgeKey, ElementMark, GroupInfo, RenderView
 
 logger = logging.getLogger(__name__)
 
-# (source id, target id, kind); kind is "network", "exploit" or "structural"
-EdgeKey = tuple[str, str, str]
+__all__ = [
+    "DEFAULT_MAX_NODES",
+    "NODE_SECTIONS",
+    "SUMMARY_PREFIX",
+    "DiffMarks",
+    "EdgeKey",
+    "ElementMark",
+    "GroupInfo",
+    "RenderView",
+    "assign_groups",
+    "build_view",
+    "group_stats",
+    "iter_edges",
+    "merged_label",
+    "node_ids",
+    "summary_label_lines",
+]
 
 NODE_SECTIONS = ("hosts", "vulnerabilities", "privileges", "services", "exploits")
 
@@ -48,58 +66,6 @@ DEFAULT_MAX_NODES = 300
 
 # group_by = "ip/24" (IPv4, /8-/32) or "ip6/64" (IPv6, /16-/128)
 _IP_GROUPING = re.compile(r"^ip(6)?/(\d{1,3})$")
-
-
-@dataclass
-class ElementMark:
-    """Render-only facts about one node or edge."""
-
-    diff: Optional[str] = None  # "added" | "removed" | "modified" | "unchanged"
-    changed: list[str] = field(default_factory=list)  # changed fields of a modified element
-    inferred: bool = False
-    group: Optional[str] = None  # cluster the element sits in
-    collapsed: Optional[dict[str, Any]] = None  # summary-node facts: member counts, worst CVSS
-    count: int = 1  # edges merged into this one by a collapse
-
-
-@dataclass
-class GroupInfo:
-    """A cluster of nodes, drawn expanded or collapsed into one summary node."""
-
-    id: str
-    label: str = ""
-    color: Optional[str] = None
-    members: list[str] = field(default_factory=list)
-    collapsed: bool = False
-
-
-@dataclass
-class RenderView:
-    """The sections to draw, and the marks and groups that style them."""
-
-    data: dict[str, Any]
-    groups: dict[str, GroupInfo] = field(default_factory=dict)
-    nodes: dict[str, ElementMark] = field(default_factory=dict)
-    edges: dict[EdgeKey, ElementMark] = field(default_factory=dict)
-
-    def node_mark(self, node_id: str) -> Optional[ElementMark]:
-        return self.nodes.get(node_id)
-
-    def edge_mark(self, key: EdgeKey) -> Optional[ElementMark]:
-        return self.edges.get(key)
-
-
-@dataclass
-class DiffMarks:
-    """Change status per element for the drift view.
-
-    ``nodes`` maps an element id to (status, changed field names); ``edges``
-    maps an edge key to its status. Status is "added", "removed",
-    "modified" (nodes only) or "unchanged".
-    """
-
-    nodes: dict[str, tuple[str, list[str]]] = field(default_factory=dict)
-    edges: dict[EdgeKey, str] = field(default_factory=dict)
 
 
 def build_view(

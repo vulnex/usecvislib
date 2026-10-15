@@ -300,3 +300,12 @@ class TestApi:
         assert response.status_code == 200 and "image/svg+xml" in response.headers["content-type"]
         assert json.loads(response.headers["X-Diff-Summary"])["added"] == 3
         assert "#0ea5e9" in response.text
+
+
+def test_faded_only_appends_alpha_to_full_hex_colors():
+    # A preset could give the removed color as #rgb or a name: appending the
+    # alpha suffix to those produced an invalid Graphviz color
+    from usecvislib.drift import faded
+
+    assert faded("#94a3b8") == "#94a3b859"
+    assert faded("#abc") == "#abc" and faded("grey") == "grey"

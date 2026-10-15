@@ -38,7 +38,6 @@ if TYPE_CHECKING:
     from .clouddiagrams import CloudDiagrams
     from .mermaiddiagrams import MermaidDiagrams
 import heapq
-import re
 
 import networkx as nx
 from graphviz import Digraph
@@ -49,11 +48,8 @@ from .base import VisualizationBase
 from .constants import cvss_to_color, cvss_to_severity_label, cvss_to_text_color, validate_cvss_score
 from .cvss_unified import get_cvss_score_unified as get_cvss_score
 from .cvss_unified import validate_vector as validate_cvss_vector
+from .drift import DriftStylingMixin
 from .settings import is_cvss_enabled
-
-# Drift view defaults (render_diff); diff_colors and a preset's ``diff`` block override them
-DIFF_COLORS = {"added": "#d6336c", "removed": "#94a3b8", "modified": "#7c3aed"}
-_REMOVED_ALPHA = "59"  # 35% opacity on #rrggbb colors of removed elements
 
 # Cluster colors for grouped hosts (Graphviz engine); a group's own color overrides the fill
 _CLUSTER_FILL = "#eef2f7"
@@ -99,7 +95,7 @@ class AttackGraphError(utils.RenderError):
     pass
 
 
-class AttackGraphs(VisualizationBase):
+class AttackGraphs(DriftStylingMixin, VisualizationBase):
     """Attack graph visualization and analysis class.
 
     Creates visual representations of network attack scenarios using
@@ -773,59 +769,6 @@ class AttackGraphs(VisualizationBase):
                     cluster.node(utils.sanitize_node_id(member))
 
         self.logger.debug(f"Rendered attack graph with {len(hosts)} hosts")
-
-    def diff_palette(self) -> dict[str, str]:
-        """Drift colors: diff_colors, then the preset's ``diff`` block, then the defaults."""
-        preset = self.style.get("diff", {}) if isinstance(self.style, dict) else {}
-        palette = {**DIFF_COLORS, **{k: v for k, v in preset.items() if k in DIFF_COLORS}}
-        palette.update(self.diff_colors or {})
-        return palette
-
-    def _diff_title(self, name: str) -> str:
-        """Graph title with the drift legend, as a Graphviz HTML label."""
-        palette = self.diff_palette()
-        legend = " &nbsp; ".join(
-            f'<FONT COLOR="{palette[status]}">{sign} {status}</FONT>'
-            for status, sign in (("added", "+"), ("removed", "\u2212"), ("modified", "~"))
-        )
-        title = str(name).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-        return f'<{title}<BR/><FONT POINT-SIZE="10">{legend}</FONT>>'
-
-    def _style_diff_node(self, attrs: dict[str, Any], label: str, mark: Any) -> str:
-        """Apply a node's drift status to its Graphviz attributes; returns the label."""
-        status = mark.diff if mark is not None else None
-        if status not in ("added", "removed", "modified"):
-            return label
-        palette = self.diff_palette()
-        if status == "removed":
-            attrs["style"] = f"{attrs.get('style', 'filled')},dashed"
-            attrs["color"] = palette["removed"]
-            for key in ("fillcolor", "fontcolor"):
-                if re.fullmatch(r"#[0-9a-fA-F]{6}", str(attrs.get(key, ""))):
-                    attrs[key] = str(attrs[key]) + _REMOVED_ALPHA
-        else:
-            attrs["color"] = palette[status]
-            attrs["penwidth"] = "3"
-        if mark.changed:
-            attrs["tooltip"] = "changed: " + ", ".join(mark.changed)
-        if str(label).startswith("<"):  # HTML (icon) label: the border carries the status
-            return label
-        sign = {"added": "+", "removed": "\u2212", "modified": "~"}[status]
-        return f"{sign} {label}"
-
-    def _style_diff_edge(self, attrs: dict[str, Any], mark: Any) -> None:
-        """Apply an edge's drift status to its Graphviz attributes in place."""
-        status = mark.diff if mark is not None else None
-        palette = self.diff_palette()
-        if status == "added":
-            attrs["color"] = palette["added"]
-            try:
-                attrs["penwidth"] = str(float(attrs.get("penwidth", 1.0)) + 1.0)
-            except ValueError:
-                attrs["penwidth"] = "2"
-        elif status == "removed":
-            attrs["style"] = "dashed"
-            attrs["color"] = palette["removed"] + _REMOVED_ALPHA
 
     def _add_summary_node(self, node_id: str, mark: Any, view: RenderView, host_style: dict[str, Any]) -> None:
         """A collapsed group's summary node: folder shape, counts, worst-severity fill."""
