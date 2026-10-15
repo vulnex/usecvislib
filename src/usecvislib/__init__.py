@@ -83,6 +83,7 @@ from .builders import (
     PrivilegeGradientBuilder,
     ThreatModelBuilder,
     TimelineBuilder,
+    TrendBuilder,
     VulnTreeBuilder,
 )
 from .clouddiagrams import (
@@ -236,6 +237,7 @@ from .timeline import (
     TimelineEvent,
     TimelinePhase,
 )
+from .trend import TrendChart, TrendError, TrendPanel, TrendSeries
 from .utils import (
     AnalysisError,
     ConfigError,
@@ -399,6 +401,11 @@ __all__ = [
     "TimelineError",
     "TimelineEvent",
     "TimelinePhase",
+    "TrendBuilder",
+    "TrendChart",
+    "TrendError",
+    "TrendPanel",
+    "TrendSeries",
     # Exception hierarchy
     "USecVisLibError",
     "ValidationError",

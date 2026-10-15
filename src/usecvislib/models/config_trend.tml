@@ -1,0 +1,71 @@
+# =============================================================================
+# VULNEX -Universal Security Visualization Library-
+#
+# File: config_trend.tml
+# Trend chart (metric-over-time small multiples) style presets.
+#
+# Matplotlib-based. `figure.panel_height` is the height of one metric panel;
+# the figure grows with the number of panels. Severity series keep fixed
+# colors (critical -> info) so they stay comparable; other series take the
+# preset's `palette` in order.
+# =============================================================================
+
+# Trend Default - clean light board, navy panel titles
+[tr_default]
+palette = ["#3d5a80", "#e07a5f", "#81b29a", "#9b5de5", "#f2cc8f", "#00bbf9", "#ee6c4d", "#577590"]
+figure = {width = 12.0, panel_height = 2.4, dpi = 150, facecolor = "#ffffff"}
+title = {fontsize = 15, fontweight = "bold", color = "#1e293b"}
+axis = {fontsize = 9, color = "#334155", gridcolor = "#e2e8f0"}
+panel = {fontsize = 10, color = "#1e3a5f"}
+line = {width = 2.0, marker_size = 5, fill_alpha = 0.25}
+value = {fontsize = 9, color = "#334155", show = true}
+
+# Trend Light - airy off-white page, softer lines
+[tr_light]
+palette = ["#7c9cbf", "#e8a598", "#9cc5a1", "#b8a1e3", "#e9cf94", "#7fc8e8", "#f0a07f", "#8fa3b8"]
+figure = {width = 12.0, panel_height = 2.4, dpi = 150, facecolor = "#fbfaf7"}
+title = {fontsize = 15, fontweight = "normal", color = "#475569"}
+axis = {fontsize = 9, color = "#64748b", gridcolor = "#ece9e2"}
+panel = {fontsize = 10, color = "#7c8aa0"}
+line = {width = 1.8, marker_size = 5, fill_alpha = 0.2}
+value = {fontsize = 9, color = "#475569", show = true}
+
+# Trend Dark - slate night-ops board
+[tr_dark]
+palette = ["#60a5fa", "#f97316", "#34d399", "#c084fc", "#facc15", "#22d3ee", "#fb7185", "#a3e635"]
+figure = {width = 12.0, panel_height = 2.4, dpi = 150, facecolor = "#0f172a"}
+title = {fontsize = 15, fontweight = "bold", color = "#e2e8f0"}
+axis = {fontsize = 9, color = "#cbd5e1", gridcolor = "#1e293b"}
+panel = {fontsize = 10, color = "#e0e7ff"}
+line = {width = 2.0, marker_size = 5, fill_alpha = 0.3}
+value = {fontsize = 9, color = "#e2e8f0", show = true}
+
+# Trend Print - high-contrast for report export
+[tr_print]
+palette = ["#0f172a", "#b45309", "#047857", "#6d28d9", "#a16207", "#0369a1", "#be123c", "#4d7c0f"]
+figure = {width = 11.0, panel_height = 2.2, dpi = 200, facecolor = "#ffffff"}
+title = {fontsize = 16, fontweight = "bold", color = "#0f172a"}
+axis = {fontsize = 10, color = "#0f172a", gridcolor = "#cbd5e1"}
+panel = {fontsize = 11, color = "#0f172a"}
+line = {width = 2.2, marker_size = 5, fill_alpha = 0.2}
+value = {fontsize = 10, color = "#0f172a", show = true}
+
+# Trend Minimal - flat, thin lines, no value labels
+[tr_minimal]
+palette = ["#333333", "#888888", "#555555", "#aaaaaa", "#222222", "#777777", "#444444", "#999999"]
+figure = {width = 11.0, panel_height = 2.0, dpi = 150, facecolor = "#ffffff"}
+title = {fontsize = 14, fontweight = "normal", color = "#111111"}
+axis = {fontsize = 8, color = "#555555", gridcolor = "#eeeeee"}
+panel = {fontsize = 9, color = "#333333"}
+line = {width = 1.4, marker_size = 3, fill_alpha = 0.12}
+value = {fontsize = 8, color = "#333333", show = false}
+
+# Trend Corporate - professional blue on light blue-grey for stakeholders
+[tr_corporate]
+palette = ["#16324f", "#2a9d8f", "#e9c46a", "#f4a261", "#3d5a80", "#98c1d9", "#e76f51", "#264653"]
+figure = {width = 12.0, panel_height = 2.4, dpi = 150, facecolor = "#eef3f8"}
+title = {fontsize = 16, fontweight = "bold", color = "#16324f"}
+axis = {fontsize = 9, color = "#16324f", gridcolor = "#c9d6e3"}
+panel = {fontsize = 11, color = "#16324f"}
+line = {width = 2.0, marker_size = 5, fill_alpha = 0.22}
+value = {fontsize = 9, color = "#1e3a5f", show = true}

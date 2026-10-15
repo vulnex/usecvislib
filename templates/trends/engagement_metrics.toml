@@ -1,0 +1,104 @@
+#
+# VULNEX -Universal Security Visualization Library-
+#
+# Trend chart template: how an engagement's metrics evolve across six daily
+# snapshots. One panel per metric on a shared time axis; the severity series
+# share a stacked panel. Values are illustrative.
+#
+
+[trend]
+name = "Engagement metrics"
+
+[panels."Vulnerabilities by severity"]
+stacked = true
+unit = "findings"
+
+[[series]]
+name = "Hosts"
+unit = "hosts"
+points = [
+    {t = "2026-10-01T09:00:00Z", value = 10},
+    {t = "2026-10-02T09:00:00Z", value = 15},
+    {t = "2026-10-03T09:00:00Z", value = 22},
+    {t = "2026-10-04T09:00:00Z", value = 22},
+    {t = "2026-10-05T09:00:00Z", value = 24},
+    {t = "2026-10-06T09:00:00Z", value = 23},
+]
+
+[[series]]
+name = "Critical"
+panel = "Vulnerabilities by severity"
+severity = "critical"
+points = [
+    {t = "2026-10-01T09:00:00Z", value = 1},
+    {t = "2026-10-02T09:00:00Z", value = 2},
+    {t = "2026-10-03T09:00:00Z", value = 4},
+    {t = "2026-10-04T09:00:00Z", value = 3},
+    {t = "2026-10-05T09:00:00Z", value = 2},
+    {t = "2026-10-06T09:00:00Z", value = 1},
+]
+
+[[series]]
+name = "High"
+panel = "Vulnerabilities by severity"
+severity = "high"
+points = [
+    {t = "2026-10-01T09:00:00Z", value = 3},
+    {t = "2026-10-02T09:00:00Z", value = 5},
+    {t = "2026-10-03T09:00:00Z", value = 7},
+    {t = "2026-10-04T09:00:00Z", value = 7},
+    {t = "2026-10-05T09:00:00Z", value = 5},
+    {t = "2026-10-06T09:00:00Z", value = 4},
+]
+
+[[series]]
+name = "Medium"
+panel = "Vulnerabilities by severity"
+severity = "medium"
+points = [
+    {t = "2026-10-01T09:00:00Z", value = 6},
+    {t = "2026-10-02T09:00:00Z", value = 9},
+    {t = "2026-10-03T09:00:00Z", value = 12},
+    {t = "2026-10-04T09:00:00Z", value = 13},
+    {t = "2026-10-05T09:00:00Z", value = 11},
+    {t = "2026-10-06T09:00:00Z", value = 10},
+]
+
+[[series]]
+name = "Low"
+panel = "Vulnerabilities by severity"
+severity = "low"
+points = [
+    {t = "2026-10-01T09:00:00Z", value = 4},
+    {t = "2026-10-02T09:00:00Z", value = 6},
+    {t = "2026-10-03T09:00:00Z", value = 8},
+    {t = "2026-10-04T09:00:00Z", value = 9},
+    {t = "2026-10-05T09:00:00Z", value = 9},
+    {t = "2026-10-06T09:00:00Z", value = 8},
+]
+
+[[series]]
+name = "Exploitable paths"
+unit = "paths"
+kind = "step"
+points = [
+    {t = "2026-10-01T09:00:00Z", value = 0},
+    {t = "2026-10-02T09:00:00Z", value = 2},
+    {t = "2026-10-03T09:00:00Z", value = 5},
+    {t = "2026-10-04T09:00:00Z", value = 4},
+    {t = "2026-10-05T09:00:00Z", value = 2},
+    {t = "2026-10-06T09:00:00Z", value = 1},
+]
+
+[[series]]
+name = "Known exploited (KEV)"
+unit = "findings"
+kind = "bar"
+points = [
+    {t = "2026-10-01T09:00:00Z", value = 0},
+    {t = "2026-10-02T09:00:00Z", value = 1},
+    {t = "2026-10-03T09:00:00Z", value = 2},
+    {t = "2026-10-04T09:00:00Z", value = 2},
+    {t = "2026-10-05T09:00:00Z", value = 1},
+    {t = "2026-10-06T09:00:00Z", value = 0},
+]

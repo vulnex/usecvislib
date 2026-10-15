@@ -29,7 +29,12 @@ from usecvislib.utils import parse_content
 
 TEMPLATES = Path(__file__).parent.parent / "templates"
 FORMATS = {".toml": "toml", ".tml": "toml", ".json": "json", ".yaml": "yaml"}
-ALL = sorted(p for p in TEMPLATES.rglob("*") if p.suffix in FORMATS and p.name != "binvis_config.toml")
+# Binary-analysis config and metric trends are charts, not graphs: no Mermaid form
+ALL = sorted(
+    p
+    for p in TEMPLATES.rglob("*")
+    if p.suffix in FORMATS and p.name != "binvis_config.toml" and "trends" not in p.relative_to(TEMPLATES).parts
+)
 
 
 def _export(path: Path) -> tuple[str, str]:

@@ -2418,6 +2418,56 @@ print(metadata)
 
 ---
 
+### TrendChart
+
+Metric-over-time small multiples: one panel per metric, all panels on a shared time axis. Built for tracking an engagement across snapshots (hosts, vulnerabilities by severity, exploitable paths, ...). Matplotlib, PNG / SVG / PDF, six `tr_*` presets (`tr_default`, `tr_light`, `tr_dark`, `tr_print`, `tr_minimal`, `tr_corporate`). Output is byte-reproducible in every format.
+
+```python
+from usecvislib import TrendChart
+
+chart = TrendChart("metrics.toml", "trend", format="svg", styleid="tr_dark")
+chart.build()
+chart.get_stats()["series"]["Hosts"]   # {"first": 10, "last": 23, "min": 10, "max": 24, "change": 13, ...}
+```
+
+Input (TOML / JSON / YAML):
+
+```toml
+[trend]
+name = "Engagement metrics"
+
+[panels."Vulnerabilities by severity"]   # optional, per panel
+stacked = true                            # stack the panel's series
+unit = "findings"
+
+[[series]]
+name = "Hosts"
+unit = "hosts"                            # y-axis label
+kind = "line"                             # line (default) | area | step | bar
+points = [
+    {t = "2026-10-01T09:00:00Z", value = 10},
+    {t = "2026-10-02T09:00:00Z", value = 15},
+]
+
+[[series]]
+name = "Critical"
+panel = "Vulnerabilities by severity"     # share a panel (default: a panel of its own)
+severity = "critical"                     # severity color (critical/high/medium/low/info/none)
+# color = "#3d5a80"                       # or any hex color; otherwise the preset palette
+points = [...]
+
+[[rows]]                                  # alternative tidy form: one row per value
+t = "2026-10-01T09:00:00Z"
+metric = "Exploitable paths"
+value = 3
+```
+
+- Times are ISO-8601 (a trailing `Z` is UTC; time zones are normalized to UTC; a date alone is midnight). Points are sorted; a series can have any number of points, including one.
+- A stacked panel uses the union of its series' timestamps; a series with no value at one of them counts as 0 there.
+- Each series is labelled with its latest value (presets can turn this off: `value.show`); panels whose values are all non-negative start at 0.
+- `validate()` reports series without points and the warnings found while loading (duplicate names or timestamps, unknown kind / severity, a color that is not hex). `get_stats()` gives per-series first / last / min / max / change and the time span.
+- Example: `templates/trends/engagement_metrics.toml`.
+
 ## Fluent Interface
 
 All visualization classes support method chaining for cleaner code:
@@ -2587,6 +2637,26 @@ graph = (
 ```
 
 ---
+
+### TrendBuilder
+
+```python
+from datetime import datetime, timedelta
+from usecvislib import TrendBuilder
+
+day = datetime(2026, 10, 1)
+chart = (
+    TrendBuilder("Engagement metrics")
+    .add_series("Hosts", [(day, 10), (day + timedelta(days=1), 15)], unit="hosts")
+    .add_series("Critical", [{"t": "2026-10-01", "value": 2}], panel="Vulnerabilities", severity="critical")
+    .add_series("High", [{"t": "2026-10-01", "value": 5}], panel="Vulnerabilities", severity="high")
+    .add_panel("Vulnerabilities", stacked=True, unit="findings")
+    .to_trend_chart("trend", format="png", styleid="tr_default")
+)
+chart.build()
+```
+
+Points are `(time, value)` pairs or `{"t": ..., "value": ...}` mappings; times are datetimes or ISO strings. The builder's temporary input file is removed as soon as the chart is loaded.
 
 ## Result Classes
 

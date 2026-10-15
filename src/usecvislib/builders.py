@@ -47,6 +47,7 @@ if TYPE_CHECKING:
     from .privilegegradient import PrivilegeGradient
     from .threatmodeling import ThreatModeling
     from .timeline import IncidentTimeline
+    from .trend import TrendChart
     from .vulntree import VulnDependencyTree
 
 
@@ -1601,3 +1602,93 @@ class VulnTreeBuilder:
         vt = VulnDependencyTree(temp_path, outputfile, format=format, styleid=styleid, mode=mode)
         vt._temp_input = temp_path
         return vt
+
+
+class TrendBuilder:
+    """Builder for metric-over-time trend charts.
+
+    Example:
+        >>> builder = TrendBuilder("Engagement metrics")
+        >>> builder.add_series("Hosts", [("2026-10-01", 10), ("2026-10-02", 15)], unit="hosts")
+        >>> builder.add_series("Critical", [("2026-10-01", 2), ("2026-10-02", 3)], panel="Vulns", severity="critical")
+        >>> builder.add_panel("Vulns", stacked=True, unit="findings")
+        >>> builder.to_trend_chart("trend").build()
+    """
+
+    def __init__(self, name: str):
+        """Initialize the builder.
+
+        Args:
+            name: Chart title.
+        """
+        self._data: dict[str, Any] = {"trend": {"name": name}, "series": [], "panels": {}}
+
+    @staticmethod
+    def _point(point: Any) -> dict[str, Any]:
+        """{t, value} from a (time, value) pair or a mapping; datetimes become ISO strings."""
+        if isinstance(point, dict):
+            t, value = point.get("t", point.get("time")), point.get("value")
+        else:
+            t, value = point
+        return {"t": t.isoformat() if hasattr(t, "isoformat") else t, "value": value}
+
+    def add_series(
+        self,
+        name: str,
+        points: list,
+        unit: str = "",
+        panel: Optional[str] = None,
+        kind: str = "line",
+        color: Optional[str] = None,
+        severity: Optional[str] = None,
+    ) -> TrendBuilder:
+        """Add one metric's values over time.
+
+        Args:
+            name: Series (metric) name.
+            points: (time, value) pairs or {"t": ..., "value": ...} mappings; times are
+                ISO-8601 strings or datetimes, in any order.
+            unit: Unit shown on the panel's y axis.
+            panel: Panel to draw in (default: a panel of its own). Series sharing a
+                panel are drawn together; see add_panel() to stack them.
+            kind: "line" (default), "area", "step" or "bar".
+            color: Hex color (default: severity color, else the preset palette).
+            severity: critical / high / medium / low / info / none: use that color.
+
+        Returns:
+            Self for method chaining.
+        """
+        series: dict[str, Any] = {"name": name, "points": [self._point(p) for p in points], "kind": kind}
+        for key, value in (("unit", unit), ("panel", panel), ("color", color), ("severity", severity)):
+            if value:
+                series[key] = value
+        self._data["series"].append(series)
+        return self
+
+    def add_panel(self, name: str, stacked: bool = False, unit: str = "") -> TrendBuilder:
+        """Configure a panel: stack its series (e.g. vulnerabilities by severity), set its unit.
+
+        Returns:
+            Self for method chaining.
+        """
+        panel: dict[str, Any] = {"stacked": stacked}
+        if unit:
+            panel["unit"] = unit
+        self._data["panels"][name] = panel
+        return self
+
+    def build(self) -> dict[str, Any]:
+        """Return the trend data dictionary."""
+        return self._data
+
+    def to_trend_chart(self, outputfile: str, format: str = "png", styleid: str = "") -> TrendChart:
+        """Create a TrendChart from the builder data (its temp input is removed once loaded)."""
+        from .trend import TrendChart
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(self._data, f)
+            temp_path = f.name
+
+        chart = TrendChart(temp_path, outputfile, format=format, styleid=styleid or None)
+        chart._temp_input = temp_path
+        return chart
