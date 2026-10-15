@@ -511,6 +511,7 @@ class KillChainStats(BaseModel):
     total_incidents: int
     detected_techniques: int
     mitigated_techniques: int
+    inferred_techniques: int = Field(default=0, description="Techniques marked inferred (hypotheses)")
     detection_coverage: float = Field(description="Fraction of techniques with detection (0.0-1.0)")
     mitigation_coverage: float = Field(description="Fraction of techniques with mitigation (0.0-1.0)")
     active_phases: list[str] = Field(default_factory=list)
@@ -566,6 +567,7 @@ class TimelineStats(BaseModel):
     end_time: str = ""
     time_span: str = ""
     tagged_events: int = Field(default=0, description="Events carrying an ATT&CK technique tag")
+    inferred_tags: int = Field(default=0, description="Technique tags marked inferred (hypotheses)")
     response_metrics: TimelineResponseMetrics = Field(default_factory=TimelineResponseMetrics)
     warnings: list[str] = Field(default_factory=list)
     metadata: Optional[TemplateMetadata] = Field(default=None, description="Template metadata")

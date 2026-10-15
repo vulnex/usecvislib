@@ -76,7 +76,9 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     name = data.get("graph", {}).get("name", "Attack Graph")
     scene = Scene(module=MODULE_SLUG, meta={"name": name})
 
-    def add_node(node_id, lines, kind, fill, severity=None, cvss=None, text_color=None, element=None, extra=None):
+    def add_node(
+        node_id, lines, kind, fill, severity=None, cvss=None, text_color=None, element=None, extra=None, inferred=False
+    ):
         if text_color is None:
             # white on the amber privilege fill read at ~2:1
             text_color = utils.readable_text_color(fill) or "#ffffff"
@@ -97,6 +99,11 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
         if source_names:
             node_data["sources"] = ",".join(source_names)
         node_data.update(extra or {})
+        if inferred:
+            node_data["inferred"] = "true"
+            confidence = utils.inferred_state(element)[1]
+            if confidence:
+                node_data["confidence"] = confidence
         scene.nodes.append(
             SceneNode(
                 id=node_id,
@@ -112,6 +119,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                 severity=severity,
                 cvss=cvss,
                 sources=source_count,
+                inferred=inferred,
                 data=node_data,
             )
         )
@@ -171,12 +179,19 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     # Exploits
     for exploit_id, exploit in _items(data.get("exploits", {})):
         label = exploit.get("label", exploit_id) if isinstance(exploit, dict) else exploit_id
-        add_node(exploit_id, _wrap(label, font, size, max_w), "exploit", ag["exploit"], element=exploit)
+        mark = view.node_mark(exploit_id)
+        if mark is not None and mark.inferred:
+            # A hypothesis: muted fill, dashed outline, "(inferred)" line
+            inf = theme["inferred"]
+            lines = [*_wrap(label, font, size, max_w), str(inf["marker"])]
+            add_node(exploit_id, lines, "exploit", inf["fill"], text_color=inf["text"], element=exploit, inferred=True)
+        else:
+            add_node(exploit_id, _wrap(label, font, size, max_w), "exploit", ag["exploit"], element=exploit)
 
     if not scene.nodes:
         raise utils.RenderError("Attack graph has no nodes to render")
 
-    _build_edges(scene, data, ag, view)
+    _build_edges(scene, data, ag, view, theme.get("inferred"))
     _attach_icons(scene, data, theme)
     _add_clusters(scene, view, theme)
     return scene
@@ -248,7 +263,7 @@ def _attach_icons(scene: Scene, data: dict, theme: dict) -> None:
                 attach_icon(node, item["image"], theme)
 
 
-def _build_edges(scene: Scene, data: dict, ag: dict, view=None) -> None:
+def _build_edges(scene: Scene, data: dict, ag: dict, view=None, inferred_theme=None) -> None:
     """Add typed edges mirroring the Graphviz path; skip dangling endpoints."""
     node_ids = {n.id for n in scene.nodes}
     exploit_width = float(ag.get("exploit_edge_width", 2.4))
@@ -257,6 +272,11 @@ def _build_edges(scene: Scene, data: dict, ag: dict, view=None) -> None:
         # N edges merged by a collapse: "\u00d7N" (and data-edge-count)
         mark = view.edge_mark((src, dst, kind)) if view is not None else None
         label = merged_label(mark, label)
+        inferred = mark is not None and mark.inferred
+        if inferred:
+            # A hypothesis: muted, dashed, thinner
+            color = (inferred_theme or {}).get("edge", "#a78bfa")
+            width, dashed = 1.4, True
         if src in node_ids and dst in node_ids:
             scene.edges.append(
                 SceneEdge(
@@ -268,6 +288,7 @@ def _build_edges(scene: Scene, data: dict, ag: dict, view=None) -> None:
                     dashed=dashed,
                     label=label or None,
                     data={"edge-count": str(mark.count)} if mark is not None and mark.count > 1 else {},
+                    inferred=inferred,
                 )
             )
 

@@ -5,6 +5,7 @@
 # mapped to MITRE ATLAS (16 tactics, ATLAS 5.6.0). Technique IDs and
 # names are ATLAS's own. A phase may be a tactic name or a tactic ID
 # (AML.TA....). Detection/mitigation coverage drives the heat coloring.
+# A technique marked inferred (or confidence = "hypothesis") is drawn as one.
 #
 
 [killchain]
@@ -56,6 +57,7 @@ phase = "Persistence"
 severity = "high"
 detected = false
 mitigated = false
+confidence = "hypothesis"  # inferred, not observed: drawn dashed and faded
 
 [techniques."AML.T0054"]
 name = "LLM Jailbreak"

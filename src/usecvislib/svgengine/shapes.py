@@ -61,6 +61,15 @@ def card(
     return ET.Element("rect", attrs)
 
 
+def dash_outline(element: ET.Element, pattern: str = "5 3") -> ET.Element:
+    """Give a shape (or each shape in a group) a dashed outline; returns the element."""
+    targets = list(element) if element.tag == "g" else [element]
+    for target in targets:
+        if target.get("stroke") not in (None, "none"):
+            target.set("stroke-dasharray", pattern)
+    return element
+
+
 def diamond(
     cx: float,
     cy: float,

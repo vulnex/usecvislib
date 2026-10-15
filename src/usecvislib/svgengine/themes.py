@@ -55,6 +55,18 @@ DEFAULTS: dict[str, Any] = {
         "sources_fill": "#0f766e",
     },
     "images": {"size": 48},
+    # Inferred elements (hypotheses, e.g. AI-proposed exploits or technique tags):
+    # dashed, muted, and marked "(inferred)" so they never read as observed facts
+    "inferred": {
+        "fill": "#e2e8f0",
+        "text": "#334155",
+        "border": "#64748b",
+        # violet: structural links are already dashed slate
+        "edge": "#a78bfa",
+        "opacity": 0.6,
+        "dash": "5 3",
+        "marker": "(inferred)",
+    },
     "layout": {"h_gap": 40, "v_gap": 76},
     # General-graph cluster (SceneGroup) fallback styling. Painters that use
     # clusters (e.g. Component Diagram layers) usually set per-group colors;

@@ -184,6 +184,10 @@ def _event_data(ev) -> dict[str, str]:
     }
     if ev.technique:
         data["technique"] = ev.technique
+        if ev.technique_inferred:
+            data["technique-inferred"] = "true"
+            if ev.technique_confidence:
+                data["technique-confidence"] = ev.technique_confidence
     return data
 
 
@@ -267,7 +271,7 @@ def _legend(viz, theme, ops: _Ops, bounds: _Bounds, right_x: float, top_y: float
 def _wrap_title(ev, family: str, size: float, max_w: float) -> list[str]:
     lines = metrics.wrap_text(ev.title, family, size, max_w) or [ev.title]
     if ev.technique:
-        lines = [*lines, ev.technique]
+        lines = [*lines, ev.technique_label]
     return lines
 
 
@@ -394,7 +398,7 @@ def _render_gantt(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
         group.append(shapes.band(x, cy - row_h * 0.3, w, row_h * 0.6, color, radius=3.0))
         bounds.rect(x, cy - row_h * 0.3, w, row_h * 0.6)
         ops.nodes.append(group)
-        tag = ev.title + (f" [{ev.technique}]" if ev.technique else "")
+        tag = ev.title + (f" [{ev.technique_label}]" if ev.technique else "")
         # After the bar: inside it, dark text sat on dark severity fills.
         _anchored_label(group, bounds, x + w + 6.0, cy + size * 0.35, tag, size, family, theme["event_text"], "start")
         _anchored_label(
@@ -454,7 +458,7 @@ def _render_vertical(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
         y = ys[i]
         group = _marker(ev, center_x, y, theme, ops, bounds)
         side = 1 if i % 2 == 0 else -1
-        tag = ev.title + (f" [{ev.technique}]" if ev.technique else "")
+        tag = ev.title + (f" [{ev.technique_label}]" if ev.technique else "")
         anchor = "start" if side > 0 else "end"
         _anchored_label(
             group, bounds, center_x + side * 40.0, y + size * 0.35, tag, size, family, theme["event_text"], anchor

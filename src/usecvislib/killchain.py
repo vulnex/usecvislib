@@ -43,6 +43,8 @@ Input schema (TOML/JSON/YAML)::
     severity = "high"
     detected = true
     mitigated = false
+    inferred = false               # true (or confidence = "hypothesis"): a hypothesis,
+                                   # drawn dashed and faded and marked "(inferred)"
 
     [[incidents]]
     id = "INC-1"
@@ -50,6 +52,7 @@ Input schema (TOML/JSON/YAML)::
     techniques = ["T1566", "T1204", ...]   # ordered path
 """
 
+import re
 from dataclasses import dataclass, field
 from enum import Enum
 from itertools import chain, count, pairwise
@@ -161,6 +164,10 @@ _PHASE_ALIASES = {
 
 _VALID_SEVERITIES = {"critical", "high", "medium", "low", "none", "info"}
 
+# Inferred techniques (hypotheses): marked in the label, dashed, and faded
+INFERRED_MARKER = "(inferred)"
+INFERRED_FILL_ALPHA = "99"  # 60% opacity on a #rrggbb fill (Graphviz engine)
+
 
 def _slot_id(phase_key: str, row: int) -> str:
     """Node id of a phase's invisible placeholder slot."""
@@ -194,6 +201,8 @@ class Technique:
     mitigated: bool = False
     detection: str = ""
     mitigation: str = ""
+    inferred: bool = False  # a hypothesis (e.g. an AI-inferred mapping), not an observation
+    confidence: Optional[str] = None
 
     @property
     def coverage_score(self) -> float:
@@ -363,6 +372,8 @@ class KillChain(VisualizationBase):
                 mitigated=bool(td.get("mitigated", False)),
                 detection=str(td.get("detection", "")),
                 mitigation=str(td.get("mitigation", "")),
+                inferred=utils.inferred_state(td)[0],
+                confidence=utils.inferred_state(td)[1],
             )
 
         raw_incidents = data.get("incidents", [])
@@ -595,7 +606,10 @@ class KillChain(VisualizationBase):
         if tech.id and tech.id != tech.name:
             rows += f"<TR><TD><B>{_html_escape(tech.id)}</B></TD></TR>"
         rows += f"<TR><TD>{name}</TD></TR>"
-        rows += f'<TR><TD><FONT POINT-SIZE="9">{coverage}</FONT></TD></TR>'
+        # The marker shares the coverage row: every card keeps the three rows
+        # the phase-box alignment (and its placeholder slots) relies on
+        marker = f" \u00b7 <I>{INFERRED_MARKER}</I>" if tech.inferred else ""
+        rows += f'<TR><TD><FONT POINT-SIZE="9">{coverage}{marker}</FONT></TD></TR>'
         return f'<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="1">{rows}</TABLE>>'
 
     def _graphviz_tech_style(self, tech: Technique, style: dict[str, Any]) -> dict[str, str]:
@@ -610,6 +624,12 @@ class KillChain(VisualizationBase):
         base.setdefault("shape", "box")
         base.setdefault("style", "rounded,filled")
         base.setdefault("margin", "0.14,0.07")
+        if tech.inferred:
+            # A hypothesis: dashed border, coverage color kept but faded
+            base["style"] = f"{base['style']},dashed"
+            fill = str(base.get("fillcolor", ""))
+            if re.fullmatch(r"#[0-9a-fA-F]{6}", fill):
+                base["fillcolor"] = fill + INFERRED_FILL_ALPHA
         return utils.stringify_dict(base)
 
     def _draw_impl(self, outputfile: str) -> None:
@@ -640,6 +660,7 @@ class KillChain(VisualizationBase):
             "total_incidents": len(self.incidents),
             "detected_techniques": detected,
             "mitigated_techniques": mitigated,
+            "inferred_techniques": sum(1 for t in self.techniques.values() if t.inferred),
             "detection_coverage": (detected / total) if total else 0.0,
             "mitigation_coverage": (mitigated / total) if total else 0.0,
             "active_phases": self.active_phases(),

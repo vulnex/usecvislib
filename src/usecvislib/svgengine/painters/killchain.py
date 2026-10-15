@@ -64,13 +64,16 @@ def _coverage_kind(tech) -> str:
     return "gap"
 
 
-def _tech_lines(tech, font, size, max_w) -> list[str]:
-    """Wrap a technique's id + name into card label lines."""
+def _tech_lines(tech, font, size, max_w, marker: str = "(inferred)") -> list[str]:
+    """Wrap a technique's id + name into card label lines (plus the inferred marker)."""
     lines = []
     if tech.id and tech.id != tech.name:
         lines.append(tech.id)
     lines.extend(metrics.wrap_text(tech.name, font["family"], size, max_w))
-    return lines or [tech.name]
+    lines = lines or [tech.name]
+    if tech.inferred:
+        lines.append(marker)
+    return lines
 
 
 def _header_height(theme) -> float:
@@ -94,7 +97,7 @@ def _build_scene(viz, theme):
 
     for phase in phases:
         for tech in grouped.get(phase, []):
-            lines = _tech_lines(tech, font, size, max_w)
+            lines = _tech_lines(tech, font, size, max_w, str(theme["inferred"]["marker"]))
             text_w, text_h = metrics.measure_block(lines, font["family"], size)
             scene.nodes.append(
                 SceneNode(
@@ -113,7 +116,10 @@ def _build_scene(viz, theme):
                         "coverage": _coverage_kind(tech),
                         "detected": "true" if tech.detected else "false",
                         "mitigated": "true" if tech.mitigated else "false",
+                        **({"inferred": "true"} if tech.inferred else {}),
+                        **({"confidence": tech.confidence} if tech.inferred and tech.confidence else {}),
                     },
+                    inferred=tech.inferred,
                 )
             )
             tech_by_id[tech.id] = tech
@@ -327,20 +333,25 @@ def render_svg(viz) -> str:
         classes = ["usv-node", "usv-node--technique", f"usv-cover--{cover}"]
         if node.severity:
             classes.append(f"usv-sev--{node.severity}")
-        g = shapes.group(classes, node.data)
-        g.append(
-            shapes.card(
-                x,
-                y,
-                node.width,
-                node.height,
-                float(card_cfg["radius"]),
-                fill,
-                border,
-                float(card_cfg["border_width"]),
-                shadow_url,
-            )
+        body = shapes.card(
+            x,
+            y,
+            node.width,
+            node.height,
+            float(card_cfg["radius"]),
+            fill,
+            border,
+            float(card_cfg["border_width"]),
+            shadow_url,
         )
+        if node.inferred:
+            # A hypothesis: coverage color kept, but dashed and faded
+            classes.append("usv-node--inferred")
+            shapes.dash_outline(body, str(theme["inferred"]["dash"]))
+        g = shapes.group(classes, node.data)
+        if node.inferred:
+            g.set("opacity", shapes.fmt(float(theme["inferred"]["opacity"])))
+        g.append(body)
         text_h = len(node.lines) * size * metrics.LINE_HEIGHT
         g.extend(shapes.text_lines(node.x, node.y - text_h / 2, node.lines, size, _COVERAGE_TEXT[cover]))
         canvas.add("nodes", g)

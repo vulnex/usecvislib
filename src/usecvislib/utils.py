@@ -1641,6 +1641,30 @@ def render_graph(graph: Any, outputfile: str, **kwargs: Any) -> str:
     return rendered
 
 
+# confidence values that mark an element as inferred rather than observed
+_INFERRED_CONFIDENCE = {"hypothesis", "inferred"}
+
+
+def inferred_state(element: Any, prefix: str = "") -> tuple[bool, Optional[str]]:
+    """Whether an element is inferred (a hypothesis) rather than observed, and its confidence.
+
+    An element is inferred when ``<prefix>inferred`` is true, or when
+    ``<prefix>confidence`` is "hypothesis" or "inferred". ``prefix`` selects a
+    tagged field, e.g. ``technique_`` for a timeline event's technique tag.
+
+    Returns:
+        (inferred, confidence): confidence is the declared value, or None.
+    """
+    if not isinstance(element, dict):
+        return False, None
+    flag = element.get(f"{prefix}inferred")
+    if isinstance(flag, str):
+        flag = flag.strip().lower() in ("true", "yes", "1")
+    confidence = element.get(f"{prefix}confidence")
+    confidence = str(confidence).strip() if confidence not in (None, "") else None
+    return bool(flag) or (confidence is not None and confidence.lower() in _INFERRED_CONFIDENCE), confidence
+
+
 # A node reported by at least this many sources gets a "confirmed by N" marker
 MIN_SOURCES_FOR_BADGE = 2
 

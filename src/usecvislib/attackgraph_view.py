@@ -120,7 +120,7 @@ def build_view(
     if not node_group:
         if _collapse_requested(collapse):
             logger.warning("collapse needs groups (group_by or host 'group' fields); ignored")
-        return RenderView(data=data)
+        return _mark_inferred(RenderView(data=data))
 
     meta = data.get("groups") if isinstance(data.get("groups"), dict) else {}
     view = RenderView(data=data)
@@ -138,6 +138,28 @@ def build_view(
         for group_id in collapsed:
             view.groups[group_id].collapsed = True
         _collapse(view, collapsed)
+    return _mark_inferred(view)
+
+
+def _mark_inferred(view: RenderView) -> RenderView:
+    """Mark inferred exploits (node and pre/postcondition edges) and inferred network edges.
+
+    Runs on the data the view draws, so after a collapse it sees re-pointed
+    edges; a merged edge is inferred only if every edge merged into it was.
+    """
+    from . import utils
+
+    for exploit_id, exploit in _section_items(view.data.get("exploits", {})):
+        if not utils.inferred_state(exploit)[0]:
+            continue
+        view.nodes.setdefault(exploit_id, ElementMark()).inferred = True
+        for pre in _exploit_conditions(exploit, "precondition"):
+            view.edges.setdefault((pre, exploit_id, "exploit"), ElementMark()).inferred = True
+        for post in _exploit_conditions(exploit, "postcondition"):
+            view.edges.setdefault((exploit_id, post, "exploit"), ElementMark()).inferred = True
+    for _, edge in _section_items(view.data.get("network_edges", {})):
+        if isinstance(edge, dict) and edge.get("from") and edge.get("to") and utils.inferred_state(edge)[0]:
+            view.edges.setdefault((edge["from"], edge["to"], "network"), ElementMark()).inferred = True
     return view
 
 
@@ -340,8 +362,11 @@ def _collapse(view: RenderView, collapsed: list[str]) -> None:
 
     # Network edges (the legacy lists folded in, in drawing order): drop edges inside one
     # collapsed group, re-point the rest, merge duplicates
+    from . import utils
+
     network: dict[tuple[Any, Any], dict[str, Any]] = {}
     edge_counts: dict[tuple[Any, Any], int] = {}
+    all_inferred: dict[tuple[Any, Any], bool] = {}
     originals = [e for _, e in _section_items(data.get("network_edges", {})) if isinstance(e, dict)]
     legacy = data.get("network", {})
     if isinstance(legacy, dict):
@@ -354,11 +379,16 @@ def _collapse(view: RenderView, collapsed: list[str]) -> None:
             continue
         key = (repoint(src), repoint(dst))
         edge_counts[key] = edge_counts.get(key, 0) + 1
+        all_inferred[key] = all_inferred.get(key, True) and utils.inferred_state(edge)[0]
         network.setdefault(key, {**edge, "from": key[0], "to": key[1]})
     new_edges: dict[str, Any] = {}
     for i, (key, edge) in enumerate(network.items()):
         if edge_counts[key] > 1:
             view.edges[(key[0], key[1], "network")] = ElementMark(count=edge_counts[key])
+            # Merged: inferred only if every merged edge was (one observed edge makes it observed)
+            edge = {k: v for k, v in edge.items() if k not in ("inferred", "confidence")}
+            if all_inferred[key]:
+                edge["inferred"] = True
         new_edges[f"edge_{i}"] = edge
     new["network_edges"] = new_edges
     new["network"] = {}

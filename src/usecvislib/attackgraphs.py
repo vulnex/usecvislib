@@ -56,6 +56,24 @@ _CLUSTER_BORDER = "#94a3b8"
 _CLUSTER_TEXT = "#334155"
 
 
+# Inferred elements (hypotheses): dashed and muted, marked "(inferred)"; inferred
+# edges also get a hollow arrowhead, since some presets already dash network edges
+_INFERRED_MARKER = "(inferred)"
+_INFERRED_NODE_ATTRS = {
+    "style": "dashed,filled",
+    "fillcolor": "#e2e8f0",
+    "fontcolor": "#334155",
+    "color": "#64748b",
+}
+_INFERRED_EDGE_ATTRS = {"style": "dashed", "color": "#a78bfa", "arrowhead": "empty", "penwidth": "1.2"}
+
+
+def _style_inferred_edge(edge_attrs: dict[str, Any], mark: Any) -> None:
+    """Restyle an edge's Graphviz attributes in place when its mark says inferred."""
+    if mark is not None and mark.inferred:
+        edge_attrs.update(_INFERRED_EDGE_ATTRS)
+
+
 def _with_sources(label: str, element: Any, node_attrs: dict[str, Any]) -> str:
     """Label plus a "confirmed by N sources" line for multi-tool findings.
 
@@ -642,9 +660,11 @@ class AttackGraphs(VisualizationBase):
             target = edge_data.get("to")
             if source and target:
                 edge_attrs = utils.stringify_dict(network_edge_style.copy())
-                edge_label = merged_label(view.edge_mark((source, target, "network")), edge_data.get("label", ""))
+                edge_mark = view.edge_mark((source, target, "network"))
+                edge_label = merged_label(edge_mark, edge_data.get("label", ""))
                 if edge_label:
                     edge_attrs["label"] = edge_label
+                _style_inferred_edge(edge_attrs, edge_mark)
                 self.graph.edge(utils.sanitize_node_id(source), utils.sanitize_node_id(target), **edge_attrs)
 
         # Also support old dict-style network format
@@ -661,7 +681,12 @@ class AttackGraphs(VisualizationBase):
         exploit_node_attrs = self._exploit_node_style(exploit_edge_style)
         for exploit_id, exploit_data in exploits.items():
             exploit_label = _with_sources(exploit_data.get("label", exploit_id), exploit_data, {})
-            self.graph.node(utils.sanitize_node_id(exploit_id), exploit_label, **exploit_node_attrs)
+            node_attrs = exploit_node_attrs
+            exploit_mark = view.node_mark(exploit_id)
+            if exploit_mark is not None and exploit_mark.inferred:
+                exploit_label = f"{exploit_label}\\n{_INFERRED_MARKER}"
+                node_attrs = {**exploit_node_attrs, **_INFERRED_NODE_ATTRS}
+            self.graph.node(utils.sanitize_node_id(exploit_id), exploit_label, **node_attrs)
 
             preconditions = exploit_data.get("preconditions", [])
             postconditions = exploit_data.get("postconditions", [])
@@ -672,14 +697,18 @@ class AttackGraphs(VisualizationBase):
 
             for pre in preconditions:
                 edge_attrs = utils.stringify_dict(exploit_edge_style.copy())
-                if label := merged_label(view.edge_mark((pre, exploit_id, "exploit"))):
+                pre_mark = view.edge_mark((pre, exploit_id, "exploit"))
+                if label := merged_label(pre_mark):
                     edge_attrs["label"] = label
+                _style_inferred_edge(edge_attrs, pre_mark)
                 self.graph.edge(utils.sanitize_node_id(pre), utils.sanitize_node_id(exploit_id), **edge_attrs)
 
             for post in postconditions:
                 edge_attrs = utils.stringify_dict(exploit_edge_style.copy())
-                if label := merged_label(view.edge_mark((exploit_id, post, "exploit"))):
+                post_mark = view.edge_mark((exploit_id, post, "exploit"))
+                if label := merged_label(post_mark):
                     edge_attrs["label"] = label
+                _style_inferred_edge(edge_attrs, post_mark)
                 self.graph.edge(utils.sanitize_node_id(exploit_id), utils.sanitize_node_id(post), **edge_attrs)
 
         # Link vulnerabilities to hosts

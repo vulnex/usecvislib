@@ -510,6 +510,39 @@ group = "dmz"              # or set the group directly (wins over group_by)
 
 Example: `templates/attack-graphs/segmented_enterprise.toml`.
 
+### Inferred elements
+
+Elements that are a hypothesis rather than an observation (for example an exploit step or ATT&CK mapping proposed by an AI assistant) can be marked so they are never mistaken for facts:
+
+```toml
+[exploits.proposed_step]
+label = "Proposed lateral movement"
+precondition = "priv_web"
+postcondition = "priv_db"
+inferred = true                  # or: confidence = "hypothesis"
+confidence = "medium"            # optional; shown as data-confidence in SVG
+
+[network_edges.e7]
+from = "web01"
+to = "db01"
+confidence = "hypothesis"
+```
+
+| Module | What can be inferred | Field |
+|---|---|---|
+| Attack graph | an exploit (its node and pre/postcondition edges), a network edge | `inferred = true` or `confidence = "hypothesis"` (also `"inferred"`) |
+| Kill chain | a technique | same fields on the technique |
+| Incident timeline | an event's technique tag | `technique_inferred = true` or `technique_confidence = "hypothesis"` |
+
+How they are drawn:
+
+- **Attack graph:** inferred exploits get a muted grey fill, a dashed outline and an "(inferred)" line; inferred edges are dashed and muted violet (Graphviz also gives them a hollow arrowhead). When edges are merged by a collapse, the result is inferred only if every merged edge was.
+- **Kill chain:** the technique keeps its coverage color but is faded, with a dashed border and an "(inferred)" line, so coverage stays readable.
+- **Incident timeline:** the tag reads `T1059 (inferred)` (compact mode shows titles only).
+- **SVG output:** `usv-node--inferred` / `usv-edge--inferred` classes and `data-inferred`, `data-confidence` (timeline: `data-technique-inferred`, `data-technique-confidence`), so a UI can filter hypotheses.
+- Statistics count them: `inferred_techniques` (kill chain), `inferred_tags` (timeline).
+- Example: `templates/kill-chains/atlas_agent_prompt_injection.tml` (AML.T0080 is a hypothesis).
+
 ### Multi-source findings
 
 When a finding was reported by several tools, any host, vulnerability, privilege, service or exploit can say so:

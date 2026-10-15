@@ -47,6 +47,8 @@ Input schema (TOML/JSON/YAML)::
     severity = "high"
     lane = "User Workstation"
     technique = "T1566.001"
+    technique_inferred = false     # true (or technique_confidence = "hypothesis"):
+                                   # the tag is inferred, shown "T1566.001 (inferred)"
     duration = "2m"
 """
 
@@ -82,6 +84,9 @@ class TimelineError(utils.RenderError):
 # Severity ordering (high -> low) and the canonical color ramp.
 _SEVERITY_ORDER = ["critical", "high", "medium", "low", "info"]
 _VALID_SEVERITIES = set(_SEVERITY_ORDER)
+# Marks an inferred technique tag (a hypothesis, e.g. an AI-inferred ATT&CK mapping)
+INFERRED_MARKER = "(inferred)"
+
 SEVERITY_COLORS = {
     "critical": "#c0392b",
     "high": "#e74c3c",
@@ -167,6 +172,15 @@ class TimelineEvent:
     technique: Optional[str] = None
     source: Optional[str] = None
     indicators: list[str] = field(default_factory=list)
+    technique_inferred: bool = False  # the technique tag is a hypothesis (e.g. AI-inferred mapping)
+    technique_confidence: Optional[str] = None
+
+    @property
+    def technique_label(self) -> Optional[str]:
+        """The technique tag as shown: marked when it is inferred rather than observed."""
+        if not self.technique:
+            return None
+        return f"{self.technique} {INFERRED_MARKER}" if self.technique_inferred else self.technique
 
     @property
     def end_time(self) -> datetime:
@@ -280,6 +294,8 @@ class IncidentTimeline(VisualizationBase):
                     lane=lane,
                     duration=parse_duration(ev.get("duration")),
                     technique=ev.get("technique"),
+                    technique_inferred=utils.inferred_state(ev, "technique_")[0] and bool(ev.get("technique")),
+                    technique_confidence=utils.inferred_state(ev, "technique_")[1],
                     source=ev.get("source"),
                     indicators=[str(i) for i in indicators] if isinstance(indicators, list) else [],
                 )
@@ -540,7 +556,7 @@ class IncidentTimeline(VisualizationBase):
         pitch_pts = 0.0
         for lane in lanes:
             lane_events = grouped.get(lane, [])
-            labels = [ev.title if not ev.technique else f"{ev.title}\n{ev.technique}" for ev in lane_events]
+            labels = [ev.title if not ev.technique else f"{ev.title}\n{ev.technique_label}" for ev in lane_events]
             slots, up, down = self._place_row_labels(lane_events, labels, x_pts, ev_cfg["fontsize"], marker_pts)
             placements[lane] = (labels, slots)
             pitch_pts = max(pitch_pts, up + down + 12)
@@ -611,7 +627,7 @@ class IncidentTimeline(VisualizationBase):
             ax.barh(
                 row, width, left=x, height=0.6, color=ev.color, edgecolor=ev_cfg["edgecolor"], linewidth=0.6, zorder=3
             )
-            tag = f"  {ev.title}" + (f" [{ev.technique}]" if ev.technique else "")
+            tag = f"  {ev.title}" + (f" [{ev.technique_label}]" if ev.technique else "")
             # After the bar: inside it, dark text sat on dark severity fills.
             ax.text(
                 x + width,
@@ -695,7 +711,7 @@ class IncidentTimeline(VisualizationBase):
                 0.5, y, s=ev_cfg["marker_size"], c=ev.color, edgecolors=ev_cfg["edgecolor"], linewidths=0.8, zorder=3
             )
             side = 1 if i % 2 == 0 else -1
-            label = ev.title if not ev.technique else f"{ev.title} [{ev.technique}]"
+            label = ev.title if not ev.technique else f"{ev.title} [{ev.technique_label}]"
             ax.annotate(
                 label,
                 (0.5, y),
@@ -807,6 +823,7 @@ class IncidentTimeline(VisualizationBase):
             "end_time": self.events[-1].end_time.isoformat() if self.events else "",
             "time_span": _humanize(span) if span else "",
             "tagged_events": sum(1 for e in self.events if e.technique),
+            "inferred_tags": sum(1 for e in self.events if e.technique_inferred),
             "response_metrics": self.response_metrics(),
             "warnings": list(self.warnings),
         }
