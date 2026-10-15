@@ -119,3 +119,46 @@ class TestOneFoldableMember:
     def test_nothing_to_fold(self, tmp_path):
         view = _pg(tmp_path, collapse="tier2/workstation", keep_ids=["ws1", "ws2", "ws3"]).render_view()
         assert WS not in view.components and not view.groups["tier2/workstation"].collapsed
+
+
+class TestGraphviz:
+    def test_frame_holds_card_and_kept_members(self, tmp_path):
+        pg = _pg(tmp_path, collapse=True, keep_ids=["ws1"])
+        pg.render()
+        source = pg.graph.source
+        frame = source[source.index("subgraph cluster_tier2_workstation {") :]
+        frame = frame[: frame.index("}")]
+        assert "__group_tier2_workstation [" in frame and "ws1 [" in frame
+        assert "dashed" in frame and "label=workstation" in frame
+
+    def test_without_kept_members_the_card_is_bare(self, tmp_path):
+        pg = _pg(tmp_path, collapse=True)
+        pg.render()
+        assert "cluster_tier2_workstation" not in pg.graph.source
+
+
+class TestSvgScene:
+    @staticmethod
+    def _scene(tmp_path, **options):
+        from usecvislib.svgengine import themes
+        from usecvislib.svgengine.painters import privilegegradient as painter
+
+        pg = _pg(tmp_path, **options)
+        return painter._build_scene(pg, themes.resolve(pg.style))
+
+    def test_frame(self, tmp_path):
+        scene = self._scene(tmp_path, collapse=True, keep_ids=["ws1"])
+        frame = next(g for g in scene.groups if g.id == "tier2_workstation")
+        assert frame.members == [WS, "ws1"] and frame.parent == "tier2" and frame.dashed
+        assert frame.data == {"zone": "tier2", "collapsed": "true", "kept-count": "1"}
+
+    def test_card_and_kept_member_data(self, tmp_path):
+        scene = self._scene(tmp_path, collapse=True, keep_ids=["ws1"])
+        assert scene.node_by_id(WS).data["kept-count"] == "1"
+        kept = scene.node_by_id("ws1").data
+        assert kept["kept"] == "true" and kept["cluster-id"] == "tier2_workstation"
+        assert "kept" not in scene.node_by_id("kiosk").data
+
+    def test_kept_member_of_an_expanded_group_is_ordinary(self, tmp_path):
+        scene = self._scene(tmp_path, keep_ids=["ws1"])  # nothing collapsed
+        assert "kept" not in scene.node_by_id("ws1").data

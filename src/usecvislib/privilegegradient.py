@@ -663,15 +663,20 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
                 zone_anchors.append(anchor_id)
 
                 # Add components in this zone; members of an expanded group go into
-                # its cluster, nested in the zone's
+                # its cluster, nested in the zone's, and so do a collapsed group's
+                # summary card and its kept members (A12)
                 nested: dict[str, list[tuple[str, str, dict]]] = {}
                 for comp_id, comp_data in view.components.items():
                     if comp_data.get("zone") == zone_id:
                         facts = view.summary_facts(comp_id)
                         if facts is not None:
-                            self._add_summary_component(
-                                sub, comp_id, facts, view, component_style, inversion_style, zone_border
+                            label, node_attrs = self._summary_node(
+                                comp_id, facts, view, component_style, inversion_style, zone_border
                             )
+                            if facts.get("kept"):
+                                nested.setdefault(view.group_of(comp_id), []).append((comp_id, label, node_attrs))
+                            else:
+                                sub.node(utils.sanitize_node_id(comp_id), label, **node_attrs)
                             continue
                         node_attrs = comp_data.copy()
                         # Check for images
@@ -714,7 +719,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
                             node_attrs.pop(key, None)
                         label = self._style_diff_node(node_attrs, label, view.marks.get(comp_id))
                         group_id = view.group_of(comp_id)
-                        if group_id is not None and not view.groups[group_id].collapsed:
+                        if group_id is not None and (not view.groups[group_id].collapsed or comp_id in view.kept):
                             nested.setdefault(group_id, []).append((comp_id, label, node_attrs))
                         else:
                             sub.node(utils.sanitize_node_id(comp_id), label, **node_attrs)
@@ -836,18 +841,18 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
             f"{len(self._components)} components, {len(self._inversions)} inversions"
         )
 
-    def _add_summary_component(
+    def _summary_node(
         self,
-        target: Any,
         node_id: str,
         facts: dict[str, Any],
         view: GradientView,
         component_style: dict[str, Any],
         inversion_style: dict[str, Any],
         zone_border: str,
-    ) -> None:
-        """A collapsed group's summary card: folder shape in the zone's color, counts,
-        and the inversion color on the border when its members take part in inversions."""
+    ) -> tuple[str, dict[str, str]]:
+        """A collapsed group's summary card (label, attributes): folder shape in the zone's
+        color, counts, and the inversion color on the border when its members take part in
+        inversions."""
         attrs = utils.stringify_dict(component_style.copy())
         attrs.pop("label", None)
         attrs["shape"] = "folder"
@@ -860,7 +865,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
             attrs["color"] = str(inversion_style.get("color", "#cc0000"))
             attrs["penwidth"] = "2.5"
         label = self._style_diff_node(attrs, "\\n".join(summary_label_lines(facts)), view.marks.get(node_id))
-        target.node(utils.sanitize_node_id(node_id), label, **attrs)
+        return label, attrs
 
     def _add_legend(self) -> None:
         """Add a compact HTML-table legend at the bottom of the graph."""

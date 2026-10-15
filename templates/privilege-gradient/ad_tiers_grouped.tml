@@ -7,6 +7,10 @@
 #   their tier (a group never spans tiers)
 # - the workstation group is collapsed into one summary card; the other
 #   groups are drawn as clusters inside their tier
+# - keep_ids: WS-0103 (direct ODBC to SQL-01, the violation under
+#   investigation) stays drawn by name next to the card, in the group's frame.
+#   keep = "inversions" would keep every workstation taking part in an
+#   inversion; here that includes the HTTPS flows into Tier 1
 # - 3 inversions: a helpdesk account with RDP to a domain controller, a
 #   backup agent running as Domain Admin, and direct ODBC from a workstation
 #
@@ -17,6 +21,7 @@ description = "Active Directory tier model with components grouped by role"
 version = "1.0"
 type = "Privilege Gradient Graph"
 group_by = "role"
+keep_ids = ["ws_0103"]
 
 [groups."tier2/workstation"]
 label = "Tier 2 workstations"

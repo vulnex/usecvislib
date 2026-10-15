@@ -296,7 +296,9 @@ def test_template_svg_contract(tmp_path):
     root = ET.fromstring((tmp_path / "o.svg").read_text(encoding="utf-8"))
     groups = list(root.iter(f"{SVG_NS}g"))
     summary = next(g for g in groups if "usv-node--group" in g.get("class", ""))
-    assert summary.get("data-collapsed") == "true" and summary.get("data-member-count") == "5"
+    # 5 workstations: WS-0103 kept by keep_ids (A12), 4 folded
+    assert summary.get("data-collapsed") == "true" and summary.get("data-member-count") == "4"
+    assert summary.get("data-kept-count") == "1"
     assert summary.get("data-cluster-id") == "tier2_workstation"
     clusters = [g for g in groups if "usv-cluster" in g.get("class", "") and g.get("data-collapsed") == "false"]
     assert {g.get("data-cluster-id") for g in clusters} >= {"tier1_app_server", "tier0_domain_controller"}

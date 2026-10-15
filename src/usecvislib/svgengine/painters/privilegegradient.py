@@ -34,7 +34,7 @@ from itertools import pairwise
 from typing import Any
 
 from ... import utils
-from ...grouping import merged_label
+from ...grouping import SUMMARY_PREFIX, merged_label
 from ...privilegegradient_view import inversion_counts_label, summary_label_lines
 from .. import metrics, themes
 from ..scene import Scene, SceneEdge, SceneGroup, SceneNode
@@ -135,9 +135,13 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                     "member-count": str(facts["members"]),
                     "inversion-count": str(facts["inversions"]),
                     **({"max-severity": facts["max_severity"]} if facts.get("max_severity") else {}),
+                    **({"kept-count": str(facts["kept"])} if facts.get("kept") else {}),
                 }
                 if facts["inversions"]:
                     card_border = pg["inversion"]
+            elif comp_id in view.kept and view.groups[view.group_of(comp_id)].collapsed:
+                # A12: drawn individually in its collapsed group's frame
+                group_data = {"kept": "true", "cluster-id": utils.sanitize_node_id(view.group_of(comp_id))}
             scene.nodes.append(
                 SceneNode(
                     id=comp_id,
@@ -196,10 +200,22 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
 def _add_group_clusters(
     scene: Scene, view, zone_id: str, zone: dict, pg: dict[str, Any], border: str, drawn: set[str]
 ) -> None:
-    """Expanded groups of a zone: dashed clusters nested in the zone's."""
+    """Expanded groups of a zone: dashed clusters nested in the zone's. A collapsed group
+    with kept members (A12) gets the same frame around its summary card and those members."""
     for group_id, info in view.groups.items():
-        members = [m for m in info.members if m in drawn]
-        if info.collapsed or view.group_zone.get(group_id) != zone_id or not members:
+        if view.group_zone.get(group_id) != zone_id:
+            continue
+        data = {"zone": str(zone_id), "collapsed": "false"}
+        if info.collapsed:
+            kept = [m for m in info.members if m in view.kept and m in drawn]
+            summary = SUMMARY_PREFIX + group_id
+            if not kept or summary not in drawn:
+                continue  # a bare summary card
+            members = [summary, *kept]
+            data = {"zone": str(zone_id), "collapsed": "true", "kept-count": str(len(kept))}
+        else:
+            members = [m for m in info.members if m in drawn]
+        if not members:
             continue
         scene.groups.append(
             SceneGroup(
@@ -211,7 +227,7 @@ def _add_group_clusters(
                 text_color=pg.get("zone_text") or zone.get("font_color", "#333333"),
                 dashed=True,
                 parent=utils.sanitize_node_id(zone_id),
-                data={"zone": str(zone_id), "collapsed": "false"},
+                data=data,
             )
         )
 
