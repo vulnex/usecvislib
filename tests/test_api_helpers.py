@@ -57,6 +57,7 @@ from api.helpers import (
     is_valid_image,
     run_with_timeout,
     resolve_images_to_temp,
+    save_upload_file,
     run_sync_with_timeout,
     sanitize_filename_for_log,
     update_progress,
@@ -810,3 +811,41 @@ class TestResolveImagesToTemp:
         assert resolved.endswith("tree_resolved.toml") and os.path.exists(resolved)
         temps.cleanup()
         assert not os.path.exists(resolved)
+
+
+class TestSaveUploadFile:
+    @staticmethod
+    def _upload(data: bytes, name: str = "model.toml"):
+        upload = MagicMock()
+        upload.filename = name
+        upload.file = BytesIO(data)
+        return upload
+
+    def test_copies_in_chunks(self, monkeypatch):
+        import api.helpers as helpers
+
+        monkeypatch.setattr(helpers, "UPLOAD_CHUNK_SIZE", 7)
+        data = bytes(range(256)) * 3
+        path = save_upload_file(self._upload(data), max_size=len(data))
+        try:
+            with open(path, "rb") as f:
+                assert f.read() == data
+        finally:
+            cleanup_files(path)
+
+    def test_oversized_is_413_and_leaves_no_file(self, monkeypatch):
+        import api.helpers as helpers
+
+        monkeypatch.setattr(helpers, "UPLOAD_CHUNK_SIZE", 10)
+        before = set(os.listdir(helpers.TEMP_DIR))
+        with pytest.raises(HTTPException) as exc_info:
+            save_upload_file(self._upload(b"x" * 100), max_size=50)
+        assert exc_info.value.status_code == 413
+        assert set(os.listdir(helpers.TEMP_DIR)) == before
+
+    def test_exact_limit_is_accepted(self):
+        path = save_upload_file(self._upload(b"y" * 64), max_size=64)
+        try:
+            assert os.path.getsize(path) == 64
+        finally:
+            cleanup_files(path)

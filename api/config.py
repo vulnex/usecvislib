@@ -41,6 +41,17 @@ MAX_CONFIG_FILE_SIZE = 1024 * 1024  # 1 MB max for config files (TOML, JSON, YAM
 MAX_TOML_FILE_SIZE = MAX_CONFIG_FILE_SIZE  # Alias for backwards compatibility
 MAX_BINARY_FILE_SIZE = 50 * 1024 * 1024  # 50 MB max for binary files
 
+# SECURITY: Cap on a whole request body, enforced while it streams in (before
+# Starlette spools uploads to disk). Defaults to the largest single upload
+# (binary file) plus room for multipart framing and form fields; a batch of
+# 20 config files fits too.
+MAX_REQUEST_BODY_SIZE = int(
+    os.getenv("MAX_REQUEST_BODY_SIZE", str(max(MAX_BINARY_FILE_SIZE, 20 * MAX_CONFIG_FILE_SIZE) + 1024 * 1024))
+)
+
+# Chunk size for copying uploads to disk (never the whole file in memory)
+UPLOAD_CHUNK_SIZE = 1024 * 1024
+
 # SECURITY: Request timeout for long-running visualization operations
 # Prevents resource exhaustion from slow/complex visualizations
 REQUEST_TIMEOUT_VISUALIZE = int(os.getenv("REQUEST_TIMEOUT_VISUALIZE", "120"))  # 2 minutes

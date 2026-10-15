@@ -38,6 +38,7 @@ from .config import (
     IMAGE_CLEANUP_AGE,
     IMAGE_UPLOAD_DIR,
     LOG_LEVEL,
+    MAX_REQUEST_BODY_SIZE,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_DEFAULT,
     RATE_LIMIT_VISUALIZE,
@@ -45,7 +46,7 @@ from .config import (
     limiter,
 )
 from .helpers import cleanup_old_images
-from .middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
+from .middleware import RequestLoggingMiddleware, RequestSizeLimitMiddleware, SecurityHeadersMiddleware
 from .routers import (
     architecture,
     attack_graphs,
@@ -176,6 +177,9 @@ export USECVISLIB_AUTH_ENABLED=false
 # =============================================================================
 # Middleware
 # =============================================================================
+
+# Request body size limit (innermost of these, so its 413 gets CORS headers)
+app.add_middleware(RequestSizeLimitMiddleware, max_body_size=MAX_REQUEST_BODY_SIZE)
 
 # CORS middleware for cross-origin requests (restricted to allowed origins)
 app.add_middleware(

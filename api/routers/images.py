@@ -78,8 +78,8 @@ async def upload_image(
             detail=f"Unsupported image type: {file.content_type}. Allowed: {list(IMAGE_ALLOWED_TYPES.keys())}",
         )
 
-    # Read and validate size
-    contents = await file.read()
+    # Read and validate size (one byte past the limit is enough to reject)
+    contents = await file.read(IMAGE_MAX_SIZE + 1)
     if len(contents) > IMAGE_MAX_SIZE:
         raise HTTPException(
             status_code=400, detail=f"Image too large. Maximum size: {IMAGE_MAX_SIZE // (1024 * 1024)} MB"

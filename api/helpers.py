@@ -34,6 +34,7 @@ from .config import (
     PROGRESS_MAX_ENTRIES,
     SUPPORTED_CONFIG_EXTENSIONS,
     TEMP_DIR,
+    UPLOAD_CHUNK_SIZE,
     UUID_PATTERN,
 )
 from .schemas import OutputFormat
@@ -549,20 +550,25 @@ def save_upload_file(upload_file: UploadFile, suffix: str | None = None, max_siz
 
     temp_path = os.path.join(TEMP_DIR, f"upload_{os.urandom(8).hex()}{suffix}")
 
-    # Read content with size limit check
-    content = upload_file.file.read()
-    file_size = len(content)
-
-    if file_size > max_size:
-        logger.warning(
-            f"File rejected: size={file_size} bytes, max={max_size} bytes, name={sanitize_filename_for_log(upload_file.filename)}"
-        )
-        raise HTTPException(
-            status_code=413, detail=f"File too large. Maximum size is {max_size // 1024 // 1024}MB for this file type."
-        )
-
-    with open(temp_path, "wb") as f:
-        f.write(content)
+    # Copy in chunks with a running size check: the whole upload is never
+    # held in memory, and an oversized one stops at the limit
+    file_size = 0
+    try:
+        with open(temp_path, "wb") as f:
+            while chunk := upload_file.file.read(UPLOAD_CHUNK_SIZE):
+                file_size += len(chunk)
+                if file_size > max_size:
+                    logger.warning(
+                        f"File rejected: size>{max_size} bytes, name={sanitize_filename_for_log(upload_file.filename)}"
+                    )
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File too large. Maximum size is {max_size // 1024 // 1024}MB for this file type.",
+                    )
+                f.write(chunk)
+    except BaseException:
+        cleanup_files(temp_path)
+        raise
     upload_file.file.seek(0)  # Reset file pointer
 
     logger.debug(f"Saved upload: {sanitize_filename_for_log(upload_file.filename)} ({file_size} bytes) -> {temp_path}")
