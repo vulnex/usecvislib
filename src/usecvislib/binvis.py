@@ -27,7 +27,12 @@ from collections import Counter
 from collections.abc import Iterator
 from typing import Any, Optional
 
-import matplotlib.pyplot as plt
+import matplotlib
+
+# Non-interactive backend: the API renders on worker threads, where the
+# macOS GUI backend refuses to create figures (Linux already defaults to Agg)
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np
 from scipy.stats import entropy
 
