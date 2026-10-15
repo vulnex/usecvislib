@@ -1,0 +1,48 @@
+digraph "Corporate Network Segmentation" {
+	bgcolor="#fafafa" compound=true fontname=Arial fontsize=14 label="" labelloc=t nodesep=0.6 rankdir=LR ranksep=1.2 splines=spline
+	label="Corporate Network Segmentation" labelloc=t
+	subgraph cluster_internet {
+		color="#cc0000" fillcolor="#f3f6fa" fontcolor="#660000" fontname=Arial fontsize=13 label="Internet / Untrusted\n(Trust Level 0)" labelloc=t penwidth=2 style=filled
+		_anchor_internet [label="" height=0 shape=point style=invis width=0]
+		ext_user [label="External User" fillcolor="#cc0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1 shape=box style=filled]
+		attacker [label="Threat Actor" fillcolor="#cc0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1 shape=box style=filled]
+	}
+	subgraph cluster_dmz {
+		color="#e65100" fillcolor="#f3f6fa" fontcolor="#663300" fontname=Arial fontsize=13 label="DMZ\n(Trust Level 1)" labelloc=t penwidth=2 style=filled
+		_anchor_dmz [label="" height=0 shape=point style=invis width=0]
+		waf [label=WAF fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1 shape=box style=filled]
+		web_server [label="Web Server" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1 shape=box style=filled]
+		mail_relay [label="Mail Relay" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1 shape=box style=filled]
+		vpn_gateway [label="VPN Gateway" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1 shape=box style=filled]
+	}
+	subgraph cluster_corporate {
+		color="#f9a825" fillcolor="#f3f6fa" fontcolor="#665500" fontname=Arial fontsize=13 label="Corporate LAN\n(Trust Level 2)" labelloc=t penwidth=2 style=filled
+		_anchor_corporate [label="" height=0 shape=point style=invis width=0]
+		workstation [label="Employee Workstation" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1 shape=box style=filled]
+		ad_server [label="Active Directory" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1 shape=box style=filled]
+		file_server [label="File Server" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1 shape=box style=filled]
+	}
+	subgraph cluster_datacenter {
+		color="#2e7d32" fillcolor="#f3f6fa" fontcolor="#1b5e20" fontname=Arial fontsize=13 label="Data Center\n(Trust Level 3)" labelloc=t penwidth=2 style=filled
+		_anchor_datacenter [label="" height=0 shape=point style=invis width=0]
+		db_server [label="Database Server" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1 shape=box style=filled]
+		backup [label="Backup System" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1 shape=box style=filled]
+	}
+	_anchor_internet -> _anchor_dmz [style=invis weight=100]
+	_anchor_dmz -> _anchor_corporate [style=invis weight=100]
+	_anchor_corporate -> _anchor_datacenter [style=invis weight=100]
+	ext_user -> waf [label=" ! INVERSION !\nHTTPS" arrowhead=normal arrowsize=1.2 color="#8b0000" fontcolor="#8b0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	waf -> web_server [label=" Filtered Traffic" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	ext_user -> vpn_gateway [label=" ! INVERSION !\nVPN Tunnel" arrowhead=normal arrowsize=1.2 color="#8b0000" fontcolor="#8b0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	ext_user -> mail_relay [label=" ! INVERSION !\nSMTP" arrowhead=normal arrowsize=1.2 color="#8b0000" fontcolor="#8b0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	vpn_gateway -> workstation [label=" ! INVERSION !\nRemote Access" arrowhead=normal arrowsize=1.2 color="#8b0000" fontcolor="#8b0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	ad_server -> workstation [label=" Group Policy" arrowhead=dot color="#8e44ad" fontcolor="#8e44ad" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	ad_server -> file_server [label=" Auth Tokens" arrowhead=dot color="#8e44ad" fontcolor="#8e44ad" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	workstation -> file_server [label=" SMB" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	file_server -> db_server [label=" ! INVERSION !\nSQL Queries" arrowhead=normal arrowsize=1.2 color="#8b0000" fontcolor="#8b0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	db_server -> backup [label=" Replication" arrowhead=diamond color="#27ae60" fontcolor="#27ae60" fontname=Arial fontsize=9 penwidth=2 style=dotted]
+	backup -> db_server [label=" Restore Status" arrowhead=vee color="#e67e22" fontcolor="#e67e22" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	mail_relay -> workstation [label=" ! INVERSION !\nEmail Delivery" arrowhead=normal arrowsize=1.2 color="#8b0000" fontcolor="#8b0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	web_server -> db_server [label=" !! INVERSION !!\nDirect SQL" arrowhead=normal arrowsize=1.2 color="#8b0000" fontcolor="#8b0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	_legend [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="4" CELLPADDING="2" BGCOLOR="#f8f8f8" COLOR="#cccccc" STYLE="ROUNDED"><TR><TD COLSPAN="15"><B><FONT COLOR="#333333" POINT-SIZE="9">Legend</FONT></B></TD></TR><TR><TD> </TD><TD><FONT COLOR="#3498db">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Data Flow</FONT></TD><TD> </TD><TD><FONT COLOR="#e67e22">- - - - &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Feedback</FONT></TD><TD> </TD><TD><FONT COLOR="#27ae60">&#8226; &#8226; &#8226; &#8226; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Resource</FONT></TD><TD> </TD><TD><FONT COLOR="#8e44ad">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Control</FONT></TD><TD> </TD><TD><FONT COLOR="#8b0000"><B>&#8212;&#8212;&#8212;&#8212; &#9654;</B></FONT></TD><TD><FONT COLOR="#8b0000" POINT-SIZE="8"><B>INVERSION</B></FONT></TD></TR></TABLE>> fontname=Arial margin=0 shape=none]
+}

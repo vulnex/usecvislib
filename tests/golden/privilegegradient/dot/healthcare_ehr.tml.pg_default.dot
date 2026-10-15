@@ -1,0 +1,52 @@
+digraph "Healthcare EHR System" {
+	bgcolor=white compound=true fontname=Arial fontsize=14 label="" labelloc=t nodesep=0.6 rankdir=LR ranksep=1.2 splines=spline
+	label="Healthcare EHR System" labelloc=t
+	subgraph cluster_patient {
+		color="#cc0000" fillcolor="#ffcccc" fontcolor="#660000" fontname="Arial Bold" fontsize=13 label="Patient-Facing\n(Trust Level 0)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_patient [label="" height=0 shape=point style=invis width=0]
+		patient_portal [label="Patient Portal" fillcolor="#cc0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		mobile_health [label="mHealth App" fillcolor="#cc0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_clinical {
+		color="#e65100" fillcolor="#ffe0b2" fontcolor="#663300" fontname="Arial Bold" fontsize=13 label="Clinical Systems\n(Trust Level 1)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_clinical [label="" height=0 shape=point style=invis width=0]
+		ehr_client [label="EHR Workstation" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		lab_system [label="Lab Information System" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		pharmacy [label="Pharmacy System" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_backend {
+		color="#f9a825" fillcolor="#fff9c4" fontcolor="#665500" fontname="Arial Bold" fontsize=13 label="Backend Services\n(Trust Level 2)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_backend [label="" height=0 shape=point style=invis width=0]
+		fhir_api [label="FHIR API Gateway" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		phi_database [label="PHI Database" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_compliance {
+		color="#2e7d32" fillcolor="#c8e6c9" fontcolor="#1b5e20" fontname="Arial Bold" fontsize=13 label="Compliance / Audit\n(Trust Level 3)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_compliance [label="" height=0 shape=point style=invis width=0]
+		audit_logger [label="HIPAA Audit Logger" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		consent_mgr [label="Consent Manager" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_crypto {
+		color="#1565c0" fillcolor="#bbdefb" fontcolor="#0d47a1" fontname="Arial Bold" fontsize=13 label="Cryptographic Core\n(Trust Level 4)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_crypto [label="" height=0 shape=point style=invis width=0]
+		encryption_svc [label="PHI Encryption Service" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		key_store [label="Key Store" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	_anchor_patient -> _anchor_clinical [style=invis weight=100]
+	_anchor_clinical -> _anchor_backend [style=invis weight=100]
+	_anchor_backend -> _anchor_compliance [style=invis weight=100]
+	_anchor_compliance -> _anchor_crypto [style=invis weight=100]
+	patient_portal -> fhir_api [label=" !! INVERSION !!\nPatient Query" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	mobile_health -> fhir_api [label=" !! INVERSION !!\nHealth Data" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	ehr_client -> fhir_api [label=" ! INVERSION !\nClinical Records" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	lab_system -> fhir_api [label=" ! INVERSION !\nLab Results" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	fhir_api -> phi_database [label=" Store PHI" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	fhir_api -> pharmacy [label=" Prescriptions" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	consent_mgr -> fhir_api [label=" Access Policy" arrowhead=dot color="#8e44ad" fontcolor="#8e44ad" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	audit_logger -> fhir_api [label=" Logging Policy" arrowhead=dot color="#8e44ad" fontcolor="#8e44ad" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	encryption_svc -> phi_database [label=" Encrypt/Decrypt" arrowhead=diamond color="#27ae60" fontcolor="#27ae60" fontname=Arial fontsize=9 penwidth=2 style=dotted]
+	key_store -> encryption_svc [label=" Encryption Keys" arrowhead=diamond color="#27ae60" fontcolor="#27ae60" fontname=Arial fontsize=9 penwidth=2 style=dotted]
+	fhir_api -> audit_logger [label=" ! INVERSION !\nAccess Events" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	patient_portal -> audit_logger [label=" !!! INVERSION !!!\nDirect Audit Query" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	_legend [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="4" CELLPADDING="2" BGCOLOR="#f8f8f8" COLOR="#cccccc" STYLE="ROUNDED"><TR><TD COLSPAN="15"><B><FONT COLOR="#333333" POINT-SIZE="9">Legend</FONT></B></TD></TR><TR><TD> </TD><TD><FONT COLOR="#3498db">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Data Flow</FONT></TD><TD> </TD><TD><FONT COLOR="#e67e22">- - - - &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Feedback</FONT></TD><TD> </TD><TD><FONT COLOR="#27ae60">&#8226; &#8226; &#8226; &#8226; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Resource</FONT></TD><TD> </TD><TD><FONT COLOR="#8e44ad">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Control</FONT></TD><TD> </TD><TD><FONT COLOR="#cc0000"><B>&#8212;&#8212;&#8212;&#8212; &#9654;</B></FONT></TD><TD><FONT COLOR="#cc0000" POINT-SIZE="8"><B>INVERSION</B></FONT></TD></TR></TABLE>> fontname=Arial margin=0 shape=none]
+}

@@ -1,0 +1,53 @@
+digraph "Cloud Zero Trust Architecture" {
+	bgcolor=white compound=true fontname=Arial fontsize=14 label="" labelloc=t nodesep=0.6 rankdir=LR ranksep=1.2 splines=spline
+	label="Cloud Zero Trust Architecture" labelloc=t
+	subgraph cluster_public {
+		color="#cc0000" fillcolor="#ffcccc" fontcolor="#660000" fontname="Arial Bold" fontsize=13 label="Public / Untrusted\n(Trust Level 0)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_public [label="" height=0 shape=point style=invis width=0]
+		mobile_app [label="Mobile App" fillcolor="#cc0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		third_party [label="3rd Party Webhook" fillcolor="#cc0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_edge {
+		color="#e65100" fillcolor="#ffe0b2" fontcolor="#663300" fontname="Arial Bold" fontsize=13 label="Edge / CDN\n(Trust Level 1)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_edge [label="" height=0 shape=point style=invis width=0]
+		cdn [label="CDN / Edge Cache" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		lb [label="Load Balancer" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_workload {
+		color="#f9a825" fillcolor="#fff9c4" fontcolor="#665500" fontname="Arial Bold" fontsize=13 label="Application Workloads\n(Trust Level 2)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_workload [label="" height=0 shape=point style=invis width=0]
+		api_service [label="API Service" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		worker [label="Background Worker" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		message_queue [label="Message Queue" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_policy {
+		color="#2e7d32" fillcolor="#c8e6c9" fontcolor="#1b5e20" fontname="Arial Bold" fontsize=13 label="Policy Decision Point\n(Trust Level 3)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_policy [label="" height=0 shape=point style=invis width=0]
+		pdp [label="Policy Decision Point" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		idp [label="Identity Provider" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_secrets {
+		color="#1565c0" fillcolor="#bbdefb" fontcolor="#0d47a1" fontname="Arial Bold" fontsize=13 label="Secrets / Identity Root\n(Trust Level 4)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_secrets [label="" height=0 shape=point style=invis width=0]
+		vault [label="Secrets Vault" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		kms [label="Key Management Service" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	_anchor_public -> _anchor_edge [style=invis weight=100]
+	_anchor_edge -> _anchor_workload [style=invis weight=100]
+	_anchor_workload -> _anchor_policy [style=invis weight=100]
+	_anchor_policy -> _anchor_secrets [style=invis weight=100]
+	mobile_app -> cdn [label=" ! INVERSION !\nAPI Request" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	cdn -> lb [label=" Cache Miss" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	lb -> api_service [label=" ! INVERSION !\nRouted Request" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	api_service -> message_queue [label=" Async Task" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	message_queue -> worker [label=" Job Dispatch" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	pdp -> api_service [label=" AuthZ Decision" arrowhead=dot color="#8e44ad" fontcolor="#8e44ad" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	idp -> pdp [label=" Identity Claims" arrowhead=diamond color="#27ae60" fontcolor="#27ae60" fontname=Arial fontsize=9 penwidth=2 style=dotted]
+	idp -> lb [label=" Token Validation" arrowhead=dot color="#8e44ad" fontcolor="#8e44ad" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	vault -> api_service [label=" DB Credentials" arrowhead=diamond color="#27ae60" fontcolor="#27ae60" fontname=Arial fontsize=9 penwidth=2 style=dotted]
+	vault -> worker [label=" API Keys" arrowhead=diamond color="#27ae60" fontcolor="#27ae60" fontname=Arial fontsize=9 penwidth=2 style=dotted]
+	kms -> vault [label=" Master Key" arrowhead=diamond color="#27ae60" fontcolor="#27ae60" fontname=Arial fontsize=9 penwidth=2 style=dotted]
+	worker -> api_service [label=" Job Result" arrowhead=vee color="#e67e22" fontcolor="#e67e22" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	third_party -> api_service [label=" !! INVERSION !!\nWebhook Bypass" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	_legend [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="4" CELLPADDING="2" BGCOLOR="#f8f8f8" COLOR="#cccccc" STYLE="ROUNDED"><TR><TD COLSPAN="15"><B><FONT COLOR="#333333" POINT-SIZE="9">Legend</FONT></B></TD></TR><TR><TD> </TD><TD><FONT COLOR="#3498db">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Data Flow</FONT></TD><TD> </TD><TD><FONT COLOR="#e67e22">- - - - &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Feedback</FONT></TD><TD> </TD><TD><FONT COLOR="#27ae60">&#8226; &#8226; &#8226; &#8226; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Resource</FONT></TD><TD> </TD><TD><FONT COLOR="#8e44ad">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Control</FONT></TD><TD> </TD><TD><FONT COLOR="#cc0000"><B>&#8212;&#8212;&#8212;&#8212; &#9654;</B></FONT></TD><TD><FONT COLOR="#cc0000" POINT-SIZE="8"><B>INVERSION</B></FONT></TD></TR></TABLE>> fontname=Arial margin=0 shape=none]
+}

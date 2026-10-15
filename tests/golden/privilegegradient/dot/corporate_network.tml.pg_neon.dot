@@ -1,0 +1,48 @@
+digraph "Corporate Network Segmentation" {
+	bgcolor="#0d0d0d" compound=true fontcolor="#00ff9f" fontname=Consolas fontsize=14 label="" labelloc=t nodesep=0.6 rankdir=LR ranksep=1.2 splines=spline
+	label="Corporate Network Segmentation" labelloc=t
+	subgraph cluster_internet {
+		color="#cc0000" fillcolor="#141414" fontcolor="#00ff9f" fontname=Consolas fontsize=13 label="Internet / Untrusted\n(Trust Level 0)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_internet [label="" height=0 shape=point style=invis width=0]
+		ext_user [label="External User" color="#cc0000" fillcolor="#1f1f1f" fontcolor="#00ff9f" fontname=Consolas fontsize=10 margin="0.15,0.08" penwidth=2 shape=box style="filled,rounded"]
+		attacker [label="Threat Actor" color="#cc0000" fillcolor="#1f1f1f" fontcolor="#00ff9f" fontname=Consolas fontsize=10 margin="0.15,0.08" penwidth=2 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_dmz {
+		color="#e65100" fillcolor="#141414" fontcolor="#00ff9f" fontname=Consolas fontsize=13 label="DMZ\n(Trust Level 1)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_dmz [label="" height=0 shape=point style=invis width=0]
+		waf [label=WAF color="#e65100" fillcolor="#1f1f1f" fontcolor="#00ff9f" fontname=Consolas fontsize=10 margin="0.15,0.08" penwidth=2 shape=box style="filled,rounded"]
+		web_server [label="Web Server" color="#e65100" fillcolor="#1f1f1f" fontcolor="#00ff9f" fontname=Consolas fontsize=10 margin="0.15,0.08" penwidth=2 shape=box style="filled,rounded"]
+		mail_relay [label="Mail Relay" color="#e65100" fillcolor="#1f1f1f" fontcolor="#00ff9f" fontname=Consolas fontsize=10 margin="0.15,0.08" penwidth=2 shape=box style="filled,rounded"]
+		vpn_gateway [label="VPN Gateway" color="#e65100" fillcolor="#1f1f1f" fontcolor="#00ff9f" fontname=Consolas fontsize=10 margin="0.15,0.08" penwidth=2 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_corporate {
+		color="#f9a825" fillcolor="#141414" fontcolor="#00ff9f" fontname=Consolas fontsize=13 label="Corporate LAN\n(Trust Level 2)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_corporate [label="" height=0 shape=point style=invis width=0]
+		workstation [label="Employee Workstation" color="#f9a825" fillcolor="#1f1f1f" fontcolor="#00ff9f" fontname=Consolas fontsize=10 margin="0.15,0.08" penwidth=2 shape=box style="filled,rounded"]
+		ad_server [label="Active Directory" color="#f9a825" fillcolor="#1f1f1f" fontcolor="#00ff9f" fontname=Consolas fontsize=10 margin="0.15,0.08" penwidth=2 shape=box style="filled,rounded"]
+		file_server [label="File Server" color="#f9a825" fillcolor="#1f1f1f" fontcolor="#00ff9f" fontname=Consolas fontsize=10 margin="0.15,0.08" penwidth=2 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_datacenter {
+		color="#2e7d32" fillcolor="#141414" fontcolor="#00ff9f" fontname=Consolas fontsize=13 label="Data Center\n(Trust Level 3)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_datacenter [label="" height=0 shape=point style=invis width=0]
+		db_server [label="Database Server" color="#2e7d32" fillcolor="#1f1f1f" fontcolor="#00ff9f" fontname=Consolas fontsize=10 margin="0.15,0.08" penwidth=2 shape=box style="filled,rounded"]
+		backup [label="Backup System" color="#2e7d32" fillcolor="#1f1f1f" fontcolor="#00ff9f" fontname=Consolas fontsize=10 margin="0.15,0.08" penwidth=2 shape=box style="filled,rounded"]
+	}
+	_anchor_internet -> _anchor_dmz [style=invis weight=100]
+	_anchor_dmz -> _anchor_corporate [style=invis weight=100]
+	_anchor_corporate -> _anchor_datacenter [style=invis weight=100]
+	ext_user -> waf [label=" ! INVERSION !\nHTTPS" arrowhead=normal arrowsize=1.2 color="#ff0080" fontcolor="#ff0080" fontname=Consolas fontsize=9 penwidth=3 style=bold]
+	waf -> web_server [label=" Filtered Traffic" arrowhead=vee color="#00d4ff" fontcolor="#00d4ff" fontname=Consolas fontsize=9 penwidth=1.5 style=solid]
+	ext_user -> vpn_gateway [label=" ! INVERSION !\nVPN Tunnel" arrowhead=normal arrowsize=1.2 color="#ff0080" fontcolor="#ff0080" fontname=Consolas fontsize=9 penwidth=3 style=bold]
+	ext_user -> mail_relay [label=" ! INVERSION !\nSMTP" arrowhead=normal arrowsize=1.2 color="#ff0080" fontcolor="#ff0080" fontname=Consolas fontsize=9 penwidth=3 style=bold]
+	vpn_gateway -> workstation [label=" ! INVERSION !\nRemote Access" arrowhead=normal arrowsize=1.2 color="#ff0080" fontcolor="#ff0080" fontname=Consolas fontsize=9 penwidth=3 style=bold]
+	ad_server -> workstation [label=" Group Policy" arrowhead=dot color="#ff6600" fontcolor="#ff6600" fontname=Consolas fontsize=9 penwidth=2 style=bold]
+	ad_server -> file_server [label=" Auth Tokens" arrowhead=dot color="#ff6600" fontcolor="#ff6600" fontname=Consolas fontsize=9 penwidth=2 style=bold]
+	workstation -> file_server [label=" SMB" arrowhead=vee color="#00d4ff" fontcolor="#00d4ff" fontname=Consolas fontsize=9 penwidth=1.5 style=solid]
+	file_server -> db_server [label=" ! INVERSION !\nSQL Queries" arrowhead=normal arrowsize=1.2 color="#ff0080" fontcolor="#ff0080" fontname=Consolas fontsize=9 penwidth=3 style=bold]
+	db_server -> backup [label=" Replication" arrowhead=diamond color="#00ff9f" fontcolor="#00ff9f" fontname=Consolas fontsize=9 penwidth=2 style=dotted]
+	backup -> db_server [label=" Restore Status" arrowhead=vee color="#ffff00" fontcolor="#ffff00" fontname=Consolas fontsize=9 penwidth=1.5 style=dashed]
+	mail_relay -> workstation [label=" ! INVERSION !\nEmail Delivery" arrowhead=normal arrowsize=1.2 color="#ff0080" fontcolor="#ff0080" fontname=Consolas fontsize=9 penwidth=3 style=bold]
+	web_server -> db_server [label=" !! INVERSION !!\nDirect SQL" arrowhead=normal arrowsize=1.2 color="#ff0080" fontcolor="#ff0080" fontname=Consolas fontsize=9 penwidth=3 style=bold]
+	_legend [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="4" CELLPADDING="2" BGCOLOR="#2a2a3e" COLOR="#555555" STYLE="ROUNDED"><TR><TD COLSPAN="15"><B><FONT COLOR="#e0e0e0" POINT-SIZE="9">Legend</FONT></B></TD></TR><TR><TD> </TD><TD><FONT COLOR="#00d4ff">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#e0e0e0" POINT-SIZE="8">Data Flow</FONT></TD><TD> </TD><TD><FONT COLOR="#ffff00">- - - - &#9654;</FONT></TD><TD><FONT COLOR="#e0e0e0" POINT-SIZE="8">Feedback</FONT></TD><TD> </TD><TD><FONT COLOR="#00ff9f">&#8226; &#8226; &#8226; &#8226; &#9654;</FONT></TD><TD><FONT COLOR="#e0e0e0" POINT-SIZE="8">Resource</FONT></TD><TD> </TD><TD><FONT COLOR="#ff6600">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#e0e0e0" POINT-SIZE="8">Control</FONT></TD><TD> </TD><TD><FONT COLOR="#ff0080"><B>&#8212;&#8212;&#8212;&#8212; &#9654;</B></FONT></TD><TD><FONT COLOR="#ff0080" POINT-SIZE="8"><B>INVERSION</B></FONT></TD></TR></TABLE>> fontname=Consolas margin=0 shape=none]
+}

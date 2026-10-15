@@ -1,0 +1,52 @@
+digraph "CI/CD Pipeline Security" {
+	bgcolor=white compound=true fontname=Arial fontsize=14 label="" labelloc=t nodesep=0.6 rankdir=LR ranksep=1.2 splines=spline
+	label="CI/CD Pipeline Security" labelloc=t
+	subgraph cluster_dev {
+		color="#cc0000" fillcolor="#ffcccc" fontcolor="#660000" fontname="Arial Bold" fontsize=13 label="Developer Environment\n(Trust Level 0)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_dev [label="" height=0 shape=point style=invis width=0]
+		developer [label="Developer Laptop" fillcolor="#cc0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		ext_deps [label="Public Package Registry" fillcolor="#cc0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_source {
+		color="#e65100" fillcolor="#ffe0b2" fontcolor="#663300" fontname="Arial Bold" fontsize=13 label="Source Control\n(Trust Level 1)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_source [label="" height=0 shape=point style=invis width=0]
+		git_repo [label="Git Repository" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		code_review [label="Code Review" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_build {
+		color="#f9a825" fillcolor="#fff9c4" fontcolor="#665500" fontname="Arial Bold" fontsize=13 label="Build / CI Pipeline\n(Trust Level 2)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_build [label="" height=0 shape=point style=invis width=0]
+		ci_runner [label="CI Runner" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		sast [label="SAST Scanner" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		container_build [label="Container Builder" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_artifacts {
+		color="#2e7d32" fillcolor="#c8e6c9" fontcolor="#1b5e20" fontname="Arial Bold" fontsize=13 label="Artifact Store\n(Trust Level 3)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_artifacts [label="" height=0 shape=point style=invis width=0]
+		registry [label="Container Registry" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		signing [label="Image Signing Service" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_production {
+		color="#1565c0" fillcolor="#bbdefb" fontcolor="#0d47a1" fontname="Arial Bold" fontsize=13 label="Production\n(Trust Level 4)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_production [label="" height=0 shape=point style=invis width=0]
+		k8s [label="Kubernetes Cluster" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		runtime_monitor [label="Runtime Monitor" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	_anchor_dev -> _anchor_source [style=invis weight=100]
+	_anchor_source -> _anchor_build [style=invis weight=100]
+	_anchor_build -> _anchor_artifacts [style=invis weight=100]
+	_anchor_artifacts -> _anchor_production [style=invis weight=100]
+	developer -> git_repo [label=" ! INVERSION !\nGit Push" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	git_repo -> code_review [label=" Pull Request" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	code_review -> ci_runner [label=" ! INVERSION !\nMerge Trigger" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	ci_runner -> sast [label=" Source Analysis" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	sast -> ci_runner [label=" Scan Results" arrowhead=vee color="#e67e22" fontcolor="#e67e22" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	ci_runner -> container_build [label=" Build Command" arrowhead=dot color="#8e44ad" fontcolor="#8e44ad" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	container_build -> registry [label=" ! INVERSION !\nPush Image" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	signing -> registry [label=" Sign Image" arrowhead=dot color="#8e44ad" fontcolor="#8e44ad" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	registry -> k8s [label=" ! INVERSION !\nPull Image" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	runtime_monitor -> k8s [label=" Health Checks" arrowhead=vee color="#e67e22" fontcolor="#e67e22" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	developer -> registry [label=" !!! INVERSION !!!\nDirect Push" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	ext_deps -> container_build [label=" !! INVERSION !!\nUntrusted Deps" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	_legend [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="4" CELLPADDING="2" BGCOLOR="#f8f8f8" COLOR="#cccccc" STYLE="ROUNDED"><TR><TD COLSPAN="15"><B><FONT COLOR="#333333" POINT-SIZE="9">Legend</FONT></B></TD></TR><TR><TD> </TD><TD><FONT COLOR="#3498db">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Data Flow</FONT></TD><TD> </TD><TD><FONT COLOR="#e67e22">- - - - &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Feedback</FONT></TD><TD> </TD><TD><FONT COLOR="#27ae60">&#8226; &#8226; &#8226; &#8226; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Resource</FONT></TD><TD> </TD><TD><FONT COLOR="#8e44ad">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Control</FONT></TD><TD> </TD><TD><FONT COLOR="#cc0000"><B>&#8212;&#8212;&#8212;&#8212; &#9654;</B></FONT></TD><TD><FONT COLOR="#cc0000" POINT-SIZE="8"><B>INVERSION</B></FONT></TD></TR></TABLE>> fontname=Arial margin=0 shape=none]
+}

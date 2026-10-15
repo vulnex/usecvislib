@@ -1,0 +1,53 @@
+digraph "ICS/SCADA Industrial Control System" {
+	bgcolor=white compound=true fontname=Arial fontsize=14 label="" labelloc=t nodesep=0.6 rankdir=LR ranksep=1.2 splines=spline
+	label="ICS/SCADA Industrial Control System" labelloc=t
+	subgraph cluster_enterprise {
+		color="#cc0000" fillcolor="#ffcccc" fontcolor="#660000" fontname="Arial Bold" fontsize=13 label="Enterprise IT (Purdue L4)\n(Trust Level 0)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_enterprise [label="" height=0 shape=point style=invis width=0]
+		erp [label="ERP System" fillcolor="#cc0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		email [label="Email Server" fillcolor="#cc0000" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_operations {
+		color="#e65100" fillcolor="#ffe0b2" fontcolor="#663300" fontname="Arial Bold" fontsize=13 label="Site Operations (Purdue L3)\n(Trust Level 1)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_operations [label="" height=0 shape=point style=invis width=0]
+		historian [label="Process Historian" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		eng_ws [label="Engineering Workstation" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		patch_server [label="Patch Management" fillcolor="#e65100" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_supervisory {
+		color="#f9a825" fillcolor="#fff9c4" fontcolor="#665500" fontname="Arial Bold" fontsize=13 label="Supervisory (Purdue L2)\n(Trust Level 2)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_supervisory [label="" height=0 shape=point style=invis width=0]
+		scada [label="SCADA Server" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		hmi [label="HMI Panel" fillcolor="#f9a825" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_control {
+		color="#2e7d32" fillcolor="#c8e6c9" fontcolor="#1b5e20" fontname="Arial Bold" fontsize=13 label="Basic Control (Purdue L1)\n(Trust Level 3)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_control [label="" height=0 shape=point style=invis width=0]
+		plc_main [label="Main PLC" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		rtu [label="Remote RTU" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	subgraph cluster_process {
+		color="#1565c0" fillcolor="#bbdefb" fontcolor="#0d47a1" fontname="Arial Bold" fontsize=13 label="Physical Process (Purdue L0)\n(Trust Level 4)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_process [label="" height=0 shape=point style=invis width=0]
+		sensor_array [label="Sensor Array" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		actuator [label="Valve Actuator" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+	}
+	_anchor_enterprise -> _anchor_operations [style=invis weight=100]
+	_anchor_operations -> _anchor_supervisory [style=invis weight=100]
+	_anchor_supervisory -> _anchor_control [style=invis weight=100]
+	_anchor_control -> _anchor_process [style=invis weight=100]
+	sensor_array -> plc_main [label=" Process Values" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	sensor_array -> rtu [label=" Remote Telemetry" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	plc_main -> actuator [label=" ! INVERSION !\nValve Commands" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	plc_main -> scada [label=" Status Updates" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	rtu -> scada [label=" Remote Data" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	scada -> hmi [label=" Display Data" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	scada -> historian [label=" Historical Logs" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	eng_ws -> scada [label=" ! INVERSION !\nConfig Changes" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	eng_ws -> plc_main [label=" !! INVERSION !!\nPLC Programming" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	historian -> erp [label=" Production Reports" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	actuator -> sensor_array [label=" Physical Feedback" arrowhead=vee color="#e67e22" fontcolor="#e67e22" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	erp -> hmi [label=" !! INVERSION !!\nDirect Dashboard Query" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	patch_server -> plc_main [label=" !! INVERSION !!\nFirmware Push" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	_legend [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="4" CELLPADDING="2" BGCOLOR="#f8f8f8" COLOR="#cccccc" STYLE="ROUNDED"><TR><TD COLSPAN="15"><B><FONT COLOR="#333333" POINT-SIZE="9">Legend</FONT></B></TD></TR><TR><TD> </TD><TD><FONT COLOR="#3498db">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Data Flow</FONT></TD><TD> </TD><TD><FONT COLOR="#e67e22">- - - - &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Feedback</FONT></TD><TD> </TD><TD><FONT COLOR="#27ae60">&#8226; &#8226; &#8226; &#8226; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Resource</FONT></TD><TD> </TD><TD><FONT COLOR="#8e44ad">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Control</FONT></TD><TD> </TD><TD><FONT COLOR="#cc0000"><B>&#8212;&#8212;&#8212;&#8212; &#9654;</B></FONT></TD><TD><FONT COLOR="#cc0000" POINT-SIZE="8"><B>INVERSION</B></FONT></TD></TR></TABLE>> fontname=Arial margin=0 shape=none]
+}
