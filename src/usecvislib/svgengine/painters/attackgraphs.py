@@ -57,11 +57,10 @@ def _wrap(label: str, font: dict, size: float, max_w: float) -> list[str]:
 
 
 def _build_scene(viz, theme: dict[str, Any]) -> Scene:
-    """Translate the attack-graph input data into a fully-styled Scene."""
-    # Input sections arrive as dicts after load(); normalize defensively in
-    # case the painter is reached on freshly-set inputdata (idempotent).
-    viz._normalize_data()
-    data = viz.inputdata
+    """Translate the attack graph's render view into a fully-styled Scene."""
+    # The view normalizes sections to dicts (idempotent), in case the painter
+    # is reached on freshly-set inputdata
+    data = viz.render_view().data
     ag = theme["attackgraph"]
     font = theme["font"]
     card = theme["card"]

@@ -98,6 +98,7 @@ class SceneGroup:
     text_color: Optional[str] = None
     dashed: bool = False  # dashed border (e.g. DFD trust boundaries)
     parent: Optional[str] = None  # enclosing group id (nested clusters)
+    data: dict[str, str] = field(default_factory=dict)  # extra data-* attributes
     x: float = 0.0  # top-left, set by layout oracle from the cluster bbox
     y: float = 0.0
     width: float = 0.0

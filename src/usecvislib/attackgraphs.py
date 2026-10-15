@@ -43,6 +43,7 @@ import networkx as nx
 from graphviz import Digraph
 
 from . import utils
+from .attackgraph_view import RenderView, build_view
 from .base import VisualizationBase
 from .constants import cvss_to_color, cvss_to_severity_label, cvss_to_text_color, validate_cvss_score
 from .cvss_unified import get_cvss_score_unified as get_cvss_score
@@ -402,31 +403,41 @@ class AttackGraphs(VisualizationBase):
             else:
                 self._build_nx_graph()
 
+    def render_view(self) -> RenderView:
+        """What both render engines draw: the normalized data, plus marks and groups.
+
+        Render options that change the picture (grouping, collapse, drift)
+        are applied here. Analysis methods keep using the full ``inputdata``.
+        """
+        self._normalize_data()
+        return build_view(self.inputdata)
+
     def _render_impl(self) -> None:
         """Build the attack graph from loaded data.
 
         Raises:
             AttackGraphError: If required data sections are missing.
         """
-        # Ensure data is normalized
-        self._normalize_data()
+        # Draw from the render view (the data as is, until render options exist)
+        view = self.render_view()
+        data = view.data
 
         # Check for required sections
-        if "graph" not in self.inputdata:
+        if "graph" not in data:
             raise AttackGraphError("Missing 'graph' section in attack graph configuration")
 
         # Get graph metadata
-        graph_meta = self.inputdata.get("graph", {})
+        graph_meta = data.get("graph", {})
 
         # Check graph complexity limits
-        hosts = self.inputdata.get("hosts", {})
-        vulns = self.inputdata.get("vulnerabilities", {})
-        services = self.inputdata.get("services", {})
-        exploits = self.inputdata.get("exploits", {})
+        hosts = data.get("hosts", {})
+        vulns = data.get("vulnerabilities", {})
+        services = data.get("services", {})
+        exploits = data.get("exploits", {})
         total_nodes = len(hosts) + len(vulns) + len(services) + len(exploits)
         total_edges = (
-            len(self.inputdata.get("network_edges", {}))
-            + sum(len(v) if isinstance(v, list) else 0 for v in self.inputdata.get("network", {}).values())
+            len(data.get("network_edges", {}))
+            + sum(len(v) if isinstance(v, list) else 0 for v in data.get("network", {}).values())
             + sum(len(e.get("preconditions", [])) + len(e.get("postconditions", [])) for e in exploits.values())
             + len(vulns)
             + len(services)  # host-vuln and host-svc links
@@ -454,7 +465,7 @@ class AttackGraphs(VisualizationBase):
             self.graph.attr(label=graph_meta["name"], labelloc="t")
 
         # Add hosts
-        hosts = self.inputdata.get("hosts", {})
+        hosts = data.get("hosts", {})
         for host_id, host_data in hosts.items():
             node_attrs = host_data.copy() if isinstance(host_data, dict) else {}
             # Check if node has an image and if user wants a styled background
@@ -481,7 +492,7 @@ class AttackGraphs(VisualizationBase):
             self.graph.node(utils.sanitize_node_id(host_id), label, **node_attrs)
 
         # Add vulnerabilities with CVSS-based color coding
-        vulnerabilities = self.inputdata.get("vulnerabilities", {})
+        vulnerabilities = data.get("vulnerabilities", {})
         for vuln_id, vuln_data in vulnerabilities.items():
             node_attrs = vuln_data.copy() if isinstance(vuln_data, dict) else {}
             # Check if node has an image and if user wants a styled background
@@ -537,7 +548,7 @@ class AttackGraphs(VisualizationBase):
             self.graph.node(utils.sanitize_node_id(vuln_id), label, **node_attrs)
 
         # Add privileges
-        privileges = self.inputdata.get("privileges", {})
+        privileges = data.get("privileges", {})
         for priv_id, priv_data in privileges.items():
             node_attrs = priv_data.copy() if isinstance(priv_data, dict) else {}
             # Check if node has an image and if user wants a styled background
@@ -567,7 +578,7 @@ class AttackGraphs(VisualizationBase):
             self.graph.node(utils.sanitize_node_id(priv_id), label, **node_attrs)
 
         # Add services
-        services = self.inputdata.get("services", {})
+        services = data.get("services", {})
         for svc_id, svc_data in services.items():
             node_attrs = svc_data.copy() if isinstance(svc_data, dict) else {}
             # Check if node has an image and if user wants a styled background
@@ -598,7 +609,7 @@ class AttackGraphs(VisualizationBase):
             self.graph.node(utils.sanitize_node_id(svc_id), label, **node_attrs)
 
         # Add network edges
-        network_edges = self.inputdata.get("network_edges", {})
+        network_edges = data.get("network_edges", {})
         for _edge_id, edge_data in network_edges.items():
             source = edge_data.get("from")
             target = edge_data.get("to")
@@ -610,7 +621,7 @@ class AttackGraphs(VisualizationBase):
                 self.graph.edge(utils.sanitize_node_id(source), utils.sanitize_node_id(target), **edge_attrs)
 
         # Also support old dict-style network format
-        network = self.inputdata.get("network", {})
+        network = data.get("network", {})
         if isinstance(network, dict):
             for source, targets in network.items():
                 if isinstance(targets, list):
@@ -619,7 +630,7 @@ class AttackGraphs(VisualizationBase):
                         self.graph.edge(utils.sanitize_node_id(source), utils.sanitize_node_id(target), **edge_attrs)
 
         # Add exploit edges
-        exploits = self.inputdata.get("exploits", {})
+        exploits = data.get("exploits", {})
         exploit_node_attrs = self._exploit_node_style(exploit_edge_style)
         for exploit_id, exploit_data in exploits.items():
             exploit_label = _with_sources(exploit_data.get("label", exploit_id), exploit_data, {})

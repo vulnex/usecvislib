@@ -1,0 +1,80 @@
+digraph "Cloud Infrastructure Attack Graph with Icons" {
+	bgcolor=white fontname=Arial nodesep=0.5 rankdir=LR ranksep=0.8 splines=ortho
+	label="Cloud Infrastructure Attack Graph with Icons" labelloc=t
+	attacker [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<ICON_CACHE>/<hash>_48.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD>Attacker</TD></TR>
+</TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
+	waf [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<TEMP_FILE>.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD>WAF/CDN</TD></TR>
+</TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
+	loadbalancer [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<TEMP_FILE>.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD>Load Balancer</TD></TR>
+</TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
+	webserver [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<TEMP_FILE>.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD>Web Server</TD></TR>
+</TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
+	appserver [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<TEMP_FILE>.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD>Application Server</TD></TR>
+</TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
+	database [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<TEMP_FILE>.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD>RDS Database</TD></TR>
+</TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
+	secrets [label=<<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="2">
+<TR><TD><TABLE BORDER="0" CELLBORDER="0" CELLSPACING="0" CELLPADDING="0"><TR><TD PORT="icon" FIXEDSIZE="TRUE" WIDTH="36" HEIGHT="36"><IMG SRC="<TEMP_FILE>.png" SCALE="TRUE"/></TD></TR></TABLE></TD></TR>
+<TR><TD>Secrets Manager</TD></TR>
+</TABLE>> fontcolor=black fontname=Arial fontsize=11 shape=none style=""]
+	vuln_waf_bypass [label="WAF Bypass\n(CVSS: 4.8 - Medium)*" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 id=vuln_waf_bypass margin=0.1 shape=diamond style=filled]
+	vuln_web_ssrf [label="SSRF Vulnerability\n(CVSS: 9.3 - Critical)*" fillcolor="#8b0000" fontcolor="#ffffff" fontname=Arial fontsize=10 id=vuln_web_ssrf margin=0.1 shape=diamond style=filled]
+	vuln_app_rce [label="Remote Code Execution\n(CVSS: 8.8 - High)*" fillcolor="#e74c3c" fontcolor="#ffffff" fontname=Arial fontsize=10 id=vuln_app_rce margin=0.1 shape=diamond style=filled]
+	vuln_db_sqli [label="SQL Injection\n(CVSS: 8.1 - High)*" fillcolor="#e74c3c" fontcolor="#ffffff" fontname=Arial fontsize=10 id=vuln_db_sqli margin=0.1 shape=diamond style=filled]
+	vuln_secrets_iam [label="IAM Misconfiguration\n(CVSS: 7.7 - High)*" fillcolor="#e74c3c" fontcolor="#ffffff" fontname=Arial fontsize=10 id=vuln_secrets_iam margin=0.1 shape=diamond style=filled]
+	priv_waf_access [label="WAF Bypass\n[bypass]" description="Bypass WAF protection" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 id=priv_waf_access margin=0.1 shape=ellipse style=filled]
+	priv_web_user [label="Web User Shell\n[user]" description="User-level access on web server" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 id=priv_web_user margin=0.1 shape=ellipse style=filled]
+	priv_app_exec [label="Lambda Execution\n[function]" description="Code execution in Lambda" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 id=priv_app_exec margin=0.1 shape=ellipse style=filled]
+	priv_db_read [label="Database Read\n[read]" description="Read access to database" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 id=priv_db_read margin=0.1 shape=ellipse style=filled]
+	priv_db_admin [label="Database Admin\n[admin]" description="Admin access to database" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 id=priv_db_admin margin=0.1 shape=ellipse style=filled]
+	priv_secrets_read [label="Secrets Access\n[read]" description="Read secrets from manager" fillcolor="#f39c12" fontcolor="#1f2937" fontname=Arial fontsize=10 id=priv_secrets_read margin=0.1 shape=ellipse style=filled]
+	svc_https [label="HTTPS\n:443" fillcolor="#27ae60" fontcolor=white fontname=Arial fontsize=10 id=svc_https margin=0.1 shape=component style=filled]
+	svc_http [label="HTTP\n:80" fillcolor="#27ae60" fontcolor=white fontname=Arial fontsize=10 id=svc_http margin=0.1 shape=component style=filled]
+	svc_api [label="REST API\n:443" fillcolor="#27ae60" fontcolor=white fontname=Arial fontsize=10 id=svc_api margin=0.1 shape=component style=filled]
+	svc_postgres [label="PostgreSQL\n:5432" fillcolor="#27ae60" fontcolor=white fontname=Arial fontsize=10 id=svc_postgres margin=0.1 shape=component style=filled]
+	attacker -> waf [label="Internet Access" color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	waf -> loadbalancer [label="Filtered Traffic" color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	loadbalancer -> webserver [label="Load Balanced" color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	webserver -> appserver [label="API Calls" color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	appserver -> database [label="DB Connection" color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	appserver -> secrets [label="Secrets Access" color="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	exploit_waf_bypass [label="WAF Encoding Bypass" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	attacker -> exploit_waf_bypass [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	exploit_waf_bypass -> priv_waf_access [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	exploit_ssrf [label="SSRF to Internal" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	priv_waf_access -> exploit_ssrf [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	exploit_ssrf -> priv_web_user [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	exploit_rce [label="Lambda RCE" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	priv_web_user -> exploit_rce [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	exploit_rce -> priv_app_exec [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	exploit_sqli [label="SQL Injection Attack" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	priv_app_exec -> exploit_sqli [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	exploit_sqli -> priv_db_read [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	exploit_secrets [label="IAM Role Abuse" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	priv_app_exec -> exploit_secrets [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	exploit_secrets -> priv_secrets_read [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	exploit_db_admin [label="Privilege Escalation" fillcolor="#9b59b6" fontcolor=white shape=hexagon style=filled]
+	priv_db_read -> exploit_db_admin [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	exploit_db_admin -> priv_db_admin [color="#e74c3c" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	waf -> vuln_waf_bypass [color="#95a5a6" style=dotted]
+	webserver -> vuln_web_ssrf [color="#95a5a6" style=dotted]
+	appserver -> vuln_app_rce [color="#95a5a6" style=dotted]
+	database -> vuln_db_sqli [color="#95a5a6" style=dotted]
+	secrets -> vuln_secrets_iam [color="#95a5a6" style=dotted]
+	waf -> svc_https [color="#95a5a6" style=dotted]
+	webserver -> svc_http [color="#95a5a6" style=dotted]
+	appserver -> svc_api [color="#95a5a6" style=dotted]
+	database -> svc_postgres [color="#95a5a6" style=dotted]
+}
