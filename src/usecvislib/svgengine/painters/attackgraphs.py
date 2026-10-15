@@ -99,6 +99,10 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
         if source_names:
             node_data["sources"] = ",".join(source_names)
         node_data.update(extra or {})
+        diff_mark = view.node_mark(node_id)
+        diff = diff_mark.diff if diff_mark is not None else None
+        if diff_mark is not None and diff_mark.changed:
+            node_data["changed"] = ",".join(diff_mark.changed)
         if inferred:
             node_data["inferred"] = "true"
             confidence = utils.inferred_state(element)[1]
@@ -120,6 +124,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                 cvss=cvss,
                 sources=source_count,
                 inferred=inferred,
+                diff=diff,
                 data=node_data,
             )
         )
@@ -289,6 +294,7 @@ def _build_edges(scene: Scene, data: dict, ag: dict, view=None, inferred_theme=N
                     label=label or None,
                     data={"edge-count": str(mark.count)} if mark is not None and mark.count > 1 else {},
                     inferred=inferred,
+                    diff=mark.diff if mark is not None else None,
                 )
             )
 
@@ -343,6 +349,15 @@ def _items(section: Any):
 def render_svg(viz) -> str:
     """Render an attack graph visualization instance to SVG text."""
     theme = themes.resolve(viz.style)
+    if getattr(viz, "diff_colors", None):
+        theme["diff"] = {**theme["diff"], **viz.diff_colors}
     scene = _build_scene(viz, theme)
+    if getattr(viz, "diff_marks", None) is not None:
+        diff = theme["diff"]
+        scene.meta["legend"] = [
+            ("+ added", diff["added"]),
+            ("\u2212 removed", diff["removed"]),
+            ("~ modified", diff["modified"]),
+        ]
     rankdir = str(theme["attackgraph"].get("rankdir", "LR"))
     return render_graph_svg(viz, scene, theme, MODULE_SLUG, rankdir=rankdir)

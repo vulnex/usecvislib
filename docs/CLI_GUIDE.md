@@ -523,6 +523,22 @@ usecvis -m 3 -i network.toml -o graph --group-by zone --collapse users,servers
 
 The flags override `group_by` / `collapse` / `max_nodes` in the file's `[graph]` section. See "Grouping and collapse" in the template guide.
 
+#### Drift Between Two Versions
+
+```bash
+# What changed from day1 to day2 (-i is the later version, --diff the earlier one)
+usecvis -m 3 -i day2.toml --diff day1.toml -o drift
+
+# Only the changes and their neighbours, SVG engine, custom colors
+usecvis -m 3 -i day2.toml --diff day1.toml -o drift --render-engine svg -f svg \
+    --changes-only --diff-colors added=#e8590c,modified=#0ea5e9
+
+# Combine with grouping: collapsed zones show how many members changed
+usecvis -m 3 -i day2.toml --diff day1.toml -o drift --group-by zone --collapse all
+```
+
+Added elements are outlined in pink-red with a `+`, removed ones faded and dashed with a `−`, modified ones outlined in violet with a `~`. The command prints the added / removed / modified counts. See "Drift Picture" in the Python API guide.
+
 #### Example Configuration (TOML)
 
 ```toml

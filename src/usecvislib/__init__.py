@@ -152,6 +152,7 @@ from .diff import (
     compare_files,
     compare_series,
 )
+from .diffrender import render_diff
 from .exporters import (
     Exporter,
     ExportMixin,
@@ -446,6 +447,7 @@ __all__ = [
     "process_batch",
     "process_files_async",
     "process_node_image",
+    "render_diff",
     "sanitize_node_id",
     # Mermaid support
     "serialize_to_mermaid",

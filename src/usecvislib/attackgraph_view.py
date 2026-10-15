@@ -89,11 +89,26 @@ class RenderView:
         return self.edges.get(key)
 
 
+@dataclass
+class DiffMarks:
+    """Change status per element for the drift view.
+
+    ``nodes`` maps an element id to (status, changed field names); ``edges``
+    maps an edge key to its status. Status is "added", "removed",
+    "modified" (nodes only) or "unchanged".
+    """
+
+    nodes: dict[str, tuple[str, list[str]]] = field(default_factory=dict)
+    edges: dict[EdgeKey, str] = field(default_factory=dict)
+
+
 def build_view(
     data: dict[str, Any],
     group_by: Optional[str] = None,
     collapse: Any = None,
     max_nodes: Optional[int] = None,
+    diff: Optional[DiffMarks] = None,
+    show_unchanged: bool = True,
 ) -> RenderView:
     """The view of normalized attack-graph data under the render options.
 
@@ -107,6 +122,9 @@ def build_view(
         collapse: ``False``/``"none"`` (default), ``True``/``"all"``, ``"auto"``,
             or group ids (a list, or a comma-separated string).
         max_nodes: Target node count for ``collapse="auto"`` (default 300).
+        diff: Change status of each node and edge (drift view, see ``diffrender``).
+        show_unchanged: With ``diff``, False draws only changed elements and
+            their direct neighbours.
 
     Raises:
         ValueError: If ``group_by`` is a malformed ``ip/N`` / ``ip6/N`` rule.
@@ -116,29 +134,113 @@ def build_view(
     collapse = collapse if collapse is not None else graph.get("collapse")
     max_nodes = int(max_nodes if max_nodes is not None else graph.get("max_nodes", DEFAULT_MAX_NODES))
 
+    view = RenderView(data=data)
+    if diff is not None:
+        for node_id, (status, changed) in diff.nodes.items():
+            mark = view.nodes.setdefault(node_id, ElementMark())
+            mark.diff, mark.changed = status, list(changed)
+        for key, status in diff.edges.items():
+            view.edges.setdefault(key, ElementMark()).diff = status
+
     node_group = assign_groups(data, group_by)
     if not node_group:
         if _collapse_requested(collapse):
             logger.warning("collapse needs groups (group_by or host 'group' fields); ignored")
-        return _mark_inferred(RenderView(data=data))
+    else:
+        meta = data.get("groups") if isinstance(data.get("groups"), dict) else {}
+        for node_id, group_id in node_group.items():
+            info = view.groups.get(group_id)
+            if info is None:
+                group_meta = meta.get(group_id) if isinstance(meta.get(group_id), dict) else {}
+                label = str(group_meta.get("label") or group_id)
+                info = GroupInfo(id=group_id, label=label, color=group_meta.get("color"))
+                view.groups[group_id] = info
+            info.members.append(node_id)
+            view.nodes.setdefault(node_id, ElementMark()).group = group_id
 
-    meta = data.get("groups") if isinstance(data.get("groups"), dict) else {}
-    view = RenderView(data=data)
-    for node_id, group_id in node_group.items():
-        info = view.groups.get(group_id)
-        if info is None:
-            group_meta = meta.get(group_id) if isinstance(meta.get(group_id), dict) else {}
-            info = GroupInfo(id=group_id, label=str(group_meta.get("label") or group_id), color=group_meta.get("color"))
-            view.groups[group_id] = info
-        info.members.append(node_id)
-        view.nodes[node_id] = ElementMark(group=group_id)
+        collapsed = _groups_to_collapse(data, view.groups, meta, collapse, max_nodes)
+        if collapsed:
+            for group_id in collapsed:
+                view.groups[group_id].collapsed = True
+            _collapse(view, collapsed)
 
-    collapsed = _groups_to_collapse(data, view.groups, meta, collapse, max_nodes)
-    if collapsed:
-        for group_id in collapsed:
-            view.groups[group_id].collapsed = True
-        _collapse(view, collapsed)
+    if diff is not None and not show_unchanged:
+        _changes_only(view)
     return _mark_inferred(view)
+
+
+def _combined_status(statuses: list[Optional[str]]) -> Optional[str]:
+    """Status of edges merged into one: theirs when they agree, otherwise unchanged."""
+    known = [s for s in statuses if s]
+    if not known:
+        return None
+    return known[0] if all(s == known[0] for s in known) else "unchanged"
+
+
+def _changes_only(view: RenderView) -> None:
+    """Keep changed elements, their direct neighbours, and the hosts of what is kept.
+
+    With nothing changed, everything is kept (an empty picture would only fail to render).
+    """
+    data = view.data
+    drawn = node_ids(data)
+    edges = list(iter_edges(data))
+    changed = {i for i in drawn if (m := view.nodes.get(i)) is not None and m.diff not in (None, "unchanged")}
+    for src, dst, kind in edges:
+        mark = view.edges.get((src, dst, kind))
+        if mark is not None and mark.diff in ("added", "removed"):
+            changed.update((src, dst))
+    if not changed:
+        logger.info("No changes: drawing the whole graph")
+        return
+    keep = set(changed)
+    for src, dst, _ in edges:
+        if src in changed:
+            keep.add(dst)
+        if dst in changed:
+            keep.add(src)
+    for section, host_keys in (
+        ("vulnerabilities", ("host", "affected_host")),
+        ("services", ("host",)),
+        ("privileges", ("host",)),
+    ):
+        for element_id, element in _section_items(data.get(section, {})):
+            if element_id in keep and isinstance(element, dict):
+                keep.update(element.get(k) for k in host_keys if element.get(k) in drawn)
+    keep &= drawn
+
+    new = dict(data)
+    for section in ("hosts", "vulnerabilities", "privileges", "services"):
+        new[section] = {i: e for i, e in _section_items(data.get(section, {})) if i in keep}
+    exploits: dict[str, Any] = {}
+    for exploit_id, exploit in _section_items(data.get("exploits", {})):
+        if exploit_id not in keep:
+            continue
+        if isinstance(exploit, dict):
+            exploit = {k: v for k, v in exploit.items() if k not in ("precondition", "postcondition")}
+            for key in ("precondition", "postcondition"):
+                exploit[f"{key}s"] = [e for e in _exploit_conditions(data["exploits"][exploit_id], key) if e in keep]
+        exploits[exploit_id] = exploit
+    new["exploits"] = exploits
+    new["network_edges"] = {
+        i: e
+        for i, e in _section_items(data.get("network_edges", {}))
+        if isinstance(e, dict) and e.get("from") in keep and e.get("to") in keep
+    }
+    legacy = data.get("network", {})
+    new["network"] = (
+        {s: [t for t in ts if t in keep] for s, ts in legacy.items() if s in keep and isinstance(ts, list)}
+        if isinstance(legacy, dict)
+        else {}
+    )
+    view.data = new
+    # Groups list only what is still drawn (Graphviz would otherwise create a bare
+    # node for every member a cluster re-mentions)
+    for gid in list(view.groups):
+        info = view.groups[gid]
+        info.members = [m for m in info.members if m in keep]
+        if not info.members and not info.collapsed:
+            del view.groups[gid]
 
 
 def _mark_inferred(view: RenderView) -> RenderView:
@@ -314,9 +416,14 @@ def _collapse(view: RenderView, collapsed: list[str]) -> None:
                     score, _ = get_cvss_score_unified(element.get("cvss"), element.get("cvss_vector"))
                     if score is not None and (max_cvss is None or score > max_cvss):
                         max_cvss = score
-        view.nodes[SUMMARY_PREFIX + gid] = ElementMark(
-            group=gid, collapsed={**counts, "members": len(info.members), "max_cvss": max_cvss, "label": info.label}
-        )
+        facts = {**counts, "members": len(info.members), "max_cvss": max_cvss, "label": info.label}
+        statuses = [m.diff for member in info.members if (m := view.nodes.get(member)) is not None and m.diff]
+        summary_diff = None
+        if statuses:
+            for status in ("added", "removed", "modified"):
+                facts[status] = statuses.count(status)
+            summary_diff = "modified" if any(s != "unchanged" for s in statuses) else "unchanged"
+        view.nodes[SUMMARY_PREFIX + gid] = ElementMark(group=gid, collapsed=facts, diff=summary_diff)
 
     new: dict[str, Any] = {
         key: value for key, value in data.items() if key not in (*NODE_SECTIONS, "network_edges", "network")
@@ -348,15 +455,18 @@ def _collapse(view: RenderView, collapsed: list[str]) -> None:
             continue
         updated = {k: v for k, v in exploit.items() if k not in ("precondition", "postcondition")}
         for key in ("precondition", "postcondition"):
-            merged: dict[Any, int] = {}
+            merged: dict[Any, list[Optional[str]]] = {}
             for endpoint in _exploit_conditions(exploit, key):
-                target = repoint(endpoint)
-                merged[target] = merged.get(target, 0) + 1
+                original = (endpoint, exploit_id) if key == "precondition" else (exploit_id, endpoint)
+                old_mark = view.edges.get((*original, "exploit"))
+                merged.setdefault(repoint(endpoint), []).append(old_mark.diff if old_mark else None)
             updated[f"{key}s"] = list(merged)
-            for target, count in merged.items():
-                if count > 1:
-                    edge = (target, exploit_id) if key == "precondition" else (exploit_id, target)
-                    view.edges[(*edge, "exploit")] = ElementMark(count=count)
+            for target, statuses in merged.items():
+                edge = (target, exploit_id) if key == "precondition" else (exploit_id, target)
+                status = _combined_status(statuses)
+                if len(statuses) > 1 or status is not None:
+                    mark = view.edges.setdefault((*edge, "exploit"), ElementMark())
+                    mark.count, mark.diff = len(statuses), status
         exploits[exploit_id] = updated
     new["exploits"] = exploits
 
@@ -367,6 +477,7 @@ def _collapse(view: RenderView, collapsed: list[str]) -> None:
     network: dict[tuple[Any, Any], dict[str, Any]] = {}
     edge_counts: dict[tuple[Any, Any], int] = {}
     all_inferred: dict[tuple[Any, Any], bool] = {}
+    edge_statuses: dict[tuple[Any, Any], list[Optional[str]]] = {}
     originals = [e for _, e in _section_items(data.get("network_edges", {})) if isinstance(e, dict)]
     legacy = data.get("network", {})
     if isinstance(legacy, dict):
@@ -380,11 +491,16 @@ def _collapse(view: RenderView, collapsed: list[str]) -> None:
         key = (repoint(src), repoint(dst))
         edge_counts[key] = edge_counts.get(key, 0) + 1
         all_inferred[key] = all_inferred.get(key, True) and utils.inferred_state(edge)[0]
+        old_mark = view.edges.get((src, dst, "network"))
+        edge_statuses.setdefault(key, []).append(old_mark.diff if old_mark else None)
         network.setdefault(key, {**edge, "from": key[0], "to": key[1]})
     new_edges: dict[str, Any] = {}
     for i, (key, edge) in enumerate(network.items()):
+        status = _combined_status(edge_statuses[key])
+        if status is not None:
+            view.edges.setdefault((key[0], key[1], "network"), ElementMark()).diff = status
         if edge_counts[key] > 1:
-            view.edges[(key[0], key[1], "network")] = ElementMark(count=edge_counts[key])
+            view.edges.setdefault((key[0], key[1], "network"), ElementMark()).count = edge_counts[key]
             # Merged: inferred only if every merged edge was (one observed edge makes it observed)
             edge = {k: v for k, v in edge.items() if k not in ("inferred", "confidence")}
             if all_inferred[key]:
@@ -416,7 +532,16 @@ def summary_label_lines(mark: ElementMark) -> list[str]:
         if count:
             parts.append(f"{count} {one if count == 1 else many}")
     name = str(facts.get("label", ""))
-    return [name, " \u00b7 ".join(parts)] if parts else [name]
+    lines = [name, " \u00b7 ".join(parts)] if parts else [name]
+    # Drift view: what changed among the members
+    changes = [
+        f"{sign}{facts[status]}"
+        for status, sign in (("added", "+"), ("removed", "\u2212"), ("modified", "~"))
+        if facts.get(status)
+    ]
+    if changes:
+        lines.append(" ".join(changes))
+    return lines
 
 
 def group_stats(data: dict[str, Any], group_by: Optional[str] = None) -> dict[str, dict[str, Any]]:

@@ -175,6 +175,10 @@ def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str,
     min_y = min(ys_lo) - pad
     max_x = max(xs_hi) + pad
     max_y = max(ys_hi) + pad
+    legend = scene.meta.get("legend") or []
+    legend_y = max_y + size * 0.6
+    if legend:
+        max_y = legend_y + size * 1.4 + pad * 0.5
     canvas.finalize(min_x, min_y, max_x - min_x, max_y - min_y)
     canvas.add(
         "groups",
@@ -195,8 +199,26 @@ def render_graph_svg(viz, scene: Scene, theme: dict[str, Any], module_slug: str,
 
     _paint_edges(scene, canvas, theme, edge_cfg)
     _paint_nodes(scene, canvas, theme, node_cfg, size, radius, border_width, shadow_url)
+    if legend:
+        _paint_legend(canvas, theme, legend, min_x + pad, legend_y + size)
 
     return canvas.to_string()
+
+
+_DIFF_CHIPS = {"added": "+", "removed": "\u2212", "modified": "~"}
+
+
+def _paint_legend(canvas: SvgCanvas, theme: dict[str, Any], items: list, x: float, y: float) -> None:
+    """One legend row: a colored swatch and a label per (label, color) item."""
+    font = theme["font"]
+    size = float(font["size"]) * 0.85
+    text_color = theme["page"]["text"]
+    g = shapes.group(["usv-legend"])
+    for label, color in items:
+        g.append(shapes.card(x, y - size * 0.85, size * 1.6, size, 3.0, "none", color, 2.0))
+        g.append(shapes.anchored_text(x + size * 2.1, y, label, size, text_color, anchor="start"))
+        x += size * 2.1 + metrics.measure_text(label, font["family"], size) + 24.0
+    canvas.add("labels", g)
 
 
 def _paint_clusters(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any]) -> None:
@@ -252,6 +274,7 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], edge_cf
     label_size = float(edge_cfg.get("label_size", 10))
     label_color = edge_cfg.get("label_color", theme["page"]["text"])
     page_bg = theme["page"]["background"]
+    diff_cfg = theme.get("diff", {})
 
     for edge in scene.edges:
         src = by_id.get(edge.src)
@@ -260,6 +283,13 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], edge_cf
             continue
         color = edge.color or base_color
         width = edge.width if edge.width is not None else base_width
+        dashed = edge.dashed
+        if edge.diff == "added":
+            color = diff_cfg.get("added", color)
+            width += 1.0
+        elif edge.diff == "removed":
+            color = diff_cfg.get("removed", color)
+            dashed = True
 
         d = shapes.spline_path_d(edge.points)
         if not d:
@@ -273,8 +303,14 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], edge_cf
         classes = ["usv-edge", f"usv-edge--{edge.kind}"]
         if edge.inferred:
             classes.append("usv-edge--inferred")
-        group = shapes.group(classes, {"from": edge.src, "to": edge.dst, **edge.data})
-        group.append(shapes.edge_path(d, color, width, dashed=edge.dashed, marker_url=canvas.arrow_marker(color)))
+        data = {"from": edge.src, "to": edge.dst, **edge.data}
+        if edge.diff:
+            classes.append(f"usv-diff--{edge.diff}")
+            data["diff"] = edge.diff
+        group = shapes.group(classes, data)
+        if edge.diff == "removed":
+            group.set("opacity", shapes.fmt(float(diff_cfg.get("removed_opacity", 0.35))))
+        group.append(shapes.edge_path(d, color, width, dashed=dashed, marker_url=canvas.arrow_marker(color)))
         canvas.add("edges", group)
 
         if edge.label:
@@ -312,11 +348,31 @@ def _paint_nodes(
             classes.append(f"usv-node--{kind}")
         if node.severity:
             classes.append(f"usv-sev--{node.severity}")
-        body = _node_body(node, x, y, radius, fill, border, border_width, shadow_url)
+        diff_cfg = theme.get("diff", {})
+        if node.diff in ("added", "modified"):
+            border = diff_cfg.get(node.diff, border)
+        body = _node_body(
+            node,
+            x,
+            y,
+            radius,
+            fill,
+            border,
+            float(diff_cfg.get("border_width", 3.0)) if node.diff in ("added", "modified") else border_width,
+            shadow_url,
+        )
         if node.inferred:
             classes.append("usv-node--inferred")
             shapes.dash_outline(body, str(theme.get("inferred", {}).get("dash", "5 3")))
-        group = shapes.group(classes, node.data)
+        data = node.data
+        if node.diff:
+            classes.append(f"usv-diff--{node.diff}")
+            data = {**node.data, "diff": node.diff}
+            if node.diff == "removed":
+                shapes.dash_outline(body, "6 3")
+        group = shapes.group(classes, data)
+        if node.diff == "removed":
+            group.set("opacity", shapes.fmt(float(diff_cfg.get("removed_opacity", 0.35))))
         group.append(body)
 
         lines = node.lines or [node.label]
@@ -334,6 +390,25 @@ def _paint_nodes(
             text_top = node.y - text_h / 2
         group.extend(shapes.text_lines(node.x, text_top, lines, size, text_color))
         canvas.add("nodes", group)
+
+        chip = _DIFF_CHIPS.get(node.diff or "")
+        if chip:
+            # Change chip, bottom-left (CVSS is top-right, sources top-left)
+            chip_size = size * 0.85
+            canvas.add(
+                "badges",
+                shapes.badge(
+                    node.x - node.width / 2 + radius * 0.4,
+                    y + node.height,
+                    chip,
+                    metrics.measure_text(chip, font["family"], chip_size, bold=True),
+                    fill=theme.get("diff", {}).get(node.diff, "#475569"),
+                    text_color="#ffffff",
+                    size=chip_size,
+                    ring=page["background"],
+                    variant="diff",
+                ),
+            )
 
         if node.sources >= utils.MIN_SOURCES_FOR_BADGE and theme["badges"].get("sources", True):
             badge_size = size * 0.78

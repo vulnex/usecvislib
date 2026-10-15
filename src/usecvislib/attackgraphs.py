@@ -38,17 +38,22 @@ if TYPE_CHECKING:
     from .clouddiagrams import CloudDiagrams
     from .mermaiddiagrams import MermaidDiagrams
 import heapq
+import re
 
 import networkx as nx
 from graphviz import Digraph
 
 from . import utils
-from .attackgraph_view import RenderView, build_view, group_stats, merged_label, summary_label_lines
+from .attackgraph_view import DiffMarks, RenderView, build_view, group_stats, merged_label, summary_label_lines
 from .base import VisualizationBase
 from .constants import cvss_to_color, cvss_to_severity_label, cvss_to_text_color, validate_cvss_score
 from .cvss_unified import get_cvss_score_unified as get_cvss_score
 from .cvss_unified import validate_vector as validate_cvss_vector
 from .settings import is_cvss_enabled
+
+# Drift view defaults (render_diff); diff_colors and a preset's ``diff`` block override them
+DIFF_COLORS = {"added": "#d6336c", "removed": "#94a3b8", "modified": "#7c3aed"}
+_REMOVED_ALPHA = "59"  # 35% opacity on #rrggbb colors of removed elements
 
 # Cluster colors for grouped hosts (Graphviz engine); a group's own color overrides the fill
 _CLUSTER_FILL = "#eef2f7"
@@ -178,6 +183,11 @@ class AttackGraphs(VisualizationBase):
         self.group_by = group_by
         self.collapse = collapse
         self.max_nodes = max_nodes
+
+        # Drift view, set by render_diff(): change marks, colors, changes-only
+        self.diff_marks: Optional[DiffMarks] = None
+        self.diff_colors: Optional[dict[str, str]] = None
+        self.show_unchanged = True
 
         # Internal graph representation for analysis
         self._adjacency: dict[str, set[str]] = {}
@@ -449,7 +459,14 @@ class AttackGraphs(VisualizationBase):
         """
         self._normalize_data()
         try:
-            return build_view(self.inputdata, self.group_by, self.collapse, self.max_nodes)
+            return build_view(
+                self.inputdata,
+                self.group_by,
+                self.collapse,
+                self.max_nodes,
+                diff=self.diff_marks,
+                show_unchanged=self.show_unchanged,
+            )
         except ValueError as e:
             raise AttackGraphError(str(e)) from e
 
@@ -504,6 +521,8 @@ class AttackGraphs(VisualizationBase):
         # Add title
         if graph_meta.get("name"):
             self.graph.attr(label=graph_meta["name"], labelloc="t")
+        if self.diff_marks is not None:
+            self.graph.attr(label=self._diff_title(graph_meta.get("name", "")), labelloc="t")
 
         # Add hosts
         hosts = data.get("hosts", {})
@@ -534,6 +553,7 @@ class AttackGraphs(VisualizationBase):
             node_attrs.pop("ip", None)
             node_attrs.pop("os", None)
             node_attrs.pop("description", None)
+            label = self._style_diff_node(node_attrs, label, view.node_mark(host_id))
             self.graph.node(utils.sanitize_node_id(host_id), label, **node_attrs)
 
         # Add vulnerabilities with CVSS-based color coding
@@ -590,6 +610,7 @@ class AttackGraphs(VisualizationBase):
             node_attrs.pop("cwe", None)
             node_attrs.pop("affected_host", None)
             label = _with_sources(label, vuln_data, node_attrs)
+            label = self._style_diff_node(node_attrs, label, view.node_mark(vuln_id))
             self.graph.node(utils.sanitize_node_id(vuln_id), label, **node_attrs)
 
         # Add privileges
@@ -620,6 +641,7 @@ class AttackGraphs(VisualizationBase):
             node_attrs.pop("host", None)
             node_attrs.pop("level", None)
             label = _with_sources(label, priv_data, node_attrs)
+            label = self._style_diff_node(node_attrs, label, view.node_mark(priv_id))
             self.graph.node(utils.sanitize_node_id(priv_id), label, **node_attrs)
 
         # Add services
@@ -651,6 +673,7 @@ class AttackGraphs(VisualizationBase):
             node_attrs.pop("port", None)
             node_attrs.pop("protocol", None)
             label = _with_sources(label, svc_data, node_attrs)
+            label = self._style_diff_node(node_attrs, label, view.node_mark(svc_id))
             self.graph.node(utils.sanitize_node_id(svc_id), label, **node_attrs)
 
         # Add network edges
@@ -665,6 +688,7 @@ class AttackGraphs(VisualizationBase):
                 if edge_label:
                     edge_attrs["label"] = edge_label
                 _style_inferred_edge(edge_attrs, edge_mark)
+                self._style_diff_edge(edge_attrs, edge_mark)
                 self.graph.edge(utils.sanitize_node_id(source), utils.sanitize_node_id(target), **edge_attrs)
 
         # Also support old dict-style network format
@@ -674,6 +698,7 @@ class AttackGraphs(VisualizationBase):
                 if isinstance(targets, list):
                     for target in targets:
                         edge_attrs = utils.stringify_dict(network_edge_style.copy())
+                        self._style_diff_edge(edge_attrs, view.edge_mark((source, target, "network")))
                         self.graph.edge(utils.sanitize_node_id(source), utils.sanitize_node_id(target), **edge_attrs)
 
         # Add exploit edges
@@ -686,6 +711,8 @@ class AttackGraphs(VisualizationBase):
             if exploit_mark is not None and exploit_mark.inferred:
                 exploit_label = f"{exploit_label}\\n{_INFERRED_MARKER}"
                 node_attrs = {**exploit_node_attrs, **_INFERRED_NODE_ATTRS}
+            node_attrs = dict(node_attrs)
+            exploit_label = self._style_diff_node(node_attrs, exploit_label, exploit_mark)
             self.graph.node(utils.sanitize_node_id(exploit_id), exploit_label, **node_attrs)
 
             preconditions = exploit_data.get("preconditions", [])
@@ -701,6 +728,7 @@ class AttackGraphs(VisualizationBase):
                 if label := merged_label(pre_mark):
                     edge_attrs["label"] = label
                 _style_inferred_edge(edge_attrs, pre_mark)
+                self._style_diff_edge(edge_attrs, pre_mark)
                 self.graph.edge(utils.sanitize_node_id(pre), utils.sanitize_node_id(exploit_id), **edge_attrs)
 
             for post in postconditions:
@@ -709,23 +737,24 @@ class AttackGraphs(VisualizationBase):
                 if label := merged_label(post_mark):
                     edge_attrs["label"] = label
                 _style_inferred_edge(edge_attrs, post_mark)
+                self._style_diff_edge(edge_attrs, post_mark)
                 self.graph.edge(utils.sanitize_node_id(exploit_id), utils.sanitize_node_id(post), **edge_attrs)
 
         # Link vulnerabilities to hosts
         for vuln_id, vuln_data in vulnerabilities.items():
             host = vuln_data.get("host") or vuln_data.get("affected_host")
             if host:
-                self.graph.edge(
-                    utils.sanitize_node_id(host), utils.sanitize_node_id(vuln_id), style="dotted", color="#95a5a6"
-                )
+                edge_attrs = {"style": "dotted", "color": "#95a5a6"}
+                self._style_diff_edge(edge_attrs, view.edge_mark((host, vuln_id, "structural")))
+                self.graph.edge(utils.sanitize_node_id(host), utils.sanitize_node_id(vuln_id), **edge_attrs)
 
         # Link services to hosts
         for svc_id, svc_data in services.items():
             host = svc_data.get("host")
             if host:
-                self.graph.edge(
-                    utils.sanitize_node_id(host), utils.sanitize_node_id(svc_id), style="dotted", color="#95a5a6"
-                )
+                edge_attrs = {"style": "dotted", "color": "#95a5a6"}
+                self._style_diff_edge(edge_attrs, view.edge_mark((host, svc_id, "structural")))
+                self.graph.edge(utils.sanitize_node_id(host), utils.sanitize_node_id(svc_id), **edge_attrs)
 
         # Expanded groups as clusters. Mentioning an already-declared node inside
         # a cluster subgraph makes it a member and keeps its attributes.
@@ -745,6 +774,59 @@ class AttackGraphs(VisualizationBase):
 
         self.logger.debug(f"Rendered attack graph with {len(hosts)} hosts")
 
+    def diff_palette(self) -> dict[str, str]:
+        """Drift colors: diff_colors, then the preset's ``diff`` block, then the defaults."""
+        preset = self.style.get("diff", {}) if isinstance(self.style, dict) else {}
+        palette = {**DIFF_COLORS, **{k: v for k, v in preset.items() if k in DIFF_COLORS}}
+        palette.update(self.diff_colors or {})
+        return palette
+
+    def _diff_title(self, name: str) -> str:
+        """Graph title with the drift legend, as a Graphviz HTML label."""
+        palette = self.diff_palette()
+        legend = " &nbsp; ".join(
+            f'<FONT COLOR="{palette[status]}">{sign} {status}</FONT>'
+            for status, sign in (("added", "+"), ("removed", "\u2212"), ("modified", "~"))
+        )
+        title = str(name).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        return f'<{title}<BR/><FONT POINT-SIZE="10">{legend}</FONT>>'
+
+    def _style_diff_node(self, attrs: dict[str, Any], label: str, mark: Any) -> str:
+        """Apply a node's drift status to its Graphviz attributes; returns the label."""
+        status = mark.diff if mark is not None else None
+        if status not in ("added", "removed", "modified"):
+            return label
+        palette = self.diff_palette()
+        if status == "removed":
+            attrs["style"] = f"{attrs.get('style', 'filled')},dashed"
+            attrs["color"] = palette["removed"]
+            for key in ("fillcolor", "fontcolor"):
+                if re.fullmatch(r"#[0-9a-fA-F]{6}", str(attrs.get(key, ""))):
+                    attrs[key] = str(attrs[key]) + _REMOVED_ALPHA
+        else:
+            attrs["color"] = palette[status]
+            attrs["penwidth"] = "3"
+        if mark.changed:
+            attrs["tooltip"] = "changed: " + ", ".join(mark.changed)
+        if str(label).startswith("<"):  # HTML (icon) label: the border carries the status
+            return label
+        sign = {"added": "+", "removed": "\u2212", "modified": "~"}[status]
+        return f"{sign} {label}"
+
+    def _style_diff_edge(self, attrs: dict[str, Any], mark: Any) -> None:
+        """Apply an edge's drift status to its Graphviz attributes in place."""
+        status = mark.diff if mark is not None else None
+        palette = self.diff_palette()
+        if status == "added":
+            attrs["color"] = palette["added"]
+            try:
+                attrs["penwidth"] = str(float(attrs.get("penwidth", 1.0)) + 1.0)
+            except ValueError:
+                attrs["penwidth"] = "2"
+        elif status == "removed":
+            attrs["style"] = "dashed"
+            attrs["color"] = palette["removed"] + _REMOVED_ALPHA
+
     def _add_summary_node(self, node_id: str, mark: Any, view: RenderView, host_style: dict[str, Any]) -> None:
         """A collapsed group's summary node: folder shape, counts, worst-severity fill."""
         facts = mark.collapsed
@@ -761,7 +843,8 @@ class AttackGraphs(VisualizationBase):
             attrs["fillcolor"] = (group.color if group else None) or _CLUSTER_FILL
             attrs["fontcolor"] = utils.readable_text_color(attrs["fillcolor"]) or "#1f2937"
         attrs.pop("label", None)
-        self.graph.node(utils.sanitize_node_id(node_id), "\\n".join(lines), **attrs)
+        label = self._style_diff_node(attrs, "\\n".join(lines), mark)
+        self.graph.node(utils.sanitize_node_id(node_id), label, **attrs)
 
     def _exploit_node_style(self, exploit_edge_style: dict[str, Any]) -> dict[str, str]:
         """Graphviz attributes for exploit nodes, following the preset.

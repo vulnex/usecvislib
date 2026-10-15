@@ -3048,6 +3048,32 @@ series.to_dict()                           # JSON-ready: sources, per-step and o
 
 Something added in one step and removed in a later one appears in the steps but not in `overall`.
 
+### Drift Picture
+
+`render_diff()` draws what changed between two versions as one image, and returns the `DiffResult` it computed. Attack graphs only, for now (other types raise `NotImplementedError`).
+
+```python
+from usecvislib import render_diff
+
+result = render_diff(
+    "engagement_day1.toml", "engagement_day2.toml",   # paths or loaded AttackGraphs
+    output="drift",                                    # -> drift.png
+    format="png",
+    render_engine="svg",                               # default "graphviz"
+    diff_colors={"added": "#e8590c"},                  # optional: added / removed / modified
+    ignore_paths=["graph.last_modified"],              # as in compare_files()
+    show_unchanged=False,                              # only changes and their neighbours
+    group_by="zone", collapse="auto",                  # grouping applies to the merged graph
+)
+print(result.summary)   # {"added": 3, "removed": 3, "modified": 1, "total": 7}
+```
+
+- Both versions are merged so removed elements can still be drawn. Each element is **added** (border in `#d6336c` and a `+` chip), **removed** (faded to 35%, dashed, `−`), **modified** (border in `#7c3aed`, `~`) or unchanged. Fills keep their CVSS colors; a legend is drawn. The Graphviz engine shows the same with border colors, a `+` / `−` / `~` label prefix and the legend under the title.
+- `diff_colors` overrides any of the three colors (hex `#rrggbb` or `#rgb`; anything else raises `ValueError`). Precedence: `diff_colors`, then a preset's `diff` block, then the defaults.
+- Edges are compared as sets (by endpoints), and an exploit's pre/postcondition lists as sets, so renaming an edge entry or reordering a list is not drift. The returned `DiffResult` is computed on the same normalized data, so it agrees with the picture (`compare_files()` itself is unchanged).
+- With grouping, a collapsed group is marked modified when any member changed, with `+N −N ~N` counts.
+- SVG output: `usv-diff--added|removed|modified|unchanged` classes and `data-diff` on nodes and edges, `data-changed` (changed fields) on modified nodes.
+
 ### Change Types
 
 ```python

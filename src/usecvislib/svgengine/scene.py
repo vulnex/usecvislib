@@ -61,6 +61,7 @@ class SceneNode:
     inset_top: float = 0.0  # visual content inset from bbox top (plain/icon nodes)
     sources: int = 0  # distinct reporting sources; >= 2 draws a "confirmed by N" chip
     inferred: bool = False  # a hypothesis, not an observation: dashed outline, usv-node--inferred
+    diff: Optional[str] = None  # drift view: "added" | "removed" | "modified" | "unchanged"
     data: dict[str, str] = field(default_factory=dict)  # extra data-* attributes
 
 
@@ -81,6 +82,7 @@ class SceneEdge:
     label_pos: Optional[tuple[float, float]] = None  # label center chosen by the oracle (layout-set)
     data: dict[str, str] = field(default_factory=dict)  # extra data-* attributes
     inferred: bool = False  # a hypothesis, not an observation: usv-edge--inferred
+    diff: Optional[str] = None  # drift view: "added" | "removed" | "unchanged"
 
 
 @dataclass

@@ -55,6 +55,15 @@ DEFAULTS: dict[str, Any] = {
         "sources_fill": "#0f766e",
     },
     "images": {"size": 48},
+    # Drift view (render_diff): change status as borders, fading and a chip, never
+    # fills (vulnerability fills already carry CVSS colors)
+    "diff": {
+        "added": "#d6336c",
+        "removed": "#94a3b8",
+        "modified": "#7c3aed",
+        "removed_opacity": 0.35,
+        "border_width": 3.0,
+    },
     # Inferred elements (hypotheses, e.g. AI-proposed exploits or technique tags):
     # dashed, muted, and marked "(inferred)" so they never read as observed facts
     "inferred": {

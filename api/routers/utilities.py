@@ -19,8 +19,8 @@ import uuid
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, BackgroundTasks, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi.responses import FileResponse, StreamingResponse
 
 from usecvislib import BinVis, CustomDiagrams, ThreatModeling
 from usecvislib import __version__ as lib_version
@@ -48,6 +48,7 @@ from ..helpers import (
     TempFiles,
     cleanup_files,
     clear_progress,
+    file_response,
     get_progress,
     get_template_format,
     handle_errors,
@@ -81,6 +82,7 @@ from ..schemas import (
     MaestroStyle,
     OutputFormat,
     PrivilegeGradientStyle,
+    RenderEngine,
     ReportFormat,
     ReportResponse,
     ThreatLibraryItem,
@@ -925,6 +927,100 @@ async def compare_configs(
             changes=changes,
             report=report,
         )
+
+
+@router.post(
+    "/diff/render",
+    tags=["Comparison"],
+    summary="Draw the drift between two versions (added / removed / modified highlighted)",
+    response_class=FileResponse,
+    responses={200: {"content": {"image/png": {}, "image/svg+xml": {}, "application/pdf": {}}}},
+)
+@limiter.limit(RATE_LIMIT_VISUALIZE)
+async def render_drift(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    old_file: UploadFile = File(..., description="Earlier version"),
+    new_file: UploadFile = File(..., description="Later version"),
+    mode: Optional[VisualizationMode] = Query(
+        default=None, description="Visualization mode (auto-detected when omitted); attack_graph only for now"
+    ),
+    format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
+    render_engine: RenderEngine = Query(default=RenderEngine.GRAPHVIZ, description="graphviz (default) or svg"),
+    style: Optional[str] = Query(default=None, max_length=64, description="Style preset of the module"),
+    show_unchanged: bool = Query(default=True, description="False: only changed elements and their neighbours"),
+    ignore_paths: Optional[str] = Query(default=None, max_length=1000, description="Comma-separated path prefixes"),
+    group_by: Optional[str] = Query(default=None, max_length=64, description="Group hosts (as /visualize)"),
+    collapse: Optional[str] = Query(default=None, max_length=1000, description="none, all, auto, or group ids"),
+    max_nodes: Optional[int] = Query(default=None, ge=1, le=10000, description="Node target for collapse=auto"),
+    diff_colors: Optional[str] = Form(
+        default=None,
+        max_length=500,
+        description='JSON object overriding any of added / removed / modified, e.g. {"added": "#e8590c"}',
+    ),
+):
+    """
+    Render the drift between two versions of a configuration as one image.
+
+    Both versions are merged so removed elements can still be drawn; each
+    element is marked added, removed, modified or unchanged and drawn with a
+    colored border, fading and a +/-/~ chip (fills keep their CVSS colors).
+    The change summary is returned in the `X-Diff-Summary` header (JSON).
+    """
+    from usecvislib.diffrender import SUPPORTED_TYPES, render_diff, resolve_diff_colors
+
+    temps = TempFiles()
+    with handle_errors(temps, (USecVisLibError, ValueError), internal_detail="Drift rendering failed"):
+        validate_config_file_extension(old_file.filename)
+        validate_config_file_extension(new_file.filename)
+        old_path = temps.add(save_upload_file(old_file))
+        new_path = temps.add(save_upload_file(new_file))
+
+        if mode is None:
+            mode = _detect_config_mode(ReadConfigFile(old_path))
+        if mode is None or mode.value not in SUPPORTED_TYPES:
+            name = mode.value if mode else "unknown"
+            raise HTTPException(
+                status_code=400,
+                detail=f"Drift rendering supports {', '.join(SUPPORTED_TYPES)}; got {name}",
+            )
+
+        colors = None
+        if diff_colors:
+            try:
+                colors = resolve_diff_colors(json.loads(diff_colors))
+            except json.JSONDecodeError as e:
+                raise HTTPException(status_code=400, detail="diff_colors must be a JSON object") from e
+
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"drift_{os.urandom(8).hex()}"))
+        styleid = style or ""
+        if render_engine == RenderEngine.SVG and styleid.startswith("ag_"):
+            styleid = ""  # Graphviz preset with the SVG engine: use the engine default
+        result = await run_sync_with_timeout(
+            lambda: render_diff(
+                old_path,
+                new_path,
+                visualization_type=mode.value,
+                output=output_base,
+                format=format.value,
+                render_engine=render_engine.value,
+                style=styleid,
+                diff_colors=colors,
+                ignore_paths=[p.strip() for p in ignore_paths.split(",") if p.strip()] if ignore_paths else None,
+                show_unchanged=show_unchanged,
+                group_by=group_by,
+                collapse={"none": False, "all": True}.get(collapse.strip().lower(), collapse) if collapse else None,
+                max_nodes=max_nodes,
+            ),
+            REQUEST_TIMEOUT_VISUALIZE,
+            "drift rendering",
+            on_abandon=temps.cleanup,
+        )
+        response = file_response(
+            f"{output_base}.{format.value}", format, f"drift.{format.value}", temps, background_tasks
+        )
+        response.headers["X-Diff-Summary"] = json.dumps(result.summary)
+        return response
 
 
 # =============================================================================
