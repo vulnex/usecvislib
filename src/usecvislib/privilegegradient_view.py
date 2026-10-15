@@ -67,6 +67,7 @@ class GradientView:
     group_zone: dict[str, str] = field(default_factory=dict)  # group id -> its zone
     merged_from: dict[tuple, list[str]] = field(default_factory=dict)  # merged edge -> member influence keys
     inversion_counts: dict[str, dict[str, int]] = field(default_factory=dict)  # merged edge -> {status: count}
+    kept: set[str] = field(default_factory=set)  # members drawn individually in a collapsed group (A12)
 
     def influence_mark(self, influence: dict) -> Optional[ElementMark]:
         key = (influence.get("from"), influence.get("to"), influence.get("type") or "data")
@@ -118,6 +119,8 @@ def apply_grouping(
     collapse: Any,
     max_nodes: int,
     meta: dict[str, Any],
+    keep: Optional[str] = None,
+    keep_ids: Optional[list[str]] = None,
 ) -> None:
     """Group the view's components and collapse the chosen groups, in place.
 
@@ -128,6 +131,9 @@ def apply_grouping(
         collapse: False / "none", True / "all", "auto", or group ids.
         max_nodes: Target component count for "auto".
         meta: Per-group settings by group id: ``label``, ``color``, ``collapsed``.
+        keep: "inversions" keeps the members taking part in an inversion drawn
+            individually inside a collapsed group (Atajo A12).
+        keep_ids: Members kept the same way, by component id.
     """
     membership = component_groups(view.components, group_by)
     if not membership:
@@ -148,11 +154,45 @@ def apply_grouping(
         info.members.append(comp_id)
         view.marks.setdefault(comp_id, ElementMark()).group = group_id
 
-    collapsed = groups_to_collapse(view.groups, meta, collapse, max_nodes, len(view.components))
+    view.kept = kept_components(view, keep, keep_ids)
+    # The collapse choice sees the members a summary would fold: kept ones stay drawn,
+    # so "auto" counts them and true / "auto" skip a group left with one foldable member
+    foldable = {
+        gid: GroupInfo(id=gid, members=[m for m in info.members if m not in view.kept])
+        for gid, info in view.groups.items()
+    }
+    collapsed = groups_to_collapse(foldable, meta, collapse, max_nodes, len(view.components))
+    # A group whose members are all kept has nothing to fold, even when collapsed explicitly
+    collapsed = [gid for gid in collapsed if foldable[gid].members]
     if collapsed:
         for group_id in collapsed:
             view.groups[group_id].collapsed = True
         _collapse(view, collapsed)
+
+
+def kept_components(view: GradientView, keep: Optional[str], keep_ids: Optional[list[str]]) -> set[str]:
+    """Components drawn individually even when their group collapses (Atajo A12).
+
+    ``keep = "inversions"`` keeps every endpoint of an inversion, and in the drift
+    view every endpoint of a new, fixed or changed one (a fixed violation stays
+    named); ``keep_ids`` adds components by id.
+    """
+    kept: set[str] = set()
+    if keep:
+        if str(keep).strip().lower() == "inversions":
+            for inv in view.inversions:
+                kept.update((inv["from"], inv["to"]))
+            for key, status in view.inversion_status.items():
+                if status in ("new", "fixed", "changed"):
+                    endpoints, _, _ = key.rpartition(":")
+                    kept.update(endpoints.split("->", 1))
+        else:
+            logger.warning(f"keep: unknown value '{keep}' (use \"inversions\"); ignored")
+    unknown = [cid for cid in keep_ids or [] if cid not in view.components]
+    if unknown:
+        logger.warning(f"keep_ids: no such component(s): {', '.join(map(str, unknown))}")
+    kept.update(cid for cid in keep_ids or [] if cid in view.components)
+    return kept & set(view.components)
 
 
 def _worst(severities: list[str]) -> Optional[str]:
@@ -164,21 +204,27 @@ def _collapse(view: GradientView, collapsed: list[str]) -> None:
     """Replace each collapsed group's members by one summary component; re-point and merge influences."""
     from .privilegegradient import detect_inversions
 
-    summary_of = {member: SUMMARY_PREFIX + gid for gid in collapsed for member in view.groups[gid].members}
+    # Kept members (A12) are not folded: they stay drawn, with their own influences
+    folded_of = {gid: [m for m in view.groups[gid].members if m not in view.kept] for gid in collapsed}
+    summary_of = {member: SUMMARY_PREFIX + gid for gid in collapsed for member in folded_of[gid]}
 
-    # Summary facts: members, the inversions they take part in (worst severity), drift counts
+    # Summary facts: folded members, the inversions they take part in (worst severity),
+    # how many members are shown separately, drift counts of the folded members
     for gid in collapsed:
         info = view.groups[gid]
-        members = set(info.members)
+        members = set(folded_of[gid])
         touching = [inv for inv in view.inversions if inv["from"] in members or inv["to"] in members]
         facts: dict[str, Any] = {
             "label": info.label,
             "zone": view.group_zone[gid],
-            "members": len(info.members),
+            "members": len(members),
             "inversions": len(touching),
             "max_severity": _worst([inv["severity"] for inv in touching]),
         }
-        statuses = [m.diff for member in info.members if (m := view.marks.get(member)) is not None and m.diff]
+        kept = len(info.members) - len(members)
+        if kept:
+            facts["kept"] = kept
+        statuses = [m.diff for member in folded_of[gid] if (m := view.marks.get(member)) is not None and m.diff]
         summary_diff = None
         if statuses:
             for status in ("added", "removed", "modified"):
@@ -291,6 +337,8 @@ def summary_label_lines(facts: dict[str, Any]) -> list[str]:
     """
     members = facts.get("members", 0)
     lines = [str(facts.get("label", "")), f"{members} component{'' if members == 1 else 's'}"]
+    if facts.get("kept"):  # A12: members drawn next to the card
+        lines.append(f"{facts['kept']} shown separately")
     count = facts.get("inversions") or 0
     if count:
         marker = {"critical": "!!!", "high": "!!", "medium": "!"}.get(facts.get("max_severity") or "", "!")

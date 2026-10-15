@@ -212,6 +212,8 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         group_by: Optional[str] = None,
         collapse: Any = None,
         max_nodes: Optional[int] = None,
+        keep: Optional[str] = None,
+        keep_ids: Any = None,
     ) -> None:
         """
         Args:
@@ -221,6 +223,10 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
                 (``<zone>/<value>``). Overrides ``gradient.collapse``.
             max_nodes: Component target for ``collapse="auto"`` (default 300).
                 Overrides ``gradient.max_nodes``.
+            keep: ``"inversions"`` keeps the members taking part in an inversion
+                drawn individually inside a collapsed group. Overrides ``gradient.keep``.
+            keep_ids: Component ids kept the same way (a list, or comma-separated).
+                Overrides ``gradient.keep_ids``.
         """
         if format == "":
             format = "png"
@@ -251,6 +257,8 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         self.group_by = group_by
         self.collapse = collapse
         self.max_nodes = max_nodes
+        self.keep = keep
+        self.keep_ids = keep_ids
 
         # Drift view, set by render_diff(): change marks, colors, changes-only
         self.diff_marks: Optional[Any] = None
@@ -474,6 +482,16 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
             groups = {g["id"]: g for g in groups if isinstance(g, dict) and g.get("id")}
         return group_by, collapse, max_nodes, groups if isinstance(groups, dict) else {}
 
+    def _keep_options(self) -> tuple[Optional[str], list[str]]:
+        """keep and keep_ids (Atajo A12): render options, then the gradient section."""
+        meta = self.inputdata.get("gradient", {}) if isinstance(self.inputdata, dict) else {}
+        meta = meta if isinstance(meta, dict) else {}
+        keep = self.keep if self.keep is not None else meta.get("keep")
+        keep_ids = self.keep_ids if self.keep_ids is not None else meta.get("keep_ids")
+        if isinstance(keep_ids, str):
+            keep_ids = [part.strip() for part in keep_ids.split(",") if part.strip()]
+        return keep, [str(cid) for cid in keep_ids or []]
+
     def render_view(self) -> GradientView:
         """The sections to draw, with their groups and change marks (both engines read this).
 
@@ -497,7 +515,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
             view.inversion_status = dict(self.diff_marks.extra.get("inversions", {}))
             view.inversions_before = dict(self.diff_marks.extra.get("inversions_before", {}))
         group_by, collapse, max_nodes, groups = self._grouping_options()
-        apply_grouping(view, group_by, collapse, max_nodes, groups)
+        apply_grouping(view, group_by, collapse, max_nodes, groups, *self._keep_options())
         if self.diff_marks is not None and not self.show_unchanged:
             self._changes_only(view)
         # The size limit applies to what is drawn, so a large gradient grouped and collapsed renders
