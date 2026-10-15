@@ -22,8 +22,9 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import StreamingResponse
 
-from usecvislib import AttackGraphs, AttackTrees, CustomDiagrams, ThreatModeling
+from usecvislib import BinVis, CustomDiagrams, ThreatModeling
 from usecvislib import __version__ as lib_version
+from usecvislib.batch import BatchProcessor
 from usecvislib.diff import VisualizationDiff
 from usecvislib.exporters import Exporter
 from usecvislib.threatmodeling import PyTMWrapper
@@ -33,6 +34,7 @@ from usecvislib.utils import convert_format as utils_convert_format
 from ..config import (
     ENABLE_TRACEBACK_LOGGING,
     FORMAT_EXTENSIONS,
+    MAX_BINARY_FILE_SIZE,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_DEFAULT,
     RATE_LIMIT_VISUALIZE,
@@ -62,17 +64,21 @@ from ..schemas import (
     BatchItemResult,
     BatchResponse,
     BinVisStyle,
+    BinVisType,
     ChangeItem,
     ChangeType,
+    ComponentDiagramStyle,
     ConfigFormat,
     ConvertResponse,
     CustomDiagramStyle,
+    DependencyGraphStyle,
     DiffResponse,
     DiffSummary,
     ExportFormat,
     ExportResponse,
     HealthResponse,
     KillChainStyle,
+    MaestroStyle,
     OutputFormat,
     PrivilegeGradientStyle,
     ReportFormat,
@@ -85,10 +91,36 @@ from ..schemas import (
     VisualizationMode,
     VulnTreeStyle,
 )
+from .binary import chart_title
 
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter()
+
+# Config-file modes that batch, export and compare handle through the
+# library's module registry (the same one usecvislib.batch and .diff use).
+# Mode values are the registry keys.
+_CONFIG_MODES = tuple(
+    mode
+    for mode in VisualizationMode
+    if mode.value in BatchProcessor._get_modules() and mode != VisualizationMode.BINARY
+)
+
+# detect_visualization_type() names that differ from the mode value
+_DETECTED_NAMES = {"killchain": "kill_chain", "timeline": "incident_timeline"}
+
+
+def _module_class(mode: VisualizationMode) -> type:
+    return BatchProcessor._get_modules()[mode.value]
+
+
+def _detect_config_mode(data: dict) -> Optional[VisualizationMode]:
+    """Mode of a config file from its structure, or None if it is not one of _CONFIG_MODES."""
+    from usecvislib.mermaid import detect_visualization_type
+
+    detected = detect_visualization_type(data)
+    detected = _DETECTED_NAMES.get(detected, detected)
+    return next((mode for mode in _CONFIG_MODES if mode.value == detected), None)
 
 
 # =============================================================================
@@ -164,9 +196,12 @@ async def get_available_styles(request: Request):
         "custom_diagram": [s.value for s in CustomDiagramStyle],
         "binary_visualization": [s.value for s in BinVisStyle],
         "privilege_gradient": [s.value for s in PrivilegeGradientStyle],
+        "component_diagram": [s.value for s in ComponentDiagramStyle],
+        "dependency_graph": [s.value for s in DependencyGraphStyle],
         "kill_chain": [s.value for s in KillChainStyle],
         "timeline": [s.value for s in TimelineStyle],
         "vuln_tree": [s.value for s in VulnTreeStyle],
+        "maestro": [s.value for s in MaestroStyle],
     }
 
 
@@ -421,6 +456,10 @@ async def batch_visualize(
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     style: Optional[str] = Query(default=None, description="Style preset"),
     collect_stats: bool = Query(default=True, description="Collect statistics for each file"),
+    visualization_type: BinVisType = Query(
+        default=BinVisType.ENTROPY,
+        description="Binary mode only: the chart to render for each file ('all' is not supported)",
+    ),
 ):
     """
     Process multiple configuration files in batch.
@@ -428,14 +467,21 @@ async def batch_visualize(
     Upload multiple TOML/JSON/YAML files and process them all at once.
     Returns success/failure status for each file along with aggregate statistics.
 
-    Supported modes:
-    - **attack_tree**: Process attack tree configurations
-    - **attack_graph**: Process attack graph configurations
-    - **threat_model**: Process threat model configurations
-    - **custom_diagram**: Process custom diagram configurations
+    Supported modes: every config-file module (attack_tree, attack_graph,
+    threat_model, privilege_gradient, component_diagram, dependency_graph,
+    kill_chain, incident_timeline, vuln_tree, maestro), custom_diagram, and
+    binary (any file type, one `visualization_type` chart per file).
     """
     if len(files) > 20:
         raise HTTPException(status_code=400, detail="Maximum 20 files allowed per batch")
+
+    is_binary = mode == VisualizationMode.BINARY
+    if mode not in (*_CONFIG_MODES, VisualizationMode.CUSTOM_DIAGRAM, VisualizationMode.BINARY):
+        raise HTTPException(status_code=400, detail=f"Batch processing not supported for mode: {mode.value}")
+    if is_binary and visualization_type == BinVisType.ALL:
+        raise HTTPException(
+            status_code=400, detail="Batch returns one chart per file: choose a single visualization_type"
+        )
 
     input_paths = []
     results = []
@@ -445,22 +491,16 @@ async def batch_visualize(
         # Save all uploaded files
         for file in files:
             try:
-                validate_config_file_extension(file.filename)
-                path = temps.add(save_upload_file(file))
+                if is_binary:
+                    path = temps.add(save_upload_file(file, ".bin", max_size=MAX_BINARY_FILE_SIZE))
+                    if os.path.getsize(path) == 0:
+                        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+                else:
+                    validate_config_file_extension(file.filename)
+                    path = temps.add(save_upload_file(file))
                 input_paths.append((file.filename, path))
             except HTTPException as e:
                 results.append(BatchItemResult(filename=file.filename, success=False, error=str(e.detail)))
-
-        # Determine module type from mode
-        module_map = {
-            VisualizationMode.ATTACK_TREE: "attack_tree",
-            VisualizationMode.ATTACK_GRAPH: "attack_graph",
-            VisualizationMode.THREAT_MODEL: "threat_model",
-            VisualizationMode.CUSTOM_DIAGRAM: "custom_diagram",
-        }
-        module_type = module_map.get(mode)
-        if not module_type:
-            raise HTTPException(status_code=400, detail=f"Batch processing not supported for mode: {mode.value}")
 
         # Create output directory for batch
         batch_output_dir = os.path.join(TEMP_DIR, f"batch_{os.urandom(8).hex()}")
@@ -480,52 +520,28 @@ async def batch_visualize(
                     # batch's other inputs are still in use by later items
                     item_temps = TempFiles()
                     item_temps.add_prefix(output_base)
+                    output_path = f"{output_base}.{format.value}"
 
-                    if mode == VisualizationMode.ATTACK_TREE:
-                        viz = AttackTrees(
+                    if is_binary:
+                        chart = visualization_type.value
+                        bv = BinVis(
                             input_path,
                             output_base,
                             format=format.value,
-                            styleid=style or "at_default",
-                            render_engine=engine,
+                            styleid=style or "bv_default",
+                            display_name=chart_title(filename),
                         )
                         await run_sync_with_timeout(
-                            viz.BuildAttackTree,
+                            lambda bv=bv, chart=chart: bv.BuildBinVis(chart),
                             REQUEST_TIMEOUT_VISUALIZE,
-                            f"batch attack tree ({filename})",
+                            f"batch binary {chart} ({filename})",
                             on_abandon=item_temps.cleanup,
                         )
-                        stats = viz.get_tree_stats() if collect_stats else None
-                    elif mode == VisualizationMode.ATTACK_GRAPH:
-                        viz = AttackGraphs(
-                            input_path,
-                            output_base,
-                            format=format.value,
-                            styleid=style or "ag_default",
-                            render_engine=engine,
-                        )
-                        await run_sync_with_timeout(
-                            viz.BuildAttackGraph,
-                            REQUEST_TIMEOUT_VISUALIZE,
-                            f"batch attack graph ({filename})",
-                            on_abandon=item_temps.cleanup,
-                        )
-                        stats = viz.get_graph_stats() if collect_stats else None
-                    elif mode == VisualizationMode.THREAT_MODEL:
-                        viz = ThreatModeling(
-                            input_path,
-                            output_base,
-                            format=format.value,
-                            styleid=style or "tm_default",
-                            render_engine=engine,
-                        )
-                        await run_sync_with_timeout(
-                            viz.BuildThreatModel,
-                            REQUEST_TIMEOUT_VISUALIZE,
-                            f"batch threat model ({filename})",
-                            on_abandon=item_temps.cleanup,
-                        )
-                        stats = viz.get_model_stats() if collect_stats else None
+                        output_path = f"{output_base}_{chart}.{format.value}"
+                        stats = None
+                        if collect_stats:
+                            stats = bv.get_file_stats()
+                            stats.pop("most_common", None)
                     elif mode == VisualizationMode.CUSTOM_DIAGRAM:
                         cd = CustomDiagrams()
                         cd.load(input_path)
@@ -542,10 +558,20 @@ async def batch_visualize(
                         )
                         stats = cd.get_stats() if collect_stats else None
                     else:
-                        stats = None
+                        # Without a style each module uses its own default preset
+                        style_kwargs = {"styleid": style} if style else {}
+                        viz = _module_class(mode)(
+                            input_path, output_base, format=format.value, render_engine=engine, **style_kwargs
+                        )
+                        await run_sync_with_timeout(
+                            viz.build,
+                            REQUEST_TIMEOUT_VISUALIZE,
+                            f"batch {mode.value.replace('_', ' ')} ({filename})",
+                            on_abandon=item_temps.cleanup,
+                        )
+                        stats = viz.get_stats() if collect_stats else None
 
-                    output_file = f"{os.path.splitext(filename)[0]}.{format.value}"
-                    output_path = f"{output_base}.{format.value}"
+                    output_file = f"{os.path.splitext(filename)[0]}{os.path.basename(output_path)[len(os.path.basename(output_base)) :]}"
 
                     # Read the generated file and encode as base64 for download
                     image_data = None
@@ -644,6 +670,9 @@ async def export_data(
 
     For attack trees:
     - nodes, edges
+
+    Every config-file module is supported; GET /export/sections lists the
+    sections of each.
     """
     temps = TempFiles()
     with handle_errors(temps, (USecVisLibError,), internal_detail="Export failed"):
@@ -653,35 +682,26 @@ async def export_data(
         # Auto-detect mode if not specified
         if mode is None:
             raw_data = ReadConfigFile(input_path)
-            # Detect based on data structure
-            if "graph" in raw_data or "hosts" in raw_data or "vulnerabilities" in raw_data:
-                mode = VisualizationMode.ATTACK_GRAPH
-            elif "model" in raw_data or "dataflows" in raw_data or "processes" in raw_data:
-                mode = VisualizationMode.THREAT_MODEL
-            elif "tree" in raw_data or ("nodes" in raw_data and "edges" in raw_data):
-                mode = VisualizationMode.ATTACK_TREE
-            else:
-                # Default to attack tree for generic node/edge structures
-                mode = VisualizationMode.ATTACK_TREE
+            mode = _detect_config_mode(raw_data)
+            if mode is None:
+                # Looser structural hints for configs the detector does not place
+                if "graph" in raw_data or "hosts" in raw_data or "vulnerabilities" in raw_data:
+                    mode = VisualizationMode.ATTACK_GRAPH
+                elif "model" in raw_data or "dataflows" in raw_data or "processes" in raw_data:
+                    mode = VisualizationMode.THREAT_MODEL
+                elif "tree" in raw_data or ("nodes" in raw_data and "edges" in raw_data):
+                    mode = VisualizationMode.ATTACK_TREE
+                else:
+                    # Default to attack tree for generic node/edge structures
+                    mode = VisualizationMode.ATTACK_TREE
 
-        # Load the data based on mode
-        if mode == VisualizationMode.ATTACK_TREE:
-            viz = AttackTrees(input_path, "unused")
-            viz.load()
-            data = viz.inputdata
-            stats = viz.get_tree_stats() if include_stats else None
-        elif mode == VisualizationMode.ATTACK_GRAPH:
-            viz = AttackGraphs(input_path, "unused")
-            viz.load()
-            data = viz.inputdata
-            stats = viz.get_graph_stats() if include_stats else None
-        elif mode == VisualizationMode.THREAT_MODEL:
-            viz = ThreatModeling(input_path, "unused")
-            viz.load()
-            data = viz.inputdata
-            stats = viz.get_model_stats() if include_stats else None
-        else:
+        if mode not in _CONFIG_MODES:
             raise HTTPException(status_code=400, detail=f"Export not supported for mode: {mode.value}")
+
+        viz = _module_class(mode)(input_path, "unused")
+        viz.load()
+        data = viz.inputdata
+        stats = viz.get_stats() if include_stats else None
 
         # Extract section if specified
         if section:
@@ -769,6 +789,21 @@ async def get_export_sections(mode: VisualizationMode = Query(..., description="
             "network_edges",
         ],
         VisualizationMode.THREAT_MODEL: ["model", "processes", "datastores", "externals", "dataflows", "boundaries"],
+        VisualizationMode.PRIVILEGE_GRADIENT: ["gradient", "zones", "components", "influences", "influence_types"],
+        VisualizationMode.COMPONENT_DIAGRAM: ["layers", "connections"],
+        VisualizationMode.DEPENDENCY_GRAPH: ["modules", "dependencies", "circular"],
+        VisualizationMode.KILL_CHAIN: ["killchain", "techniques", "incidents"],
+        VisualizationMode.INCIDENT_TIMELINE: ["incident", "events", "phases"],
+        VisualizationMode.VULN_TREE: ["vulntree", "dependencies"],
+        VisualizationMode.MAESTRO: [
+            "meta",
+            "architecture",
+            "agents",
+            "assets",
+            "threats",
+            "cross_layer_threats",
+            "mitigations",
+        ],
         VisualizationMode.BINARY: [],
     }
     return {"mode": mode.value, "sections": sections.get(mode, []), "note": "Use section=null to export all data"}
@@ -831,30 +866,19 @@ async def compare_configs(
             detected_type = detect_visualization_type(old_data)
             logger.info(f"Auto-detected visualization type: {detected_type}")
 
-            if detected_type == "attack_tree":
-                mode = VisualizationMode.ATTACK_TREE
-            elif detected_type == "attack_graph":
-                mode = VisualizationMode.ATTACK_GRAPH
-            elif detected_type == "threat_model":
-                mode = VisualizationMode.THREAT_MODEL
-            else:
+            mode = _detect_config_mode(old_data)
+            if mode is None:
                 raise HTTPException(
                     status_code=400,
                     detail=f"Could not auto-detect visualization type. Please specify 'mode' parameter. Detected: {detected_type}",
                 )
 
         # Create visualization instances based on mode
-        if mode == VisualizationMode.ATTACK_TREE:
-            old_viz = AttackTrees(old_path, "old_output", validate_paths=False)
-            new_viz = AttackTrees(new_path, "new_output", validate_paths=False)
-        elif mode == VisualizationMode.ATTACK_GRAPH:
-            old_viz = AttackGraphs(old_path, "old_output", validate_paths=False)
-            new_viz = AttackGraphs(new_path, "new_output", validate_paths=False)
-        elif mode == VisualizationMode.THREAT_MODEL:
-            old_viz = ThreatModeling(old_path, "old_output", validate_paths=False)
-            new_viz = ThreatModeling(new_path, "new_output", validate_paths=False)
-        else:
+        if mode not in _CONFIG_MODES:
             raise HTTPException(status_code=400, detail=f"Comparison not supported for mode: {mode.value}")
+        module_class = _module_class(mode)
+        old_viz = module_class(old_path, "old_output", validate_paths=False)
+        new_viz = module_class(new_path, "new_output", validate_paths=False)
 
         # Parse ignore paths
         ignore_list = None

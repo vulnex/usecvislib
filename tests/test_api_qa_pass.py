@@ -73,7 +73,8 @@ def test_custom_diagram_import(source_type, path):
 
 def test_batch_unsupported_mode_is_400():
     src = TEMPLATES / "attack-trees" / "ransomware_attack.tml"
-    r = client.post("/batch/visualize?mode=binary", files=[_file(src, "files")])
+    # binary became a batch mode in 0.6.0; cloud diagrams have no file module
+    r = client.post("/batch/visualize?mode=cloud", files=[_file(src, "files")])
     assert r.status_code == 400
 
 

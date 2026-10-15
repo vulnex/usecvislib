@@ -20,7 +20,7 @@
 | B4 | Compare two binaries | Deferred to 0.7.0 |
 | B5 | Chart data as JSON | Deferred to 0.7.0 |
 | B6 | Larger files through streaming | Deferred to 0.7.0 |
-| B7 | Binary support in `/batch/visualize` | Deferred to 0.7.0 |
+| B7 | Binary support in `/batch/visualize` | **Done** |
 
 Every bug and gap you reported was confirmed against the code. Thanks for the precise file and line references.
 
@@ -120,6 +120,21 @@ While measuring this we found the **entropy** chart was the real bottleneck on l
 - Renders in about 0.2 s on a 50 MB file.
 - Also included in `visualization_type=all` (A2).
 
+### B7. Binaries in batch
+
+- Request: `POST /batch/visualize?mode=binary&visualization_type=heatmap`, multipart field `files` repeated (at most 20).
+- One chart per file, chosen with `visualization_type` (default `entropy`; `all` returns 400, use A2 for several charts of one file). `style` takes the `bv_*` presets.
+- Any file type is accepted; each file has the 50 MB binary limit, and the whole request the 51 MB request limit below.
+- The response is the existing batch shape. Per file: `output_file` (e.g. `firmware_heatmap.png`), base64 `image_data`, and with `collect_stats=true` the same statistics as `POST /analyze/binary`. Chart titles use the uploaded file name.
+- An empty or oversized file fails only its own entry (`"error": "Uploaded file is empty"`), not the batch.
+
+### Error responses
+
+Not requested, but they affect your error handling:
+
+- **Status codes:** endpoints now return 400 for an unsupported file, 413 for an oversized one and 504 for a render timeout. Several used to return 500 for all three.
+- **Request size:** a request body over 51 MB (set with `MAX_REQUEST_BODY_SIZE` on the server) is now rejected with 413 `{"detail": "Request too large. Maximum size is 51MB."}` as soon as its size is known, instead of after the whole upload. The 413 carries the CORS headers, so browser code can read it.
+
 ---
 
 ## Deferred to 0.7.0
@@ -133,7 +148,6 @@ We plan these as one "binary analysis" release. They change chart axes and add A
 | B4 | Compare two binaries | 1–1.5 days | New endpoint and chart designs. |
 | B5 | Chart data as JSON | ~0.5 day | Best done together with B1 and B3, so ranges and Hilbert data are covered too. The digraph counts are already computed internally. |
 | B6 | Streaming for larger files | – | Low priority; B1 (uploading only a slice) covers most of the need. |
-| B7 | Binaries in `/batch/visualize` | ~2 h | Low priority; A2 covers several charts for one file. |
 
 If any of these is more urgent for you, tell us and we can reorder.
 

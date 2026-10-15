@@ -14,7 +14,7 @@
   <div class="panel">
     <div class="panel-header">
       <h2>Batch Processing</h2>
-      <p>Process multiple configuration files at once. Supports Attack Trees, Attack Graphs, Threat Models, Custom Diagrams, and Binary Analysis.</p>
+      <p>Process multiple files at once with any file-based module: attack trees and graphs, threat models, architecture diagrams, kill chains, timelines, vulnerability trees, MAESTRO, custom diagrams, or binary analysis.</p>
     </div>
 
     <div class="panel-body">
@@ -30,7 +30,7 @@
           <input
             type="file"
             ref="fileInput"
-            accept=".tml,.toml,.json,.yaml,.yml,.bin,.exe,.dll"
+            :accept="mode === 'binary' ? '' : '.tml,.toml,.json,.yaml,.yml'"
             @change="handleFileSelect"
             class="file-input"
             multiple
@@ -38,7 +38,7 @@
           <div class="upload-content" @click="$refs.fileInput.click()">
             <span class="upload-icon">&#x1F4C2;</span>
             <p>Drop multiple config files here or click to browse</p>
-            <span class="file-types">Supports: TOML, JSON, YAML (for visualizations) or Binary files</span>
+            <span class="file-types">Supports: TOML, JSON, YAML (for visualizations) or any file (Binary Analysis)</span>
           </div>
         </div>
 
@@ -62,11 +62,13 @@
           <div class="option-group">
             <label>Visualization Mode</label>
             <select v-model="mode">
-              <option value="attack_tree">Attack Tree</option>
-              <option value="attack_graph">Attack Graph</option>
-              <option value="threat_model">Threat Model</option>
-              <option value="custom_diagram">Custom Diagram</option>
-              <option value="binary">Binary Analysis</option>
+              <option v-for="m in modes" :key="m.value" :value="m.value">{{ m.label }}</option>
+            </select>
+          </div>
+          <div v-if="mode === 'binary'" class="option-group">
+            <label>Chart</label>
+            <select v-model="binaryChart">
+              <option v-for="c in binaryCharts" :key="c.value" :value="c.value">{{ c.label }}</option>
             </select>
           </div>
           <div class="option-group">
@@ -196,6 +198,7 @@ const mode = ref('attack_tree')
 const format = ref('png')
 const style = ref('at_default')
 const collectStats = ref(true)
+const binaryChart = ref('entropy')
 const processing = ref(false)
 const error = ref(null)
 const results = ref(null)
@@ -203,26 +206,35 @@ const isDragging = ref(false)
 const fileInput = ref(null)
 const progress = ref({ current: 0, total: 0 })
 
-// Style prefix mappings
-const stylePrefix = {
-  attack_tree: 'at_',
-  attack_graph: 'ag_',
-  threat_model: 'tm_',
-  custom_diagram: 'cd_',
-  binary: 'bv_'
-}
+// Batch modes: API mode value, label, key in the /styles response, style prefix
+const modes = [
+  { value: 'attack_tree', label: 'Attack Tree', stylesKey: 'attack_tree', prefix: 'at_' },
+  { value: 'attack_graph', label: 'Attack Graph', stylesKey: 'attack_graph', prefix: 'ag_' },
+  { value: 'threat_model', label: 'Threat Model', stylesKey: 'threat_model', prefix: 'tm_' },
+  { value: 'privilege_gradient', label: 'Privilege Gradient', stylesKey: 'privilege_gradient', prefix: 'pg_' },
+  { value: 'component_diagram', label: 'Component Diagram', stylesKey: 'component_diagram', prefix: 'cd_' },
+  { value: 'dependency_graph', label: 'Dependency Graph', stylesKey: 'dependency_graph', prefix: 'dg_' },
+  { value: 'kill_chain', label: 'Kill Chain', stylesKey: 'kill_chain', prefix: 'kc_' },
+  { value: 'incident_timeline', label: 'Incident Timeline', stylesKey: 'timeline', prefix: 'tl_' },
+  { value: 'vuln_tree', label: 'Vulnerability Tree', stylesKey: 'vuln_tree', prefix: 'vt_' },
+  { value: 'maestro', label: 'MAESTRO', stylesKey: 'maestro', prefix: 'ma_' },
+  { value: 'custom_diagram', label: 'Custom Diagram', stylesKey: 'custom_diagram', prefix: 'cd_' },
+  { value: 'binary', label: 'Binary Analysis', stylesKey: 'binary_visualization', prefix: 'bv_' }
+]
+
+// One chart per file in binary mode
+const binaryCharts = [
+  { value: 'entropy', label: 'Entropy' },
+  { value: 'distribution', label: 'Byte Distribution' },
+  { value: 'windrose', label: 'Wind Rose' },
+  { value: 'heatmap', label: 'Heatmap' },
+  { value: 'digraph', label: 'Byte-Pair Digraph' }
+]
+
+const currentMode = computed(() => modes.find(m => m.value === mode.value) || modes[0])
 
 // Computed
-const currentStyles = computed(() => {
-  const modeToStyleKey = {
-    attack_tree: 'attack_tree',
-    attack_graph: 'attack_graph',
-    threat_model: 'threat_model',
-    custom_diagram: 'custom_diagram',
-    binary: 'binary_visualization'
-  }
-  return props.styles[modeToStyleKey[mode.value]] || []
-})
+const currentStyles = computed(() => props.styles[currentMode.value.stylesKey] || [])
 
 const successfulResults = computed(() => {
   if (!results.value?.results) return []
@@ -231,14 +243,17 @@ const successfulResults = computed(() => {
 
 // Watch mode changes to reset style
 watch(mode, () => {
-  const prefix = stylePrefix[mode.value]
-  style.value = prefix + 'default'
+  style.value = currentMode.value.prefix + 'default'
 })
 
 // Methods
 function formatStyleName(s) {
   // Remove prefix and format
-  const prefixes = ['at_', 'ag_', 'tm_', 'cd_', 'bv_']
+  // SVG-engine presets (sv_*) sit beside the module's own: keep them apart
+  if (s.startsWith('sv_')) {
+    return 'SVG ' + formatStyleName(s.substring(3))
+  }
+  const prefixes = [...new Set(modes.map(m => m.prefix))]
   let name = s
   for (const p of prefixes) {
     if (name.startsWith(p)) {
@@ -302,6 +317,7 @@ function resetPanel() {
   format.value = 'png'
   style.value = 'at_default'
   collectStats.value = true
+  binaryChart.value = 'entropy'
   processing.value = false
   error.value = null
   results.value = null
@@ -327,7 +343,8 @@ async function processBatch() {
       format.value,
       style.value,
       collectStats.value,
-      onProgress
+      onProgress,
+      mode.value === 'binary' ? binaryChart.value : null
     )
   } catch (err) {
     error.value = err.response?.data?.detail || err.message || 'Failed to process batch'

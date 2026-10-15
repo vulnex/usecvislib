@@ -1360,21 +1360,27 @@ export async function exportMaestroFromContent(content, target, configFormat = '
 
 /**
  * Batch process multiple files
- * @param {string} mode - Visualization mode (attack_tree, attack_graph, threat_model, binary)
+ * @param {string} mode - Visualization mode: any file-based module (attack_tree, attack_graph, threat_model,
+ *   privilege_gradient, component_diagram, dependency_graph, kill_chain, incident_timeline, vuln_tree, maestro),
+ *   custom_diagram or binary
  * @param {File[]} files - Array of files to process
  * @param {string} format - Output format (png, svg, pdf)
  * @param {string} style - Style preset
  * @param {boolean} collectStats - Whether to collect statistics
  * @param {Function} onProgress - Progress callback (filename, success, error)
+ * @param {string|null} visType - Binary mode only: chart per file (entropy, distribution, windrose, heatmap, digraph)
  * @returns {Promise<{total: number, success_count: number, failure_count: number, success_rate: number, results: Array}>}
  */
-export async function batchVisualize(mode, files, format = 'png', style = null, collectStats = false, onProgress = null) {
+export async function batchVisualize(mode, files, format = 'png', style = null, collectStats = false, onProgress = null, visType = null) {
   const formData = new FormData()
   files.forEach(file => formData.append('files', file))
 
   let url = `/batch/visualize?mode=${mode}&format=${format}&collect_stats=${collectStats}`
   if (style) {
     url += `&style=${style}`
+  }
+  if (visType) {
+    url += `&visualization_type=${visType}`
   }
 
   const response = await api.post(url, formData, {

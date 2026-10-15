@@ -367,6 +367,10 @@ class VisualizationMode(str, Enum):
     PRIVILEGE_GRADIENT = "privilege_gradient"
     COMPONENT_DIAGRAM = "component_diagram"
     DEPENDENCY_GRAPH = "dependency_graph"
+    KILL_CHAIN = "kill_chain"
+    INCIDENT_TIMELINE = "incident_timeline"
+    VULN_TREE = "vuln_tree"
+    MAESTRO = "maestro"
 
 
 class ConfigFormat(str, Enum):
