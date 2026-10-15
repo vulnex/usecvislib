@@ -9,10 +9,15 @@
 """Kept components in collapsed Privilege-Gradient groups (Atajo A12): the render view."""
 
 import json
+import shutil
+
+import pytest
 
 from tests.test_privilegegradient_grouping import AD, SRV, WS
 from usecvislib.privilegegradient import PrivilegeGradient
 from usecvislib.privilegegradient_view import GradientView, kept_components, summary_label_lines
+
+requires_dot = pytest.mark.skipif(shutil.which("dot") is None, reason="rendering needs Graphviz 'dot'")
 
 # AD plus three workstations without inversions: with keep = "inversions", ws1-ws3
 # (all in inversions) stay drawn and ws4-ws6 fold into the card
@@ -162,3 +167,127 @@ class TestSvgScene:
     def test_kept_member_of_an_expanded_group_is_ordinary(self, tmp_path):
         scene = self._scene(tmp_path, keep_ids=["ws1"])  # nothing collapsed
         assert "kept" not in scene.node_by_id("ws1").data
+
+
+def test_builder():
+    from usecvislib.builders import PrivilegeGradientBuilder
+
+    data = (
+        PrivilegeGradientBuilder("AD")
+        .set_grouping("role", collapse=True, keep="inversions", keep_ids=("ws_0101",))
+        .build()
+    )
+    assert data["gradient"]["keep"] == "inversions" and data["gradient"]["keep_ids"] == ["ws_0101"]
+
+
+# Drift: ws5 -> app9 is an inversion; app9 moves down to tier 2, which fixes it (the
+# influence stays). ws5 has no other inversion, so only the fixed status keeps it named.
+AD_FIX_OLD = {
+    **AD_CLEAN_WS,
+    "components": AD_CLEAN_WS["components"] + [{"id": "app9", "zone": "tier1", "role": "app"}],
+    "influences": AD_CLEAN_WS["influences"] + [{"from": "ws5", "to": "app9", "type": "data"}],
+}
+AD_FIX_NEW = {
+    **AD_FIX_OLD,
+    "components": [{**c, "zone": "tier2"} if c["id"] == "app9" else c for c in AD_FIX_OLD["components"]],
+}
+
+
+def _versions(tmp_path):
+    old, new = tmp_path / "v1.json", tmp_path / "v2.json"
+    old.write_text(json.dumps(AD_FIX_OLD), encoding="utf-8")
+    new.write_text(json.dumps(AD_FIX_NEW), encoding="utf-8")
+    return str(old), str(new)
+
+
+@requires_dot
+def test_render_diff_keeps_fixed_inversion_endpoints(tmp_path):
+    from usecvislib import render_diff
+
+    result = render_diff(
+        *_versions(tmp_path), "privilege_gradient", output=str(tmp_path / "d"), format="svg",
+        render_engine="svg", group_by="role", collapse=True, keep="inversions",
+    )  # fmt: skip
+    assert [(i["from"], i["to"]) for i in result.metadata["inversions"]["fixed"]] == [("ws5", "app9")]
+    svg = (tmp_path / "d.svg").read_text(encoding="utf-8")
+    assert 'data-node-id="ws5"' in svg  # its violation was fixed: still named
+    assert 'data-node-id="ws6"' not in svg  # clean: folded into the card
+
+
+@requires_dot
+def test_render_diff_attack_graph_ignores_keep(tmp_path, caplog):
+    from usecvislib import render_diff
+
+    old = tmp_path / "a1.json"
+    old.write_text(json.dumps({"graph": {"name": "g"}, "hosts": {"h": {"label": "h"}}}), encoding="utf-8")
+    render_diff(str(old), str(old), output=str(tmp_path / "d"), format="svg", keep_ids=["h"])
+    assert "privilege gradients only" in caplog.text
+
+
+@requires_dot
+def test_cli(tmp_path):
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    path = tmp_path / "ad.json"
+    path.write_text(json.dumps(AD), encoding="utf-8")
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent / "src")}
+    out = subprocess.run(
+        [sys.executable, "-m", "usecvislib.usecvis", "-m", "6", "-i", str(path), "-o", str(tmp_path / "o"),
+         "-f", "svg", "--render-engine", "svg", "--group-by", "role", "--collapse", "all",
+         "--keep-ids", "ws1"],
+        capture_output=True, text=True, env=env, cwd=tmp_path,
+    )  # fmt: skip
+    assert out.returncode == 0, out.stderr
+    svg = (tmp_path / "o.svg").read_text(encoding="utf-8")
+    assert 'data-kept="true"' in svg and 'data-kept-count="1"' in svg
+
+
+class TestApi:
+    @pytest.fixture
+    def client(self):
+        import os
+        import sys
+        from pathlib import Path
+
+        sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
+        os.environ["USECVISLIB_AUTH_ENABLED"] = "false"
+        from fastapi.testclient import TestClient
+
+        from api.config import limiter
+        from api.main import app
+
+        limiter.reset()
+        yield TestClient(app)
+        limiter.reset()
+
+    @requires_dot
+    def test_visualize_keep_ids(self, client):
+        response = client.post(
+            "/visualize/privilege-gradient",
+            params={"format": "svg", "render_engine": "svg", "group_by": "role", "collapse": "all", "keep_ids": "ws1"},
+            files={"file": ("ad.json", json.dumps(AD).encode())},
+        )
+        assert response.status_code == 200, response.text
+        assert 'data-kept="true"' in response.text and 'data-kept-count="1"' in response.text
+
+    @requires_dot
+    def test_diff_render_keep(self, client, tmp_path):
+        from pathlib import Path
+
+        old, new = _versions(tmp_path)
+        response = client.post(
+            "/diff/render",
+            params={
+                "format": "svg",
+                "render_engine": "svg",
+                "group_by": "role",
+                "collapse": "all",
+                "keep": "inversions",
+            },
+            files={"old_file": ("v1.json", Path(old).read_bytes()), "new_file": ("v2.json", Path(new).read_bytes())},
+        )
+        assert response.status_code == 200, response.text
+        assert 'data-node-id="ws5"' in response.text and 'data-node-id="ws6"' not in response.text

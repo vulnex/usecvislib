@@ -2132,6 +2132,8 @@ pg.get_stats()["groups"]        # per group: {"label", "zone", "members", "inver
 | `group_by` | str | `None` | Group components within their zone by this component field (overrides `gradient.group_by`) |
 | `collapse` | bool / str / list | `None` | `False` / `"none"`, `True` / `"all"`, `"auto"`, or group ids `<zone>/<value>` (overrides `gradient.collapse`) |
 | `max_nodes` | int | `None` | Component target for `collapse="auto"` (default 300) |
+| `keep` | str | `None` | `"inversions"`: members taking part in an inversion stay drawn next to their collapsed group's card (overrides `gradient.keep`) |
+| `keep_ids` | list / str | `None` | Component ids kept drawn the same way (a list, or comma-separated; overrides `gradient.keep_ids`) |
 
 The grouping options are described in "Grouping and collapse" under Privilege Gradients in the template guide. Inversions, statistics and analysis always use the full model; grouping only changes the picture.
 
@@ -2700,7 +2702,7 @@ pg = (
 pg.build()
 ```
 
-`set_grouping(group_by="role", collapse=None, max_nodes=None)` and `add_group(group_id, label=None, color=None, collapsed=None)` write the `[gradient]` grouping keys and the `[groups]` table.
+`set_grouping(group_by="role", collapse=None, max_nodes=None, keep=None, keep_ids=None)` and `add_group(group_id, label=None, color=None, collapsed=None)` write the `[gradient]` grouping keys and the `[groups]` table.
 
 ---
 
@@ -3226,7 +3228,7 @@ result.metadata["inversions"]
 - Zones get the change border and a `+` / `−` / `~` before their label; a removed zone is faded. A component moved to another zone is modified (`changed: zone`) and drawn in its new zone.
 - **Inversions** (a lower-trust component influencing a higher-trust one) are detected in each version separately. One that appeared is labelled `NEW INVERSION` (in the added color); one that disappeared is labelled `FIXED INVERSION` in the removed color, on the surviving influence or on the removed one. One in both versions whose severity or trust gap differs (e.g. after a re-tier) is **changed**: drawn in the modified color and labelled `~ INVERSION (high → critical)`, or `~ INVERSION (critical, gap 3 → 4)` when only the gap changed. `metadata["inversions"]` lists new and fixed ones with the same fields as `detect_inversions()`, and changed ones with their old and new severity and trust gap.
 - `show_unchanged=False` keeps changed elements (new, fixed and changed inversions included), their direct neighbours and the zones holding them.
-- `group_by` / `collapse` / `max_nodes` group the merged gradient (see "Grouping and collapse" under Privilege Gradients in the template guide). A collapsed group is modified when a member changed, with `+N −N ~N` on its card; its inversion count includes inversions drawn as removed. A re-pointed influence keeps its member's inversion status; a merged one takes the status its members share, or `mixed`, and counts them: `! INVERSION ! (2 new, 1 fixed) · ×12`, SVG `data-inversion="mixed"` with `data-inversion-new` / `-fixed` / `-changed`. `metadata["inversions"]` always lists individual influences, whatever is collapsed.
+- `group_by` / `collapse` / `max_nodes` group the merged gradient (see "Grouping and collapse" under Privilege Gradients in the template guide). A collapsed group is modified when a member changed, with `+N −N ~N` on its card; its inversion count includes inversions drawn as removed. A re-pointed influence keeps its member's inversion status; a merged one takes the status its members share, or `mixed`, and counts them: `! INVERSION ! (2 new, 1 fixed) · ×12`, SVG `data-inversion="mixed"` with `data-inversion-new` / `-fixed` / `-changed`. `metadata["inversions"]` always lists individual influences, whatever is collapsed. `keep` / `keep_ids` keep components drawn in collapsed groups; `keep="inversions"` also keeps the endpoints of new, fixed and changed inversions, so a fixed violation stays named.
 - SVG output: zones (`usv-cluster`) carry `usv-diff--*` / `data-diff` too, and each inversion `data-inversion="new|fixed|changed|unchanged"`; a changed one adds `data-old-severity` and `data-old-trust-gap`.
 
 ### Change Types

@@ -89,6 +89,9 @@ def Usage() -> None:
     print("  --collapse <which>      Modes 3 and 6: draw groups as one summary node:")
     print("                          none, all, auto (largest first until --max-nodes), or group ids a,b")
     print("  --max-nodes <n>         Modes 3 and 6: node target for --collapse auto (default 300)")
+    print("  --keep inversions       Mode 6: components taking part in an inversion stay drawn")
+    print("                          next to their collapsed group's card")
+    print("  --keep-ids <a,b>        Mode 6: these components stay drawn the same way")
     print("  --diff <old file>       Attack graphs (3), privilege gradients (6): draw the drift from <old file>")
     print("                          to -i (added, removed, modified elements and, mode 6, new / fixed")
     print("                          inversions highlighted)")
@@ -273,6 +276,8 @@ def main(argv: Optional[list[str]] = None) -> int:
     group_by = None  # Modes 3 / 6: host field (or ip/N) / component field to group by
     collapse = None  # Modes 3 / 6: none | all | auto | comma-separated group ids
     max_nodes = None  # Modes 3 / 6: node target for --collapse auto
+    keep = None  # Mode 6: "inversions" keeps inversion endpoints drawn in collapsed groups
+    keep_ids = None  # Mode 6: component ids kept drawn in collapsed groups
     diff_old = None  # Modes 3 and 6: earlier version to draw the drift from (-i is the later one)
     changes_only = False  # Drift: draw only changed elements and their neighbours
     diff_colors = None  # Drift: added=#..,removed=#..,modified=#..
@@ -304,6 +309,8 @@ def main(argv: Optional[list[str]] = None) -> int:
                 "group-by=",
                 "collapse=",
                 "max-nodes=",
+                "keep=",
+                "keep-ids=",
                 "diff=",
                 "changes-only",
                 "diff-colors=",
@@ -361,6 +368,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             changes_only = True
         elif opt == "--diff-colors":
             diff_colors = arg
+        elif opt == "--keep":
+            keep = arg
+        elif opt == "--keep-ids":
+            keep_ids = [part.strip() for part in arg.split(",") if part.strip()]
         elif opt == "--max-nodes":
             try:
                 max_nodes = int(arg)
@@ -560,6 +571,8 @@ def main(argv: Optional[list[str]] = None) -> int:
                 group_by=group_by,
                 collapse=collapse,
                 max_nodes=max_nodes,
+                keep=keep,
+                keep_ids=keep_ids,
             )
             summary = result.summary
             print(f"Drift generated: {outputfile}.{format}")
@@ -706,6 +719,8 @@ def main(argv: Optional[list[str]] = None) -> int:
                 group_by=group_by,
                 collapse=collapse,
                 max_nodes=max_nodes,
+                keep=keep,
+                keep_ids=keep_ids,
             )
             pg.BuildPrivilegeGradient()
             print(f"Privilege gradient graph generated: {outputfile}.{format}")

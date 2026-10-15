@@ -97,6 +97,8 @@ def render_diff(
     group_by: Optional[str] = None,
     collapse: Any = None,
     max_nodes: Optional[int] = None,
+    keep: Optional[str] = None,
+    keep_ids: Optional[list[str]] = None,
 ) -> DiffResult:
     """Render the drift between two versions and return the computed diff.
 
@@ -112,6 +114,9 @@ def render_diff(
         ignore_paths: Path prefixes to ignore, as in ``compare_files()``.
         show_unchanged: False draws only changed elements and their direct neighbours.
         group_by, collapse, max_nodes: Grouping/collapse of the merged graph.
+        keep, keep_ids: Privilege gradient: components kept drawn in collapsed
+            groups; ``keep="inversions"`` also keeps the endpoints of new, fixed
+            and changed inversions (Atajo A12).
 
     Returns:
         The DiffResult between the two versions, computed on the same
@@ -151,6 +156,8 @@ def render_diff(
             styleid=style,
             render_engine=render_engine,
             group_by=group_by,
+            keep=keep,
+            keep_ids=keep_ids,
             collapse=collapse,
             max_nodes=max_nodes,
         )
@@ -185,6 +192,9 @@ class _DriftAdapter:
 def _make_attack_graph(path: str, output: str, **options: Any) -> Any:
     from .attackgraphs import AttackGraphs
 
+    keep = {k: options.pop(k) for k in ("keep", "keep_ids") if k in options}
+    if any(v for v in keep.values()):
+        logger.warning("keep / keep_ids apply to privilege gradients only; ignored")
     return AttackGraphs(path, output, **options)
 
 

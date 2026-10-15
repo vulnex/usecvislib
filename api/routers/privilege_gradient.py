@@ -93,6 +93,18 @@ async def visualize_privilege_gradient(
     max_nodes: Optional[int] = Query(
         default=None, ge=1, le=10000, description="Component target for collapse=auto (default 300)"
     ),
+    keep: Optional[str] = Query(
+        default=None,
+        max_length=32,
+        description="inversions: components taking part in an inversion stay drawn next to their collapsed "
+        "group's card. Overrides gradient.keep in the file.",
+    ),
+    keep_ids: Optional[str] = Query(
+        default=None,
+        max_length=4000,
+        description="Comma-separated component ids that stay drawn in collapsed groups. "
+        "Overrides gradient.keep_ids in the file.",
+    ),
 ):
     """
     Generate a privilege gradient graph visualization from an uploaded configuration file.
@@ -123,6 +135,8 @@ async def visualize_privilege_gradient(
             group_by=group_by,
             collapse=collapse_option(collapse),
             max_nodes=max_nodes,
+            keep=keep,
+            keep_ids=keep_ids,
         )
         await run_sync_with_timeout(
             pg.BuildPrivilegeGradient,

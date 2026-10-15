@@ -531,6 +531,10 @@ usecvis -m 6 -i ad_tiers.toml -o tiers --group-by role --collapse auto --max-nod
 
 # Collapse only the Tier 2 workstations
 usecvis -m 6 -i ad_tiers.toml -o tiers --group-by role --collapse tier2/workstation
+
+# Collapse everything, but keep named machines visible next to their group's card
+usecvis -m 6 -i ad_tiers.toml -o tiers --group-by role --collapse all --keep-ids ws_0103,srv_jump1
+usecvis -m 6 -i ad_tiers.toml -o tiers --group-by role --collapse auto --keep inversions
 ```
 
 The flags override the file's `[gradient]` section; the statistics list each group's members and inversions. See "Privilege Gradients" in the template guide.

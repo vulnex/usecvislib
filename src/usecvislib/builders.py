@@ -992,7 +992,12 @@ class PrivilegeGradientBuilder:
         return self
 
     def set_grouping(
-        self, group_by: str = "role", collapse: Any = None, max_nodes: Optional[int] = None
+        self,
+        group_by: str = "role",
+        collapse: Any = None,
+        max_nodes: Optional[int] = None,
+        keep: Optional[str] = None,
+        keep_ids: Optional[list[str]] = None,
     ) -> PrivilegeGradientBuilder:
         """Group components within their zone when rendered.
 
@@ -1003,11 +1008,18 @@ class PrivilegeGradientBuilder:
             collapse: Draw groups as one summary component: True / "all", "auto",
                 or a list of group ids. None leaves every group expanded.
             max_nodes: Component target for collapse="auto" (default 300).
+            keep: "inversions" keeps the members taking part in an inversion drawn
+                individually inside a collapsed group.
+            keep_ids: Component ids kept the same way (e.g. a path to a crown jewel).
 
         Returns:
             Self for method chaining.
         """
         self._data["gradient"]["group_by"] = group_by
+        if keep is not None:
+            self._data["gradient"]["keep"] = keep
+        if keep_ids is not None:
+            self._data["gradient"]["keep_ids"] = list(keep_ids)
         if collapse is not None:
             self._data["gradient"]["collapse"] = list(collapse) if isinstance(collapse, list | tuple) else collapse
         if max_nodes is not None:

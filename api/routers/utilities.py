@@ -954,6 +954,15 @@ async def render_drift(
     group_by: Optional[str] = Query(default=None, max_length=64, description="Group hosts (as /visualize)"),
     collapse: Optional[str] = Query(default=None, max_length=1000, description="none, all, auto, or group ids"),
     max_nodes: Optional[int] = Query(default=None, ge=1, le=10000, description="Node target for collapse=auto"),
+    keep: Optional[str] = Query(
+        default=None,
+        max_length=32,
+        description="Privilege gradient: inversions keeps inversion endpoints (and new / fixed / changed ones) "
+        "drawn in collapsed groups",
+    ),
+    keep_ids: Optional[str] = Query(
+        default=None, max_length=4000, description="Privilege gradient: comma-separated component ids kept drawn"
+    ),
     diff_colors: Optional[str] = Form(
         default=None,
         max_length=500,
@@ -1017,6 +1026,8 @@ async def render_drift(
                 group_by=group_by,
                 collapse=collapse_option(collapse),
                 max_nodes=max_nodes,
+                keep=keep,
+                keep_ids=[p.strip() for p in keep_ids.split(",") if p.strip()] if keep_ids else None,
             ),
             REQUEST_TIMEOUT_VISUALIZE,
             "drift rendering",

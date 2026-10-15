@@ -2467,10 +2467,26 @@ role = "workstation"       # picked up by group_by = "role"
 - `collapse = true` collapses every group with more than one member; a list collapses those groups; `"auto"` collapses the largest groups first until at most `max_nodes` components are drawn. A group's own `collapsed` setting always wins.
 - The size limit (10,000 components / 50,000 influences) applies to what is drawn, so a large gradient grouped and collapsed renders instead of being rejected.
 - Inversions, statistics and path analysis always use the full model. With grouping on, statistics add per-group counts (`groups`: zone, members, inversions, worst severity).
-- The same options exist as render parameters (`PrivilegeGradient(..., group_by=, collapse=, max_nodes=)`, `--group-by` / `--collapse` / `--max-nodes` with `-m 6`, and API query parameters), which override the file.
+- The same options exist as render parameters (`PrivilegeGradient(..., group_by=, collapse=, max_nodes=, keep=, keep_ids=)`, `--group-by` / `--collapse` / `--max-nodes` / `--keep` / `--keep-ids` with `-m 6`, and API query parameters), which override the file.
 - SVG output: group clusters are `usv-cluster` groups with `data-cluster-id`, `data-zone` and `data-collapsed="false"`; summary components have class `usv-node--group` with `data-collapsed="true"`, `data-cluster-id`, `data-member-count`, `data-inversion-count`, `data-max-severity`; merged edges carry `data-edge-count`.
 
-Example: `templates/privilege-gradient/ad_tiers_grouped.tml`.
+**Keeping components visible in a collapsed group.** A collapsed group can keep chosen members drawn by name, for example the machine that breaks tiering, or the members of a path to a crown jewel:
+
+```toml
+[gradient]
+group_by = "role"
+collapse = "auto"
+keep = "inversions"                  # every member taking part in an inversion stays drawn
+keep_ids = ["ws_0103", "srv_jump1"]  # plus these components
+```
+
+- Kept members are drawn next to the summary card, and the group is framed (a dashed cluster labelled with the group name) around the card and them. Their influences stay on them; they are not re-pointed to the card.
+- The card counts the folded members only, says how many are shown separately (`4 components · 1 shown separately`), and counts only the folded members' inversions.
+- `keep` and `keep_ids` combine. `"auto"` counts kept members as drawn; `true` / `"auto"` leave a group with at most one foldable member expanded (an explicit collapse still applies), and a group whose members are all kept is never collapsed.
+- `keep = "inversions"` keeps every endpoint of an inversion. Every upward influence is an inversion, including ordinary data flows from a lower tier, so on a real AD it can keep many machines; `keep_ids` is the precise tool. In the drift view (`render_diff`), it also keeps the endpoints of new, fixed and changed inversions, so a fixed violation stays named.
+- SVG output: the frame is a `usv-cluster` with `data-collapsed="true"` and `data-kept-count`; kept components carry `data-kept="true"` and `data-cluster-id`; the card `data-kept-count`.
+
+Example: `templates/privilege-gradient/ad_tiers_grouped.tml` (WS-0103 kept with `keep_ids`).
 
 ---
 
