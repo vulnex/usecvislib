@@ -21,8 +21,9 @@ their severity. A legend row names the influence types and the inversion.
 
 In the drift view (``render_diff``) zones, components and influences carry
 their change (``usv-diff--*``, ``data-diff``, ``data-changed``) and each
-inversion its status: ``data-inversion`` new / fixed / unchanged, with
-``NEW INVERSION`` and ``FIXED INVERSION`` labels.
+inversion its status: ``data-inversion`` new / fixed / changed / unchanged, with
+``NEW INVERSION``, ``FIXED INVERSION`` and ``~ INVERSION (high → critical)``
+labels; a changed one adds ``data-old-severity`` / ``data-old-trust-gap``.
 
 All privilege-gradient semantics live here; the shared general-graph
 renderer stays module-agnostic.
@@ -66,14 +67,9 @@ def inversion_label(severity: str, label: str = "") -> str:
     return f"{text} · {label}" if label else text
 
 
-def _drift_label(view, influence: dict, severity: str, label: str) -> str:
-    """An inversion's label in the drift view: NEW / FIXED as the status says."""
-    status = view.inversion_of(influence)
-    if status == "fixed":
-        text = "FIXED INVERSION"
-    else:
-        marker = _SEVERITY_MARKER.get(severity, "!")
-        text = f"{marker} NEW INVERSION {marker}" if status == "new" else f"{marker} INVERSION {marker}"
+def _drift_label(viz, view, influence: dict, severity: str, label: str) -> str:
+    """An inversion's label in the drift view (NEW / FIXED / changed), as the Graphviz path words it."""
+    text = viz.inversion_label(view, influence, severity)
     return f"{text} · {label}" if label else text
 
 
@@ -203,6 +199,10 @@ def _build_edges(scene: Scene, viz, view, theme: dict[str, Any]) -> None:
         status = view.inversion_of(influence) if drift else None
         if status in ("new", "fixed"):
             data["inversion"] = status
+        before = view.inversion_before(influence) if status == "changed" else None
+        if before is not None:
+            data["old-severity"] = str(before["severity"])
+            data["old-trust-gap"] = str(before["trust_gap"])
         inversion = inversions.get((src, dst))
         if inversion is not None and status != "fixed":
             data.update(
@@ -217,14 +217,16 @@ def _build_edges(scene: Scene, viz, view, theme: dict[str, Any]) -> None:
                     src=src,
                     dst=dst,
                     kind="inversion",
-                    color=pg["inversion"],
+                    color=diff_colors.get("modified") if status == "changed" else pg["inversion"],
                     width=float(pg["inversion_width"]),
                     label=(
-                        _drift_label(view, influence, inversion["severity"], label)
+                        _drift_label(viz, view, influence, inversion["severity"], label)
                         if drift
                         else inversion_label(inversion["severity"], label)
                     ),
-                    label_color=diff_colors.get("added") if status == "new" else None,
+                    label_color={"new": diff_colors.get("added"), "changed": diff_colors.get("modified")}.get(
+                        status or ""
+                    ),
                     diff=diff,
                     data=data,
                 )
@@ -240,7 +242,7 @@ def _build_edges(scene: Scene, viz, view, theme: dict[str, Any]) -> None:
                 width=base_width * factor,
                 dashed=dashed,
                 dash=dash,
-                label=_drift_label(view, influence, "", label) if status == "fixed" else (label or None),
+                label=_drift_label(viz, view, influence, "", label) if status == "fixed" else (label or None),
                 label_color=diff_colors.get("removed") if status == "fixed" else None,
                 diff=diff,
                 data=data,

@@ -565,7 +565,14 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  Added: {summary['added']}  Removed: {summary['removed']}  Modified: {summary['modified']}")
             for status, items in result.metadata.get("inversions", {}).items():
                 for inv in items:
-                    print(f"  {status.capitalize()} inversion: {inv['from']} -> {inv['to']} ({inv['severity']})")
+                    if status == "changed":
+                        if inv["old_severity"] != inv["new_severity"]:
+                            severity = f"{inv['old_severity']} -> {inv['new_severity']}"
+                        else:
+                            severity = f"{inv['new_severity']}, gap {inv['old_trust_gap']} -> {inv['new_trust_gap']}"
+                    else:
+                        severity = inv["severity"]
+                    print(f"  {status.capitalize()} inversion: {inv['from']} -> {inv['to']} ({severity})")
 
         elif mode == 3:
             # Attack Graphs

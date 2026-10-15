@@ -406,13 +406,36 @@ def _inversion_keys(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {f"{inv['from']}->{inv['to']}:{inv['influence_type']}": inv for inv in found}
 
 
+def _inversion_changed(before: dict[str, Any], after: dict[str, Any]) -> bool:
+    """An inversion in both versions whose severity or trust gap differs (Atajo A10)."""
+    return before["severity"] != after["severity"] or before["trust_gap"] != after["trust_gap"]
+
+
 def privilege_gradient_inversion_changes(old: dict[str, Any], new: dict[str, Any]) -> dict[str, Any]:
-    """Tiering violations that appeared ("new") and disappeared ("fixed") between two versions."""
+    """Tiering violations that appeared ("new"), disappeared ("fixed") or persist with
+    another severity or trust gap ("changed") between two versions."""
     before, after = _inversion_keys(old), _inversion_keys(new)
+    changed = [
+        {
+            "from": after[k]["from"],
+            "to": after[k]["to"],
+            "influence_type": after[k]["influence_type"],
+            "from_zone": after[k]["from_zone"],
+            "to_zone": after[k]["to_zone"],
+            "old_severity": before[k]["severity"],
+            "new_severity": after[k]["severity"],
+            "old_trust_gap": before[k]["trust_gap"],
+            "new_trust_gap": after[k]["trust_gap"],
+            "label": after[k]["label"],
+        }
+        for k in after
+        if k in before and _inversion_changed(before[k], after[k])
+    ]
     return {
         "inversions": {
             "new": [after[k] for k in after if k not in before],
             "fixed": [before[k] for k in before if k not in after],
+            "changed": changed,
         }
     }
 
@@ -425,7 +448,8 @@ def merge_privilege_gradients(
     Zones are marked ``zone:<id>`` (their ids may repeat component ids),
     components by id, influences as edges ``(from, to, type)``. Each
     influence's inversion status goes in ``marks.extra["inversions"]``:
-    "new", "fixed" or "unchanged".
+    "new", "fixed", "changed" or "unchanged"; a changed one's earlier severity
+    and trust gap in ``marks.extra["inversions_before"]``.
     """
     ignore = list(ignore_paths or [])
     marks = DiffMarks()
@@ -448,10 +472,19 @@ def merge_privilege_gradients(
         marks.edges[(influence["from"], influence["to"], influence["type"])] = influence_statuses[key][0]
 
     before, after = _inversion_keys(old), _inversion_keys(new)
-    inversion_status = {}
+    inversion_status, inversions_before = {}, {}
     for key in {**before, **after}:
-        inversion_status[key] = "new" if key not in before else "fixed" if key not in after else "unchanged"
+        if key not in before:
+            inversion_status[key] = "new"
+        elif key not in after:
+            inversion_status[key] = "fixed"
+        elif _inversion_changed(before[key], after[key]):
+            inversion_status[key] = "changed"
+            inversions_before[key] = {"severity": before[key]["severity"], "trust_gap": before[key]["trust_gap"]}
+        else:
+            inversion_status[key] = "unchanged"
     marks.extra["inversions"] = inversion_status
+    marks.extra["inversions_before"] = inversions_before
     return merged, marks
 
 

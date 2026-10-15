@@ -160,6 +160,121 @@ def test_inversion_metadata():
     changes = privilege_gradient_inversion_changes(*_normalized())["inversions"]
     assert [(i["from"], i["to"], i["severity"]) for i in changes["new"]] == [("d", "e", "high")]
     assert [(i["from"], i["to"]) for i in changes["fixed"]] == [("b", "c")]
+    assert changes["changed"] == []  # a -> b keeps its gap
+
+
+# Atajo A10: inversions that persist with another severity or trust gap. Raising
+# the top zone from trust 3 to 4 turns y -> w from high (gap 2) into critical
+# (gap 3), and x -> w from gap 3 into gap 4 (critical both times).
+RETIER_OLD = {
+    "gradient": {"name": "Re-tier"},
+    "zones": [
+        {"id": "z0", "label": "Edge", "trust_level": 0},
+        {"id": "z1", "label": "Servers", "trust_level": 1},
+        {"id": "z2", "label": "Core", "trust_level": 3},
+    ],
+    "components": [{"id": "x", "zone": "z0"}, {"id": "y", "zone": "z1"}, {"id": "w", "zone": "z2"}],
+    "influences": [
+        {"from": "x", "to": "y", "type": "data"},
+        {"from": "y", "to": "w", "type": "control", "label": "admin"},
+        {"from": "x", "to": "w", "type": "data"},
+    ],
+}
+RETIER_NEW = copy.deepcopy(RETIER_OLD)
+RETIER_NEW["zones"][2]["trust_level"] = 4
+
+
+@pytest.fixture
+def retier(tmp_path):
+    old, new = tmp_path / "r1.json", tmp_path / "r2.json"
+    old.write_text(json.dumps(RETIER_OLD), encoding="utf-8")
+    new.write_text(json.dumps(RETIER_NEW), encoding="utf-8")
+    return str(old), str(new)
+
+
+class TestChangedInversions:
+    def _normalized(self):
+        return normalize_privilege_gradient(RETIER_OLD), normalize_privilege_gradient(RETIER_NEW)
+
+    def test_metadata(self):
+        changes = privilege_gradient_inversion_changes(*self._normalized())["inversions"]
+        assert changes["new"] == [] and changes["fixed"] == []
+        assert changes["changed"] == [
+            {"from": "y", "to": "w", "influence_type": "control", "from_zone": "z1", "to_zone": "z2",
+             "old_severity": "high", "new_severity": "critical", "old_trust_gap": 2, "new_trust_gap": 3,
+             "label": "admin"},
+            {"from": "x", "to": "w", "influence_type": "data", "from_zone": "z0", "to_zone": "z2",
+             "old_severity": "critical", "new_severity": "critical", "old_trust_gap": 3, "new_trust_gap": 4,
+             "label": ""},
+        ]  # fmt: skip
+
+    def test_marks(self):
+        _, marks = merge_privilege_gradients(*self._normalized())
+        assert marks.extra["inversions"] == {
+            "x->y:data": "unchanged",
+            "y->w:control": "changed",
+            "x->w:data": "changed",
+        }
+        assert marks.extra["inversions_before"] == {
+            "y->w:control": {"severity": "high", "trust_gap": 2},
+            "x->w:data": {"severity": "critical", "trust_gap": 3},
+        }
+
+    def test_graphviz(self, tmp_path):
+        merged, marks = merge_privilege_gradients(*self._normalized())
+        path = tmp_path / "m.json"
+        path.write_text(json.dumps(merged), encoding="utf-8")
+        pg = PrivilegeGradient(str(path), str(tmp_path / "o"))
+        pg.diff_marks = marks
+        pg.load()
+        pg.render()
+        lines = pg.graph.source.splitlines()
+        severity = next(line for line in lines if line.strip().startswith("y -> w"))
+        assert "~ INVERSION (high \u2192 critical)" in severity and "#7c3aed" in severity
+        gap = next(line for line in lines if line.strip().startswith("x -> w"))
+        assert "~ INVERSION (critical, gap 3 \u2192 4)" in gap
+        assert "~ INVERSION" not in next(line for line in lines if line.strip().startswith("x -> y"))
+        # The zone's border shows the change; its cards keep the zone color
+        card = next(line for line in lines if line.strip().startswith("w ["))
+        assert "#7c3aed" not in card
+
+    def test_changes_only_keeps_changed_inversions(self, tmp_path):
+        merged, marks = merge_privilege_gradients(*self._normalized())
+        path = tmp_path / "m.json"
+        path.write_text(json.dumps(merged), encoding="utf-8")
+        pg = PrivilegeGradient(str(path), str(tmp_path / "o"))
+        pg.diff_marks, pg.show_unchanged = marks, False
+        pg.load()
+        assert set(pg.drift_view().components) == {"x", "y", "w"}
+
+    @requires_dot
+    def test_svg(self, retier, tmp_path):
+        render_diff(*retier, "privilege_gradient", output=str(tmp_path / "d"), format="svg", render_engine="svg")
+        root = ET.fromstring((tmp_path / "d.svg").read_text(encoding="utf-8"))
+        edges = {
+            (g.get("data-from"), g.get("data-to")): g
+            for g in root.iter(f"{SVG_NS}g")
+            if "usv-edge" in g.get("class", "").split()
+        }
+        changed = edges[("y", "w")]
+        assert changed.get("data-inversion") == "changed" and changed.get("data-severity") == "critical"
+        assert changed.get("data-old-severity") == "high" and changed.get("data-old-trust-gap") == "2"
+        assert edges[("x", "y")].get("data-inversion") == "unchanged"
+        assert "data-old-severity" not in edges[("x", "y")].attrib
+        text = " ".join(t.text or "" for t in root.iter(f"{SVG_NS}text"))
+        assert "~ INVERSION (high \u2192 critical) · admin" in text
+
+    @requires_dot
+    def test_cli(self, retier, tmp_path):
+        env = {**os.environ, "PYTHONPATH": str(REPO / "src")}
+        out = subprocess.run(
+            [sys.executable, "-m", "usecvislib.usecvis", "-m", "6", "-i", retier[1], "--diff", retier[0],
+             "-o", str(tmp_path / "drift"), "-f", "svg"],
+            capture_output=True, text=True, env=env, cwd=tmp_path,
+        )  # fmt: skip
+        assert out.returncode == 0, out.stderr
+        assert "Changed inversion: y -> w (high -> critical)" in out.stdout
+        assert "Changed inversion: x -> w (critical, gap 3 -> 4)" in out.stdout
 
 
 def test_detect_inversions_matches_the_class():
@@ -346,7 +461,25 @@ class TestApi:
         assert response.status_code == 200, response.text
         assert json.loads(response.headers["X-Diff-Summary"])["total"] > 0
         assert json.loads(response.headers["X-Diff-Inversions"]) == {
-            "new": [{"from": "d", "to": "e", "type": "data", "severity": "high"}],
-            "fixed": [{"from": "b", "to": "c", "type": "data", "severity": "medium"}],
+            "new": [{"from": "d", "to": "e", "type": "data", "severity": "high", "trust_gap": 2}],
+            "fixed": [{"from": "b", "to": "c", "type": "data", "severity": "medium", "trust_gap": 1}],
+            "changed": [],
         }
         assert 'data-inversion="new"' in response.text
+
+    @requires_dot
+    def test_changed_inversions_header(self, client, retier):
+        response = client.post(
+            "/diff/render",
+            params={"format": "svg"},
+            files={
+                "old_file": ("r1.json", Path(retier[0]).read_bytes()),
+                "new_file": ("r2.json", Path(retier[1]).read_bytes()),
+            },
+        )
+        assert response.status_code == 200, response.text
+        changed = json.loads(response.headers["X-Diff-Inversions"])["changed"]
+        assert changed[0] == {
+            "from": "y", "to": "w", "type": "control",
+            "old_severity": "high", "new_severity": "critical", "old_trust_gap": 2, "new_trust_gap": 3,
+        }  # fmt: skip

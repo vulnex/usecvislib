@@ -967,8 +967,10 @@ async def render_drift(
     colored border, fading and a +/-/~ chip (fills keep their CVSS colors).
     The change summary is returned in the `X-Diff-Summary` header (JSON).
     For a privilege gradient, the inversions (tiering violations) that
-    appeared or were fixed are in `X-Diff-Inversions`:
-    `{"new": [{"from", "to", "type", "severity"}], "fixed": [...]}`.
+    appeared, were fixed or persist with another severity / trust gap are in
+    `X-Diff-Inversions`: `{"new": [{"from", "to", "type", "severity", "trust_gap"}],
+    "fixed": [...], "changed": [{"from", "to", "type", "old_severity",
+    "new_severity", "old_trust_gap", "new_trust_gap"}]}`.
     """
     from usecvislib.diffrender import SUPPORTED_TYPES, render_diff, resolve_diff_colors
 
@@ -1025,10 +1027,18 @@ async def render_drift(
         response.headers["X-Diff-Summary"] = json.dumps(result.summary)
         inversions = result.metadata.get("inversions")
         if inversions is not None:
+            fields = {
+                "changed": ("old_severity", "new_severity", "old_trust_gap", "new_trust_gap"),
+            }
             response.headers["X-Diff-Inversions"] = json.dumps(
                 {
                     status: [
-                        {"from": i["from"], "to": i["to"], "type": i["influence_type"], "severity": i["severity"]}
+                        {
+                            "from": i["from"],
+                            "to": i["to"],
+                            "type": i["influence_type"],
+                            **{k: i[k] for k in fields.get(status, ("severity", "trust_gap"))},
+                        }
                         for i in items
                     ]
                     for status, items in inversions.items()

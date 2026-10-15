@@ -105,15 +105,23 @@ class DriftView:
     inversions: list[dict]
     marks: dict[str, ElementMark] = field(default_factory=dict)  # "zone:<id>" or component id
     edge_marks: dict[tuple, ElementMark] = field(default_factory=dict)  # (from, to, type)
-    inversion_status: dict[str, str] = field(default_factory=dict)  # "from->to:type" -> new/fixed/unchanged
+    inversion_status: dict[str, str] = field(default_factory=dict)  # "from->to:type" -> new/fixed/changed/unchanged
+    inversions_before: dict[str, dict] = field(default_factory=dict)  # changed ones: earlier severity, trust_gap
 
     def influence_mark(self, influence: dict) -> Optional[ElementMark]:
         key = (influence.get("from"), influence.get("to"), influence.get("type") or "data")
         return self.edge_marks.get(key)
 
+    @staticmethod
+    def _key(influence: dict) -> str:
+        return f"{influence.get('from')}->{influence.get('to')}:{influence.get('type') or 'data'}"
+
     def inversion_of(self, influence: dict) -> Optional[str]:
-        key = f"{influence.get('from')}->{influence.get('to')}:{influence.get('type') or 'data'}"
-        return self.inversion_status.get(key)
+        return self.inversion_status.get(self._key(influence))
+
+    def inversion_before(self, influence: dict) -> Optional[dict]:
+        """A changed inversion's earlier severity and trust gap."""
+        return self.inversions_before.get(self._key(influence))
 
 
 class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
@@ -460,7 +468,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
 
         Without a drift (render_diff) it is the loaded data itself. With
         ``show_unchanged=False`` it keeps changed zones, components and
-        influences (new and fixed inversions count), their direct neighbours
+        influences (new, fixed and changed inversions count), their direct neighbours
         and the zones holding what is kept; inversions are re-detected on that.
         """
         if self.diff_marks is None:
@@ -470,9 +478,15 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
             for key, (status, changed) in self.diff_marks.nodes.items()
         }
         edge_marks = {key: ElementMark(diff=status) for key, status in self.diff_marks.edges.items()}
-        inversion_status = dict(self.diff_marks.extra.get("inversions", {}))
         view = DriftView(
-            self._zones, self._components, self._influences, self._inversions, marks, edge_marks, inversion_status
+            self._zones,
+            self._components,
+            self._influences,
+            self._inversions,
+            marks,
+            edge_marks,
+            dict(self.diff_marks.extra.get("inversions", {})),
+            dict(self.diff_marks.extra.get("inversions_before", {})),
         )
         if not self.show_unchanged:
             self._changes_only(view)
@@ -485,7 +499,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
 
         hot = {cid for cid in view.components if changed(view.marks.get(cid))}
         for influence in view.influences:
-            if changed(view.influence_mark(influence)) or view.inversion_of(influence) in ("new", "fixed"):
+            if changed(view.influence_mark(influence)) or view.inversion_of(influence) in ("new", "fixed", "changed"):
                 hot.update((influence.get("from"), influence.get("to")))
         hot_zones = {zid for zid in view.zones if changed(view.marks.get(f"zone:{zid}"))}
         if not hot and not hot_zones:
@@ -509,12 +523,27 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         """An influence's inversion label in the drift view (None when it shows no inversion).
 
         ``severity`` is the inversion's in the drawn data, or None if it is not one there.
+        A changed inversion reads ``~ INVERSION (high \u2192 critical)``, or with the
+        trust gap when only that changed: ``~ INVERSION (critical, gap 3 \u2192 4)``.
         """
         status = view.inversion_of(influence)
         if status == "fixed":
             return "FIXED INVERSION"
         if severity is None:
             return None
+        before = view.inversion_before(influence) if status == "changed" else None
+        if before is not None:
+            if before["severity"] != severity:
+                return f"~ INVERSION ({before['severity']} \u2192 {severity})"
+            gap = next(
+                (
+                    i["trust_gap"]
+                    for i in view.inversions
+                    if (i["from"], i["to"]) == (influence.get("from"), influence.get("to"))
+                ),
+                "?",
+            )
+            return f"~ INVERSION ({severity}, gap {before['trust_gap']} \u2192 {gap})"
         marker = {"critical": "!!!", "high": "!!", "medium": "!"}.get(severity, "!")
         return f"{marker} NEW INVERSION {marker}" if status == "new" else f"{marker} INVERSION {marker}"
 
@@ -567,12 +596,13 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
             if "fontcolor" in zone_style and (dark_theme or "font_color" not in zone_data):
                 zone_font_color = zone_style["fontcolor"]
 
+            cluster_border = zone_border  # drift may recolor the cluster, never its cards
             zone_mark = view.marks.get(f"zone:{zone_id}")
             zone_status = zone_mark.diff if zone_mark is not None else None
             if zone_status in DIFF_SIGNS:
                 # Drift: the zone's border takes the change color; a removed zone fades
                 zone_label = f"{DIFF_SIGNS[zone_status]} {zone_label}"
-                zone_border = palette[zone_status]
+                cluster_border = palette[zone_status]
                 if zone_status == "removed":
                     zone_color = faded(str(zone_color))
 
@@ -582,7 +612,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
                     label=f"{zone_label}\\n(Trust Level {trust_level})",
                     labelloc="t",
                     fillcolor=zone_color,
-                    color=zone_border,
+                    color=cluster_border,
                     fontcolor=zone_font_color,
                     **{k: v for k, v in sub_attrs.items() if k not in ("fillcolor", "color", "fontcolor", "label")},
                 )
@@ -668,7 +698,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
                         inv_severity = inv["severity"]
                         break
                 if self.diff_marks is not None:
-                    # Drift: NEW / FIXED inversions; a removed influence keeps its removed styling
+                    # Drift: NEW / FIXED / changed inversions; a removed influence keeps its removed styling
                     text = self.inversion_label(view, influence, inv_severity)
                     edge_attrs["label"] = f" {text}\\n{inf_label}" if inf_label else f" {text}"
                     mark = view.influence_mark(influence)
@@ -679,6 +709,8 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
                     elif view.inversion_of(influence) == "new":
                         edge_attrs["penwidth"] = str(float(edge_attrs.get("penwidth", 3)) + 1.5)
                         edge_attrs["fontcolor"] = palette["added"]
+                    elif view.inversion_of(influence) == "changed":
+                        edge_attrs["color"] = edge_attrs["fontcolor"] = palette["modified"]
                 else:
                     severity_marker = {"critical": "!!!", "high": "!!", "medium": "!"}.get(inv_severity, "!")
                     edge_attrs["label"] = (
