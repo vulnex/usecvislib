@@ -353,9 +353,14 @@ def _privilege_gradient_data(version: Union[str, Any]) -> dict[str, Any]:
         version = PrivilegeGradient(str(version), "unused", validate_paths=False)
     if not getattr(version, "_loaded", False):
         version.load()
-    gradient = version.inputdata.get("gradient", {}) if isinstance(version.inputdata, dict) else {}
+    data = version.inputdata if isinstance(version.inputdata, dict) else {}
+    gradient = data.get("gradient", {})
+    groups = data.get("groups", {})
+    if isinstance(groups, list):  # [[groups]] tables with ids
+        groups = {g["id"]: g for g in groups if isinstance(g, dict) and g.get("id")}
     return {
         "gradient": gradient if isinstance(gradient, dict) else {},
+        "groups": groups if isinstance(groups, dict) else {},
         "zones": version._zones,
         "components": version._components,
         "influence_types": version._influence_types,
@@ -451,6 +456,8 @@ def merge_privilege_gradients(
     marks = DiffMarks()
     merged: dict[str, Any] = {"gradient": copy.deepcopy(new.get("gradient") or old.get("gradient") or {})}
     merged["gradient"].setdefault("name", "Privilege Gradient Graph")
+    # Group settings (A11) of the later version, else the earlier one's
+    merged["groups"] = copy.deepcopy(new.get("groups") or old.get("groups") or {})
 
     zones, zone_statuses = _merge_elements("zones", old["zones"], new["zones"], ignore)
     merged["zones"] = list(zones.values())
@@ -487,9 +494,7 @@ def merge_privilege_gradients(
 def _make_privilege_gradient(path: str, output: str, **options: Any) -> Any:
     from .privilegegradient import PrivilegeGradient
 
-    grouping = {k: options.pop(k) for k in ("group_by", "collapse", "max_nodes") if k in options}
-    if any(v is not None for v in grouping.values()):
-        logger.warning("group_by / collapse / max_nodes apply to attack graphs only; ignored")
+    # group_by / collapse / max_nodes group the merged gradient (Atajo A11)
     return PrivilegeGradient(path, output, **options)
 
 

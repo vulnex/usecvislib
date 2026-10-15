@@ -66,6 +66,7 @@ class GradientView:
     groups: dict[str, GroupInfo] = field(default_factory=dict)  # group id -> members (component ids)
     group_zone: dict[str, str] = field(default_factory=dict)  # group id -> its zone
     merged_from: dict[tuple, list[str]] = field(default_factory=dict)  # merged edge -> member influence keys
+    inversion_counts: dict[str, dict[str, int]] = field(default_factory=dict)  # merged edge -> {status: count}
 
     def influence_mark(self, influence: dict) -> Optional[ElementMark]:
         key = (influence.get("from"), influence.get("to"), influence.get("type") or "data")
@@ -77,6 +78,10 @@ class GradientView:
     def inversion_before(self, influence: dict) -> Optional[dict]:
         """A changed inversion's earlier severity and trust gap."""
         return self.inversions_before.get(influence_key(influence))
+
+    def inversion_counts_of(self, influence: dict) -> dict[str, int]:
+        """Drift: how many of a merged edge's influences are new / fixed / changed inversions."""
+        return self.inversion_counts.get(influence_key(influence), {})
 
     def group_of(self, component_id: str) -> Optional[str]:
         mark = self.marks.get(component_id)
@@ -210,17 +215,55 @@ def _collapse(view: GradientView, collapsed: list[str]) -> None:
         old_mark = view.edge_marks.get((src, dst, type_id))
         statuses_of.setdefault(key, []).append(old_mark.diff if old_mark else None)
     edge_marks: dict[tuple, ElementMark] = {}
+    inversion_status: dict[str, str] = {}
+    inversions_before: dict[str, dict] = {}
     for key, member_keys in members_of.items():
         status = combined_status(statuses_of[key])
         if len(member_keys) > 1 or status is not None:
             edge_marks[key] = ElementMark(diff=status, count=len(member_keys))
         if len(member_keys) > 1:
             view.merged_from[key] = member_keys
+        _carry_inversion_status(view, key, member_keys, inversion_status, inversions_before)
     view.influences = list(merged.values())
     view.edge_marks = edge_marks
+    view.inversion_status = inversion_status
+    view.inversions_before = inversions_before
 
     # Exact on the collapsed picture: a summary sits in its group's zone (module docstring)
     view.inversions = detect_inversions(view.zones, view.components, view.influences)
+
+
+def _carry_inversion_status(
+    view: GradientView,
+    key: tuple,
+    member_keys: list[str],
+    inversion_status: dict[str, str],
+    inversions_before: dict[str, dict],
+) -> None:
+    """Drift: the inversion status of an edge after the collapse, from its member influences.
+
+    The statuses are keyed by influence, so a re-pointed edge takes its
+    member's status, a merged edge the status its members share ("mixed" when
+    they differ), and a merged edge also counts its new / fixed / changed members.
+    """
+    statuses = [s for k in member_keys if (s := view.inversion_status.get(k))]
+    if not statuses:
+        return
+    new_key = influence_key({"from": key[0], "to": key[1], "type": key[2]})
+    inversion_status[new_key] = statuses[0] if all(s == statuses[0] for s in statuses) else "mixed"
+    before = next((view.inversions_before[k] for k in member_keys if k in view.inversions_before), None)
+    if before is not None and inversion_status[new_key] == "changed":
+        inversions_before[new_key] = before
+    if len(member_keys) > 1:
+        counts = {s: statuses.count(s) for s in ("new", "fixed", "changed") if s in statuses}
+        if counts:
+            view.inversion_counts[new_key] = counts
+
+
+def inversion_counts_label(counts: dict[str, int]) -> str:
+    """``(2 new, 1 fixed)`` for a merged edge's inversion changes; empty without any."""
+    parts = [f"{counts[s]} {s}" for s in ("new", "fixed", "changed") if counts.get(s)]
+    return f"({', '.join(parts)})" if parts else ""
 
 
 def group_stats(view: GradientView) -> dict[str, dict[str, Any]]:

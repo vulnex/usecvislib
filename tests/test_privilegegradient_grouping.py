@@ -383,3 +383,96 @@ class TestApi:
         )
         assert response.status_code == 200, response.text
         assert 'data-collapsed="true"' in response.text and 'data-edge-count="2"' in response.text
+
+
+# Drift with grouping (A11 step 5): ws3 removed (fixes ws3 -> srv2), ws4 added (a new
+# inversion merged with two unchanged ones), the RDP label changed, a new kiosk inversion.
+AD_NEW = {
+    **AD,
+    "components": [c for c in AD["components"] if c["id"] != "ws3"]
+    + [{"id": "ws4", "zone": "tier2", "role": "workstation"}],
+    "influences": [i for i in AD["influences"] if i["from"] != "ws3" and i.get("label") != "RDP"]
+    + [
+        {"from": "ws4", "to": "srv1", "type": "data"},
+        {"from": "ws1", "to": "dc1", "type": "control", "label": "RDP admin"},
+        {"from": "kiosk", "to": "dc1", "type": "data"},
+    ],
+}
+
+
+class TestDrift:
+    @staticmethod
+    def _viz(tmp_path, **options):
+        from usecvislib.diffrender import merge_privilege_gradients, normalize_privilege_gradient
+
+        merged, marks = merge_privilege_gradients(
+            normalize_privilege_gradient(AD), normalize_privilege_gradient(AD_NEW)
+        )
+        path = tmp_path / "merged.json"
+        path.write_text(json.dumps(merged), encoding="utf-8")
+        pg = PrivilegeGradient(str(path), str(tmp_path / "o"), group_by="role", collapse=True, **options)
+        pg.diff_marks = marks
+        pg.load()
+        return pg
+
+    def test_summary_counts_member_changes(self, tmp_path):
+        view = self._viz(tmp_path).render_view()
+        facts = view.summary_facts(WS)
+        assert facts["members"] == 4 and facts["added"] == 1 and facts["removed"] == 1
+        assert view.marks[WS].diff == "modified"
+        assert summary_label_lines(facts)[-1] == "+1 \u22121"
+
+    def test_inversion_status_follows_the_collapse(self, tmp_path):
+        view = self._viz(tmp_path).render_view()
+        assert view.inversion_status[f"{WS}->{SRV}:data"] == "mixed"  # 2 unchanged + 1 new
+        assert view.inversion_counts[f"{WS}->{SRV}:data"] == {"new": 1}
+        assert view.inversion_status[f"{WS}->{SRV}:control"] == "fixed"  # ws3 -> srv2, re-pointed
+        assert view.inversion_status["kiosk->dc1:data"] == "new"  # not re-pointed
+        assert view.edge_marks[(WS, SRV, "data")].count == 3
+
+    def test_graphviz_labels(self, tmp_path):
+        pg = self._viz(tmp_path)
+        pg.render()
+        lines = pg.graph.source.splitlines()
+        mixed = next(
+            line
+            for line in lines
+            if line.strip().startswith(f"{WS.replace('/', '_')} -> {SRV.replace('/', '_')}") and "1 new" in line
+        )
+        assert "INVERSION ! (1 new)" in mixed and "\u00d73" in mixed
+        assert any("FIXED INVERSION" in line and "dashed" in line for line in lines)
+
+    def test_svg_scene(self, tmp_path):
+        pg = self._viz(tmp_path)
+        scene = painter._build_scene(pg, themes.resolve(pg.style))
+        edge = next(e for e in scene.edges if (e.src, e.dst, e.data.get("type")) == (WS, SRV, "data"))
+        assert edge.data["inversion"] == "mixed" and edge.data["inversion-new"] == "1"
+        assert edge.label == "! INVERSION ! (1 new) · \u00d73"
+        card = scene.node_by_id(WS)
+        assert card.diff == "modified" and card.lines[-1] == "+1 \u22121"
+
+    def test_metadata_is_per_influence(self, tmp_path):
+        from usecvislib.diffrender import normalize_privilege_gradient, privilege_gradient_inversion_changes
+
+        changes = privilege_gradient_inversion_changes(
+            normalize_privilege_gradient(AD), normalize_privilege_gradient(AD_NEW)
+        )["inversions"]
+        assert sorted((i["from"], i["to"]) for i in changes["new"]) == [("kiosk", "dc1"), ("ws4", "srv1")]
+        assert [(i["from"], i["to"]) for i in changes["fixed"]] == [("ws3", "srv2")]
+
+    @requires_dot
+    def test_render_diff(self, tmp_path):
+        from usecvislib import render_diff
+
+        old, new = tmp_path / "v1.json", tmp_path / "v2.json"
+        old.write_text(json.dumps(AD), encoding="utf-8")
+        new.write_text(json.dumps(AD_NEW), encoding="utf-8")
+        plain = render_diff(str(old), str(new), "privilege_gradient", output=str(tmp_path / "a"), format="svg")
+        grouped = render_diff(
+            str(old), str(new), "privilege_gradient", output=str(tmp_path / "d"), format="svg",
+            render_engine="svg", group_by="role", collapse="all",
+        )  # fmt: skip
+        assert grouped.metadata["inversions"] == plain.metadata["inversions"]  # collapse never changes the list
+        svg = (tmp_path / "d.svg").read_text(encoding="utf-8")
+        assert 'data-inversion="mixed"' in svg and 'data-inversion-new="1"' in svg
+        assert 'data-collapsed="true"' in svg

@@ -35,7 +35,14 @@ from . import utils
 from .base import VisualizationBase
 from .drift import DIFF_SIGNS, DriftStylingMixin, ElementMark, faded
 from .grouping import DEFAULT_MAX_NODES, merged_label
-from .privilegegradient_view import SCHEMA_FIELDS, GradientView, apply_grouping, group_stats, summary_label_lines
+from .privilegegradient_view import (
+    SCHEMA_FIELDS,
+    GradientView,
+    apply_grouping,
+    group_stats,
+    inversion_counts_label,
+    summary_label_lines,
+)
 
 # The render view's former name (drift only), kept for callers that import it
 DriftView = GradientView
@@ -744,6 +751,9 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
                 if self.diff_marks is not None:
                     # Drift: NEW / FIXED / changed inversions; a removed influence keeps its removed styling
                     text = self.inversion_label(view, influence, inv_severity)
+                    # A merged edge (collapse) counts its new / fixed / changed inversions
+                    if counts := inversion_counts_label(view.inversion_counts_of(influence)):
+                        text = f"{text} {counts}"
                     edge_attrs["label"] = f" {text}\\n{inf_label}" if inf_label else f" {text}"
                     mark = view.influence_mark(influence)
                     removed = mark is not None and mark.diff == "removed"
@@ -790,7 +800,12 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
                     self._style_diff_edge(edge_attrs, view.influence_mark(influence))
                     if view.inversion_of(influence) == "fixed":
                         # Fixed by a zone move: drawn as an ordinary influence, marked fixed
-                        edge_attrs["label"] = f" FIXED INVERSION\\n{inf_label}" if inf_label else " FIXED INVERSION"
+                        text = " ".join(
+                            filter(
+                                None, ("FIXED INVERSION", inversion_counts_label(view.inversion_counts_of(influence)))
+                            )
+                        )
+                        edge_attrs["label"] = f" {text}\\n{inf_label}" if inf_label else f" {text}"
                         edge_attrs["fontcolor"] = palette["removed"]
 
             self.graph.edge(utils.sanitize_node_id(source), utils.sanitize_node_id(target), **edge_attrs)

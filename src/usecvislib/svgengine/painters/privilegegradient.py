@@ -35,7 +35,7 @@ from typing import Any
 
 from ... import utils
 from ...grouping import merged_label
-from ...privilegegradient_view import summary_label_lines
+from ...privilegegradient_view import inversion_counts_label, summary_label_lines
 from .. import metrics, themes
 from ..scene import Scene, SceneEdge, SceneGroup, SceneNode
 from .graph import attach_icon, render_graph_svg
@@ -72,6 +72,9 @@ def inversion_label(severity: str, label: str = "") -> str:
 def _drift_label(viz, view, influence: dict, severity: str, label: str) -> str:
     """An inversion's label in the drift view (NEW / FIXED / changed), as the Graphviz path words it."""
     text = viz.inversion_label(view, influence, severity)
+    # A merged edge (collapse) counts its new / fixed / changed inversions
+    if counts := inversion_counts_label(view.inversion_counts_of(influence)):
+        text = f"{text} {counts}"
     return f"{text} · {label}" if label else text
 
 
@@ -247,6 +250,8 @@ def _build_edges(scene: Scene, viz, view, theme: dict[str, Any]) -> None:
         status = view.inversion_of(influence) if drift else None
         if status in ("new", "fixed"):
             data["inversion"] = status
+        for count_status, count in view.inversion_counts_of(influence).items():
+            data[f"inversion-{count_status}"] = str(count)
         before = view.inversion_before(influence) if status == "changed" else None
         if before is not None:
             data["old-severity"] = str(before["severity"])

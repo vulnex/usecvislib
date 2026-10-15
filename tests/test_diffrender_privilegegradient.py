@@ -385,9 +385,14 @@ class TestRenderDiff:
         assert [(i["from"], i["to"]) for i in result.metadata["inversions"]["fixed"]] == [("b", "c")]
 
     @requires_dot
-    def test_grouping_options_are_ignored_with_a_warning(self, versions, tmp_path, caplog):
-        render_diff(*versions, "privilege_gradient", output=str(tmp_path / "d"), format="svg", group_by="zone")
-        assert "group_by" in caplog.text
+    def test_grouping_options_group_the_merged_gradient(self, versions, tmp_path):
+        # Grouped by their zone field, the mid zone's b, c, d collapse into one card (A11)
+        render_diff(
+            *versions, "privilege_gradient", output=str(tmp_path / "d"), format="svg", render_engine="svg",
+            group_by="zone", collapse=True,
+        )  # fmt: skip
+        svg = (tmp_path / "d.svg").read_text(encoding="utf-8")
+        assert 'data-cluster-id="mid_mid"' in svg and 'data-collapsed="true"' in svg
 
     @requires_dot
     def test_svg_contract(self, versions, tmp_path):
