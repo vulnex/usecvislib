@@ -83,7 +83,8 @@ class SceneEdge:
     label_pos: Optional[tuple[float, float]] = None  # label center chosen by the oracle (layout-set)
     data: dict[str, str] = field(default_factory=dict)  # extra data-* attributes
     inferred: bool = False  # a hypothesis, not an observation: usv-edge--inferred
-    diff: Optional[str] = None  # drift view: "added" | "removed" | "unchanged"
+    diff: Optional[str] = None  # drift view: "added" | "removed" | "modified" | "unchanged"
+    label_color: Optional[str] = None  # overrides the theme's edge label color
     dash: Optional[str] = None  # stroke-dasharray, overrides `dashed` (e.g. "1.5 4" for dotted)
     layout_only: bool = False  # an invisible layout constraint: sent to the oracle, never painted
     weight: Optional[int] = None  # oracle edge weight (keeps layout-only chains straight)
@@ -106,6 +107,7 @@ class SceneGroup:
     border: Optional[str] = None
     text_color: Optional[str] = None
     dashed: bool = False  # dashed border (e.g. DFD trust boundaries)
+    diff: Optional[str] = None  # drift view: "added" | "removed" | "modified" | "unchanged"
     parent: Optional[str] = None  # enclosing group id (nested clusters)
     data: dict[str, str] = field(default_factory=dict)  # extra data-* attributes
     x: float = 0.0  # top-left, set by layout oracle from the cluster bbox

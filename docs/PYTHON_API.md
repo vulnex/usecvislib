@@ -3120,7 +3120,7 @@ Something added in one step and removed in a later one appears in the steps but 
 
 ### Drift Picture
 
-`render_diff()` draws what changed between two versions as one image, and returns the `DiffResult` it computed. Attack graphs only, for now (other types raise `NotImplementedError`).
+`render_diff()` draws what changed between two versions as one image, and returns the `DiffResult` it computed. Attack graphs (`visualization_type="attack_graph"`, the default) and privilege gradients (`"privilege_gradient"`); other types raise `NotImplementedError`.
 
 ```python
 from usecvislib import render_diff
@@ -3143,6 +3143,21 @@ print(result.summary)   # {"added": 3, "removed": 3, "modified": 1, "total": 7}
 - Edges are compared as sets (by endpoints), and an exploit's pre/postcondition lists as sets, so renaming an edge entry or reordering a list is not drift. The returned `DiffResult` is computed on the same normalized data, so it agrees with the picture (`compare_files()` itself is unchanged).
 - With grouping, a collapsed group is marked modified when any member changed, with `+N −N ~N` counts.
 - SVG output: `usv-diff--added|removed|modified|unchanged` classes and `data-diff` on nodes and edges, `data-changed` (changed fields) on modified nodes.
+
+#### Privilege gradient drift
+
+```python
+result = render_diff("tiers_q1.toml", "tiers_q2.toml", "privilege_gradient", output="tiers", format="svg")
+result.metadata["inversions"]
+# {"new":   [{"from": "web_server", "to": "db", "influence_type": "data", "severity": "high", ...}],
+#  "fixed": [...]}
+```
+
+- Zones and components are matched by `id`, influences by `(from, to, type)`: a type change shows as one removed and one added influence. Two influences with the same key in one file collapse into one (a warning is logged).
+- Zones get the change border and a `+` / `−` / `~` before their label; a removed zone is faded. A component moved to another zone is modified (`changed: zone`) and drawn in its new zone.
+- **Inversions** (a lower-trust component influencing a higher-trust one) are detected in each version separately. One that appeared is labelled `NEW INVERSION` (in the added color); one that disappeared is labelled `FIXED INVERSION` in the removed color, on the surviving influence or on the removed one. `metadata["inversions"]` lists both, with the same fields as `detect_inversions()`.
+- `show_unchanged=False` keeps changed elements (new and fixed inversions included), their direct neighbours and the zones holding them. `group_by` / `collapse` / `max_nodes` do not apply and are ignored with a warning.
+- SVG output: zones (`usv-cluster`) carry `usv-diff--*` / `data-diff` too, and each inversion `data-inversion="new|fixed|unchanged"`.
 
 ### Change Types
 

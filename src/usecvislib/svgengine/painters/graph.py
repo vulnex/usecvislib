@@ -261,6 +261,7 @@ def _paint_clusters(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any]) -> N
     default_text = cfg.get("text", "#475569")
     label_size = float(cfg.get("label_size", 12))
     radius = float(cfg.get("radius", 10))
+    diff_cfg = theme.get("diff", {})
 
     # Outer clusters first so nested ones paint on top of their parent
     depth = {}
@@ -276,18 +277,31 @@ def _paint_clusters(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any]) -> N
         fill = grp.fill or default_fill
         border = grp.border or default_border
         text_color = grp.text_color or default_text
+        stroke_width = 1.6 if grp.dashed else 1.2
+        label = grp.label
+        classes = ["usv-cluster"]
+        data = {"cluster-id": grp.id, "label": grp.label or grp.id, **grp.data}
+        if grp.diff:
+            # Drift: the border takes the change color, the label its sign
+            classes.append(f"usv-diff--{grp.diff}")
+            data["diff"] = grp.diff
+            chip = _DIFF_CHIPS.get(grp.diff)
+            if chip:
+                border = diff_cfg.get(grp.diff, border)
+                stroke_width = float(diff_cfg.get("border_width", 3.0))
+                label = f"{chip} {label}" if label else chip
 
-        group = shapes.group(["usv-cluster"], {"cluster-id": grp.id, "label": grp.label or grp.id, **grp.data})
-        rect = shapes.card(grp.x, grp.y, grp.width, grp.height, radius, fill, border, 1.6 if grp.dashed else 1.2)
-        if grp.dashed:
+        group = shapes.group(classes, data)
+        if grp.diff == "removed":
+            group.set("opacity", shapes.fmt(float(diff_cfg.get("removed_opacity", 0.35))))
+        rect = shapes.card(grp.x, grp.y, grp.width, grp.height, radius, fill, border, stroke_width)
+        if grp.dashed or grp.diff == "removed":
             rect.set("stroke-dasharray", "7 4")
         group.append(rect)
-        if grp.label:
+        if label:
             # Label sits in the band Graphviz reserved at the cluster's top.
             group.append(
-                shapes.anchored_text(
-                    grp.x + radius, grp.y + label_size + 2, grp.label, label_size, text_color, bold=True
-                )
+                shapes.anchored_text(grp.x + radius, grp.y + label_size + 2, label, label_size, text_color, bold=True)
             )
         canvas.add("groups", group)
 
@@ -316,6 +330,8 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], edge_cf
         elif edge.diff == "removed":
             color = diff_cfg.get("removed", color)
             dashed = True
+        elif edge.diff == "modified":
+            color = diff_cfg.get("modified", color)
 
         d = shapes.spline_path_d(edge.points)
         if not d:
@@ -344,7 +360,12 @@ def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], edge_cf
         if edge.label:
             # Labels sit in the top layer: the oracle reserved room for them,
             # so painting above nodes/cluster titles never hides them.
-            canvas.add("labels", shapes.edge_label(anchor[0], anchor[1], edge.label, label_size, label_color, page_bg))
+            canvas.add(
+                "labels",
+                shapes.edge_label(
+                    anchor[0], anchor[1], edge.label, label_size, edge.label_color or label_color, page_bg
+                ),
+            )
 
 
 def _paint_nodes(

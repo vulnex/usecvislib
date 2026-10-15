@@ -87,8 +87,9 @@ def Usage() -> None:
     print("  --collapse <which>      Attack graphs: draw groups as one summary node:")
     print("                          none, all, auto (largest first until --max-nodes), or group ids a,b")
     print("  --max-nodes <n>         Attack graphs: node target for --collapse auto (default 300)")
-    print("  --diff <old file>       Attack graphs: draw the drift from <old file> to -i (added, removed,")
-    print("                          modified elements highlighted)")
+    print("  --diff <old file>       Attack graphs (3), privilege gradients (6): draw the drift from <old file>")
+    print("                          to -i (added, removed, modified elements and, mode 6, new / fixed")
+    print("                          inversions highlighted)")
     print("  --changes-only          With --diff: draw only changed elements and their neighbours")
     print("  --diff-colors <spec>    With --diff: e.g. added=#e8590c,modified=#0ea5e9")
     print("")
@@ -270,7 +271,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     group_by = None  # Attack graph: host field (or ip/N) to cluster hosts by
     collapse = None  # Attack graph: none | all | auto | comma-separated group ids
     max_nodes = None  # Attack graph: node target for --collapse auto
-    diff_old = None  # Attack graph: earlier version to draw the drift from (-i is the later one)
+    diff_old = None  # Modes 3 and 6: earlier version to draw the drift from (-i is the later one)
     changes_only = False  # Drift: draw only changed elements and their neighbours
     diff_colors = None  # Drift: added=#..,removed=#..,modified=#..
 
@@ -536,8 +537,8 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"  Null bytes: {stats['null_percentage']:.2f}%")
             print(f"  Printable ASCII: {stats['printable_percentage']:.2f}%")
 
-        elif mode == 3 and diff_old:
-            # Attack graph drift: -i is the later version, --diff the earlier one
+        elif mode in (3, 6) and diff_old:
+            # Attack graph / privilege gradient drift: -i is the later version, --diff the earlier one
             from .diffrender import parse_diff_colors, render_diff
 
             try:
@@ -547,6 +548,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             result = render_diff(
                 diff_old,
                 inputfile,
+                visualization_type="attack_graph" if mode == 3 else "privilege_gradient",
                 output=outputfile,
                 format=format,
                 render_engine=render_engine,
@@ -561,6 +563,9 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"Drift generated: {outputfile}.{format}")
             print(f"  {diff_old} -> {inputfile}")
             print(f"  Added: {summary['added']}  Removed: {summary['removed']}  Modified: {summary['modified']}")
+            for status, items in result.metadata.get("inversions", {}).items():
+                for inv in items:
+                    print(f"  {status.capitalize()} inversion: {inv['from']} -> {inv['to']} ({inv['severity']})")
 
         elif mode == 3:
             # Attack Graphs

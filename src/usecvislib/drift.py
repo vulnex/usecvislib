@@ -84,11 +84,12 @@ class DiffMarks:
 
     ``nodes`` maps an element id to (status, changed field names); ``edges``
     maps an edge key to its status. Status is "added", "removed",
-    "modified" or "unchanged".
+    "modified" or "unchanged". ``extra`` holds module-specific marks.
     """
 
     nodes: dict[str, tuple[str, list[str]]] = field(default_factory=dict)
     edges: dict[EdgeKey, str] = field(default_factory=dict)
+    extra: dict[str, Any] = field(default_factory=dict)  # module-specific (e.g. inversion status)
 
 
 def faded(color: str) -> str:
@@ -152,3 +153,5 @@ class DriftStylingMixin:
         elif status == "removed":
             attrs["style"] = "dashed"
             attrs["color"] = faded(palette["removed"])
+        elif status == "modified":
+            attrs["color"] = palette["modified"]

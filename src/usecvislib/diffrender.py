@@ -102,7 +102,7 @@ def render_diff(
     Args:
         old: The earlier version: a file path or a loaded visualization instance.
         new: The later version, same forms.
-        visualization_type: Only "attack_graph" for now.
+        visualization_type: "attack_graph" or "privilege_gradient".
         output: Output path without extension.
         format: png, svg or pdf.
         render_engine: "graphviz" (default) or "svg".
@@ -246,9 +246,6 @@ def merge_attack_graphs(
     edges are still drawn. Paths matching ``ignore_paths`` count as unchanged.
     """
     ignore = list(ignore_paths or [])
-    comparer = VisualizationDiff(
-        SimpleNamespace(inputdata={}, _loaded=True), SimpleNamespace(inputdata={}, _loaded=True)
-    )
 
     def ignored(path: str) -> bool:
         return any(path.startswith(prefix) for prefix in ignore)
@@ -257,38 +254,16 @@ def merge_attack_graphs(
     merged.setdefault("graph", old.get("graph", {"name": "Attack Graph"}))
     marks = DiffMarks()
     for section in NODE_SECTIONS:
-        section_old, section_new = old.get(section, {}), new.get(section, {})
-        out: dict[str, Any] = {}
-        for element_id in [*section_new, *(i for i in section_old if i not in section_new)]:
-            path = f"{section}.{element_id}"
-            in_old, in_new = element_id in section_old, element_id in section_new
-            element = copy.deepcopy(section_new[element_id] if in_new else section_old[element_id])
-            changed: list[str] = []
-            if ignored(path):
-                status = "unchanged"
-            elif not in_old:
-                status = "added"
-            elif not in_new:
-                status = "removed"
-            else:
-                old_el, new_el = section_old[element_id], section_new[element_id]
-                changes = [
-                    c
-                    for c in comparer._compare_dicts(
-                        old_el if isinstance(old_el, dict) else {"value": old_el},
-                        new_el if isinstance(new_el, dict) else {"value": new_el},
-                        path,
-                    )
-                    if not ignored(c.path)
-                ]
-                changed = list(dict.fromkeys(re.split(r"[.\[]", c.path[len(path) + 1 :])[0] for c in changes))
-                status = "modified" if changes else "unchanged"
-                if section == "exploits" and isinstance(element, dict) and isinstance(old_el, dict):
+        out, statuses = _merge_elements(section, old.get(section, {}), new.get(section, {}), ignore)
+        if section == "exploits":
+            # A modified exploit keeps its old pre/postconditions too, so removed edges are drawn
+            for exploit_id, element in out.items():
+                old_el = old.get("exploits", {}).get(exploit_id)
+                if statuses[exploit_id][0] == "modified" and isinstance(element, dict) and isinstance(old_el, dict):
                     for key in ("preconditions", "postconditions"):
                         kept = list(element.get(key, []))
                         element[key] = kept + [e for e in old_el.get(key, []) if e not in kept]
-            out[element_id] = element
-            marks.nodes[element_id] = (status, changed)
+        marks.nodes.update(statuses)
         merged[section] = out
 
     edges_new, edges_old = new.get("network_edges", {}), old.get("network_edges", {})
@@ -307,6 +282,52 @@ def merge_attack_graphs(
     return merged, marks
 
 
+def _merge_elements(
+    section: str, section_old: dict[str, Any], section_new: dict[str, Any], ignore: list[str]
+) -> tuple[dict[str, Any], dict[str, tuple[str, list[str]]]]:
+    """Union of one section's elements (new order, then removed ones) and each one's status.
+
+    Elements present in both are compared field by field under the path
+    ``<section>.<id>``, so ``ignore_paths`` work as in ``compare_files()``.
+    """
+    comparer = VisualizationDiff(
+        SimpleNamespace(inputdata={}, _loaded=True), SimpleNamespace(inputdata={}, _loaded=True)
+    )
+
+    def ignored(path: str) -> bool:
+        return any(path.startswith(prefix) for prefix in ignore)
+
+    out: dict[str, Any] = {}
+    statuses: dict[str, tuple[str, list[str]]] = {}
+    for element_id in [*section_new, *(i for i in section_old if i not in section_new)]:
+        path = f"{section}.{element_id}"
+        in_old, in_new = element_id in section_old, element_id in section_new
+        element = copy.deepcopy(section_new[element_id] if in_new else section_old[element_id])
+        changed: list[str] = []
+        if ignored(path):
+            status = "unchanged"
+        elif not in_old:
+            status = "added"
+        elif not in_new:
+            status = "removed"
+        else:
+            old_el, new_el = section_old[element_id], section_new[element_id]
+            changes = [
+                c
+                for c in comparer._compare_dicts(
+                    old_el if isinstance(old_el, dict) else {"value": old_el},
+                    new_el if isinstance(new_el, dict) else {"value": new_el},
+                    path,
+                )
+                if not ignored(c.path)
+            ]
+            changed = list(dict.fromkeys(re.split(r"[.\[]", c.path[len(path) + 1 :])[0] for c in changes))
+            status = "modified" if changes else "unchanged"
+        out[element_id] = element
+        statuses[element_id] = (status, changed)
+    return out, statuses
+
+
 def _edge_ignored(key: tuple[str, str, str], merged: dict[str, Any], ignored) -> bool:
     """Whether an ignore path covers the section an edge comes from."""
     src, dst, kind = key
@@ -319,12 +340,143 @@ def _edge_ignored(key: tuple[str, str, str], merged: dict[str, Any], ignored) ->
     return ignored(f"{section}.{dst}")
 
 
+# --------------------------------------------------------------------------
+# Privilege gradient
+
+
+def influence_key(influence: dict[str, Any]) -> str:
+    """An influence's identity in a diff: ``from->to:type`` (influences have no ids)."""
+    return f"{influence.get('from')}->{influence.get('to')}:{influence.get('type') or 'data'}"
+
+
+def _privilege_gradient_data(version: Union[str, Any]) -> dict[str, Any]:
+    """A privilege gradient's sections, as the module normalized them (default zones filled in)."""
+    if isinstance(version, str | os.PathLike):
+        from .privilegegradient import PrivilegeGradient
+
+        version = PrivilegeGradient(str(version), "unused", validate_paths=False)
+    if not getattr(version, "_loaded", False):
+        version.load()
+    gradient = version.inputdata.get("gradient", {}) if isinstance(version.inputdata, dict) else {}
+    return {
+        "gradient": gradient if isinstance(gradient, dict) else {},
+        "zones": version._zones,
+        "components": version._components,
+        "influence_types": version._influence_types,
+        "influences": version._influences,
+    }
+
+
+def normalize_privilege_gradient(data: dict[str, Any]) -> dict[str, Any]:
+    """A copy of privilege-gradient data in one canonical form, for comparing two versions.
+
+    Takes the loaded sections (as ``render_diff`` does) or the file form. Zones and components are keyed by id (with ``id`` set); influences are keyed
+    ``from->to:type`` (type defaults to ``data``). A repeated key keeps the
+    first influence, with a warning.
+    """
+    data = copy.deepcopy(data)
+    for section in ("zones", "components", "influence_types"):
+        items = data.get(section) or {}
+        if isinstance(items, list):  # file form: a list of tables with ids
+            items = {item["id"]: item for item in items if isinstance(item, dict) and item.get("id")}
+        data[section] = {key: {**value, "id": key} for key, value in dict(items).items()}
+    influences: dict[str, dict[str, Any]] = {}
+    for influence in data.get("influences") or []:
+        if not isinstance(influence, dict) or not influence.get("from") or not influence.get("to"):
+            continue
+        influence = {**influence, "type": influence.get("type") or "data"}
+        key = influence_key(influence)
+        if key in influences:
+            logger.warning(f"Influence {key} is defined more than once; the diff keeps the first")
+            continue
+        influences[key] = influence
+    data["influences"] = influences
+    return data
+
+
+def _inversion_keys(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Inversions of normalized privilege-gradient data, keyed like their influence.
+
+    Normalized influences always carry a type, which the detection reports as
+    ``influence_type``, so each inversion maps to exactly one influence key.
+    """
+    from .privilegegradient import detect_inversions
+
+    found = detect_inversions(data["zones"], data["components"], list(data["influences"].values()))
+    return {f"{inv['from']}->{inv['to']}:{inv['influence_type']}": inv for inv in found}
+
+
+def privilege_gradient_inversion_changes(old: dict[str, Any], new: dict[str, Any]) -> dict[str, Any]:
+    """Tiering violations that appeared ("new") and disappeared ("fixed") between two versions."""
+    before, after = _inversion_keys(old), _inversion_keys(new)
+    return {
+        "inversions": {
+            "new": [after[k] for k in after if k not in before],
+            "fixed": [before[k] for k in before if k not in after],
+        }
+    }
+
+
+def merge_privilege_gradients(
+    old: dict[str, Any], new: dict[str, Any], ignore_paths: Optional[list[str]] = None
+) -> tuple[dict[str, Any], DiffMarks]:
+    """Union of two normalized privilege gradients, and the change status of everything in it.
+
+    Zones are marked ``zone:<id>`` (their ids may repeat component ids),
+    components by id, influences as edges ``(from, to, type)``. Each
+    influence's inversion status goes in ``marks.extra["inversions"]``:
+    "new", "fixed" or "unchanged".
+    """
+    ignore = list(ignore_paths or [])
+    marks = DiffMarks()
+    merged: dict[str, Any] = {"gradient": copy.deepcopy(new.get("gradient") or old.get("gradient") or {})}
+    merged["gradient"].setdefault("name", "Privilege Gradient Graph")
+
+    zones, zone_statuses = _merge_elements("zones", old["zones"], new["zones"], ignore)
+    merged["zones"] = list(zones.values())
+    marks.nodes.update({f"zone:{zone_id}": status for zone_id, status in zone_statuses.items()})
+
+    components, component_statuses = _merge_elements("components", old["components"], new["components"], ignore)
+    merged["components"] = list(components.values())
+    marks.nodes.update(component_statuses)
+
+    merged["influence_types"] = list({**old.get("influence_types", {}), **new.get("influence_types", {})}.values())
+
+    influences, influence_statuses = _merge_elements("influences", old["influences"], new["influences"], ignore)
+    merged["influences"] = list(influences.values())
+    for key, influence in influences.items():
+        marks.edges[(influence["from"], influence["to"], influence["type"])] = influence_statuses[key][0]
+
+    before, after = _inversion_keys(old), _inversion_keys(new)
+    inversion_status = {}
+    for key in {**before, **after}:
+        inversion_status[key] = "new" if key not in before else "fixed" if key not in after else "unchanged"
+    marks.extra["inversions"] = inversion_status
+    return merged, marks
+
+
+def _make_privilege_gradient(path: str, output: str, **options: Any) -> Any:
+    from .privilegegradient import PrivilegeGradient
+
+    grouping = {k: options.pop(k) for k in ("group_by", "collapse", "max_nodes") if k in options}
+    if any(v is not None for v in grouping.values()):
+        logger.warning("group_by / collapse / max_nodes apply to attack graphs only; ignored")
+    return PrivilegeGradient(path, output, **options)
+
+
 _ADAPTERS: dict[str, _DriftAdapter] = {
     "attack_graph": _DriftAdapter(
         load=_attack_graph_data,
         normalize=normalize_attack_graph,
         merge=merge_attack_graphs,
         make=_make_attack_graph,
+    ),
+    "privilege_gradient": _DriftAdapter(
+        load=_privilege_gradient_data,
+        normalize=normalize_privilege_gradient,
+        merge=merge_privilege_gradients,
+        make=_make_privilege_gradient,
+        metadata=privilege_gradient_inversion_changes,
     ),
 }
 SUPPORTED_TYPES = tuple(_ADAPTERS)

@@ -190,7 +190,7 @@ app.add_middleware(
     # SECURITY: Use API_KEY_HEADER_NAME to support custom header names
     allow_headers=["Content-Type", "Accept", API_KEY_HEADER_NAME],
     # Readable by browser clients: download names and the 429 retry hint
-    expose_headers=["Content-Disposition", "Retry-After", "X-Diff-Summary"],
+    expose_headers=["Content-Disposition", "Retry-After", "X-Diff-Summary", "X-Diff-Inversions"],
     # SECURITY: Cache preflight requests for 1 hour to reduce OPTIONS requests
     max_age=3600,
 )

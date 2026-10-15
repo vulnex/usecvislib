@@ -26,6 +26,7 @@ Supports TOML, JSON, and YAML input formats.
 """
 
 from collections import deque
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 import networkx as nx
@@ -33,6 +34,59 @@ from graphviz import Digraph
 
 from . import utils
 from .base import VisualizationBase
+from .drift import DIFF_SIGNS, DriftStylingMixin, ElementMark, faded
+
+
+def detect_inversions(
+    zones: dict[str, dict], components: dict[str, dict], influences: list[dict]
+) -> list[dict[str, Any]]:
+    """Influences from a lower-trust zone into a higher-trust one, with their severity.
+
+    Severity follows the trust gap: 3 or more is critical, 2 high, 1 medium.
+    """
+    inversions = []
+    for influence in influences:
+        source_id = influence.get("from")
+        target_id = influence.get("to")
+        if not source_id or not target_id:
+            continue
+        source_comp = components.get(source_id)
+        target_comp = components.get(target_id)
+        if not source_comp or not target_comp:
+            continue
+        source_zone_id = source_comp.get("zone")
+        target_zone_id = target_comp.get("zone")
+        if not source_zone_id or not target_zone_id:
+            continue
+        source_zone = zones.get(source_zone_id)
+        target_zone = zones.get(target_zone_id)
+        if not source_zone or not target_zone:
+            continue
+        source_trust = source_zone.get("trust_level", 0)
+        target_trust = target_zone.get("trust_level", 0)
+        if source_trust < target_trust:
+            trust_gap = target_trust - source_trust
+            if trust_gap >= 3:
+                severity = "critical"
+            elif trust_gap >= 2:
+                severity = "high"
+            else:
+                severity = "medium"
+            inversions.append(
+                {
+                    "from": source_id,
+                    "to": target_id,
+                    "from_zone": source_zone_id,
+                    "to_zone": target_zone_id,
+                    "from_trust": source_trust,
+                    "to_trust": target_trust,
+                    "trust_gap": trust_gap,
+                    "severity": severity,
+                    "influence_type": influence.get("type", "unknown"),
+                    "label": influence.get("label", ""),
+                }
+            )
+    return inversions
 
 
 class PrivilegeGradientError(utils.RenderError):
@@ -41,7 +95,28 @@ class PrivilegeGradientError(utils.RenderError):
     pass
 
 
-class PrivilegeGradient(VisualizationBase):
+@dataclass
+class DriftView:
+    """What the engines draw: the gradient's sections, after the drift view's filter."""
+
+    zones: dict[str, dict]
+    components: dict[str, dict]
+    influences: list[dict]
+    inversions: list[dict]
+    marks: dict[str, ElementMark] = field(default_factory=dict)  # "zone:<id>" or component id
+    edge_marks: dict[tuple, ElementMark] = field(default_factory=dict)  # (from, to, type)
+    inversion_status: dict[str, str] = field(default_factory=dict)  # "from->to:type" -> new/fixed/unchanged
+
+    def influence_mark(self, influence: dict) -> Optional[ElementMark]:
+        key = (influence.get("from"), influence.get("to"), influence.get("type") or "data")
+        return self.edge_marks.get(key)
+
+    def inversion_of(self, influence: dict) -> Optional[str]:
+        key = f"{influence.get('from')}->{influence.get('to')}:{influence.get('type') or 'data'}"
+        return self.inversion_status.get(key)
+
+
+class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
     """Privilege gradient graph visualization and analysis class.
 
     Creates visual representations of trust zone architectures using
@@ -169,6 +244,11 @@ class PrivilegeGradient(VisualizationBase):
         self._reverse_adjacency: dict[str, list[str]] = {}
         self._nx_graph: Optional[nx.DiGraph] = None
         self._temp_input: Optional[str] = None
+
+        # Drift view, set by render_diff(): change marks, colors, changes-only
+        self.diff_marks: Optional[Any] = None
+        self.diff_colors: Optional[dict[str, str]] = None
+        self.show_unchanged = True
 
     def __del__(self):
         if hasattr(self, "_temp_input") and self._temp_input:
@@ -373,59 +453,70 @@ class PrivilegeGradient(VisualizationBase):
 
     def _detect_inversions(self) -> None:
         """Detect privilege gradient inversions."""
-        self._inversions = []
+        self._inversions = detect_inversions(self._zones, self._components, self._influences)
 
-        for influence in self._influences:
-            source_id = influence.get("from")
-            target_id = influence.get("to")
+    def drift_view(self) -> DriftView:
+        """The sections to draw and their change marks (both engines read this).
 
-            if not source_id or not target_id:
-                continue
+        Without a drift (render_diff) it is the loaded data itself. With
+        ``show_unchanged=False`` it keeps changed zones, components and
+        influences (new and fixed inversions count), their direct neighbours
+        and the zones holding what is kept; inversions are re-detected on that.
+        """
+        if self.diff_marks is None:
+            return DriftView(self._zones, self._components, self._influences, self._inversions)
+        marks = {
+            key: ElementMark(diff=status, changed=list(changed))
+            for key, (status, changed) in self.diff_marks.nodes.items()
+        }
+        edge_marks = {key: ElementMark(diff=status) for key, status in self.diff_marks.edges.items()}
+        inversion_status = dict(self.diff_marks.extra.get("inversions", {}))
+        view = DriftView(
+            self._zones, self._components, self._influences, self._inversions, marks, edge_marks, inversion_status
+        )
+        if not self.show_unchanged:
+            self._changes_only(view)
+        return view
 
-            source_comp = self._components.get(source_id)
-            target_comp = self._components.get(target_id)
+    @staticmethod
+    def _changes_only(view: DriftView) -> None:
+        def changed(mark: Optional[ElementMark]) -> bool:
+            return mark is not None and mark.diff not in (None, "unchanged")
 
-            if not source_comp or not target_comp:
-                continue
+        hot = {cid for cid in view.components if changed(view.marks.get(cid))}
+        for influence in view.influences:
+            if changed(view.influence_mark(influence)) or view.inversion_of(influence) in ("new", "fixed"):
+                hot.update((influence.get("from"), influence.get("to")))
+        hot_zones = {zid for zid in view.zones if changed(view.marks.get(f"zone:{zid}"))}
+        if not hot and not hot_zones:
+            return  # nothing changed: draw everything
+        keep = set(hot)
+        for influence in view.influences:
+            if influence.get("from") in hot:
+                keep.add(influence.get("to"))
+            if influence.get("to") in hot:
+                keep.add(influence.get("from"))
+        view.components = {cid: c for cid, c in view.components.items() if cid in keep}
+        zones_used = {c.get("zone") for c in view.components.values()}
+        view.zones = {zid: z for zid, z in view.zones.items() if zid in zones_used or zid in hot_zones}
+        view.influences = [
+            i for i in view.influences if i.get("from") in view.components and i.get("to") in view.components
+        ]
+        view.inversions = detect_inversions(view.zones, view.components, view.influences)
 
-            source_zone_id = source_comp.get("zone")
-            target_zone_id = target_comp.get("zone")
+    @staticmethod
+    def inversion_label(view: DriftView, influence: dict, severity: Optional[str]) -> Optional[str]:
+        """An influence's inversion label in the drift view (None when it shows no inversion).
 
-            if not source_zone_id or not target_zone_id:
-                continue
-
-            source_zone = self._zones.get(source_zone_id)
-            target_zone = self._zones.get(target_zone_id)
-
-            if not source_zone or not target_zone:
-                continue
-
-            source_trust = source_zone.get("trust_level", 0)
-            target_trust = target_zone.get("trust_level", 0)
-
-            if source_trust < target_trust:
-                trust_gap = target_trust - source_trust
-                if trust_gap >= 3:
-                    severity = "critical"
-                elif trust_gap >= 2:
-                    severity = "high"
-                else:
-                    severity = "medium"
-
-                self._inversions.append(
-                    {
-                        "from": source_id,
-                        "to": target_id,
-                        "from_zone": source_zone_id,
-                        "to_zone": target_zone_id,
-                        "from_trust": source_trust,
-                        "to_trust": target_trust,
-                        "trust_gap": trust_gap,
-                        "severity": severity,
-                        "influence_type": influence.get("type", "unknown"),
-                        "label": influence.get("label", ""),
-                    }
-                )
+        ``severity`` is the inversion's in the drawn data, or None if it is not one there.
+        """
+        status = view.inversion_of(influence)
+        if status == "fixed":
+            return "FIXED INVERSION"
+        if severity is None:
+            return None
+        marker = {"critical": "!!!", "high": "!!", "medium": "!"}.get(severity, "!")
+        return f"{marker} NEW INVERSION {marker}" if status == "new" else f"{marker} INVERSION {marker}"
 
     def _render_impl(self) -> None:
         """Build the privilege gradient graph from loaded data."""
@@ -433,6 +524,8 @@ class PrivilegeGradient(VisualizationBase):
             raise PrivilegeGradientError("Missing 'gradient' section in privilege gradient configuration")
 
         graph_meta = self.inputdata.get("gradient", {})
+        view = self.drift_view()
+        palette = self.diff_palette() if self.diff_marks is not None else {}
 
         # Get styles
         graph_style = self.style.get("graph", self._default_style()["graph"])
@@ -451,9 +544,11 @@ class PrivilegeGradient(VisualizationBase):
 
         if graph_meta.get("name"):
             self.graph.attr(label=graph_meta["name"], labelloc="t")
+        if self.diff_marks is not None:
+            self.graph.attr(label=self._diff_title(graph_meta.get("name", "")), labelloc="t")
 
         # Sort zones by trust_level ascending (low trust left, high trust right)
-        sorted_zones = sorted(self._zones.values(), key=lambda z: z.get("trust_level", 0))
+        sorted_zones = sorted(view.zones.values(), key=lambda z: z.get("trust_level", 0))
 
         # Build zone subgraphs
         zone_anchors = []
@@ -472,6 +567,15 @@ class PrivilegeGradient(VisualizationBase):
             if "fontcolor" in zone_style and (dark_theme or "font_color" not in zone_data):
                 zone_font_color = zone_style["fontcolor"]
 
+            zone_mark = view.marks.get(f"zone:{zone_id}")
+            zone_status = zone_mark.diff if zone_mark is not None else None
+            if zone_status in DIFF_SIGNS:
+                # Drift: the zone's border takes the change color; a removed zone fades
+                zone_label = f"{DIFF_SIGNS[zone_status]} {zone_label}"
+                zone_border = palette[zone_status]
+                if zone_status == "removed":
+                    zone_color = faded(str(zone_color))
+
             with self.graph.subgraph(name=f"cluster_{zone_id}") as sub:
                 sub_attrs = utils.stringify_dict(zone_style.copy())
                 sub.attr(
@@ -489,7 +593,7 @@ class PrivilegeGradient(VisualizationBase):
                 zone_anchors.append(anchor_id)
 
                 # Add components in this zone
-                for comp_id, comp_data in self._components.items():
+                for comp_id, comp_data in view.components.items():
                     if comp_data.get("zone") == zone_id:
                         node_attrs = comp_data.copy()
                         # Check for images
@@ -530,6 +634,7 @@ class PrivilegeGradient(VisualizationBase):
                         # Remove non-graphviz keys
                         for key in ("id", "zone", "description", "type"):
                             node_attrs.pop(key, None)
+                        label = self._style_diff_node(node_attrs, label, view.marks.get(comp_id))
                         sub.node(utils.sanitize_node_id(comp_id), label, **node_attrs)
 
         # Add invisible edges between zone anchors for ordering
@@ -538,11 +643,11 @@ class PrivilegeGradient(VisualizationBase):
 
         # Build inversion lookup for quick checking
         inversion_set = set()
-        for inv in self._inversions:
+        for inv in view.inversions:
             inversion_set.add((inv["from"], inv["to"]))
 
         # Draw influence edges
-        for influence in self._influences:
+        for influence in view.influences:
             source = influence.get("from")
             target = influence.get("to")
             if not source or not target:
@@ -558,16 +663,29 @@ class PrivilegeGradient(VisualizationBase):
                 edge_attrs = utils.stringify_dict(inversion_style.copy())
                 # Find severity for this inversion
                 inv_severity = "medium"
-                for inv in self._inversions:
+                for inv in view.inversions:
                     if inv["from"] == source and inv["to"] == target:
                         inv_severity = inv["severity"]
                         break
-                severity_marker = {"critical": "!!!", "high": "!!", "medium": "!"}.get(inv_severity, "!")
-                edge_attrs["label"] = (
-                    f" {severity_marker} INVERSION {severity_marker}\\n{inf_label}"
-                    if inf_label
-                    else f" {severity_marker} INVERSION {severity_marker}"
-                )
+                if self.diff_marks is not None:
+                    # Drift: NEW / FIXED inversions; a removed influence keeps its removed styling
+                    text = self.inversion_label(view, influence, inv_severity)
+                    edge_attrs["label"] = f" {text}\\n{inf_label}" if inf_label else f" {text}"
+                    mark = view.influence_mark(influence)
+                    removed = mark is not None and mark.diff == "removed"
+                    if view.inversion_of(influence) == "fixed" or removed:
+                        self._style_diff_edge(edge_attrs, mark if removed else ElementMark(diff="removed"))
+                        edge_attrs["fontcolor"] = palette["removed"]
+                    elif view.inversion_of(influence) == "new":
+                        edge_attrs["penwidth"] = str(float(edge_attrs.get("penwidth", 3)) + 1.5)
+                        edge_attrs["fontcolor"] = palette["added"]
+                else:
+                    severity_marker = {"critical": "!!!", "high": "!!", "medium": "!"}.get(inv_severity, "!")
+                    edge_attrs["label"] = (
+                        f" {severity_marker} INVERSION {severity_marker}\\n{inf_label}"
+                        if inf_label
+                        else f" {severity_marker} INVERSION {severity_marker}"
+                    )
             else:
                 # Use influence type style
                 style_key = f"{inf_type}_influence"
@@ -592,6 +710,12 @@ class PrivilegeGradient(VisualizationBase):
 
                 if inf_label:
                     edge_attrs["label"] = f" {inf_label}"
+                if self.diff_marks is not None:
+                    self._style_diff_edge(edge_attrs, view.influence_mark(influence))
+                    if view.inversion_of(influence) == "fixed":
+                        # Fixed by a zone move: drawn as an ordinary influence, marked fixed
+                        edge_attrs["label"] = f" FIXED INVERSION\\n{inf_label}" if inf_label else " FIXED INVERSION"
+                        edge_attrs["fontcolor"] = palette["removed"]
 
             self.graph.edge(utils.sanitize_node_id(source), utils.sanitize_node_id(target), **edge_attrs)
 

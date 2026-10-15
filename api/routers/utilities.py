@@ -943,7 +943,7 @@ async def render_drift(
     old_file: UploadFile = File(..., description="Earlier version"),
     new_file: UploadFile = File(..., description="Later version"),
     mode: Optional[VisualizationMode] = Query(
-        default=None, description="Visualization mode (auto-detected when omitted); attack_graph only for now"
+        default=None, description="Visualization mode (auto-detected): attack_graph or privilege_gradient"
     ),
     format: OutputFormat = Query(default=OutputFormat.PNG, description="Output format"),
     render_engine: RenderEngine = Query(default=RenderEngine.GRAPHVIZ, description="graphviz (default) or svg"),
@@ -966,6 +966,9 @@ async def render_drift(
     element is marked added, removed, modified or unchanged and drawn with a
     colored border, fading and a +/-/~ chip (fills keep their CVSS colors).
     The change summary is returned in the `X-Diff-Summary` header (JSON).
+    For a privilege gradient, the inversions (tiering violations) that
+    appeared or were fixed are in `X-Diff-Inversions`:
+    `{"new": [{"from", "to", "type", "severity"}], "fixed": [...]}`.
     """
     from usecvislib.diffrender import SUPPORTED_TYPES, render_diff, resolve_diff_colors
 
@@ -994,7 +997,7 @@ async def render_drift(
 
         output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"drift_{os.urandom(8).hex()}"))
         styleid = style or ""
-        if render_engine == RenderEngine.SVG and styleid.startswith("ag_"):
+        if render_engine == RenderEngine.SVG and styleid.startswith(("ag_", "pg_")):
             styleid = ""  # Graphviz preset with the SVG engine: use the engine default
         result = await run_sync_with_timeout(
             lambda: render_diff(
@@ -1020,6 +1023,17 @@ async def render_drift(
             f"{output_base}.{format.value}", format, f"drift.{format.value}", temps, background_tasks
         )
         response.headers["X-Diff-Summary"] = json.dumps(result.summary)
+        inversions = result.metadata.get("inversions")
+        if inversions is not None:
+            response.headers["X-Diff-Inversions"] = json.dumps(
+                {
+                    status: [
+                        {"from": i["from"], "to": i["to"], "type": i["influence_type"], "severity": i["severity"]}
+                        for i in items
+                    ]
+                    for status, items in inversions.items()
+                }
+            )
         return response
 
 

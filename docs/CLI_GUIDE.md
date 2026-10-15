@@ -535,9 +535,12 @@ usecvis -m 3 -i day2.toml --diff day1.toml -o drift --render-engine svg -f svg \
 
 # Combine with grouping: collapsed zones show how many members changed
 usecvis -m 3 -i day2.toml --diff day1.toml -o drift --group-by zone --collapse all
+
+# Privilege gradient (mode 6): also lists the inversions that appeared or were fixed
+usecvis -m 6 -i tiers_q2.toml --diff tiers_q1.toml -o tiers
 ```
 
-Added elements are outlined in pink-red with a `+`, removed ones faded and dashed with a `−`, modified ones outlined in violet with a `~`. The command prints the added / removed / modified counts. See "Drift Picture" in the Python API guide.
+Added elements are outlined in pink-red with a `+`, removed ones faded and dashed with a `−`, modified ones outlined in violet with a `~`. The command prints the added / removed / modified counts and, for mode 6, each new or fixed inversion. See "Drift Picture" in the Python API guide.
 
 #### Example Configuration (TOML)
 

@@ -19,6 +19,11 @@ resource dotted, control thick), and inversions, where a lower-trust
 component influences a higher-trust one, are drawn red and labelled with
 their severity. A legend row names the influence types and the inversion.
 
+In the drift view (``render_diff``) zones, components and influences carry
+their change (``usv-diff--*``, ``data-diff``, ``data-changed``) and each
+inversion its status: ``data-inversion`` new / fixed / unchanged, with
+``NEW INVERSION`` and ``FIXED INVERSION`` labels.
+
 All privilege-gradient semantics live here; the shared general-graph
 renderer stays module-agnostic.
 """
@@ -61,6 +66,24 @@ def inversion_label(severity: str, label: str = "") -> str:
     return f"{text} · {label}" if label else text
 
 
+def _drift_label(view, influence: dict, severity: str, label: str) -> str:
+    """An inversion's label in the drift view: NEW / FIXED as the status says."""
+    status = view.inversion_of(influence)
+    if status == "fixed":
+        text = "FIXED INVERSION"
+    else:
+        marker = _SEVERITY_MARKER.get(severity, "!")
+        text = f"{marker} NEW INVERSION {marker}" if status == "new" else f"{marker} INVERSION {marker}"
+    return f"{text} · {label}" if label else text
+
+
+def _mark(mark) -> tuple[Any, dict[str, str]]:
+    """A drift mark's status and its data-* attributes (the changed fields)."""
+    if mark is None:
+        return None, {}
+    return mark.diff, ({"changed": ",".join(mark.changed)} if mark.changed else {})
+
+
 def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     """Translate the privilege-gradient data into a fully-styled Scene."""
     pg = theme["privilegegradient"]
@@ -75,7 +98,8 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     name = viz.inputdata.get("gradient", {}).get("name", "Privilege Gradient Graph")
     scene = Scene(module=MODULE_SLUG, meta={"name": name})
 
-    zones = sorted(viz._zones.items(), key=lambda item: item[1].get("trust_level", 0))
+    view = viz.drift_view()
+    zones = sorted(view.zones.items(), key=lambda item: item[1].get("trust_level", 0))
     anchors: list[str] = []
     for zone_id, zone in zones:
         trust = zone.get("trust_level", 0)
@@ -85,7 +109,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
         anchors.append(anchor)
         members = [anchor]
 
-        for comp_id, comp in viz._components.items():
+        for comp_id, comp in view.components.items():
             if comp.get("zone") != zone_id:
                 continue
             label = comp.get("label", comp_id)
@@ -95,6 +119,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
             # with its own component fill (dark themes) keeps the zone in the border
             fill = comp.get("fillcolor") or pg.get("component_fill") or border
             card_border = border if pg.get("component_fill") else pg["component_border"]
+            diff, diff_data = _mark(view.marks.get(comp_id))
             scene.nodes.append(
                 SceneNode(
                     id=comp_id,
@@ -107,6 +132,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                     fill=fill,
                     border=card_border,
                     text_color=comp.get("fontcolor") or utils.readable_text_color(fill) or "#ffffff",
+                    diff=diff,
                     data={
                         "node-id": utils.sanitize_node_id(comp_id),
                         "label": str(label),
@@ -114,6 +140,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                         "zone": str(zone_id),
                         "trust-level": str(trust),
                         **({"type": str(comp["type"])} if comp.get("type") else {}),
+                        **diff_data,
                     },
                 )
             )
@@ -121,6 +148,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                 attach_icon(scene.nodes[-1], comp["image"], theme)
             members.append(comp_id)
 
+        zone_diff, zone_data = _mark(view.marks.get(f"zone:{zone_id}"))
         scene.groups.append(
             SceneGroup(
                 id=utils.sanitize_node_id(zone_id),
@@ -129,7 +157,8 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                 fill=pg.get("zone_fill") or zone.get("color", "#f0f0f0"),
                 border=border,
                 text_color=pg.get("zone_text") or zone.get("font_color", "#333333"),
-                data={"zone": str(zone_id), "trust-level": str(trust)},
+                diff=zone_diff,
+                data={"zone": str(zone_id), "trust-level": str(trust), **zone_data},
             )
         )
 
@@ -140,7 +169,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     if not any(not n.layout_only for n in scene.nodes):
         raise utils.RenderError("Privilege gradient has no components to render")
 
-    _build_edges(scene, viz, theme)
+    _build_edges(scene, viz, view, theme)
     return scene
 
 
@@ -153,25 +182,32 @@ def _type_color(viz, type_id: str, pg: dict[str, Any]) -> str:
     return configured or preset or "#64748b"
 
 
-def _build_edges(scene: Scene, viz, theme: dict[str, Any]) -> None:
+def _build_edges(scene: Scene, viz, view, theme: dict[str, Any]) -> None:
     """Influence edges by type; inversions in red with their severity."""
     pg = theme["privilegegradient"]
+    drift = viz.diff_marks is not None
+    diff_colors = theme.get("diff", {})
     drawn = {n.id for n in scene.nodes if not n.layout_only}
     base_width = float(theme["edge"]["width"])
-    inversions = {(inv["from"], inv["to"]): inv for inv in viz._inversions}
+    inversions = {(inv["from"], inv["to"]): inv for inv in view.inversions}
 
-    for influence in viz._influences:
+    for influence in view.influences:
         src, dst = influence.get("from"), influence.get("to")
         if src not in drawn or dst not in drawn:
             continue
         type_id = influence.get("type", "data")
         label = influence.get("label", "")
         data = {"type": str(type_id)}
+        diff, diff_data = _mark(view.influence_mark(influence))
+        data.update(diff_data)
+        status = view.inversion_of(influence) if drift else None
+        if status in ("new", "fixed"):
+            data["inversion"] = status
         inversion = inversions.get((src, dst))
-        if inversion is not None:
+        if inversion is not None and status != "fixed":
             data.update(
                 {
-                    "inversion": "true",
+                    "inversion": status or "true",
                     "severity": inversion["severity"],
                     "trust-gap": str(inversion["trust_gap"]),
                 }
@@ -183,7 +219,13 @@ def _build_edges(scene: Scene, viz, theme: dict[str, Any]) -> None:
                     kind="inversion",
                     color=pg["inversion"],
                     width=float(pg["inversion_width"]),
-                    label=inversion_label(inversion["severity"], label),
+                    label=(
+                        _drift_label(view, influence, inversion["severity"], label)
+                        if drift
+                        else inversion_label(inversion["severity"], label)
+                    ),
+                    label_color=diff_colors.get("added") if status == "new" else None,
+                    diff=diff,
                     data=data,
                 )
             )
@@ -198,7 +240,9 @@ def _build_edges(scene: Scene, viz, theme: dict[str, Any]) -> None:
                 width=base_width * factor,
                 dashed=dashed,
                 dash=dash,
-                label=label or None,
+                label=_drift_label(view, influence, "", label) if status == "fixed" else (label or None),
+                label_color=diff_colors.get("removed") if status == "fixed" else None,
+                diff=diff,
                 data=data,
             )
         )
@@ -220,8 +264,17 @@ def _legend(viz, theme: dict[str, Any]) -> list[tuple]:
 def render_svg(viz) -> str:
     """Render a privilege gradient visualization instance to SVG text."""
     theme = themes.resolve(viz.style)
+    if getattr(viz, "diff_colors", None):
+        theme["diff"] = {**theme["diff"], **viz.diff_colors}
     scene = _build_scene(viz, theme)
     scene.meta["legend"] = _legend(viz, theme)
+    if getattr(viz, "diff_marks", None) is not None:
+        diff = theme["diff"]
+        scene.meta["legend"] += [
+            ("+ added", diff["added"]),
+            ("\u2212 removed", diff["removed"]),
+            ("~ modified", diff["modified"]),
+        ]
     pg = theme["privilegegradient"]
     return render_graph_svg(
         viz,
