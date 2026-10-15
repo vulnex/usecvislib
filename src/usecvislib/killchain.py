@@ -19,6 +19,10 @@ sequence of phases, each holding the techniques mapped to it:
 - **Cyber Kill Chain** (Lockheed Martin): 7 phases, reconnaissance ->
   actions on objectives.
 - **MITRE ATT&CK**: 14 Enterprise tactics as the phase axis.
+- **MITRE ATLAS**: the 16 tactics of the AI/ML counterpart to ATT&CK
+  (ATLAS 5.6.0). A technique's phase may also be a tactic ID
+  (``AML.TA0004``); technique IDs (``AML.T0051``) are free-form, as for
+  ATT&CK.
 - **Custom**: phases declared in the input file.
 
 Built SVG-native on the engine's LinearLayout (the Graphviz path draws the
@@ -30,12 +34,12 @@ Input schema (TOML/JSON/YAML)::
 
     [killchain]
     name = "..."
-    framework = "kill_chain" | "attack" | "custom"
+    framework = "kill_chain" | "attack" | "atlas" | "custom"
     phases = ["Recon", ...]        # custom framework only
 
     [techniques."T1566"]
     name = "Phishing"
-    phase = "Delivery"             # kill-chain phase or ATT&CK tactic
+    phase = "Delivery"             # kill-chain phase, ATT&CK or ATLAS tactic
     severity = "high"
     detected = true
     mitigated = false
@@ -95,8 +99,50 @@ class ATTACKTactic(str, Enum):
     IMPACT = "Impact"
 
 
+class ATLASTactic(str, Enum):
+    """MITRE ATLAS tactics, in matrix order (ATLAS 5.6.0)."""
+
+    RECONNAISSANCE = "Reconnaissance"
+    RESOURCE_DEVELOPMENT = "Resource Development"
+    INITIAL_ACCESS = "Initial Access"
+    AI_MODEL_ACCESS = "AI Model Access"
+    EXECUTION = "Execution"
+    PERSISTENCE = "Persistence"
+    PRIVILEGE_ESCALATION = "Privilege Escalation"
+    DEFENSE_EVASION = "Defense Evasion"
+    CREDENTIAL_ACCESS = "Credential Access"
+    DISCOVERY = "Discovery"
+    LATERAL_MOVEMENT = "Lateral Movement"
+    COLLECTION = "Collection"
+    AI_ATTACK_STAGING = "AI Attack Staging"
+    COMMAND_AND_CONTROL = "Command and Control"
+    EXFILTRATION = "Exfiltration"
+    IMPACT = "Impact"
+
+
+# ATLAS tactic IDs (the IDs are not in matrix order)
+ATLAS_TACTIC_IDS = {
+    "AML.TA0002": ATLASTactic.RECONNAISSANCE.value,
+    "AML.TA0003": ATLASTactic.RESOURCE_DEVELOPMENT.value,
+    "AML.TA0004": ATLASTactic.INITIAL_ACCESS.value,
+    "AML.TA0000": ATLASTactic.AI_MODEL_ACCESS.value,
+    "AML.TA0005": ATLASTactic.EXECUTION.value,
+    "AML.TA0006": ATLASTactic.PERSISTENCE.value,
+    "AML.TA0012": ATLASTactic.PRIVILEGE_ESCALATION.value,
+    "AML.TA0007": ATLASTactic.DEFENSE_EVASION.value,
+    "AML.TA0013": ATLASTactic.CREDENTIAL_ACCESS.value,
+    "AML.TA0008": ATLASTactic.DISCOVERY.value,
+    "AML.TA0015": ATLASTactic.LATERAL_MOVEMENT.value,
+    "AML.TA0009": ATLASTactic.COLLECTION.value,
+    "AML.TA0001": ATLASTactic.AI_ATTACK_STAGING.value,
+    "AML.TA0014": ATLASTactic.COMMAND_AND_CONTROL.value,
+    "AML.TA0010": ATLASTactic.EXFILTRATION.value,
+    "AML.TA0011": ATLASTactic.IMPACT.value,
+}
+
 KILL_CHAIN_ORDER = [p.value for p in KillChainPhase]
 ATTACK_TACTIC_ORDER = [t.value for t in ATTACKTactic]
+ATLAS_TACTIC_ORDER = [t.value for t in ATLASTactic]
 
 # Alternate spellings accepted for a phase/tactic on a technique.
 _PHASE_ALIASES = {
@@ -108,6 +154,9 @@ _PHASE_ALIASES = {
     "actions": "Actions on Objectives",
     "priv esc": "Privilege Escalation",
     "privesc": "Privilege Escalation",
+    # ATLAS tactics before ATLAS renamed "ML" to "AI"
+    "ml model access": "AI Model Access",
+    "ml attack staging": "AI Attack Staging",
 }
 
 _VALID_SEVERITIES = {"critical", "high", "medium", "low", "none", "info"}
@@ -210,6 +259,9 @@ class KillChain(VisualizationBase):
         if self.framework in ("attack", "mitre", "mitre_attack", "attck"):
             self.framework = "attack"
             return list(ATTACK_TACTIC_ORDER)
+        if self.framework in ("atlas", "mitre_atlas"):
+            self.framework = "atlas"
+            return list(ATLAS_TACTIC_ORDER)
         if self.framework == "custom":
             phases = kc.get("phases")
             if not isinstance(phases, list) or not phases:
@@ -223,6 +275,8 @@ class KillChain(VisualizationBase):
         value = str(raw).strip()
         if value in self.phase_order:
             return value
+        if self.framework == "atlas" and value.upper() in ATLAS_TACTIC_IDS:
+            return ATLAS_TACTIC_IDS[value.upper()]
         alias = _PHASE_ALIASES.get(value.lower())
         if alias and alias in self.phase_order:
             return alias

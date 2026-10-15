@@ -23,6 +23,8 @@ from pathlib import Path
 import pytest
 
 from usecvislib.killchain import (
+    ATLAS_TACTIC_IDS,
+    ATLAS_TACTIC_ORDER,
     ATTACK_TACTIC_ORDER,
     KILL_CHAIN_ORDER,
     IncidentMapping,
@@ -36,6 +38,7 @@ TEMPLATES = sorted(glob.glob(str(TESTS_DIR.parent / "templates" / "kill-chains" 
 APT = str(TESTS_DIR.parent / "templates" / "kill-chains" / "apt_intrusion.tml")
 RANSOM = str(TESTS_DIR.parent / "templates" / "kill-chains" / "ransomware_attack.tml")
 INSIDER = str(TESTS_DIR.parent / "templates" / "kill-chains" / "insider_exfiltration.tml")
+ATLAS = str(TESTS_DIR.parent / "templates" / "kill-chains" / "atlas_agent_prompt_injection.tml")
 SVG_NS = "{http://www.w3.org/2000/svg}"
 
 
@@ -123,6 +126,71 @@ class TestModel:
         assert any("GHOST" in e for e in errors)
 
 
+class TestAtlasFramework:
+    def test_axis_is_the_16_atlas_tactics(self, tmp_path):
+        kc = KillChain(ATLAS, str(tmp_path / "o"), render_engine="svg")
+        kc.load()
+        assert kc.framework == "atlas"
+        assert kc.phase_order == ATLAS_TACTIC_ORDER
+        assert len(ATLAS_TACTIC_ORDER) == 16
+        assert ATLAS_TACTIC_ORDER[3] == "AI Model Access" and ATLAS_TACTIC_ORDER[12] == "AI Attack Staging"
+        assert kc.warnings == []
+        assert kc.get_stats()["framework"] == "atlas"
+
+    def test_every_tactic_id_maps_onto_the_axis(self):
+        assert sorted(ATLAS_TACTIC_IDS.values()) == sorted(ATLAS_TACTIC_ORDER)
+
+    @pytest.mark.parametrize("framework", ["atlas", "ATLAS", "mitre-atlas", "mitre_atlas"])
+    def test_framework_spellings(self, tmp_path, framework):
+        src = tmp_path / "fw.tml"
+        src.write_text(
+            f'[killchain]\nname="x"\nframework="{framework}"\n[techniques."AML.T0051"]\nname="a"\nphase="Execution"\n'
+        )
+        kc = KillChain(str(src), str(tmp_path / "o"), render_engine="svg")
+        kc.load()
+        assert kc.framework == "atlas"
+
+    def test_phase_by_tactic_id_and_old_ml_names(self, tmp_path):
+        src = tmp_path / "ids.tml"
+        src.write_text(
+            '[killchain]\nname="x"\nframework="atlas"\n'
+            '[techniques."AML.T0040"]\nname="a"\nphase="AML.TA0000"\n'
+            '[techniques."AML.T0043"]\nname="b"\ntactic="aml.ta0001"\n'
+            '[techniques."AML.T0047"]\nname="c"\nphase="ML Model Access"\n'
+            '[techniques."AML.T0018"]\nname="d"\nphase="ML Attack Staging"\n'
+        )
+        kc = KillChain(str(src), str(tmp_path / "o"), render_engine="svg")
+        kc.load()
+        phases = {tid: t.phase for tid, t in kc.techniques.items()}
+        assert phases == {
+            "AML.T0040": "AI Model Access",
+            "AML.T0043": "AI Attack Staging",
+            "AML.T0047": "AI Model Access",
+            "AML.T0018": "AI Attack Staging",
+        }
+        assert kc.warnings == []
+
+    def test_tactic_ids_only_resolve_for_atlas(self, tmp_path):
+        src = tmp_path / "attack.tml"
+        src.write_text('[killchain]\nname="x"\nframework="attack"\n[techniques."T1"]\nname="a"\nphase="AML.TA0004"\n')
+        kc = KillChain(str(src), str(tmp_path / "o"), render_engine="svg")
+        kc.load()
+        assert any("AML.TA0004" in w for w in kc.warnings)
+
+    def test_builder(self, tmp_path):
+        from usecvislib.builders import KillChainBuilder
+
+        builder = KillChainBuilder("Agent attack", framework="atlas")
+        builder.add_technique("AML.T0051", "LLM Prompt Injection", "AML.TA0005", severity="critical")
+        kc = builder.to_kill_chain(str(tmp_path / "o"), render_engine="svg")
+        kc.load()
+        assert kc.techniques["AML.T0051"].phase == "Execution"
+
+    def test_svg_render_shows_atlas_phases(self, tmp_path):
+        svg = _render_svg(ATLAS, tmp_path)
+        assert "AI Model Access" in svg and "AML.T0051.001" in svg
+
+
 class TestSvgEngine:
     @pytest.fixture(autouse=True)
     def _require_cairosvg(self):
@@ -173,8 +241,10 @@ class TestSvgEngine:
             (sx1, sy1, sx2, sy2), (dx1, dy1, dx2, dy2) = cards[src], cards[dst]
             if (sx1 + sx2) / 2 == pytest.approx((dx1 + dx2) / 2):
                 continue  # same-phase step: vertical, covered separately
-            line_y = (sy1 + sy2) / 2
-            assert line_y == pytest.approx((dy1 + dy2) / 2), f"{src} -> {dst} should run straight"
+            # Cards are top-aligned in their row; the flow runs at the shorter
+            # card's mid-height, so it stays level when one card wraps taller
+            assert sy1 == pytest.approx(dy1), f"{src} -> {dst} should run straight"
+            line_y = sy1 + min(sy2 - sy1, dy2 - dy1) / 2
             for other, (ox1, oy1, ox2, oy2) in cards.items():
                 if other in (src, dst):
                     continue

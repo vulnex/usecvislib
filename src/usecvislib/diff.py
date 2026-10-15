@@ -32,6 +32,7 @@ Example:
 import logging
 from dataclasses import dataclass, field
 from enum import Enum
+from itertools import pairwise
 from pathlib import Path
 from typing import Any, Optional
 
@@ -437,6 +438,58 @@ class VisualizationDiff:
         logger.info(f"Saved diff report to: {output}")
 
 
+@dataclass
+class SeriesDiffResult:
+    """Result of comparing an ordered series of versions.
+
+    Attributes:
+        sources: The compared sources, in series order.
+        steps: One DiffResult per consecutive pair (sources[i] -> sources[i + 1]).
+        overall: The net change, first -> last. Something added in one step
+            and removed in a later one does not appear here.
+    """
+
+    sources: list[str]
+    steps: list[DiffResult]
+    overall: DiffResult
+
+    @property
+    def has_changes(self) -> bool:
+        """Whether any step changed anything (the net change may still be empty)."""
+        return any(step.has_changes for step in self.steps)
+
+    @property
+    def summary(self) -> dict[str, Any]:
+        """Counts per step and net, first -> last."""
+        return {
+            "versions": len(self.sources),
+            "steps": [step.summary for step in self.steps],
+            "overall": self.overall.summary,
+        }
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert to dictionary representation."""
+        return {
+            "sources": self.sources,
+            "summary": self.summary,
+            "has_changes": self.has_changes,
+            "steps": [step.to_dict() for step in self.steps],
+            "overall": self.overall.to_dict(),
+        }
+
+
+def _module_class(visualization_type: str) -> type:
+    """Visualization class for a type name (every file-based module except binary)."""
+    # The diff compares the loaded config data, so every file-based module works
+    from .batch import BatchProcessor
+
+    classes = {name: cls for name, cls in BatchProcessor._get_modules().items() if name != "binary"}
+
+    if visualization_type not in classes:
+        raise ValueError(f"Unknown type: {visualization_type}")
+    return classes[visualization_type]
+
+
 def compare_files(old_file: str, new_file: str, visualization_type: str) -> DiffResult:
     """Convenience function to compare two files.
 
@@ -458,18 +511,49 @@ def compare_files(old_file: str, new_file: str, visualization_type: str) -> Diff
         ...     "attack_graph"
         ... )
     """
-    # The diff compares the loaded config data, so every file-based module works
-    from .batch import BatchProcessor
-
-    classes = {name: cls for name, cls in BatchProcessor._get_modules().items() if name != "binary"}
-
-    if visualization_type not in classes:
-        raise ValueError(f"Unknown type: {visualization_type}")
-
-    cls = classes[visualization_type]
+    cls = _module_class(visualization_type)
 
     old_instance = cls(old_file, "old_output", validate_paths=False)
     new_instance = cls(new_file, "new_output", validate_paths=False)
 
     diff = VisualizationDiff(old_instance, new_instance)
     return diff.compare()
+
+
+def compare_series(
+    files: list[str], visualization_type: str, ignore_paths: Optional[list[str]] = None
+) -> SeriesDiffResult:
+    """Compare an ordered series of files: each consecutive pair, and first -> last.
+
+    Each file is loaded once, however many comparisons it takes part in.
+
+    Args:
+        files: Paths in series order (e.g. snapshots, oldest first). At least two.
+        visualization_type: Type of visualization, as for ``compare_files()``.
+        ignore_paths: Optional path prefixes to ignore in every comparison.
+
+    Returns:
+        SeriesDiffResult with one step per consecutive pair and the net change.
+
+    Raises:
+        ValueError: If fewer than two files are given or the type is unknown.
+
+    Example:
+        >>> series = compare_series(
+        ...     ["engagement_day1.toml", "engagement_day2.toml", "engagement_day3.toml"],
+        ...     "attack_graph",
+        ... )
+        >>> [step.summary["added"] for step in series.steps]
+        >>> series.overall.summary
+    """
+    if len(files) < 2:
+        raise ValueError("compare_series() needs at least two files")
+
+    cls = _module_class(visualization_type)
+    instances = [cls(path, f"series_{i}_output", validate_paths=False) for i, path in enumerate(files)]
+    for instance in instances:
+        instance.load()
+
+    steps = [VisualizationDiff(old, new).compare(ignore_paths=ignore_paths) for old, new in pairwise(instances)]
+    overall = VisualizationDiff(instances[0], instances[-1]).compare(ignore_paths=ignore_paths)
+    return SeriesDiffResult(sources=[str(path) for path in files], steps=steps, overall=overall)

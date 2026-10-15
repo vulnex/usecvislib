@@ -75,7 +75,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     name = data.get("graph", {}).get("name", "Attack Graph")
     scene = Scene(module=MODULE_SLUG, meta={"name": name})
 
-    def add_node(node_id, lines, kind, fill, severity=None, cvss=None, text_color=None):
+    def add_node(node_id, lines, kind, fill, severity=None, cvss=None, text_color=None, element=None):
         if text_color is None:
             # white on the amber privilege fill read at ~2:1
             text_color = utils.readable_text_color(fill) or "#ffffff"
@@ -89,6 +89,12 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
             node_data["severity"] = severity
         if cvss is not None:
             node_data["cvss"] = f"{cvss:.1f}"
+        # Findings merged from several tools: "confirmed by N" chip
+        source_count, source_names = utils.element_sources(element)
+        if source_count:
+            node_data["source-count"] = str(source_count)
+        if source_names:
+            node_data["sources"] = ",".join(source_names)
         scene.nodes.append(
             SceneNode(
                 id=node_id,
@@ -103,6 +109,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                 text_color=text_color,
                 severity=severity,
                 cvss=cvss,
+                sources=source_count,
                 data=node_data,
             )
         )
@@ -110,7 +117,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     # Hosts
     for host_id, host in _items(data.get("hosts", {})):
         label = host.get("label", host_id) if isinstance(host, dict) else host_id
-        add_node(host_id, _wrap(label, font, size, max_w), "host", ag["host"])
+        add_node(host_id, _wrap(label, font, size, max_w), "host", ag["host"], element=host)
 
     # Vulnerabilities (CVSS-driven fill + severity/cvss badge)
     for vuln_id, vuln in _items(data.get("vulnerabilities", {})):
@@ -133,7 +140,9 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                 text_color = cvss_to_text_color(score)
             if severity in ("low", "none"):
                 text_color = "#000000"
-        add_node(vuln_id, lines, "vulnerability", fill, severity=severity, cvss=cvss, text_color=text_color)
+        add_node(
+            vuln_id, lines, "vulnerability", fill, severity=severity, cvss=cvss, text_color=text_color, element=vuln
+        )
 
     # Privileges (optional [level] suffix)
     for priv_id, priv in _items(data.get("privileges", {})):
@@ -142,7 +151,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
         level = priv.get("level") if isinstance(priv, dict) else None
         if level:
             lines.append(f"[{level}]")
-        add_node(priv_id, lines, "privilege", ag["privilege"])
+        add_node(priv_id, lines, "privilege", ag["privilege"], element=priv)
 
     # Services (optional :port suffix)
     for svc_id, svc in _items(data.get("services", {})):
@@ -151,12 +160,12 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
         port = svc.get("port") if isinstance(svc, dict) else None
         if port:
             lines.append(f":{port}")
-        add_node(svc_id, lines, "service", ag["service"])
+        add_node(svc_id, lines, "service", ag["service"], element=svc)
 
     # Exploits
     for exploit_id, exploit in _items(data.get("exploits", {})):
         label = exploit.get("label", exploit_id) if isinstance(exploit, dict) else exploit_id
-        add_node(exploit_id, _wrap(label, font, size, max_w), "exploit", ag["exploit"])
+        add_node(exploit_id, _wrap(label, font, size, max_w), "exploit", ag["exploit"], element=exploit)
 
     if not scene.nodes:
         raise utils.RenderError("Attack graph has no nodes to render")

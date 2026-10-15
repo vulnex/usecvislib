@@ -1,0 +1,108 @@
+#
+# VULNEX -Universal Security Visualization Library-
+#
+# Kill Chain template: indirect prompt injection against an AI agent,
+# mapped to MITRE ATLAS (16 tactics, ATLAS 5.6.0). Technique IDs and
+# names are ATLAS's own. A phase may be a tactic name or a tactic ID
+# (AML.TA....). Detection/mitigation coverage drives the heat coloring.
+#
+
+[killchain]
+name = "AI Agent Prompt Injection - MITRE ATLAS"
+framework = "atlas"
+
+[techniques."AML.T0000"]
+name = "Search Open Technical Databases"
+phase = "Reconnaissance"
+severity = "low"
+detected = false
+mitigated = false
+description = "Read the vendor's public docs for the assistant's tools and data sources"
+
+[techniques."AML.T0069"]
+name = "Discover LLM System Information"
+phase = "Discovery"
+severity = "medium"
+detected = false
+mitigated = true
+mitigation = "System prompt hardened against disclosure"
+
+[techniques."AML.T0065"]
+name = "LLM Prompt Crafting"
+phase = "Resource Development"
+severity = "medium"
+detected = false
+mitigated = false
+
+[techniques."AML.T0040"]
+name = "AI Model Inference API Access"
+phase = "AML.TA0000"  # AI Model Access, by tactic ID
+severity = "medium"
+detected = true
+mitigated = false
+detection = "Per-user inference quotas and anomaly alerts"
+
+[techniques."AML.T0051.001"]
+name = "LLM Prompt Injection: Indirect"
+phase = "Execution"
+severity = "critical"
+detected = false
+mitigated = false
+description = "Instructions hidden in a shared document the agent retrieves"
+
+[techniques."AML.T0080"]
+name = "AI Agent Context Poisoning"
+phase = "Persistence"
+severity = "high"
+detected = false
+mitigated = false
+
+[techniques."AML.T0054"]
+name = "LLM Jailbreak"
+phase = "Defense Evasion"
+severity = "high"
+detected = true
+mitigated = false
+detection = "Output classifier flags policy bypass"
+
+[techniques."AML.T0053"]
+name = "AI Agent Tool Invocation"
+phase = "Privilege Escalation"
+severity = "critical"
+detected = false
+mitigated = true
+mitigation = "Human approval required for write tools"
+
+[techniques."AML.T0057"]
+name = "LLM Data Leakage"
+phase = "Exfiltration"
+severity = "high"
+detected = false
+mitigated = false
+
+[techniques."AML.T0086"]
+name = "Exfiltration via AI Agent Tool Invocation"
+phase = "Exfiltration"
+severity = "critical"
+detected = true
+mitigated = true
+detection = "Egress allow-list on the agent's HTTP tool"
+mitigation = "Tool calls limited to approved domains"
+
+[techniques."AML.T0048"]
+name = "External Harms"
+phase = "Impact"
+severity = "high"
+detected = false
+mitigated = false
+
+[[incidents]]
+id = "INC-AI-001"
+name = "Poisoned shared document"
+threat_actor = "Unknown"
+techniques = ["AML.T0000", "AML.T0065", "AML.T0040", "AML.T0051.001", "AML.T0080", "AML.T0053", "AML.T0086", "AML.T0048"]
+
+[[incidents]]
+id = "INC-AI-002"
+name = "Jailbreak, probe and leak"
+techniques = ["AML.T0054", "AML.T0069", "AML.T0057"]

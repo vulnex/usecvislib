@@ -50,6 +50,20 @@ from .cvss_unified import validate_vector as validate_cvss_vector
 from .settings import is_cvss_enabled
 
 
+def _with_sources(label: str, element: Any, node_attrs: dict[str, Any]) -> str:
+    """Label plus a "confirmed by N sources" line for multi-tool findings.
+
+    Also drops the ``sources`` / ``source_count`` fields from the Graphviz
+    node attributes (they are data, not Graphviz attributes).
+    """
+    node_attrs.pop("sources", None)
+    node_attrs.pop("source_count", None)
+    count, _ = utils.element_sources(element)
+    if count >= utils.MIN_SOURCES_FOR_BADGE:
+        return f"{label}\\n✓ {count} sources"
+    return label
+
+
 class AttackGraphError(utils.RenderError):
     """Exception raised for attack graph generation errors."""
 
@@ -460,7 +474,7 @@ class AttackGraphs(VisualizationBase):
             if has_image and "fontcolor" not in host_data:
                 node_attrs["fontcolor"] = "black"
             node_attrs = utils.stringify_dict(node_attrs)
-            label = node_attrs.pop("label", host_id)
+            label = _with_sources(node_attrs.pop("label", host_id), host_data, node_attrs)
             node_attrs.pop("ip", None)
             node_attrs.pop("os", None)
             node_attrs.pop("description", None)
@@ -519,6 +533,7 @@ class AttackGraphs(VisualizationBase):
             node_attrs.pop("description", None)
             node_attrs.pop("cwe", None)
             node_attrs.pop("affected_host", None)
+            label = _with_sources(label, vuln_data, node_attrs)
             self.graph.node(utils.sanitize_node_id(vuln_id), label, **node_attrs)
 
         # Add privileges
@@ -548,6 +563,7 @@ class AttackGraphs(VisualizationBase):
                 label = f"{label}\\n[{level}]"
             node_attrs.pop("host", None)
             node_attrs.pop("level", None)
+            label = _with_sources(label, priv_data, node_attrs)
             self.graph.node(utils.sanitize_node_id(priv_id), label, **node_attrs)
 
         # Add services
@@ -578,6 +594,7 @@ class AttackGraphs(VisualizationBase):
             node_attrs.pop("host", None)
             node_attrs.pop("port", None)
             node_attrs.pop("protocol", None)
+            label = _with_sources(label, svc_data, node_attrs)
             self.graph.node(utils.sanitize_node_id(svc_id), label, **node_attrs)
 
         # Add network edges
@@ -605,7 +622,7 @@ class AttackGraphs(VisualizationBase):
         exploits = self.inputdata.get("exploits", {})
         exploit_node_attrs = self._exploit_node_style(exploit_edge_style)
         for exploit_id, exploit_data in exploits.items():
-            exploit_label = exploit_data.get("label", exploit_id)
+            exploit_label = _with_sources(exploit_data.get("label", exploit_id), exploit_data, {})
             self.graph.node(utils.sanitize_node_id(exploit_id), exploit_label, **exploit_node_attrs)
 
             preconditions = exploit_data.get("preconditions", [])

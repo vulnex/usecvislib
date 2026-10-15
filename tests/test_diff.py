@@ -408,3 +408,90 @@ def test_compare_files_supports_newer_modules(tmp_path, viz_type, template):
     new.write_text(text.replace(first_name, first_name + " v2"), encoding="utf-8")
     changes = compare_files(str(old), str(new), viz_type).changes
     assert changes
+
+
+# =============================================================================
+# compare_series
+# =============================================================================
+
+
+def _snapshot(path, hosts, vulns):
+    """Write a minimal attack-graph snapshot: host ids and {vuln_id: (host, cvss)}."""
+    lines = ['[graph]\nname = "Engagement"\n']
+    for host in hosts:
+        lines.append(f'[hosts.{host}]\nlabel = "{host}"\n')
+    for vuln, (host, cvss) in vulns.items():
+        lines.append(f'[vulnerabilities.{vuln}]\nlabel = "{vuln}"\nhost = "{host}"\ncvss = {cvss}\n')
+    path.write_text("\n".join(lines), encoding="utf-8")
+    return str(path)
+
+
+class TestCompareSeries:
+    @pytest.fixture
+    def series_files(self, tmp_path):
+        # day 1: two hosts; day 2: a third host and a vuln; day 3: web01 gone, vuln re-scored
+        return [
+            _snapshot(tmp_path / "day1.toml", ["web01", "db01"], {}),
+            _snapshot(tmp_path / "day2.toml", ["web01", "db01", "app01"], {"cve1": ("app01", 7.5)}),
+            _snapshot(tmp_path / "day3.toml", ["db01", "app01"], {"cve1": ("app01", 9.8)}),
+        ]
+
+    def test_one_step_per_consecutive_pair(self, series_files):
+        from usecvislib.diff import compare_series
+
+        series = compare_series(series_files, "attack_graph")
+        assert len(series.steps) == 2
+        assert [c.path for c in series.steps[0].added()] == ["hosts.app01", "vulnerabilities.cve1"]
+        step2 = {c.path: c.change_type for c in series.steps[1].changes}
+        assert step2 == {"hosts.web01": ChangeType.REMOVED, "vulnerabilities.cve1.cvss": ChangeType.MODIFIED}
+        assert series.steps[1].old_source == series_files[1]
+
+    def test_overall_is_net_first_to_last(self, series_files):
+        from usecvislib.diff import compare_series
+
+        overall = compare_series(series_files, "attack_graph").overall
+        changes = {c.path: c.change_type for c in overall.changes}
+        assert changes == {
+            "hosts.app01": ChangeType.ADDED,
+            "hosts.web01": ChangeType.REMOVED,
+            "vulnerabilities.cve1": ChangeType.ADDED,
+        }
+        # The day 2 -> day 3 re-score is folded into the net addition, not a separate change
+        assert overall.old_source == series_files[0] and overall.new_source == series_files[-1]
+
+    def test_summary_and_to_dict(self, series_files):
+        import json
+
+        from usecvislib.diff import compare_series
+
+        series = compare_series(series_files, "attack_graph")
+        assert series.has_changes
+        assert series.summary["versions"] == 3
+        assert [s["total"] for s in series.summary["steps"]] == [2, 2]
+        data = json.loads(json.dumps(series.to_dict()))
+        assert data["sources"] == series_files
+        assert len(data["steps"]) == 2 and data["overall"]["summary"]["total"] == 3
+
+    def test_unchanged_series(self, series_files):
+        from usecvislib.diff import compare_series
+
+        series = compare_series([series_files[0], series_files[0]], "attack_graph")
+        assert not series.has_changes and not series.overall.has_changes
+
+    def test_ignore_paths_apply_to_every_step(self, series_files):
+        from usecvislib.diff import compare_series
+
+        series = compare_series(series_files, "attack_graph", ignore_paths=["vulnerabilities"])
+        assert all(not c.path.startswith("vulnerabilities") for step in series.steps for c in step.changes)
+
+    def test_needs_two_files(self, series_files):
+        from usecvislib.diff import compare_series
+
+        with pytest.raises(ValueError, match="at least two"):
+            compare_series(series_files[:1], "attack_graph")
+
+    def test_unknown_type(self, series_files):
+        from usecvislib.diff import compare_series
+
+        with pytest.raises(ValueError, match="Unknown type"):
+            compare_series(series_files, "binary")

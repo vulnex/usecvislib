@@ -3001,11 +3001,33 @@ from usecvislib import compare_files
 result = compare_files(
     old_file="network_v1.toml",
     new_file="network_v2.toml",
-    visualization_type="attack_graph"  # attack_tree, attack_graph, threat_model
+    visualization_type="attack_graph"  # any file-based module, e.g. kill_chain, vuln_tree, maestro
 )
 
 print(f"Total changes: {result.summary['total']}")
 ```
+
+### Series of Versions
+
+`compare_series()` compares an ordered list of files: each consecutive pair, and the net change from first to last. Each file is loaded once.
+
+```python
+from usecvislib import compare_series
+
+series = compare_series(
+    ["engagement_day1.toml", "engagement_day2.toml", "engagement_day3.toml"],
+    "attack_graph",
+    ignore_paths=["graph.last_modified"],  # optional, applied to every comparison
+)
+
+for step in series.steps:                  # DiffResult per pair: day1->day2, day2->day3
+    print(step.old_source, "->", step.new_source, step.summary)
+
+print(series.overall.summary)              # DiffResult, day1 -> day3 (net)
+series.to_dict()                           # JSON-ready: sources, per-step and overall
+```
+
+Something added in one step and removed in a later one appears in the steps but not in `overall`.
 
 ### Change Types
 

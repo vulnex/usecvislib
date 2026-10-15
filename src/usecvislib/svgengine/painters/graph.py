@@ -29,6 +29,7 @@ node-kind semantics live in the caller; none leak here.
 
 from typing import Any
 
+from ... import utils
 from .. import images, metrics, shapes
 from ..canvas import SvgCanvas
 from ..layout import GraphvizJsonLayout
@@ -290,7 +291,7 @@ def _paint_nodes(
     border_width: float,
     shadow_url: str,
 ) -> None:
-    """Draw node bodies (shape per ``node.shape``), labels, and CVSS badges."""
+    """Draw node bodies (shape per ``node.shape``), labels, CVSS and source-count badges."""
     font = theme["font"]
     page = theme["page"]
     default_fill = node_cfg["fill"]
@@ -327,6 +328,25 @@ def _paint_nodes(
             text_top = node.y - text_h / 2
         group.extend(shapes.text_lines(node.x, text_top, lines, size, text_color))
         canvas.add("nodes", group)
+
+        if node.sources >= utils.MIN_SOURCES_FOR_BADGE and theme["badges"].get("sources", True):
+            badge_size = size * 0.78
+            badge_label = f"✓{node.sources}"
+            badge_w = metrics.measure_text(badge_label, font["family"], badge_size, bold=True)
+            canvas.add(
+                "badges",
+                shapes.badge(
+                    node.x - node.width / 2 + radius * 0.4,
+                    y,
+                    badge_label,
+                    badge_w,
+                    fill=theme["badges"].get("sources_fill", theme["badges"]["fill"]),
+                    text_color=theme["badges"]["text"],
+                    size=badge_size,
+                    ring=page["background"],
+                    variant="sources",
+                ),
+            )
 
         if node.cvss is not None and node.cvss > 0 and theme["badges"].get("cvss", True):
             badge_size = size * 0.78

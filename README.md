@@ -29,7 +29,7 @@ A comprehensive Python library and web application for creating security visuali
 | **Component Diagrams** | Software component architecture diagrams | Layered architecture, connection types (sync/async/event), 4 styles |
 | **Dependency Graphs** | Module/package dependency visualization | SLOC-based sizing, circular dependency detection, 4 styles |
 | **MAESTRO Agentic Threat Models** | Threat modeling for agentic AI systems ([guide](docs/MAESTRO_GUIDE.md)) | 7-layer MAESTRO framework, 50-threat catalog, layered + heatmap views, STRIDE / AttackGraph / PrivilegeGradient cross-references, 5 style presets |
-| **Kill Chain / MITRE ATT&CK** | Attack progression through a standardized framework | Cyber Kill Chain / ATT&CK / custom axes, detection-gap coverage heat, incident paths, Graphviz + SVG engines, 8 style presets |
+| **Kill Chain / MITRE ATT&CK** | Attack progression through a standardized framework | Cyber Kill Chain / ATT&CK / MITRE ATLAS / custom axes, detection-gap coverage heat, incident paths, Graphviz + SVG engines, 8 style presets |
 | **Incident Timeline** | Chronology of a security incident for IR | Swimlane / gantt / vertical / compact modes, severity markers, response-phase bands, MTTD/MTTC/MTTR metrics, ATT&CK tagging, 6 style presets |
 | **Vulnerability Dependency Tree** | Software supply-chain / SCA analysis | Dependency tree with CVE annotations, severity heat, exploited-edge highlighting, tree / vulnerable-only / critical-path modes, impact propagation + remediation, 5 style presets |
 | **Binary Analysis** | Binary file pattern visualization | Entropy, byte distribution, wind rose, heatmap, byte-pair digraph |

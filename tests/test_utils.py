@@ -1110,3 +1110,28 @@ value = 42
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestElementSources:
+    def test_list_of_names(self):
+        from usecvislib.utils import element_sources
+
+        assert element_sources({"sources": ["nmap", "nuclei", "nmap", " "]}) == (2, ["nmap", "nuclei"])
+
+    def test_comma_string(self):
+        from usecvislib.utils import element_sources
+
+        assert element_sources({"sources": "nmap, nuclei"}) == (2, ["nmap", "nuclei"])
+
+    def test_count_only_and_larger_count_wins(self):
+        from usecvislib.utils import element_sources
+
+        assert element_sources({"source_count": 4}) == (4, [])
+        assert element_sources({"sources": ["nmap"], "source_count": "3"}) == (3, ["nmap"])
+
+    def test_missing_or_invalid(self):
+        from usecvislib.utils import element_sources
+
+        assert element_sources({}) == (0, [])
+        assert element_sources("web01") == (0, [])
+        assert element_sources({"source_count": "many"}) == (0, [])

@@ -59,6 +59,7 @@ class SceneNode:
     gate: Optional[str] = None  # "AND" | "OR" chip docked on the bottom edge
     image_href: Optional[str] = None  # base64 data URI for an embedded icon
     inset_top: float = 0.0  # visual content inset from bbox top (plain/icon nodes)
+    sources: int = 0  # distinct reporting sources; >= 2 draws a "confirmed by N" chip
     data: dict[str, str] = field(default_factory=dict)  # extra data-* attributes
 
 

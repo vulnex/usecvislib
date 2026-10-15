@@ -289,3 +289,87 @@ class TestIcons:
         root = ET.fromstring(_render(template, tmp_path))
         images = [el for el in root.iter(f"{SVG_NS}image") if el.get("href", "").startswith("data:image/")]
         assert len(images) == expected
+
+
+# =============================================================================
+# "Confirmed by N sources" badge (findings merged from several tools)
+# =============================================================================
+
+MULTI_SOURCE = """
+[graph]
+name = "Merged findings"
+
+[hosts.web01]
+label = "web01"
+sources = ["nmap", "masscan"]
+
+[vulnerabilities.cve1]
+label = "CVE-2021-41773"
+host = "web01"
+cvss = 9.8
+sources = ["nuclei", "nessus", "nmap"]
+
+[vulnerabilities.cve2]
+label = "Weak TLS"
+host = "web01"
+cvss = 5.3
+sources = ["sslscan"]
+
+[privileges.root]
+label = "root on web01"
+source_count = 2
+"""
+
+
+@pytest.fixture
+def multi_source(tmp_path):
+    path = tmp_path / "multi.toml"
+    path.write_text(MULTI_SOURCE, encoding="utf-8")
+    return str(path)
+
+
+def _source_badges(svg: str) -> list[str]:
+    root = ET.fromstring(svg)
+    return sorted(
+        g.get("data-value") for g in root.iter(f"{SVG_NS}g") if "usv-badge--sources" in g.get("class", "").split()
+    )
+
+
+@requires_dot
+class TestSourcesBadge:
+    def test_badge_only_for_two_or_more_sources(self, multi_source, tmp_path):
+        assert _source_badges(_render(multi_source, tmp_path)) == ["✓2", "✓2", "✓3"]
+
+    def test_nodes_carry_source_data(self, multi_source, tmp_path):
+        root = ET.fromstring(_render(multi_source, tmp_path))
+        nodes = {g.get("data-node-id"): g for g in root.iter(f"{SVG_NS}g") if "usv-node" in g.get("class", "").split()}
+        assert nodes["cve1"].get("data-sources") == "nuclei,nessus,nmap"
+        assert nodes["cve1"].get("data-source-count") == "3"
+        assert nodes["cve2"].get("data-source-count") == "1"
+        assert nodes["root"].get("data-source-count") == "2" and nodes["root"].get("data-sources") is None
+
+    def test_templates_without_sources_have_no_badge(self, tmp_path):
+        assert _source_badges(_render(FIXTURE, tmp_path)) == []
+
+    def test_theme_can_turn_it_off(self, multi_source, tmp_path, monkeypatch):
+        from usecvislib.svgengine import themes
+
+        original = themes.resolve
+
+        def resolve(style):
+            theme = original(style)
+            theme["badges"]["sources"] = False
+            return theme
+
+        monkeypatch.setattr(themes, "resolve", resolve)
+        assert _source_badges(_render(multi_source, tmp_path)) == []
+
+
+def test_graphviz_label_names_the_source_count(multi_source):
+    # The Graphviz path writes the count into the label (no dot needed to check the source)
+    ag = AttackGraphs(multi_source, "unused")
+    ag.load()
+    ag.render()
+    source = ag.graph.source
+    assert source.count("✓ 2 sources") == 2 and source.count("✓ 3 sources") == 1
+    assert "sslscan" not in source and "source_count" not in source  # data fields are not node attributes

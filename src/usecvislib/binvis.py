@@ -32,7 +32,7 @@ import matplotlib
 # Non-interactive backend: the API renders on worker threads, where the
 # macOS GUI backend refuses to create figures (Linux already defaults to Agg)
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import entropy
 

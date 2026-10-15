@@ -147,8 +147,10 @@ from .diff import (
     Change,
     ChangeType,
     DiffResult,
+    SeriesDiffResult,
     VisualizationDiff,
     compare_files,
+    compare_series,
 )
 from .exporters import (
     Exporter,
@@ -382,6 +384,7 @@ __all__ = [
     "STRIDEResult",
     "STRIDEThreat",
     "SecurityError",
+    "SeriesDiffResult",
     # Result Classes
     "Severity",
     "StyleManager",
@@ -419,6 +422,7 @@ __all__ = [
     "calculate_cvss_from_vector",
     "calculate_cvss_from_vector_unified",
     "compare_files",
+    "compare_series",
     # Logging
     "configure_logging",
     "content_hash",

@@ -1257,7 +1257,7 @@ class KillChainBuilder:
 
         Args:
             name: Kill chain name.
-            framework: "kill_chain", "attack", or "custom".
+            framework: "kill_chain", "attack", "atlas" (MITRE ATLAS), or "custom".
             phases: Ordered phase list (required for the custom framework).
         """
         killchain: dict[str, Any] = {"name": name, "framework": framework}

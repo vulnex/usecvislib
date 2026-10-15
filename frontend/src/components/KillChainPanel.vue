@@ -264,6 +264,7 @@ function formatStyleName(s) {
 
 function formatFramework(f) {
   if (f === 'attack') return 'ATT&CK'
+  if (f === 'atlas') return 'ATLAS'
   if (f === 'kill_chain') return 'Kill Chain'
   return 'Custom'
 }

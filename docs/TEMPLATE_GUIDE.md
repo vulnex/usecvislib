@@ -474,6 +474,24 @@ network_edges (optional): array of objects
 └── label (optional): string - Connection label
 ```
 
+### Multi-source findings
+
+When a finding was reported by several tools, any host, vulnerability, privilege, service or exploit can say so:
+
+```toml
+[vulnerabilities.cve1]
+label = "CVE-2021-41773"
+host = "web01"
+cvss = 9.8
+sources = ["nuclei", "nessus", "nmap"]   # names, or "nuclei, nessus"
+
+[privileges.root]
+label = "root on web01"
+source_count = 2                         # when only the count is known
+```
+
+The count is the larger of the two fields. With 2 or more sources, the SVG engine draws a "✓N" chip on the card's top-left corner (the CVSS chip is top-right), and the Graphviz engine adds a "✓ N sources" line to the label. The SVG node carries `data-source-count` and `data-sources` either way, so a UI can filter on them. Themes can turn the chip off with `badges.sources = false`.
+
 ### TOML Example
 
 ```toml

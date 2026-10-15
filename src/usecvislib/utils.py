@@ -1641,6 +1641,33 @@ def render_graph(graph: Any, outputfile: str, **kwargs: Any) -> str:
     return rendered
 
 
+# A node reported by at least this many sources gets a "confirmed by N" marker
+MIN_SOURCES_FOR_BADGE = 2
+
+
+def element_sources(element: Any) -> tuple[int, list[str]]:
+    """How many distinct sources reported an element, and their names.
+
+    Reads ``sources`` (a list of names, or a comma-separated string) and/or
+    ``source_count`` (a number, for when only the count is known). The count
+    is the larger of the two, so a list of names may stand for more tools.
+
+    Returns:
+        (count, names); (0, []) when the element declares neither.
+    """
+    if not isinstance(element, dict):
+        return 0, []
+    raw = element.get("sources")
+    if isinstance(raw, str):
+        raw = raw.split(",")
+    names = list(dict.fromkeys(str(n).strip() for n in raw or [] if str(n).strip())) if isinstance(raw, list) else []
+    try:
+        declared = int(element.get("source_count") or 0)
+    except (TypeError, ValueError):
+        declared = 0
+    return max(len(names), declared), names
+
+
 def readable_text_color(fill: Any, light: str = "#ffffff", dark: str = "#1f2937") -> Optional[str]:
     """Pick the label color (light or dark) with the better contrast on ``fill``.
 
