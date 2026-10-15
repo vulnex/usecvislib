@@ -35,6 +35,14 @@ from typing import Any, Optional
 # Shared drift / render marks, re-exported (other modules import them from here).
 # An attack graph's edge kinds are "network", "exploit" and "structural".
 from .drift import DiffMarks, EdgeKey, ElementMark, GroupInfo, RenderView
+from .grouping import (
+    DEFAULT_MAX_NODES,
+    SUMMARY_PREFIX,
+    collapse_requested,
+    combined_status,
+    groups_to_collapse,
+    merged_label,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,12 +65,6 @@ __all__ = [
 ]
 
 NODE_SECTIONS = ("hosts", "vulnerabilities", "privileges", "services", "exploits")
-
-# Id prefix of a collapsed group's summary node (double underscore, like the
-# kill chain's __slot_ placeholders, so it cannot clash with a sanitized user id)
-SUMMARY_PREFIX = "__group_"
-
-DEFAULT_MAX_NODES = 300
 
 # group_by = "ip/24" (IPv4, /8-/32) or "ip6/64" (IPv6, /16-/128)
 _IP_GROUPING = re.compile(r"^ip(6)?/(\d{1,3})$")
@@ -110,7 +112,7 @@ def build_view(
 
     node_group = assign_groups(data, group_by)
     if not node_group:
-        if _collapse_requested(collapse):
+        if collapse_requested(collapse):
             logger.warning("collapse needs groups (group_by or host 'group' fields); ignored")
     else:
         meta = data.get("groups") if isinstance(data.get("groups"), dict) else {}
@@ -124,7 +126,7 @@ def build_view(
             info.members.append(node_id)
             view.nodes.setdefault(node_id, ElementMark()).group = group_id
 
-        collapsed = _groups_to_collapse(data, view.groups, meta, collapse, max_nodes)
+        collapsed = groups_to_collapse(view.groups, meta, collapse, max_nodes, len(node_ids(data)))
         if collapsed:
             for group_id in collapsed:
                 view.groups[group_id].collapsed = True
@@ -133,14 +135,6 @@ def build_view(
     if diff is not None and not show_unchanged:
         _changes_only(view)
     return _mark_inferred(view)
-
-
-def _combined_status(statuses: list[Optional[str]]) -> Optional[str]:
-    """Status of edges merged into one: theirs when they agree, otherwise unchanged."""
-    known = [s for s in statuses if s]
-    if not known:
-        return None
-    return known[0] if all(s == known[0] for s in known) else "unchanged"
 
 
 def _changes_only(view: RenderView) -> None:
@@ -303,61 +297,6 @@ def _ip_network(value: Any, version: int, prefix: int) -> Optional[str]:
     return str(ipaddress.ip_network(f"{address}/{prefix}", strict=False))
 
 
-def _collapse_requested(collapse: Any) -> bool:
-    if isinstance(collapse, str):
-        return collapse.strip().lower() not in ("", "none", "false", "no")
-    return bool(collapse)
-
-
-def _groups_to_collapse(
-    data: dict[str, Any], groups: dict[str, GroupInfo], meta: dict[str, Any], collapse: Any, max_nodes: int
-) -> list[str]:
-    """Ids of the groups to collapse, in group order."""
-    explicit = {
-        gid: bool(m["collapsed"])
-        for gid, m in meta.items()
-        if isinstance(m, dict) and "collapsed" in m and gid in groups
-    }
-    chosen: set[str] = set()
-    mode = collapse.strip().lower() if isinstance(collapse, str) else collapse
-    if mode is True or mode in ("all", "true", "yes"):
-        # A one-member group's summary would hide nothing
-        chosen = {gid for gid, info in groups.items() if len(info.members) > 1}
-    elif mode == "auto":
-        chosen = _auto_collapse(data, groups, explicit, max_nodes)
-    elif isinstance(collapse, list | tuple) or (isinstance(collapse, str) and _collapse_requested(collapse)):
-        wanted = [
-            str(g).strip() for g in (collapse.split(",") if isinstance(collapse, str) else collapse) if str(g).strip()
-        ]
-        unknown = [g for g in wanted if g not in groups]
-        if unknown:
-            logger.warning(f"collapse: no such group(s): {', '.join(unknown)}")
-        chosen = {g for g in wanted if g in groups}
-    for gid, value in explicit.items():  # a group's own setting always wins
-        (chosen.add if value else chosen.discard)(gid)
-    return [gid for gid in groups if gid in chosen]
-
-
-def _auto_collapse(
-    data: dict[str, Any], groups: dict[str, GroupInfo], explicit: dict[str, bool], max_nodes: int
-) -> set[str]:
-    """Collapse the largest groups first until at most ``max_nodes`` nodes are drawn."""
-    drawn = len(node_ids(data)) - sum(len(groups[g].members) - 1 for g, v in explicit.items() if v)
-    chosen: set[str] = set()
-    candidates = sorted(
-        (g for g in groups if g not in explicit and len(groups[g].members) > 1),
-        key=lambda g: (-len(groups[g].members), g),
-    )
-    for gid in candidates:
-        if drawn <= max_nodes:
-            break
-        chosen.add(gid)
-        drawn -= len(groups[gid].members) - 1
-    if drawn > max_nodes:
-        logger.warning(f"collapse='auto': {drawn} nodes remain with every group collapsed (target {max_nodes})")
-    return chosen
-
-
 def _collapse(view: RenderView, collapsed: list[str]) -> None:
     """Replace each collapsed group's members by one summary node; re-point and merge edges.
 
@@ -429,7 +368,7 @@ def _collapse(view: RenderView, collapsed: list[str]) -> None:
             updated[f"{key}s"] = list(merged)
             for target, statuses in merged.items():
                 edge = (target, exploit_id) if key == "precondition" else (exploit_id, target)
-                status = _combined_status(statuses)
+                status = combined_status(statuses)
                 if len(statuses) > 1 or status is not None:
                     mark = view.edges.setdefault((*edge, "exploit"), ElementMark())
                     mark.count, mark.diff = len(statuses), status
@@ -462,7 +401,7 @@ def _collapse(view: RenderView, collapsed: list[str]) -> None:
         network.setdefault(key, {**edge, "from": key[0], "to": key[1]})
     new_edges: dict[str, Any] = {}
     for i, (key, edge) in enumerate(network.items()):
-        status = _combined_status(edge_statuses[key])
+        status = combined_status(edge_statuses[key])
         if status is not None:
             view.edges.setdefault((key[0], key[1], "network"), ElementMark()).diff = status
         if edge_counts[key] > 1:
@@ -476,13 +415,6 @@ def _collapse(view: RenderView, collapsed: list[str]) -> None:
     new["network"] = {}
 
     view.data = new
-
-
-def merged_label(mark: Optional[ElementMark], label: Optional[str] = None) -> Optional[str]:
-    """Edge label: ``\u00d7N`` for N edges merged by a collapse, else the edge's own label."""
-    if mark is not None and mark.count > 1:
-        return f"\u00d7{mark.count}"
-    return label
 
 
 def summary_label_lines(mark: ElementMark) -> list[str]:
