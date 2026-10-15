@@ -229,3 +229,31 @@ def test_compact_timeline_keeps_the_flag_in_data(tmp_path):
     tl.build()
     svg = (tmp_path / "o.svg").read_text(encoding="utf-8")
     assert 'data-technique-inferred="true"' in svg and 'data-technique-confidence="hypothesis"' in svg
+
+
+class TestApiStats:
+    @pytest.fixture
+    def client(self):
+        import os
+        import sys
+
+        sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
+        os.environ["USECVISLIB_AUTH_ENABLED"] = "false"
+        from fastapi.testclient import TestClient
+
+        from api.config import limiter
+        from api.main import app
+
+        limiter.reset()
+        yield TestClient(app)
+        limiter.reset()
+
+    def test_kill_chain_inferred_techniques(self, client):
+        response = client.post("/analyze/kill-chain", files={"file": ("atlas.tml", ATLAS.read_bytes())})
+        assert response.status_code == 200
+        assert response.json()["inferred_techniques"] == 1
+
+    def test_timeline_inferred_tags(self, client):
+        response = client.post("/analyze/timeline", files={"file": ("t.toml", TIMELINE.encode())})
+        assert response.status_code == 200
+        assert response.json()["inferred_tags"] == 1

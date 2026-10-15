@@ -272,6 +272,19 @@ class TestApi:
             "new_file": ("day2.json", Path(versions[1]).read_bytes()),
         }
 
+    def test_summary_header_is_readable_cross_origin(self, client):
+        from api.config import ALLOWED_ORIGINS
+
+        response = client.options(
+            "/diff/render",
+            headers={"Origin": ALLOWED_ORIGINS[0], "Access-Control-Request-Method": "POST"},
+        )
+        assert response.status_code == 200
+        from api.main import app
+
+        cors = next(m for m in app.user_middleware if m.cls.__name__ == "CORSMiddleware")
+        assert "X-Diff-Summary" in cors.kwargs["expose_headers"]
+
     def test_bad_colors_400(self, client, versions):
         response = client.post("/diff/render", files=self._files(versions), data={"diff_colors": '{"added": "red"}'})
         assert response.status_code == 400 and "added" in response.json()["detail"]

@@ -370,3 +370,27 @@ class TestApi:
         response = client.post("/visualize/attack-graph", params=params, files=self._upload())
         assert response.status_code == 200
         assert "User LAN" in response.text and "Server VLAN" in response.text
+
+
+@requires_dot
+def test_cli_grouping_flags(tmp_path):
+    import os
+    import subprocess
+    import sys
+
+    env = {**os.environ, "PYTHONPATH": str(Path(__file__).parent.parent / "src")}
+    out = subprocess.run(
+        [sys.executable, "-m", "usecvislib.usecvis", "-m", "3", "-i", str(TEMPLATE), "-o", str(tmp_path / "g"),
+         "-f", "svg", "--group-by", "ip/24", "--collapse", "auto", "--max-nodes", "40"],
+        capture_output=True, text=True, env=env, cwd=tmp_path,
+    )  # fmt: skip
+    assert out.returncode == 0, out.stderr
+    dot = (tmp_path / "g.svg").read_text(encoding="utf-8")
+    assert "10.0.10.0/24" in dot  # the User LAN subnet, collapsed into a summary node
+
+    bad = subprocess.run(
+        [sys.executable, "-m", "usecvislib.usecvis", "-m", "3", "-i", str(TEMPLATE), "-o", str(tmp_path / "b"),
+         "--group-by", "ip/99"],
+        capture_output=True, text=True, env=env, cwd=tmp_path,
+    )  # fmt: skip
+    assert bad.returncode != 0 and "8-32" in (bad.stdout + bad.stderr)

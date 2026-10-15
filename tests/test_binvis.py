@@ -20,7 +20,7 @@ import tempfile
 import pytest
 
 # Add src to path for testing
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from usecvislib.binvis import BinVis
 
@@ -52,13 +52,13 @@ class TestBinVisLoad:
 
     def test_load_valid_file(self):
         """Test loading a valid binary file."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
-            f.write(b'\x00\x01\x02\x03\x04\x05')
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
+            f.write(b"\x00\x01\x02\x03\x04\x05")
             f.flush()
             try:
                 bv = BinVis(f.name, "output", validate_paths=False)
                 data = bv.load()
-                assert data == b'\x00\x01\x02\x03\x04\x05'
+                assert data == b"\x00\x01\x02\x03\x04\x05"
                 assert bv.data == data
             finally:
                 os.unlink(f.name)
@@ -73,7 +73,7 @@ class TestBinVisLoad:
         """An empty file is rejected (charts of nothing leaked Matplotlib warnings)."""
         from usecvislib.utils import ValidationError
 
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             f.flush()  # Empty file
             try:
                 bv = BinVis(f.name, "output", validate_paths=False)
@@ -98,7 +98,7 @@ class TestBinVisEntropy:
     def test_calculate_entropy_single_value(self):
         """Test entropy of constant data."""
         bv = BinVis("input.bin", "output", validate_paths=False)
-        data = b'\x00' * 1000
+        data = b"\x00" * 1000
         entropy = bv.calculate_entropy(data)
         # Should be 0 (no randomness)
         assert entropy == 0.0
@@ -106,12 +106,12 @@ class TestBinVisEntropy:
     def test_calculate_entropy_empty(self):
         """Test entropy of empty data."""
         bv = BinVis("input.bin", "output", validate_paths=False)
-        entropy = bv.calculate_entropy(b'')
+        entropy = bv.calculate_entropy(b"")
         assert entropy == 0.0
 
     def test_sliding_entropy(self):
         """Test sliding window entropy calculation."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             # Write some varied data
             f.write(bytes(range(256)) * 4)
             f.flush()
@@ -131,17 +131,17 @@ class TestBinVisDistribution:
 
     def test_byte_distribution(self):
         """Test byte frequency distribution."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             # Write known data
-            f.write(b'\x00\x00\x01\x01\x01\xff')
+            f.write(b"\x00\x00\x01\x01\x01\xff")
             f.flush()
             try:
                 bv = BinVis(f.name, "output", validate_paths=False)
                 dist = bv.byte_distribution()
                 assert len(dist) == 256
-                assert dist[0] == pytest.approx(2/6)  # Two 0x00 bytes
-                assert dist[1] == pytest.approx(3/6)  # Three 0x01 bytes
-                assert dist[255] == pytest.approx(1/6)  # One 0xFF byte
+                assert dist[0] == pytest.approx(2 / 6)  # Two 0x00 bytes
+                assert dist[1] == pytest.approx(3 / 6)  # Three 0x01 bytes
+                assert dist[255] == pytest.approx(1 / 6)  # One 0xFF byte
             finally:
                 os.unlink(f.name)
 
@@ -151,9 +151,9 @@ class TestBinVisStats:
 
     def test_get_file_stats(self):
         """Test file statistics generation."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             # Write mixed data
-            f.write(b'Hello World!\x00\x00\x00')
+            f.write(b"Hello World!\x00\x00\x00")
             f.flush()
             try:
                 bv = BinVis(f.name, "output", validate_paths=False)
@@ -172,7 +172,7 @@ class TestBinVisStreaming:
 
     def test_load_mmap(self):
         """Test memory-mapped file loading."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             f.write(bytes(range(256)) * 4)
             f.flush()
             try:
@@ -188,8 +188,8 @@ class TestBinVisStreaming:
 
     def test_close_mmap(self):
         """Test memory-mapped file cleanup."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
-            f.write(b'\x00\x01\x02\x03')
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
+            f.write(b"\x00\x01\x02\x03")
             f.flush()
             try:
                 bv = BinVis(f.name, "output", validate_paths=False)
@@ -203,7 +203,7 @@ class TestBinVisStreaming:
 
     def test_load_chunked(self):
         """Test chunked file loading generator."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             # Write 100 bytes
             f.write(bytes(range(100)))
             f.flush()
@@ -213,28 +213,28 @@ class TestBinVisStreaming:
                 chunks = list(bv.load_chunked(chunk_size=25))
                 assert len(chunks) == 4  # 100 / 25 = 4 chunks
                 # Reassemble and verify
-                reassembled = b''.join(chunks)
+                reassembled = b"".join(chunks)
                 assert reassembled == bytes(range(100))
             finally:
                 os.unlink(f.name)
 
     def test_load_chunked_is_generator(self):
         """Test that load_chunked returns a generator."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
-            f.write(b'\x00' * 100)
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
+            f.write(b"\x00" * 100)
             f.flush()
             try:
                 bv = BinVis(f.name, "output", validate_paths=False)
                 gen = bv.load_chunked()
                 # Should be a generator
-                assert hasattr(gen, '__iter__')
-                assert hasattr(gen, '__next__')
+                assert hasattr(gen, "__iter__")
+                assert hasattr(gen, "__next__")
             finally:
                 os.unlink(f.name)
 
     def test_calculate_entropy_streaming(self):
         """Test streaming entropy calculation."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             # Uniform data should have high entropy
             f.write(bytes(range(256)) * 10)
             f.flush()
@@ -248,9 +248,9 @@ class TestBinVisStreaming:
 
     def test_calculate_entropy_streaming_constant(self):
         """Test streaming entropy for constant data."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             # Constant data should have zero entropy
-            f.write(b'\x00' * 1000)
+            f.write(b"\x00" * 1000)
             f.flush()
             try:
                 bv = BinVis(f.name, "output", validate_paths=False)
@@ -261,7 +261,7 @@ class TestBinVisStreaming:
 
     def test_sliding_entropy_streaming(self):
         """Test streaming sliding window entropy."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             # Write enough data for sliding window
             f.write(bytes(range(256)) * 4)
             f.flush()
@@ -279,23 +279,23 @@ class TestBinVisStreaming:
 
     def test_sliding_entropy_streaming_is_generator(self):
         """Test that sliding_entropy_streaming returns a generator."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             f.write(bytes(range(256)) * 4)
             f.flush()
             try:
                 bv = BinVis(f.name, "output", validate_paths=False)
                 gen = bv.sliding_entropy_streaming()
                 # Should be a generator
-                assert hasattr(gen, '__iter__')
-                assert hasattr(gen, '__next__')
+                assert hasattr(gen, "__iter__")
+                assert hasattr(gen, "__next__")
             finally:
                 os.unlink(f.name)
 
     def test_get_file_stats_streaming(self):
         """Test streaming file statistics."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             # Write mixed data
-            f.write(b'Hello World!\x00\x00\x00')
+            f.write(b"Hello World!\x00\x00\x00")
             f.flush()
             try:
                 bv = BinVis(f.name, "output", validate_paths=False)
@@ -310,9 +310,10 @@ class TestBinVisStreaming:
 
     def test_streaming_matches_regular(self):
         """Test that streaming entropy matches regular entropy."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             # Random-ish data
             import random
+
             random.seed(42)
             data = bytes([random.randint(0, 255) for _ in range(1000)])
             f.write(data)
@@ -357,7 +358,7 @@ class TestBinVisConfig:
 
     def test_load_config_from_file(self):
         """Test loading configuration from a TOML file."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write("""
 [entropy_analysis]
 window_size = 512
@@ -381,7 +382,7 @@ block_size = 128
 
     def test_config_merge_preserves_defaults(self):
         """Test that config merging preserves unspecified defaults."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write("""
 [entropy_analysis]
 window_size = 1024
@@ -416,7 +417,7 @@ window_size = 1024
 
     def test_loadconfig_with_custom_thresholds(self):
         """Test loading config with custom entropy thresholds."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write("""
 [entropy_analysis]
 show_thresholds = true
@@ -440,7 +441,7 @@ label = "Custom threshold"
 
     def test_loadconfig_with_custom_regions(self):
         """Test loading config with custom distribution regions."""
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as f:
             f.write("""
 [byte_distribution]
 show_regions = true
@@ -472,11 +473,11 @@ label = "Upper half"
 
     def test_visualize_entropy_uses_config(self):
         """Test that visualize_entropy uses config values."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as binfile:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as binfile:
             binfile.write(bytes(range(256)) * 8)
             binfile.flush()
             try:
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as configfile:
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as configfile:
                     configfile.write("""
 [entropy_analysis]
 window_size = 128
@@ -501,11 +502,11 @@ show_thresholds = false
 
     def test_visualize_heatmap_uses_config_block_size(self):
         """Test that visualize_heatmap uses config block_size."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as binfile:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as binfile:
             binfile.write(bytes(range(256)) * 8)
             binfile.flush()
             try:
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as configfile:
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as configfile:
                     configfile.write("""
 [heatmap]
 block_size = 64
@@ -526,11 +527,11 @@ show_colorbar = false
 
     def test_explicit_params_override_config(self):
         """Test that explicit method parameters override config values."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as binfile:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as binfile:
             binfile.write(bytes(range(256)) * 8)
             binfile.flush()
             try:
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as configfile:
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".toml", delete=False) as configfile:
                     configfile.write("""
 [entropy_analysis]
 window_size = 512
@@ -563,7 +564,7 @@ class TestBinVisVisualization:
 
     def test_visualize_entropy(self):
         """Test entropy visualization generation."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             f.write(bytes(range(256)) * 4)
             f.flush()
             try:
@@ -578,7 +579,7 @@ class TestBinVisVisualization:
 
     def test_visualize_distribution(self):
         """Test distribution visualization generation."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             f.write(bytes(range(256)) * 4)
             f.flush()
             try:
@@ -593,7 +594,7 @@ class TestBinVisVisualization:
 
     def test_build_binvis_all(self):
         """Test complete build process with all visualizations."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
             f.write(bytes(range(256)) * 4)
             f.flush()
             try:
@@ -612,8 +613,8 @@ class TestBinVisVisualization:
 
     def test_build_binvis_invalid_type(self):
         """Test build with invalid visualization type."""
-        with tempfile.NamedTemporaryFile(mode='wb', delete=False) as f:
-            f.write(b'\x00\x01\x02')
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as f:
+            f.write(b"\x00\x01\x02")
             f.flush()
             try:
                 bv = BinVis(f.name, "output", validate_paths=False)
@@ -694,7 +695,7 @@ class TestBytePairs:
         assert directions[ord("A")] == 30 and directions[ord("B")] == 9
 
     def test_digraph_text_concentrates_in_printable_square(self, tmp_path):
-        text = (b"The quick brown fox jumps over the lazy dog. " * 200)
+        text = b"The quick brown fox jumps over the lazy dog. " * 200
         counts = self._binvis(tmp_path, text).byte_pair_counts()
         assert counts[0x20:0x7F, 0x20:0x7F].sum() == counts.sum()
 
@@ -742,9 +743,7 @@ class TestVectorisedStatistics:
         for window, step in ((256, 64), (1000, 333), (64, 64)):
             positions, values = bv.sliding_entropy(window, step)
             expected_pos = list(range(0, len(data) - window + 1, step))
-            expected = [
-                scipy_entropy(list(Counter(data[i : i + window]).values()), base=2) for i in expected_pos
-            ]
+            expected = [scipy_entropy(list(Counter(data[i : i + window]).values()), base=2) for i in expected_pos]
             assert positions.tolist() == expected_pos
             assert np.allclose(values, expected)
 
@@ -764,3 +763,14 @@ class TestVectorisedStatistics:
         expected = np.array([counts.get(v, 0) for v in range(256)]) / len(data)
         assert np.allclose(bv.byte_distribution(), expected)
         assert np.isclose(bv.calculate_entropy(data), scipy_entropy(list(counts.values()), base=2))
+
+
+def test_matplotlib_backend_is_agg():
+    # The API renders charts on worker threads; macOS's default GUI backend
+    # refuses to create figures there (every binary chart returned 500).
+    # Linux already defaults to Agg, so only this check catches a regression.
+    import matplotlib
+
+    import usecvislib.binvis  # noqa: F401  (selects the backend on import)
+
+    assert matplotlib.get_backend().lower() == "agg"
