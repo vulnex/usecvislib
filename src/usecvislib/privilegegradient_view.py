@@ -237,3 +237,26 @@ def group_stats(view: GradientView) -> dict[str, dict[str, Any]]:
             "max_severity": _worst([inv["severity"] for inv in touching]),
         }
     return stats
+
+
+def summary_label_lines(facts: dict[str, Any]) -> list[str]:
+    """Label lines of a collapsed group's summary component.
+
+    Its name, the member count, the inversions its members take part in with
+    the worst severity's markers (``!! 3 inversions``), and in the drift view
+    what changed among the members (``+2 ~1``).
+    """
+    members = facts.get("members", 0)
+    lines = [str(facts.get("label", "")), f"{members} component{'' if members == 1 else 's'}"]
+    count = facts.get("inversions") or 0
+    if count:
+        marker = {"critical": "!!!", "high": "!!", "medium": "!"}.get(facts.get("max_severity") or "", "!")
+        lines.append(f"{marker} {count} inversion{'' if count == 1 else 's'}")
+    changes = [
+        f"{sign}{facts[status]}"
+        for status, sign in (("added", "+"), ("removed", "\u2212"), ("modified", "~"))
+        if facts.get(status)
+    ]
+    if changes:
+        lines.append(" ".join(changes))
+    return lines

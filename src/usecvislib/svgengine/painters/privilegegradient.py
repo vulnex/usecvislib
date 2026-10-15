@@ -34,6 +34,8 @@ from itertools import pairwise
 from typing import Any
 
 from ... import utils
+from ...grouping import merged_label
+from ...privilegegradient_view import summary_label_lines
 from .. import metrics, themes
 from ..scene import Scene, SceneEdge, SceneGroup, SceneNode
 from .graph import attach_icon, render_graph_svg
@@ -109,13 +111,30 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
             if comp.get("zone") != zone_id:
                 continue
             label = comp.get("label", comp_id)
-            lines = _wrap(label, font, size, max_w)
+            facts = view.summary_facts(comp_id)
+            if facts is not None:
+                # A collapsed group: one card with its counts
+                lines = [line for text in summary_label_lines(facts) for line in _wrap(text, font, size, max_w)]
+            else:
+                lines = _wrap(label, font, size, max_w)
             text_w, text_h = metrics.measure_block(lines, font["family"], size)
             # Cards take the zone's color, as in the Graphviz path; a preset
             # with its own component fill (dark themes) keeps the zone in the border
             fill = comp.get("fillcolor") or pg.get("component_fill") or border
             card_border = border if pg.get("component_fill") else pg["component_border"]
             diff, diff_data = _mark(view.marks.get(comp_id))
+            kind, group_data = "component", {}
+            if facts is not None:
+                kind = "group"
+                group_data = {
+                    "collapsed": "true",
+                    "cluster-id": utils.sanitize_node_id(view.group_of(comp_id)),
+                    "member-count": str(facts["members"]),
+                    "inversion-count": str(facts["inversions"]),
+                    **({"max-severity": facts["max_severity"]} if facts.get("max_severity") else {}),
+                }
+                if facts["inversions"]:
+                    card_border = pg["inversion"]
             scene.nodes.append(
                 SceneNode(
                     id=comp_id,
@@ -132,10 +151,11 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                     data={
                         "node-id": utils.sanitize_node_id(comp_id),
                         "label": str(label),
-                        "kind": "component",
+                        "kind": kind,
                         "zone": str(zone_id),
                         "trust-level": str(trust),
                         **({"type": str(comp["type"])} if comp.get("type") else {}),
+                        **group_data,
                         **diff_data,
                     },
                 )
@@ -157,6 +177,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                 data={"zone": str(zone_id), "trust-level": str(trust), **zone_data},
             )
         )
+        _add_group_clusters(scene, view, zone_id, zone, pg, border, set(members))
 
     # Zones left to right by trust: a heavy invisible chain between their anchors
     for left, right in pairwise(anchors):
@@ -167,6 +188,29 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
 
     _build_edges(scene, viz, view, theme)
     return scene
+
+
+def _add_group_clusters(
+    scene: Scene, view, zone_id: str, zone: dict, pg: dict[str, Any], border: str, drawn: set[str]
+) -> None:
+    """Expanded groups of a zone: dashed clusters nested in the zone's."""
+    for group_id, info in view.groups.items():
+        members = [m for m in info.members if m in drawn]
+        if info.collapsed or view.group_zone.get(group_id) != zone_id or not members:
+            continue
+        scene.groups.append(
+            SceneGroup(
+                id=utils.sanitize_node_id(group_id),
+                label=info.label,
+                members=members,
+                fill=info.color or pg.get("zone_fill") or zone.get("color", "#f0f0f0"),
+                border=border,
+                text_color=pg.get("zone_text") or zone.get("font_color", "#333333"),
+                dashed=True,
+                parent=utils.sanitize_node_id(zone_id),
+                data={"zone": str(zone_id), "collapsed": "false"},
+            )
+        )
 
 
 def _type_color(viz, type_id: str, pg: dict[str, Any]) -> str:
@@ -192,9 +236,13 @@ def _build_edges(scene: Scene, viz, view, theme: dict[str, Any]) -> None:
         if src not in drawn or dst not in drawn:
             continue
         type_id = influence.get("type", "data")
-        label = influence.get("label", "")
+        mark = view.influence_mark(influence)
+        # Influences merged by a collapse read "\u00d7N" (and carry data-edge-count)
+        label = merged_label(mark, influence.get("label", ""))
         data = {"type": str(type_id)}
-        diff, diff_data = _mark(view.influence_mark(influence))
+        if mark is not None and mark.count > 1:
+            data["edge-count"] = str(mark.count)
+        diff, diff_data = _mark(mark)
         data.update(diff_data)
         status = view.inversion_of(influence) if drift else None
         if status in ("new", "fixed"):

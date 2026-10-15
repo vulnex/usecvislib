@@ -1,0 +1,62 @@
+digraph "AD Tiering (grouped by role)" {
+	bgcolor=white compound=true fontname=Arial fontsize=14 label="" labelloc=t nodesep=0.6 rankdir=LR ranksep=1.2 splines=spline
+	label="AD Tiering (grouped by role)" labelloc=t
+	subgraph cluster_tier2 {
+		color="#ef6c00" fillcolor="#fff3e0" fontcolor="#663c00" fontname="Arial Bold" fontsize=13 label="Tier 2 - Workstations\n(Trust Level 0)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_tier2 [label="" height=0 shape=point style=invis width=0]
+		__group_tier2_workstation [label="Tier 2 workstations\n5 components\n! 4 inversions" color="#cc0000" fillcolor="#ef6c00" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=2.5 shape=folder style="filled,rounded"]
+		kiosk_01 [label="Lobby Kiosk" fillcolor="#ef6c00" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		subgraph cluster_tier2_helpdesk {
+			color="#ef6c00" fillcolor="#fff3e0" fontcolor="#663c00" fontname="Arial Bold" fontsize=11 label=helpdesk labelloc=t style="rounded,dashed,filled"
+			helpdesk_01 [label="Helpdesk PC 01" fillcolor="#ef6c00" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+			helpdesk_02 [label="Helpdesk PC 02" fillcolor="#ef6c00" fontcolor="#1f2937" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		}
+	}
+	subgraph cluster_tier1 {
+		color="#1565c0" fillcolor="#e3f2fd" fontcolor="#0d3c78" fontname="Arial Bold" fontsize=13 label="Tier 1 - Servers\n(Trust Level 1)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_tier1 [label="" height=0 shape=point style=invis width=0]
+		subgraph cluster_tier1_app_server {
+			color="#1565c0" fillcolor="#e3f2fd" fontcolor="#0d3c78" fontname="Arial Bold" fontsize=11 label="Application servers" labelloc=t style="rounded,dashed,filled"
+			app_01 [label="APP-01 (Intranet)" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+			app_02 [label="APP-02 (ERP)" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		}
+		subgraph cluster_tier1_database {
+			color="#1565c0" fillcolor="#e3f2fd" fontcolor="#0d3c78" fontname="Arial Bold" fontsize=11 label=database labelloc=t style="rounded,dashed,filled"
+			sql_01 [label="SQL-01" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+			sql_02 [label="SQL-02" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		}
+		subgraph cluster_tier1_backup {
+			color="#1565c0" fillcolor="#e3f2fd" fontcolor="#0d3c78" fontname="Arial Bold" fontsize=11 label=backup labelloc=t style="rounded,dashed,filled"
+			backup_01 [label="Backup Server" fillcolor="#1565c0" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		}
+	}
+	subgraph cluster_tier0 {
+		color="#2e7d32" fillcolor="#e8f5e9" fontcolor="#1b5e20" fontname="Arial Bold" fontsize=13 label="Tier 0 - Identity\n(Trust Level 2)" labelloc=t penwidth=2 style="filled,rounded"
+		_anchor_tier0 [label="" height=0 shape=point style=invis width=0]
+		subgraph cluster_tier0_domain_controller {
+			color="#2e7d32" fillcolor="#e8f5e9" fontcolor="#1b5e20" fontname="Arial Bold" fontsize=11 label=domain_controller labelloc=t style="rounded,dashed,filled"
+			dc_01 [label="DC-01" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+			dc_02 [label="DC-02" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		}
+		subgraph cluster_tier0_pki {
+			color="#2e7d32" fillcolor="#e8f5e9" fontcolor="#1b5e20" fontname="Arial Bold" fontsize=11 label=pki labelloc=t style="rounded,dashed,filled"
+			adcs_01 [label="AD CS (PKI)" fillcolor="#2e7d32" fontcolor="#ffffff" fontname=Arial fontsize=10 margin="0.15,0.08" penwidth=1.5 shape=box style="filled,rounded"]
+		}
+	}
+	_anchor_tier2 -> _anchor_tier1 [style=invis weight=100]
+	_anchor_tier1 -> _anchor_tier0 [style=invis weight=100]
+	__group_tier2_workstation -> app_01 [label=" ! INVERSION !\n×2" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	__group_tier2_workstation -> app_02 [label=" ! INVERSION !\nHTTPS" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	app_01 -> sql_01 [label=" SQL" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	app_02 -> sql_02 [label=" SQL" arrowhead=vee color="#3498db" fontcolor="#3498db" fontname=Arial fontsize=9 penwidth=1.5 style=solid]
+	sql_01 -> sql_02 [label=" Replication" arrowhead=vee color="#e67e22" fontcolor="#e67e22" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	dc_01 -> app_01 [label=" GPO" arrowhead=dot color="#8e44ad" fontcolor="#8e44ad" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	dc_01 -> __group_tier2_workstation [label=" GPO" arrowhead=dot color="#8e44ad" fontcolor="#8e44ad" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	dc_02 -> __group_tier2_workstation [label=" GPO" arrowhead=dot color="#8e44ad" fontcolor="#8e44ad" fontname=Arial fontsize=9 penwidth=2 style=bold]
+	adcs_01 -> app_02 [label=" Certificates" arrowhead=diamond color="#27ae60" fontcolor="#27ae60" fontname=Arial fontsize=9 penwidth=2 style=dotted]
+	dc_01 -> dc_02 [label=" AD replication" arrowhead=vee color="#e67e22" fontcolor="#e67e22" fontname=Arial fontsize=9 penwidth=1.5 style=dashed]
+	helpdesk_01 -> dc_01 [label=" !! INVERSION !!\nRDP as Domain Admin" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	backup_01 -> dc_02 [label=" ! INVERSION !\nBackup agent (Domain Admin)" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	__group_tier2_workstation -> sql_01 [label=" ! INVERSION !\nDirect ODBC" arrowhead=normal arrowsize=1.2 color="#cc0000" fontcolor="#cc0000" fontname="Arial Bold" fontsize=9 penwidth=3 style=bold]
+	_legend [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="4" CELLPADDING="2" BGCOLOR="#f8f8f8" COLOR="#cccccc" STYLE="ROUNDED"><TR><TD COLSPAN="15"><B><FONT COLOR="#333333" POINT-SIZE="9">Legend</FONT></B></TD></TR><TR><TD> </TD><TD><FONT COLOR="#3498db">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Data Flow</FONT></TD><TD> </TD><TD><FONT COLOR="#e67e22">- - - - &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Feedback</FONT></TD><TD> </TD><TD><FONT COLOR="#27ae60">&#8226; &#8226; &#8226; &#8226; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Resource</FONT></TD><TD> </TD><TD><FONT COLOR="#8e44ad">&#8212;&#8212;&#8212;&#8212; &#9654;</FONT></TD><TD><FONT COLOR="#333333" POINT-SIZE="8">Control</FONT></TD><TD> </TD><TD><FONT COLOR="#cc0000"><B>&#8212;&#8212;&#8212;&#8212; &#9654;</B></FONT></TD><TD><FONT COLOR="#cc0000" POINT-SIZE="8"><B>INVERSION</B></FONT></TD></TR></TABLE>> fontname=Arial margin=0 shape=none]
+}

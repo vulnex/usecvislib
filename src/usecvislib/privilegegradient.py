@@ -34,8 +34,8 @@ from graphviz import Digraph
 from . import utils
 from .base import VisualizationBase
 from .drift import DIFF_SIGNS, DriftStylingMixin, ElementMark, faded
-from .grouping import DEFAULT_MAX_NODES
-from .privilegegradient_view import SCHEMA_FIELDS, GradientView, apply_grouping, group_stats
+from .grouping import DEFAULT_MAX_NODES, merged_label
+from .privilegegradient_view import SCHEMA_FIELDS, GradientView, apply_grouping, group_stats, summary_label_lines
 
 # The render view's former name (drift only), kept for callers that import it
 DriftView = GradientView
@@ -564,6 +564,9 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         graph_meta = self.inputdata.get("gradient", {})
         view = self.render_view()
         palette = self.diff_palette() if self.diff_marks is not None else {}
+        # Schema fields never reach DOT; with grouping, the group_by field is schema too
+        group_by = self._grouping_options()[0] if view.groups else None
+        schema_fields = (*SCHEMA_FIELDS, group_by) if group_by else SCHEMA_FIELDS
 
         # Get styles
         graph_style = self.style.get("graph", self._default_style()["graph"])
@@ -631,9 +634,17 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
                 sub.node(anchor_id, "", shape="point", style="invis", width="0", height="0")
                 zone_anchors.append(anchor_id)
 
-                # Add components in this zone
+                # Add components in this zone; members of an expanded group go into
+                # its cluster, nested in the zone's
+                nested: dict[str, list[tuple[str, str, dict]]] = {}
                 for comp_id, comp_data in view.components.items():
                     if comp_data.get("zone") == zone_id:
+                        facts = view.summary_facts(comp_id)
+                        if facts is not None:
+                            self._add_summary_component(
+                                sub, comp_id, facts, view, component_style, inversion_style, zone_border
+                            )
+                            continue
                         node_attrs = comp_data.copy()
                         # Check for images
                         has_image = "image" in node_attrs and node_attrs["image"]
@@ -671,10 +682,30 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
                         node_attrs = utils.stringify_dict(node_attrs)
                         label = node_attrs.pop("label", comp_id)
                         # Remove non-graphviz keys
-                        for key in SCHEMA_FIELDS:
+                        for key in schema_fields:
                             node_attrs.pop(key, None)
                         label = self._style_diff_node(node_attrs, label, view.marks.get(comp_id))
-                        sub.node(utils.sanitize_node_id(comp_id), label, **node_attrs)
+                        group_id = view.group_of(comp_id)
+                        if group_id is not None and not view.groups[group_id].collapsed:
+                            nested.setdefault(group_id, []).append((comp_id, label, node_attrs))
+                        else:
+                            sub.node(utils.sanitize_node_id(comp_id), label, **node_attrs)
+
+                for group_id, members in nested.items():
+                    info = view.groups[group_id]
+                    with sub.subgraph(name=f"cluster_{utils.sanitize_node_id(group_id)}") as group_sub:
+                        group_sub.attr(
+                            label=info.label,
+                            labelloc="t",
+                            style="rounded,dashed,filled",
+                            fillcolor=info.color or zone_color,
+                            color=zone_border,
+                            fontcolor=zone_font_color,
+                            fontname=str(zone_style.get("fontname", "Arial")),
+                            fontsize="11",
+                        )
+                        for comp_id, label, node_attrs in members:
+                            group_sub.node(utils.sanitize_node_id(comp_id), label, **node_attrs)
 
         # Add invisible edges between zone anchors for ordering
         for i in range(len(zone_anchors) - 1):
@@ -693,7 +724,8 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
                 continue
 
             inf_type = influence.get("type", "data")
-            inf_label = influence.get("label", "")
+            # Influences merged by a collapse read "\u00d7N"
+            inf_label = merged_label(view.influence_mark(influence), influence.get("label", ""))
 
             is_inversion = (source, target) in inversion_set
 
@@ -767,6 +799,32 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
             f"Rendered privilege gradient with {len(self._zones)} zones, "
             f"{len(self._components)} components, {len(self._inversions)} inversions"
         )
+
+    def _add_summary_component(
+        self,
+        target: Any,
+        node_id: str,
+        facts: dict[str, Any],
+        view: GradientView,
+        component_style: dict[str, Any],
+        inversion_style: dict[str, Any],
+        zone_border: str,
+    ) -> None:
+        """A collapsed group's summary card: folder shape in the zone's color, counts,
+        and the inversion color on the border when its members take part in inversions."""
+        attrs = utils.stringify_dict(component_style.copy())
+        attrs.pop("label", None)
+        attrs["shape"] = "folder"
+        if "fillcolor" not in component_style:
+            attrs["fillcolor"] = zone_border
+            attrs["fontcolor"] = utils.readable_text_color(zone_border) or attrs.get("fontcolor", "white")
+        else:
+            attrs.setdefault("color", zone_border)
+        if facts.get("inversions"):
+            attrs["color"] = str(inversion_style.get("color", "#cc0000"))
+            attrs["penwidth"] = "2.5"
+        label = self._style_diff_node(attrs, "\\n".join(summary_label_lines(facts)), view.marks.get(node_id))
+        target.node(utils.sanitize_node_id(node_id), label, **attrs)
 
     def _add_legend(self) -> None:
         """Add a compact HTML-table legend at the bottom of the graph."""

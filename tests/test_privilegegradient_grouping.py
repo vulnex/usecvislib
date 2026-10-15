@@ -9,12 +9,21 @@
 """Grouping and collapse for the Privilege Gradient (Atajo A11): the render view."""
 
 import json
+import shutil
+import xml.etree.ElementTree as ET
+from pathlib import Path
 
 import pytest
 
 from usecvislib.grouping import SUMMARY_PREFIX
 from usecvislib.privilegegradient import PrivilegeGradient
-from usecvislib.privilegegradient_view import component_groups
+from usecvislib.privilegegradient_view import component_groups, summary_label_lines
+from usecvislib.svgengine import themes
+from usecvislib.svgengine.painters import privilegegradient as painter
+
+SVG_NS = "{http://www.w3.org/2000/svg}"
+TEMPLATE = Path(__file__).parent.parent / "templates" / "privilege-gradient" / "ad_tiers_grouped.tml"
+requires_dot = pytest.mark.skipif(shutil.which("dot") is None, reason="SVG-engine layout needs Graphviz 'dot'")
 
 WS = SUMMARY_PREFIX + "tier2/workstation"
 SRV = SUMMARY_PREFIX + "tier1/server"
@@ -183,12 +192,43 @@ def test_group_stats(tmp_path):
     assert "groups" not in _pg(tmp_path).get_stats()
 
 
+def test_summary_label_lines():
+    facts = {"label": "ws", "members": 3, "inversions": 2, "max_severity": "critical", "added": 1, "removed": 2}
+    assert summary_label_lines(facts) == ["ws", "3 components", "!!! 2 inversions", "+1 \u22122"]
+    assert summary_label_lines({"label": "one", "members": 1, "inversions": 0}) == ["one", "1 component"]
+
+
 class TestGraphviz:
-    def test_collapsed_summary_is_drawn(self, tmp_path):
-        pg = _pg(tmp_path, group_by="role", collapse=True)
+    @staticmethod
+    def _source(tmp_path, **options):
+        pg = _pg(tmp_path, group_by="role", **options)
         pg.render()
-        source = pg.graph.source
-        assert "workstation" in source and "ws2" not in source
+        return pg.graph.source
+
+    @staticmethod
+    def _line(source, start):
+        return next(line for line in source.splitlines() if line.strip().startswith(start))
+
+    def test_summary_card(self, tmp_path):
+        source = self._source(tmp_path, collapse=True)
+        card = self._line(source, "__group_tier2_workstation [")
+        assert 'label="workstation\\n3 components\\n!! 4 inversions"' in card
+        assert "shape=folder" in card and 'color="#cc0000"' in card and "penwidth=2.5" in card
+        assert "ws2" not in source
+
+    def test_merged_edge_label(self, tmp_path):
+        source = self._source(tmp_path, collapse=True)
+        assert "\u00d72" in self._line(source, "__group_tier2_workstation -> __group_tier1_server")
+
+    def test_expanded_groups_are_nested_clusters(self, tmp_path):
+        source = self._source(tmp_path)
+        tier1 = source[source.index("subgraph cluster_tier1 {") : source.index("subgraph cluster_tier0 {")]
+        assert "subgraph cluster_tier1_server {" in tier1 and "label=server" in tier1 and "dashed" in tier1
+        nested = tier1[tier1.index("subgraph cluster_tier1_server") :]
+        assert "srv1 [" in nested and "srv2 [" in nested
+
+    def test_grouping_field_is_not_a_graphviz_attribute(self, tmp_path):
+        assert "role=" not in self._source(tmp_path)
 
     def test_group_field_is_not_a_graphviz_attribute(self, tmp_path):
         data = {**AD, "components": [{**c, "group": "g1"} for c in AD["components"]]}
@@ -213,3 +253,51 @@ class TestSizeLimit:
     def test_collapsed_they_render(self, tmp_path):
         view = _pg(tmp_path, self._big(10001), group_by="role", collapse="auto").render_view()
         assert list(view.components) == [SUMMARY_PREFIX + "z/host"]
+
+
+class TestSvgScene:
+    @staticmethod
+    def _scene(tmp_path, **options):
+        pg = _pg(tmp_path, group_by="role", **options)
+        return painter._build_scene(pg, themes.resolve(pg.style))
+
+    def test_summary_card(self, tmp_path):
+        card = self._scene(tmp_path, collapse=True).node_by_id(WS)
+        assert card.lines == ["workstation", "3 components", "!! 4 inversions"]
+        assert card.data["kind"] == "group"
+        assert card.data["collapsed"] == "true" and card.data["cluster-id"] == "tier2_workstation"
+        assert card.data["member-count"] == "3" and card.data["inversion-count"] == "4"
+        assert card.data["max-severity"] == "high"
+
+    def test_summary_border_is_the_inversion_color(self, tmp_path):
+        pg = _pg(tmp_path, group_by="role", collapse=True)
+        theme = themes.resolve(pg.style)
+        scene = painter._build_scene(pg, theme)
+        assert scene.node_by_id(WS).border == theme["privilegegradient"]["inversion"]
+
+    def test_nested_clusters(self, tmp_path):
+        scene = self._scene(tmp_path)
+        nested = {g.id: g for g in scene.groups if g.parent}
+        assert set(nested) == {"tier2_workstation", "tier2_server", "tier1_server", "tier0_dc"}
+        assert nested["tier1_server"].parent == "tier1" and nested["tier1_server"].dashed
+        assert nested["tier1_server"].members == ["srv1", "srv2"]
+        assert nested["tier1_server"].data == {"zone": "tier1", "collapsed": "false"}
+
+    def test_merged_edge(self, tmp_path):
+        scene = self._scene(tmp_path, collapse=True)
+        edge = next(e for e in scene.edges if (e.src, e.dst, e.data.get("type")) == (WS, SRV, "data"))
+        assert edge.data["edge-count"] == "2" and edge.label.endswith("\u00d72")
+
+
+@requires_dot
+def test_template_svg_contract(tmp_path):
+    pg = PrivilegeGradient(str(TEMPLATE), str(tmp_path / "o"), format="svg", render_engine="svg")
+    pg.build()
+    root = ET.fromstring((tmp_path / "o.svg").read_text(encoding="utf-8"))
+    groups = list(root.iter(f"{SVG_NS}g"))
+    summary = next(g for g in groups if "usv-node--group" in g.get("class", ""))
+    assert summary.get("data-collapsed") == "true" and summary.get("data-member-count") == "5"
+    assert summary.get("data-cluster-id") == "tier2_workstation"
+    clusters = [g for g in groups if "usv-cluster" in g.get("class", "") and g.get("data-collapsed") == "false"]
+    assert {g.get("data-cluster-id") for g in clusters} >= {"tier1_app_server", "tier0_domain_controller"}
+    assert any(g.get("data-edge-count") == "2" for g in groups)

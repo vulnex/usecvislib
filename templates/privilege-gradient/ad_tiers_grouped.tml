@@ -1,0 +1,267 @@
+#
+# Privilege Gradient Graph: Active Directory Tiering, Grouped
+#
+# Models an AD tier model (Tier 2 workstations, Tier 1 servers, Tier 0
+# identity) with components grouped by role inside each tier:
+# - group_by = "role": components with the same role share a group within
+#   their tier (a group never spans tiers)
+# - the workstation group is collapsed into one summary card; the other
+#   groups are drawn as clusters inside their tier
+# - 3 inversions: a helpdesk account with RDP to a domain controller, a
+#   backup agent running as Domain Admin, and direct ODBC from a workstation
+#
+
+[gradient]
+name = "AD Tiering (grouped by role)"
+description = "Active Directory tier model with components grouped by role"
+version = "1.0"
+type = "Privilege Gradient Graph"
+group_by = "role"
+
+[groups."tier2/workstation"]
+label = "Tier 2 workstations"
+collapsed = true
+
+[groups."tier1/app_server"]
+label = "Application servers"
+
+# Trust Zones (AD tiers)
+[[zones]]
+id = "tier2"
+label = "Tier 2 - Workstations"
+trust_level = 0
+color = "#fff3e0"
+border_color = "#ef6c00"
+font_color = "#663c00"
+
+[[zones]]
+id = "tier1"
+label = "Tier 1 - Servers"
+trust_level = 1
+color = "#e3f2fd"
+border_color = "#1565c0"
+font_color = "#0d3c78"
+
+[[zones]]
+id = "tier0"
+label = "Tier 0 - Identity"
+trust_level = 2
+color = "#e8f5e9"
+border_color = "#2e7d32"
+font_color = "#1b5e20"
+
+# Components
+[[components]]
+id = "ws_0101"
+label = "WS-0101"
+zone = "tier2"
+role = "workstation"
+
+[[components]]
+id = "ws_0102"
+label = "WS-0102"
+zone = "tier2"
+role = "workstation"
+
+[[components]]
+id = "ws_0103"
+label = "WS-0103"
+zone = "tier2"
+role = "workstation"
+
+[[components]]
+id = "ws_0104"
+label = "WS-0104"
+zone = "tier2"
+role = "workstation"
+
+[[components]]
+id = "ws_0105"
+label = "WS-0105"
+zone = "tier2"
+role = "workstation"
+
+[[components]]
+id = "helpdesk_01"
+label = "Helpdesk PC 01"
+zone = "tier2"
+role = "helpdesk"
+
+[[components]]
+id = "helpdesk_02"
+label = "Helpdesk PC 02"
+zone = "tier2"
+role = "helpdesk"
+
+[[components]]
+id = "kiosk_01"
+label = "Lobby Kiosk"
+zone = "tier2"
+
+[[components]]
+id = "app_01"
+label = "APP-01 (Intranet)"
+zone = "tier1"
+role = "app_server"
+
+[[components]]
+id = "app_02"
+label = "APP-02 (ERP)"
+zone = "tier1"
+role = "app_server"
+
+[[components]]
+id = "sql_01"
+label = "SQL-01"
+zone = "tier1"
+role = "database"
+
+[[components]]
+id = "sql_02"
+label = "SQL-02"
+zone = "tier1"
+role = "database"
+
+[[components]]
+id = "backup_01"
+label = "Backup Server"
+zone = "tier1"
+role = "backup"
+
+[[components]]
+id = "dc_01"
+label = "DC-01"
+zone = "tier0"
+role = "domain_controller"
+
+[[components]]
+id = "dc_02"
+label = "DC-02"
+zone = "tier0"
+role = "domain_controller"
+
+[[components]]
+id = "adcs_01"
+label = "AD CS (PKI)"
+zone = "tier0"
+role = "pki"
+
+# Influence Types
+[[influence_types]]
+id = "data"
+label = "Data Flow"
+color = "#3498db"
+style = "solid"
+arrowhead = "vee"
+penwidth = "1.5"
+
+[[influence_types]]
+id = "feedback"
+label = "Feedback"
+color = "#e67e22"
+style = "dashed"
+arrowhead = "vee"
+penwidth = "1.5"
+
+[[influence_types]]
+id = "resource"
+label = "Resource"
+color = "#27ae60"
+style = "dotted"
+arrowhead = "diamond"
+penwidth = "2"
+
+[[influence_types]]
+id = "control"
+label = "Control"
+color = "#8e44ad"
+style = "bold"
+arrowhead = "dot"
+penwidth = "2"
+
+# Normal flows: workstations use the applications (merged when collapsed)
+[[influences]]
+from = "ws_0101"
+to = "app_01"
+type = "data"
+label = "HTTPS"
+
+[[influences]]
+from = "ws_0102"
+to = "app_01"
+type = "data"
+label = "HTTPS"
+
+[[influences]]
+from = "ws_0104"
+to = "app_02"
+type = "data"
+label = "HTTPS"
+
+[[influences]]
+from = "app_01"
+to = "sql_01"
+type = "data"
+label = "SQL"
+
+[[influences]]
+from = "app_02"
+to = "sql_02"
+type = "data"
+label = "SQL"
+
+[[influences]]
+from = "sql_01"
+to = "sql_02"
+type = "feedback"
+label = "Replication"
+
+# Downward control: Tier 0 manages the lower tiers (allowed)
+[[influences]]
+from = "dc_01"
+to = "app_01"
+type = "control"
+label = "GPO"
+
+[[influences]]
+from = "dc_01"
+to = "ws_0101"
+type = "control"
+label = "GPO"
+
+[[influences]]
+from = "dc_02"
+to = "ws_0105"
+type = "control"
+label = "GPO"
+
+[[influences]]
+from = "adcs_01"
+to = "app_02"
+type = "resource"
+label = "Certificates"
+
+[[influences]]
+from = "dc_01"
+to = "dc_02"
+type = "feedback"
+label = "AD replication"
+
+# Inversions (tiering violations)
+[[influences]]
+from = "helpdesk_01"
+to = "dc_01"
+type = "control"
+label = "RDP as Domain Admin"
+
+[[influences]]
+from = "backup_01"
+to = "dc_02"
+type = "resource"
+label = "Backup agent (Domain Admin)"
+
+[[influences]]
+from = "ws_0103"
+to = "sql_01"
+type = "data"
+label = "Direct ODBC"
