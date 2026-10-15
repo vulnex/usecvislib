@@ -20,7 +20,6 @@ from usecvislib import BinVis
 from usecvislib.utils import ConfigError, FileError, RenderError
 
 from ..config import (
-    ENABLE_TRACEBACK_LOGGING,
     MAX_BINARY_FILE_SIZE,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_VISUALIZE,
@@ -29,8 +28,10 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
-    cleanup_files,
+    TempFiles,
+    file_response,
     get_content_type,
+    handle_errors,
     run_sync_with_timeout,
     save_upload_file,
 )
@@ -45,6 +46,10 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["Binary Visualization"])
+
+# Errors in the upload or its options: reported to the client as 400
+_ANALYZE_CLIENT_ERRORS = (FileNotFoundError, FileError, ConfigError, RenderError)
+_VISUALIZE_CLIENT_ERRORS = (*_ANALYZE_CLIENT_ERRORS, ValueError)
 
 
 # BinVisConfig section -> BinVis.config section
@@ -140,21 +145,19 @@ async def visualize_binary(
     **title**: optional name for the chart titles. Without it the titles carry
     no file name (the uploaded file's name is not sent back).
     """
-    input_path = None
-    output_path = None
-    output_paths: list[str] = []
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _VISUALIZE_CLIENT_ERRORS):
         # Save uploaded binary file (with larger size limit)
-        input_path = save_upload_file(file, ".bin", max_size=MAX_BINARY_FILE_SIZE)
+        input_path = temps.add(save_upload_file(file, ".bin", max_size=MAX_BINARY_FILE_SIZE))
 
         # Reject empty uploads: an empty file cannot be memory-mapped/analyzed
-        # (behavior otherwise diverges across platforms). Cleanup is handled by
-        # the except HTTPException block below.
+        # (behavior otherwise diverges across platforms).
         if os.path.getsize(input_path) == 0:
             raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
+        # Every chart file starts with this base, so a timeout part-way
+        # through "all" still cleans up each one
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
 
         bv = BinVis(input_path, output_base, format=format.value, styleid=style.value, display_name=chart_title(title))
 
@@ -165,7 +168,7 @@ async def visualize_binary(
                 config = BinVisConfig(**config_dict)
                 apply_binvis_config(bv, config)
                 logger.debug(f"Applied custom config: {list(config_dict.keys())}")
-            except (json.JSONDecodeError, ValueError) as e:
+            except ValueError as e:  # includes json.JSONDecodeError and pydantic's ValidationError
                 logger.warning(f"Invalid config JSON: {e!s}")
                 raise HTTPException(status_code=400, detail="Invalid configuration format") from e
 
@@ -173,10 +176,8 @@ async def visualize_binary(
         # SECURITY: Prevents resource exhaustion from large binary files
         vis_type = visualization_type.value
         if vis_type == "all":
-            # Known up front so a timeout part-way still cleans up every chart
-            output_paths = [f"{output_base}_{t.value}.{format.value}" for t in BinVisType if t != BinVisType.ALL]
             output_paths = await run_sync_with_timeout(
-                bv.visualize_all, REQUEST_TIMEOUT_VISUALIZE, "binary visualization (all)"
+                bv.visualize_all, REQUEST_TIMEOUT_VISUALIZE, "binary visualization (all)", on_abandon=temps.cleanup
             )
             if not all(os.path.exists(p) for p in output_paths):
                 raise HTTPException(status_code=500, detail="Failed to generate visualization")
@@ -193,43 +194,23 @@ async def visualize_binary(
                         "data": data,
                     }
                 )
-            cleanup_files(input_path, *output_paths)
+            # Not deferred: handle_errors removes the chart files on return
             return JSONResponse({"charts": charts})
 
         await run_sync_with_timeout(
-            lambda: bv.BuildBinVis(vis_type), REQUEST_TIMEOUT_VISUALIZE, f"binary visualization ({vis_type})"
-        )
-        output_path = f"{output_base}_{vis_type}.{format.value}"
-
-        if not os.path.exists(output_path):
-            cleanup_files(input_path)
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        # Schedule cleanup after response is sent
-        background_tasks.add_task(cleanup_files, input_path, output_path)
-
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"binary_{vis_type}.{format.value}",
+            lambda: bv.BuildBinVis(vis_type),
+            REQUEST_TIMEOUT_VISUALIZE,
+            f"binary visualization ({vis_type})",
+            on_abandon=temps.cleanup,
         )
 
-    except (FileNotFoundError, FileError, ConfigError) as e:
-        cleanup_files(input_path, output_path, *output_paths)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except ValueError as e:
-        cleanup_files(input_path, output_path, *output_paths)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except RenderError as e:
-        cleanup_files(input_path, output_path, *output_paths)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except HTTPException:
-        cleanup_files(input_path, output_path, *output_paths)
-        raise
-    except Exception as e:
-        cleanup_files(input_path, output_path, *output_paths)
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
+        return file_response(
+            f"{output_base}_{vis_type}.{format.value}",
+            format,
+            f"binary_{vis_type}.{format.value}",
+            temps,
+            background_tasks,
+        )
 
 
 @router.post("/analyze/binary", response_model=FileStats, summary="Analyze binary file statistics")
@@ -249,10 +230,9 @@ async def analyze_binary(
     - Percentage of printable ASCII
     - Percentage of high bytes (128-255)
     """
-    input_path = None
-
-    try:
-        input_path = save_upload_file(file, ".bin", max_size=MAX_BINARY_FILE_SIZE)
+    temps = TempFiles()
+    with handle_errors(temps, _ANALYZE_CLIENT_ERRORS):
+        input_path = temps.add(save_upload_file(file, ".bin", max_size=MAX_BINARY_FILE_SIZE))
         bv = BinVis(input_path, "unused")
         stats = bv.get_file_stats()
 
@@ -260,13 +240,3 @@ async def analyze_binary(
         stats.pop("most_common", None)
 
         return FileStats(**stats)
-
-    except (FileNotFoundError, FileError, ConfigError) as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except RenderError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)

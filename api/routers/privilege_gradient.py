@@ -10,15 +10,14 @@
 import logging
 import os
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 
 from usecvislib import PrivilegeGradient
 from usecvislib.privilegegradient import PrivilegeGradientError
-from usecvislib.utils import ConfigError, FileError, ReadConfigFile
+from usecvislib.utils import ConfigError, FileError
 
 from ..config import (
-    ENABLE_TRACEBACK_LOGGING,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_VISUALIZE,
     REQUEST_TIMEOUT_VISUALIZE,
@@ -26,13 +25,13 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
-    cleanup_files,
-    get_content_type,
-    resolve_image_references,
+    TempFiles,
+    file_response,
+    handle_errors,
+    resolve_images_to_temp,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
-    write_config_file,
 )
 from ..schemas import (
     GradientStats,
@@ -45,6 +44,9 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["Privilege Gradient Graphs"])
+
+# Errors in the uploaded definition: reported to the client as 400
+_CLIENT_ERRORS = (PrivilegeGradientError, FileError, ConfigError)
 
 
 @router.post(
@@ -80,55 +82,24 @@ async def visualize_privilege_gradient(
     - `[[influence_types]]` section with influence type definitions (optional)
     - `[[influences]]` section with influence edges between components
     """
-    input_path = None
-    output_path = None
-    modified_input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
-
-        try:
-            config_data = ReadConfigFile(input_path)
-            config_data = resolve_image_references(config_data)
-            base, ext = os.path.splitext(input_path)
-            modified_input_path = f"{base}_resolved{ext}"
-            write_config_file(modified_input_path, config_data, ext)
-            input_for_viz = modified_input_path
-        except Exception as e:
-            logger.debug(f"Image resolution skipped: {e}")
-            input_for_viz = input_path
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
+        input_for_viz = resolve_images_to_temp(input_path, temps)
 
         pg = PrivilegeGradient(input_for_viz, output_base, format=format.value, styleid=style.value)
         await run_sync_with_timeout(
-            pg.BuildPrivilegeGradient, REQUEST_TIMEOUT_VISUALIZE, "privilege gradient visualization"
+            pg.BuildPrivilegeGradient,
+            REQUEST_TIMEOUT_VISUALIZE,
+            "privilege gradient visualization",
+            on_abandon=temps.cleanup,
         )
 
-        output_path = f"{output_base}.{format.value}"
-
-        if not os.path.exists(output_path):
-            cleanup_files(input_path, modified_input_path)
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        background_tasks.add_task(cleanup_files, input_path, modified_input_path, output_path)
-
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"privilege_gradient.{format.value}",
+        return file_response(
+            f"{output_base}.{format.value}", format, f"privilege_gradient.{format.value}", temps, background_tasks
         )
-
-    except PrivilegeGradientError as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
 @router.post(
@@ -144,11 +115,10 @@ async def analyze_privilege_gradient(
 
     Returns zone counts, component counts, influence counts, and inversion details.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         pg = PrivilegeGradient(input_path, "unused")
         stats = pg.get_stats()
 
@@ -168,14 +138,6 @@ async def analyze_privilege_gradient(
 
         return GradientStats(**stats)
 
-    except PrivilegeGradientError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
-
 
 @router.post("/analyze/inversions", response_model=InversionsResponse, summary="Detect privilege gradient inversions")
 @limiter.limit(RATE_LIMIT_ANALYZE)
@@ -191,11 +153,10 @@ async def analyze_inversions(
     - **high**: Trust gap >= 2
     - **medium**: Trust gap = 1
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         pg = PrivilegeGradient(input_path, "unused")
         pg.load()
 
@@ -207,14 +168,6 @@ async def analyze_inversions(
             by_severity=summary["by_severity"],
             inversions=inversions,
         )
-
-    except PrivilegeGradientError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
 
 
 @router.post("/validate/privilege-gradient", summary="Validate privilege gradient graph structure")
@@ -232,20 +185,11 @@ async def validate_privilege_gradient(
     - Invalid component or influence references
     - Duplicate IDs
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         pg = PrivilegeGradient(input_path, "unused")
         errors = pg.validate()
 
         return {"valid": len(errors) == 0, "errors": errors}
-
-    except PrivilegeGradientError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)

@@ -15,9 +15,9 @@ from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Requ
 from fastapi.responses import FileResponse
 
 from usecvislib.mermaiddiagrams import MermaidCLINotFoundError, MermaidDiagrams, MermaidError, MermaidSyntaxError
+from usecvislib.utils import ConfigError, FileError
 
 from ..config import (
-    ENABLE_TRACEBACK_LOGGING,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_DEFAULT,
     RATE_LIMIT_VISUALIZE,
@@ -26,7 +26,8 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
-    cleanup_files,
+    TempFiles,
+    handle_errors,
     run_sync_with_timeout,
     save_upload_file,
     validate_path_component,
@@ -45,6 +46,15 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["Mermaid Diagrams"])
+
+# Errors in the uploaded definition: reported to the client as 400
+_CLIENT_ERRORS = (MermaidError, FileError, ConfigError)
+
+# Subclasses of MermaidError with fixed responses (checked first)
+_OVERRIDES = {
+    MermaidCLINotFoundError: (503, "Mermaid CLI (mmdc) not installed. Run: npm install -g @mermaid-js/mermaid-cli"),
+    MermaidSyntaxError: (400, "Mermaid syntax error in the provided diagram definition"),
+}
 
 
 @router.post(
@@ -97,10 +107,8 @@ async def visualize_mermaid(
     npm install -g @mermaid-js/mermaid-cli
     ```
     """
-    input_path = None
-    output_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS, _OVERRIDES):
         # Validate file extension
         ext = os.path.splitext(file.filename)[1].lower() if file.filename else ""
         if ext not in {".mmd", ".toml", ".tml", ".json", ".yaml", ".yml"}:
@@ -109,8 +117,8 @@ async def visualize_mermaid(
             )
 
         # Save uploaded file
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"mermaid_{os.urandom(8).hex()}")
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"mermaid_{os.urandom(8).hex()}"))
 
         # Create MermaidDiagrams instance
         md = MermaidDiagrams(theme=theme.value, validate_cli=True)
@@ -123,16 +131,16 @@ async def visualize_mermaid(
             lambda: md.render(output_base, format=format.value, width=width, height=height, background=background),
             REQUEST_TIMEOUT_VISUALIZE,
             "mermaid rendering",
+            on_abandon=temps.cleanup,
         )
 
         output_path = f"{output_base}.{format.value}"
 
         if not os.path.exists(output_path):
-            cleanup_files(input_path)
             raise HTTPException(status_code=500, detail="Failed to generate Mermaid diagram")
 
         # Schedule cleanup after response is sent
-        background_tasks.add_task(cleanup_files, input_path, output_path)
+        temps.defer(background_tasks)
 
         content_types = {"png": "image/png", "svg": "image/svg+xml", "pdf": "application/pdf"}
 
@@ -141,23 +149,6 @@ async def visualize_mermaid(
             media_type=content_types.get(format.value, "image/png"),
             filename=f"mermaid_diagram.{format.value}",
         )
-
-    except MermaidCLINotFoundError as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(
-            status_code=503, detail="Mermaid CLI (mmdc) not installed. Run: npm install -g @mermaid-js/mermaid-cli"
-        ) from e
-    except MermaidSyntaxError as e:
-        cleanup_files(input_path, output_path)
-        logger.warning(f"Mermaid syntax error: {e!s}")
-        raise HTTPException(status_code=400, detail="Mermaid syntax error in the provided diagram definition") from e
-    except MermaidError as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path, output_path)
-        logger.error(f"Mermaid rendering error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
 @router.post("/analyze/mermaid", response_model=MermaidValidateResponse, summary="Validate Mermaid diagram")
@@ -171,9 +162,8 @@ async def analyze_mermaid(
 
     Returns detected diagram type, line count, and validation errors if any.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         # Validate file extension
         ext = os.path.splitext(file.filename)[1].lower() if file.filename else ""
         if ext not in {".mmd", ".toml", ".tml", ".json", ".yaml", ".yml"}:
@@ -182,7 +172,7 @@ async def analyze_mermaid(
             )
 
         # Save uploaded file
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
 
         # Create MermaidDiagrams instance (skip CLI validation for analysis only)
         md = MermaidDiagrams(validate_cli=False)
@@ -199,8 +189,6 @@ async def analyze_mermaid(
         except MermaidCLINotFoundError:
             pass  # CLI not available, skip validation
 
-        cleanup_files(input_path)
-
         return MermaidValidateResponse(
             valid=len(errors) == 0,
             errors=errors,
@@ -215,14 +203,6 @@ async def analyze_mermaid(
             ),
         )
 
-    except MermaidError as e:
-        cleanup_files(input_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path)
-        logger.error(f"Mermaid analysis error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-
 
 @router.get("/mermaid/templates", response_model=MermaidTemplateListResponse, summary="List Mermaid templates")
 @limiter.limit(RATE_LIMIT_DEFAULT)
@@ -234,7 +214,7 @@ async def list_mermaid_templates(
 
     Templates are organized by category (flowcharts, sequence, security, etc.)
     """
-    try:
+    with handle_errors(internal_detail="Failed to list templates"):
         categories = MermaidDiagrams.list_template_categories()
         all_templates = MermaidDiagrams.list_templates(category=category)
 
@@ -249,9 +229,6 @@ async def list_mermaid_templates(
         ]
 
         return MermaidTemplateListResponse(templates=templates, categories=categories, total=len(templates))
-    except Exception as e:
-        logger.error(f"Error listing Mermaid templates: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to list templates") from e
 
 
 @router.get(
@@ -266,7 +243,7 @@ async def get_mermaid_template(request: Request, category: str, name: str):
 
     Returns the template content along with metadata.
     """
-    try:
+    with handle_errors(internal_detail="Failed to get template"):
         template_id = f"{category}/{name}"
 
         # SECURITY: Validate each path component to prevent path traversal
@@ -357,12 +334,6 @@ async def get_mermaid_template(request: Request, category: str, name: str):
             diagram_type=diagram_type,
             filename=template_path.name,
         )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting Mermaid template: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to get template") from e
 
 
 @router.get("/mermaid/themes", summary="List Mermaid themes")

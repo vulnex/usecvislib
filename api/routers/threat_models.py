@@ -10,14 +10,13 @@
 import logging
 import os
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 
 from usecvislib import ThreatModeling
-from usecvislib.utils import ConfigError, FileError, ReadConfigFile, ValidationError
+from usecvislib.utils import ConfigError, FileError, ValidationError
 
 from ..config import (
-    ENABLE_TRACEBACK_LOGGING,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_VISUALIZE,
     REQUEST_TIMEOUT_VISUALIZE,
@@ -25,13 +24,13 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
-    cleanup_files,
-    get_content_type,
-    resolve_image_references,
+    TempFiles,
+    file_response,
+    handle_errors,
+    resolve_images_to_temp,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
-    write_config_file,
 )
 from ..schemas import (
     ModelStats,
@@ -47,6 +46,9 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["Threat Modeling"])
+
+# Errors in the uploaded definition: reported to the client as 400
+_CLIENT_ERRORS = (FileError, ConfigError, ValidationError)
 
 
 @router.post(
@@ -94,28 +96,14 @@ async def visualize_threat_model(
     - **usecvislib**: Native engine with custom styling support
     - **pytm**: OWASP PyTM framework for comprehensive threat analysis
     """
-    input_path = None
-    output_path = None
-    modified_input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
 
         # Read and parse config to resolve image_id references
-        try:
-            config_data = ReadConfigFile(input_path)
-            config_data = resolve_image_references(config_data)
-
-            # Keep a valid extension for the resolved file
-            base, ext = os.path.splitext(input_path)
-            modified_input_path = f"{base}_resolved{ext}"
-            write_config_file(modified_input_path, config_data, ext)
-            input_for_viz = modified_input_path
-        except Exception as e:
-            logger.debug(f"Image resolution skipped: {e}")
-            input_for_viz = input_path
+        input_for_viz = resolve_images_to_temp(input_path, temps)
 
         styleid = style.value
         if render_engine == RenderEngine.SVG and style == ThreatModelStyle.DEFAULT:
@@ -130,30 +118,13 @@ async def visualize_threat_model(
             render_engine=render_engine.value,
         )
         # SECURITY: Timeout protection for complex threat models
-        await run_sync_with_timeout(tm.BuildThreatModel, REQUEST_TIMEOUT_VISUALIZE, "threat model visualization")
-
-        output_path = f"{output_base}.{format.value}"
-
-        if not os.path.exists(output_path):
-            cleanup_files(input_path, modified_input_path)
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        # Schedule cleanup after response is sent
-        background_tasks.add_task(cleanup_files, input_path, modified_input_path, output_path)
-
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"threat_model.{format.value}",
+        await run_sync_with_timeout(
+            tm.BuildThreatModel, REQUEST_TIMEOUT_VISUALIZE, "threat model visualization", on_abandon=temps.cleanup
         )
 
-    except (FileError, ConfigError) as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
+        return file_response(
+            f"{output_base}.{format.value}", format, f"threat_model.{format.value}", temps, background_tasks
+        )
 
 
 @router.post("/analyze/threat-model", response_model=ModelStats, summary="Analyze threat model structure")
@@ -165,11 +136,10 @@ async def analyze_threat_model(
     """
     Analyze a threat model and return statistics without generating visualization.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         tm = ThreatModeling(input_path, "unused")
         tm.load()
         stats = tm.get_model_stats()
@@ -191,14 +161,6 @@ async def analyze_threat_model(
 
         return ModelStats(**stats)
 
-    except (FileError, ConfigError, ValidationError) as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
-
 
 @router.post("/analyze/stride", response_model=StrideReport, summary="Perform STRIDE threat analysis")
 @limiter.limit(RATE_LIMIT_ANALYZE)
@@ -217,11 +179,10 @@ async def analyze_stride(
     - **Denial of Service**: Availability threats
     - **Elevation of Privilege**: Authorization threats
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         tm = ThreatModeling(input_path, "unused")
         tm.load()
         threats = tm.analyze_stride()
@@ -260,11 +221,3 @@ async def analyze_stride(
             denial_of_service=[convert_threat(t) for t in threats.get("Denial of Service", [])],
             elevation_of_privilege=[convert_threat(t) for t in threats.get("Elevation of Privilege", [])],
         )
-
-    except (FileError, ConfigError, ValidationError) as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)

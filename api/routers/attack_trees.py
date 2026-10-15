@@ -10,15 +10,14 @@
 import logging
 import os
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 
 from usecvislib import AttackTrees
 from usecvislib.attacktrees import AttackTreeError
-from usecvislib.utils import ConfigError, FileError, ReadConfigFile
+from usecvislib.utils import ConfigError, FileError
 
 from ..config import (
-    ENABLE_TRACEBACK_LOGGING,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_VISUALIZE,
     REQUEST_TIMEOUT_VISUALIZE,
@@ -26,13 +25,13 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
-    cleanup_files,
-    get_content_type,
-    resolve_image_references,
+    TempFiles,
+    file_response,
+    handle_errors,
+    resolve_images_to_temp,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
-    write_config_file,
 )
 from ..schemas import (
     AttackTreeStyle,
@@ -45,6 +44,9 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["Attack Trees"])
+
+# Errors in the uploaded definition: reported to the client as 400
+_CLIENT_ERRORS = (AttackTreeError, FileError, ConfigError)
 
 
 @router.post(
@@ -96,66 +98,26 @@ async def visualize_attack_tree(
     "Goal" = [{to = "Attack"}]
     ```
     """
-    input_path = None
-    output_path = None
-    modified_input_path = None
-
-    try:
-        # Save uploaded file
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
+        input_for_viz = resolve_images_to_temp(input_path, temps)
 
-        # Read and parse config to resolve image_id references
-        try:
-            config_data = ReadConfigFile(input_path)
-            config_data = resolve_image_references(config_data)
-
-            # Write modified config to a temp file in the same format
-            base, ext = os.path.splitext(input_path)
-            modified_input_path = f"{base}_resolved{ext}"
-            write_config_file(modified_input_path, config_data, ext)
-            input_for_viz = modified_input_path
-        except Exception as e:
-            logger.debug(f"Image resolution skipped: {e}")
-            input_for_viz = input_path
-
-        # Generate visualization with timeout protection
-        # SECURITY: Prevents resource exhaustion from complex/slow visualizations
-        # SVG engine defaults to sv_default when the Graphviz default style is requested
         styleid = style.value
         if render_engine == RenderEngine.SVG and style == AttackTreeStyle.DEFAULT:
             styleid = ""
         at = AttackTrees(
             input_for_viz, output_base, format=format.value, styleid=styleid, render_engine=render_engine.value
         )
-        await run_sync_with_timeout(at.BuildAttackTree, REQUEST_TIMEOUT_VISUALIZE, "attack tree visualization")
-
-        output_path = f"{output_base}.{format.value}"
-
-        if not os.path.exists(output_path):
-            cleanup_files(input_path, modified_input_path)
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        # Schedule cleanup after response is sent
-        background_tasks.add_task(cleanup_files, input_path, modified_input_path, output_path)
-
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"attack_tree.{format.value}",
+        await run_sync_with_timeout(
+            at.BuildAttackTree, REQUEST_TIMEOUT_VISUALIZE, "attack tree visualization", on_abandon=temps.cleanup
         )
 
-    except AttackTreeError as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path, output_path)
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
+        return file_response(
+            f"{output_base}.{format.value}", format, f"attack_tree.{format.value}", temps, background_tasks
+        )
 
 
 @router.post("/analyze/attack-tree", response_model=TreeStats, summary="Analyze attack tree structure")
@@ -169,11 +131,10 @@ async def analyze_attack_tree(
 
     Returns node counts, edge counts, and structural information.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         at = AttackTrees(input_path, "unused")
         stats = at.get_tree_stats()
 
@@ -194,14 +155,6 @@ async def analyze_attack_tree(
 
         return TreeStats(**stats)
 
-    except AttackTreeError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
-
 
 @router.post("/validate/attack-tree", summary="Validate attack tree structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
@@ -218,20 +171,11 @@ async def validate_attack_tree(
     - Undefined edge targets
     - Invalid root node
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         at = AttackTrees(input_path, "unused")
         errors = at.validate()
 
         return {"valid": len(errors) == 0, "errors": errors}
-
-    except AttackTreeError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)

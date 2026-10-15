@@ -27,7 +27,7 @@ from usecvislib import __version__ as lib_version
 from usecvislib.diff import VisualizationDiff
 from usecvislib.exporters import Exporter
 from usecvislib.threatmodeling import PyTMWrapper
-from usecvislib.utils import ConfigError, FileError, ReadConfigFile, detect_format
+from usecvislib.utils import ConfigError, FileError, ReadConfigFile, USecVisLibError, detect_format
 from usecvislib.utils import convert_format as utils_convert_format
 
 from ..config import (
@@ -43,10 +43,12 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
+    TempFiles,
     cleanup_files,
     clear_progress,
     get_progress,
     get_template_format,
+    handle_errors,
     run_sync_with_timeout,
     sanitize_filename_for_log,
     save_upload_file,
@@ -232,12 +234,11 @@ async def convert_config_format(
     Note: Mermaid is an output-only format. The diagram type is auto-detected
     from the configuration structure (attack tree, threat model, etc.).
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, (FileError, ConfigError), internal_detail="Conversion failed"):
         # Validate file extension
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
 
         # Detect source format from extension
         source_format = detect_format(file.filename)
@@ -263,16 +264,6 @@ async def convert_config_format(
             target_format=target_format.value,
             filename=suggested_filename,
         )
-
-    except (FileError, ConfigError) as e:
-        logger.warning(f"Conversion failed: {e}")
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Conversion error: {e}")
-        logger.error(f"Conversion failed: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Conversion failed") from e
-    finally:
-        cleanup_files(input_path)
 
 
 # =============================================================================
@@ -300,11 +291,10 @@ async def generate_threat_model_report(
 
     Supports Markdown and HTML output formats.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, (FileError, ConfigError), internal_detail="Report generation failed"):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
 
         # Read and parse the configuration
         inputdata = ReadConfigFile(input_path)
@@ -325,16 +315,6 @@ async def generate_threat_model_report(
         logger.info(f"Generated {format.value} report for {sanitize_filename_for_log(file.filename)}")
 
         return ReportResponse(content=content, format=format.value, filename=suggested_filename)
-
-    except (FileError, ConfigError) as e:
-        logger.warning(f"Report generation failed: {e}")
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Report generation error: {e}")
-        logger.error(f"Report generation failed: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Report generation failed") from e
-    finally:
-        cleanup_files(input_path)
 
 
 # =============================================================================
@@ -460,12 +440,13 @@ async def batch_visualize(
     input_paths = []
     results = []
 
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, internal_detail="Batch processing failed"):
         # Save all uploaded files
         for file in files:
             try:
                 validate_config_file_extension(file.filename)
-                path = save_upload_file(file)
+                path = temps.add(save_upload_file(file))
                 input_paths.append((file.filename, path))
             except HTTPException as e:
                 results.append(BatchItemResult(filename=file.filename, success=False, error=str(e.detail)))
@@ -485,106 +466,135 @@ async def batch_visualize(
         batch_output_dir = os.path.join(TEMP_DIR, f"batch_{os.urandom(8).hex()}")
         os.makedirs(batch_output_dir, exist_ok=True)
 
-        # sv_* presets belong to the SVG engine (there is no render_engine
-        # parameter here, so they used to fail for every item)
-        engine = "svg" if style and style.startswith("sv_") else "graphviz"
+        try:
+            # sv_* presets belong to the SVG engine (there is no render_engine
+            # parameter here, so they used to fail for every item)
+            engine = "svg" if style and style.startswith("sv_") else "graphviz"
 
-        # Process each file with per-item timeout
-        # SECURITY: Prevents single slow file from blocking entire batch
-        for filename, input_path in input_paths:
-            try:
-                output_base = os.path.join(batch_output_dir, os.path.splitext(filename)[0])
+            # Process each file with per-item timeout
+            # SECURITY: Prevents single slow file from blocking entire batch
+            for filename, input_path in input_paths:
+                try:
+                    output_base = temps.add_prefix(os.path.join(batch_output_dir, os.path.splitext(filename)[0]))
+                    # A timed-out item's late output is its own to remove: the
+                    # batch's other inputs are still in use by later items
+                    item_temps = TempFiles()
+                    item_temps.add_prefix(output_base)
 
-                if mode == VisualizationMode.ATTACK_TREE:
-                    viz = AttackTrees(
-                        input_path,
-                        output_base,
-                        format=format.value,
-                        styleid=style or "at_default",
-                        render_engine=engine,
-                    )
-                    await run_sync_with_timeout(
-                        viz.BuildAttackTree, REQUEST_TIMEOUT_VISUALIZE, f"batch attack tree ({filename})"
-                    )
-                    stats = viz.get_tree_stats() if collect_stats else None
-                elif mode == VisualizationMode.ATTACK_GRAPH:
-                    viz = AttackGraphs(
-                        input_path,
-                        output_base,
-                        format=format.value,
-                        styleid=style or "ag_default",
-                        render_engine=engine,
-                    )
-                    await run_sync_with_timeout(
-                        viz.BuildAttackGraph, REQUEST_TIMEOUT_VISUALIZE, f"batch attack graph ({filename})"
-                    )
-                    stats = viz.get_graph_stats() if collect_stats else None
-                elif mode == VisualizationMode.THREAT_MODEL:
-                    viz = ThreatModeling(
-                        input_path,
-                        output_base,
-                        format=format.value,
-                        styleid=style or "tm_default",
-                        render_engine=engine,
-                    )
-                    await run_sync_with_timeout(
-                        viz.BuildThreatModel, REQUEST_TIMEOUT_VISUALIZE, f"batch threat model ({filename})"
-                    )
-                    stats = viz.get_model_stats() if collect_stats else None
-                elif mode == VisualizationMode.CUSTOM_DIAGRAM:
-                    cd = CustomDiagrams()
-                    cd.load(input_path)
-                    # Override style if specified
-                    if style and cd.settings:
-                        cd.settings.style = style
-                    await run_sync_with_timeout(
-                        lambda cd=cd, output_base=output_base: cd.BuildCustomDiagram(
-                            output=output_base, output_format=format.value
-                        ),
-                        REQUEST_TIMEOUT_VISUALIZE,
-                        f"batch custom diagram ({filename})",
-                    )
-                    stats = cd.get_stats() if collect_stats else None
-                else:
-                    stats = None
+                    if mode == VisualizationMode.ATTACK_TREE:
+                        viz = AttackTrees(
+                            input_path,
+                            output_base,
+                            format=format.value,
+                            styleid=style or "at_default",
+                            render_engine=engine,
+                        )
+                        await run_sync_with_timeout(
+                            viz.BuildAttackTree,
+                            REQUEST_TIMEOUT_VISUALIZE,
+                            f"batch attack tree ({filename})",
+                            on_abandon=item_temps.cleanup,
+                        )
+                        stats = viz.get_tree_stats() if collect_stats else None
+                    elif mode == VisualizationMode.ATTACK_GRAPH:
+                        viz = AttackGraphs(
+                            input_path,
+                            output_base,
+                            format=format.value,
+                            styleid=style or "ag_default",
+                            render_engine=engine,
+                        )
+                        await run_sync_with_timeout(
+                            viz.BuildAttackGraph,
+                            REQUEST_TIMEOUT_VISUALIZE,
+                            f"batch attack graph ({filename})",
+                            on_abandon=item_temps.cleanup,
+                        )
+                        stats = viz.get_graph_stats() if collect_stats else None
+                    elif mode == VisualizationMode.THREAT_MODEL:
+                        viz = ThreatModeling(
+                            input_path,
+                            output_base,
+                            format=format.value,
+                            styleid=style or "tm_default",
+                            render_engine=engine,
+                        )
+                        await run_sync_with_timeout(
+                            viz.BuildThreatModel,
+                            REQUEST_TIMEOUT_VISUALIZE,
+                            f"batch threat model ({filename})",
+                            on_abandon=item_temps.cleanup,
+                        )
+                        stats = viz.get_model_stats() if collect_stats else None
+                    elif mode == VisualizationMode.CUSTOM_DIAGRAM:
+                        cd = CustomDiagrams()
+                        cd.load(input_path)
+                        # Override style if specified
+                        if style and cd.settings:
+                            cd.settings.style = style
+                        await run_sync_with_timeout(
+                            lambda cd=cd, output_base=output_base: cd.BuildCustomDiagram(
+                                output=output_base, output_format=format.value
+                            ),
+                            REQUEST_TIMEOUT_VISUALIZE,
+                            f"batch custom diagram ({filename})",
+                            on_abandon=item_temps.cleanup,
+                        )
+                        stats = cd.get_stats() if collect_stats else None
+                    else:
+                        stats = None
 
-                output_file = f"{os.path.splitext(filename)[0]}.{format.value}"
-                output_path = f"{output_base}.{format.value}"
+                    output_file = f"{os.path.splitext(filename)[0]}.{format.value}"
+                    output_path = f"{output_base}.{format.value}"
 
-                # Read the generated file and encode as base64 for download
-                image_data = None
-                if os.path.exists(output_path):
-                    with open(output_path, "rb") as f:
-                        image_data = base64.b64encode(f.read()).decode("utf-8")
+                    # Read the generated file and encode as base64 for download
+                    image_data = None
+                    if os.path.exists(output_path):
+                        with open(output_path, "rb") as f:
+                            image_data = base64.b64encode(f.read()).decode("utf-8")
 
-                results.append(
-                    BatchItemResult(
-                        filename=filename, success=True, output_file=output_file, stats=stats, image_data=image_data
+                    results.append(
+                        BatchItemResult(
+                            filename=filename, success=True, output_file=output_file, stats=stats, image_data=image_data
+                        )
                     )
-                )
 
-            except Exception as e:
-                results.append(BatchItemResult(filename=filename, success=False, error=str(e)))
+                except HTTPException as e:
+                    results.append(BatchItemResult(filename=filename, success=False, error=str(e.detail)))
+                except USecVisLibError as e:
+                    results.append(BatchItemResult(filename=filename, success=False, error=str(e)))
+                except Exception as e:
+                    # Unexpected errors can carry internal details: log them, report a generic message
+                    logger.error(
+                        f"Batch item {sanitize_filename_for_log(filename)} failed: {e!s}",
+                        exc_info=ENABLE_TRACEBACK_LOGGING,
+                    )
+                    results.append(BatchItemResult(filename=filename, success=False, error="Processing failed"))
 
-        # Calculate aggregate stats
-        success_count = sum(1 for r in results if r.success)
-        failure_count = len(results) - success_count
-        success_rate = success_count / len(results) if results else 0.0
+            # Calculate aggregate stats
+            success_count = sum(1 for r in results if r.success)
+            failure_count = len(results) - success_count
+            success_rate = success_count / len(results) if results else 0.0
 
-        # Aggregate stats from successful results
-        aggregate_stats = None
-        if collect_stats:
-            stats_list = [r.stats for r in results if r.success and r.stats]
-            if stats_list:
-                aggregate_stats = {"file_count": len(stats_list)}
-                # Sum up common numeric stats
-                for key in ["total_nodes", "total_edges", "total_hosts", "total_vulnerabilities"]:
-                    values = [s.get(key, 0) for s in stats_list if key in s]
-                    if values:
-                        aggregate_stats[key] = sum(values)
+            # Aggregate stats from successful results
+            aggregate_stats = None
+            if collect_stats:
+                stats_list = [r.stats for r in results if r.success and r.stats]
+                if stats_list:
+                    aggregate_stats = {"file_count": len(stats_list)}
+                    # Sum up common numeric stats
+                    for key in ["total_nodes", "total_edges", "total_hosts", "total_vulnerabilities"]:
+                        values = [s.get(key, 0) for s in stats_list if key in s]
+                        if values:
+                            aggregate_stats[key] = sum(values)
+
+        except BaseException:
+            # TempFiles removes files only; the batch directory goes here
+            shutil.rmtree(batch_output_dir, ignore_errors=True)
+            raise
 
         # Schedule cleanup
-        background_tasks.add_task(cleanup_files, *[p for _, p in input_paths])
+        temps.defer(background_tasks)
         background_tasks.add_task(shutil.rmtree, batch_output_dir, True)
 
         return BatchResponse(
@@ -595,18 +605,6 @@ async def batch_visualize(
             results=results,
             aggregate_stats=aggregate_stats,
         )
-
-    except HTTPException:
-        # Client errors (e.g. unsupported mode) keep their status, not 500
-        for _, path in input_paths:
-            cleanup_files(path)
-        raise
-    except Exception as e:
-        # Cleanup on error
-        for _, path in input_paths:
-            cleanup_files(path)
-        logger.error(f"Batch processing failed: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Batch processing failed") from e
 
 
 # =============================================================================
@@ -647,11 +645,10 @@ async def export_data(
     For attack trees:
     - nodes, edges
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, (USecVisLibError,), internal_detail="Export failed"):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
 
         # Auto-detect mode if not specified
         if mode is None:
@@ -717,7 +714,7 @@ async def export_data(
                     status_code=400, detail="CSV export requires a section with list data (e.g., 'hosts', 'nodes')"
                 )
             # Write to temp file and read back
-            temp_csv = os.path.join(TEMP_DIR, f"export_{os.urandom(4).hex()}.csv")
+            temp_csv = temps.add(os.path.join(TEMP_DIR, f"export_{os.urandom(4).hex()}.csv"))
             rows = Exporter.to_csv(csv_data, temp_csv)
             with open(temp_csv) as f:
                 content = f.read()
@@ -753,15 +750,6 @@ async def export_data(
         logger.info(f"Exported {sanitize_filename_for_log(file.filename)} to {format.value}")
 
         return ExportResponse(content=content, format=format.value, filename=filename, rows=rows)
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Export error: {e}")
-        logger.error(f"Export failed: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Export failed") from e
-    finally:
-        cleanup_files(input_path)
 
 
 @router.get("/export/sections", tags=["Export"], summary="Get available export sections for a visualization mode")
@@ -823,19 +811,17 @@ async def compare_configs(
     - Auditing security configuration changes
     - Version control for attack scenarios
     """
-    old_path = None
-    new_path = None
-
     # Support both parameter names for report generation
     should_include_report = include_report or generate_report
 
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, (USecVisLibError,), internal_detail="Comparison failed"):
         # Validate and save both files
         validate_config_file_extension(old_file.filename)
         validate_config_file_extension(new_file.filename)
 
-        old_path = save_upload_file(old_file)
-        new_path = save_upload_file(new_file)
+        old_path = temps.add(save_upload_file(old_file))
+        new_path = temps.add(save_upload_file(new_file))
 
         # Auto-detect mode if not provided
         if mode is None:
@@ -915,15 +901,6 @@ async def compare_configs(
             changes=changes,
             report=report,
         )
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Comparison error: {e}")
-        logger.error(f"Comparison failed: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Comparison failed") from e
-    finally:
-        cleanup_files(old_path, new_path)
 
 
 # =============================================================================

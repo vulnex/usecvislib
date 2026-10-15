@@ -10,14 +10,13 @@
 import logging
 import os
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 
 from usecvislib.timeline import IncidentTimeline, TimelineError
 from usecvislib.utils import ConfigError, FileError
 
 from ..config import (
-    ENABLE_TRACEBACK_LOGGING,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_VISUALIZE,
     REQUEST_TIMEOUT_VISUALIZE,
@@ -25,8 +24,9 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
-    cleanup_files,
-    get_content_type,
+    TempFiles,
+    file_response,
+    handle_errors,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
@@ -43,6 +43,9 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["Incident Timeline"])
+
+# Errors in the uploaded definition: reported to the client as 400
+_CLIENT_ERRORS = (TimelineError, FileError, ConfigError)
 
 
 @router.post(
@@ -77,13 +80,11 @@ async def visualize_timeline(
     ``[[events]]`` (timestamp, title, severity, lane, optional duration and
     ATT&CK technique) and optional ``[[phases]]`` response bands.
     """
-    input_path = None
-    output_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
 
         styleid = style.value
         if render_engine == RenderEngine.SVG and style == TimelineStyle.DEFAULT:
@@ -97,32 +98,13 @@ async def visualize_timeline(
             mode=mode.value,
             render_engine=render_engine.value,
         )
-        await run_sync_with_timeout(tl.build, REQUEST_TIMEOUT_VISUALIZE, "timeline visualization")
-
-        output_path = f"{output_base}.{format.value}"
-        if not os.path.exists(output_path):
-            cleanup_files(input_path)
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        background_tasks.add_task(cleanup_files, input_path, output_path)
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"timeline.{format.value}",
+        await run_sync_with_timeout(
+            tl.build, REQUEST_TIMEOUT_VISUALIZE, "timeline visualization", on_abandon=temps.cleanup
         )
 
-    except TimelineError as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except HTTPException:
-        raise
-    except Exception as e:
-        cleanup_files(input_path, output_path)
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
+        return file_response(
+            f"{output_base}.{format.value}", format, f"timeline.{format.value}", temps, background_tasks
+        )
 
 
 @router.post("/analyze/timeline", response_model=TimelineStats, summary="Analyze incident timeline")
@@ -134,10 +116,10 @@ async def analyze_timeline(
     ),
 ):
     """Return timeline statistics, severity distribution and response metrics."""
-    input_path = None
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         tl = IncidentTimeline(input_path, "unused")
         stats = tl.get_stats()
 
@@ -156,16 +138,6 @@ async def analyze_timeline(
         )
         return TimelineStats(**stats)
 
-    except TimelineError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
-
 
 @router.post("/validate/timeline", summary="Validate incident timeline structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
@@ -176,20 +148,10 @@ async def validate_timeline(
     ),
 ):
     """Validate an incident timeline configuration and return any errors/warnings."""
-    input_path = None
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         tl = IncidentTimeline(input_path, "unused")
         errors = tl.validate()
         return {"valid": len(errors) == 0, "errors": errors}
-
-    except TimelineError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)

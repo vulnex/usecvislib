@@ -19,7 +19,6 @@ from usecvislib.maestro import MaestroError, MaestroLayer
 from usecvislib.utils import ConfigError, FileError
 
 from ..config import (
-    ENABLE_TRACEBACK_LOGGING,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_VISUALIZE,
     REQUEST_TIMEOUT_VISUALIZE,
@@ -27,8 +26,9 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
-    cleanup_files,
-    get_content_type,
+    TempFiles,
+    file_response,
+    handle_errors,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
@@ -52,6 +52,9 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["MAESTRO Agentic Threat Model"])
+
+# Errors in the uploaded definition: reported to the client as 400
+_CLIENT_ERRORS = (MaestroError, FileError, ConfigError)
 
 
 # =============================================================================
@@ -100,13 +103,11 @@ async def visualize_maestro(
     graph (clusters by primary layer with attack chains as directed edges),
     and the severity heatmap (agents x layers).
     """
-    input_path = None
-    output_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
 
         styleid = style.value
         view_value = view.value
@@ -137,35 +138,12 @@ async def visualize_maestro(
             mm.build,
             REQUEST_TIMEOUT_VISUALIZE,
             "MAESTRO threat model visualization",
+            on_abandon=temps.cleanup,
         )
 
-        output_path = f"{output_base}.{format.value}"
-
-        if not os.path.exists(output_path):
-            cleanup_files(input_path)
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        background_tasks.add_task(cleanup_files, input_path, output_path)
-
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"maestro_threat_model.{format.value}",
+        return file_response(
+            f"{output_base}.{format.value}", format, f"maestro_threat_model.{format.value}", temps, background_tasks
         )
-
-    except HTTPException:
-        cleanup_files(input_path, output_path)
-        raise
-    except MaestroError as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path, output_path)
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
 # =============================================================================
@@ -189,11 +167,10 @@ async def analyze_maestro(
     Returns agent / asset / threat counts, severity and status breakdowns,
     declared patterns, and any validation warnings surfaced during load.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         mm = MaestroThreatModel(input_path, "unused")
         stats = mm.get_stats()
 
@@ -212,16 +189,6 @@ async def analyze_maestro(
         )
 
         return MaestroStats(**stats)
-
-    except HTTPException:
-        raise
-    except MaestroError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
 
 
 # =============================================================================
@@ -249,11 +216,10 @@ async def list_maestro_threats(
     with optional filters on layer, severity, and status. Powers the Threat
     List tab in the Vue panel.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         mm = MaestroThreatModel(input_path, "unused")
         mm.load()
 
@@ -300,16 +266,6 @@ async def list_maestro_threats(
             statuses=sorted(all_statuses),
         )
 
-    except HTTPException:
-        raise
-    except MaestroError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
-
 
 # =============================================================================
 # Validate
@@ -330,11 +286,10 @@ async def validate_maestro(
     Validate a MAESTRO config and surface validation errors plus
     auto-populate warnings (including pattern x layer mismatches).
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         mm = MaestroThreatModel(input_path, "unused")
         errors = mm.validate()
         return MaestroValidationResponse(
@@ -342,16 +297,6 @@ async def validate_maestro(
             errors=errors,
             warnings=list(mm.warnings),
         )
-
-    except HTTPException:
-        raise
-    except MaestroError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
 
 
 # =============================================================================
@@ -367,13 +312,10 @@ async def validate_maestro(
 @limiter.limit(RATE_LIMIT_ANALYZE)
 async def get_maestro_catalog(request: Request):
     """Return the built-in MAESTRO threat catalog (versioned, immutable IDs)."""
-    try:
+    with handle_errors(internal_detail="Failed to load catalog"):
         mm = MaestroThreatModel("unused.toml", "unused", validate_paths=False)
         catalog = mm.get_catalog()
         return MaestroCatalogResponse(**catalog)
-    except Exception as e:
-        logger.error(f"Failed to load catalog: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to load catalog") from e
 
 
 @router.get(
@@ -391,7 +333,7 @@ async def get_maestro_catalog_for_layer(request: Request, layer: str):
             detail=f"Unknown layer '{layer}'. Valid: {sorted(valid_layers)}",
         )
 
-    try:
+    with handle_errors(internal_detail="Failed to load catalog layer"):
         mm = MaestroThreatModel("unused.toml", "unused", validate_paths=False)
         catalog = mm.get_catalog()
         layer_meta = catalog.get("layers", {}).get(layer, {})
@@ -402,11 +344,6 @@ async def get_maestro_catalog_for_layer(request: Request, layer: str):
             layer_name=layer_name,
             threats=threats,
         )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to load catalog layer: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to load catalog layer") from e
 
 
 # =============================================================================
@@ -436,11 +373,10 @@ async def export_maestro(
     - ``privilege-gradient``: PrivilegeGradient shape with trust zones derived
       from agent autonomy levels.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         mm = MaestroThreatModel(input_path, "unused")
         mm.load()
 
@@ -461,13 +397,3 @@ async def export_maestro(
             catalog_version=catalog_version,
             payload=payload,
         )
-
-    except HTTPException:
-        raise
-    except MaestroError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)

@@ -15,9 +15,9 @@ from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Requ
 from fastapi.responses import FileResponse
 
 from usecvislib.clouddiagrams import CloudDiagramError, CloudDiagrams, DiagramsNotInstalledError, IconNotFoundError
+from usecvislib.utils import ConfigError, FileError
 
 from ..config import (
-    ENABLE_TRACEBACK_LOGGING,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_DEFAULT,
     RATE_LIMIT_VISUALIZE,
@@ -26,7 +26,8 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
-    cleanup_files,
+    TempFiles,
+    handle_errors,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
@@ -50,6 +51,19 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["Cloud Diagrams"])
+
+# Errors in the uploaded definition: reported to the client as 400
+_CLIENT_ERRORS = (CloudDiagramError, FileError, ConfigError)
+
+_NOT_INSTALLED = {
+    DiagramsNotInstalledError: (503, "Python diagrams library not installed. Run: pip install diagrams"),
+}
+
+# Subclasses of CloudDiagramError with fixed responses (checked first)
+_OVERRIDES = {
+    **_NOT_INSTALLED,
+    IconNotFoundError: (400, "One or more specified icons could not be found"),
+}
 
 
 @router.post(
@@ -110,16 +124,14 @@ async def visualize_cloud(
     pip install diagrams
     ```
     """
-    input_path = None
-    output_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS, _OVERRIDES):
         # Validate file extension
         validate_config_file_extension(file.filename)
 
         # Save uploaded file
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"cloud_{os.urandom(8).hex()}")
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"cloud_{os.urandom(8).hex()}"))
 
         # Create CloudDiagrams instance
         cd = CloudDiagrams(validate_diagrams=True)
@@ -138,15 +150,15 @@ async def visualize_cloud(
             lambda: cd.render(output_base, format=format.value, show=False),
             REQUEST_TIMEOUT_VISUALIZE,
             "cloud diagram rendering",
+            on_abandon=temps.cleanup,
         )
-        output_path = str(result.output_path)
+        output_path = temps.add(str(result.output_path))
 
         if not os.path.exists(output_path):
-            cleanup_files(input_path)
             raise HTTPException(status_code=500, detail="Failed to generate cloud diagram")
 
         # Schedule cleanup after response is sent
-        background_tasks.add_task(cleanup_files, input_path, output_path)
+        temps.defer(background_tasks)
 
         content_types = {
             "png": "image/png",
@@ -162,23 +174,6 @@ async def visualize_cloud(
             filename=f"cloud_diagram.{format.value}",
         )
 
-    except DiagramsNotInstalledError as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(
-            status_code=503, detail="Python diagrams library not installed. Run: pip install diagrams"
-        ) from e
-    except IconNotFoundError as e:
-        cleanup_files(input_path, output_path)
-        logger.warning(f"Icon not found: {e!s}")
-        raise HTTPException(status_code=400, detail="One or more specified icons could not be found") from e
-    except CloudDiagramError as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path, output_path)
-        logger.error(f"Cloud diagram rendering error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-
 
 @router.post("/analyze/cloud", response_model=CloudValidateResponse, summary="Validate cloud diagram")
 @limiter.limit(RATE_LIMIT_ANALYZE)
@@ -191,14 +186,13 @@ async def analyze_cloud(
 
     Returns node count, edge count, cluster count, and validation errors.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         # Validate file extension
         validate_config_file_extension(file.filename)
 
         # Save uploaded file
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
 
         # Create CloudDiagrams instance
         cd = CloudDiagrams(validate_diagrams=False)
@@ -209,8 +203,6 @@ async def analyze_cloud(
 
         # Validate configuration
         errors = cd.validate()
-
-        cleanup_files(input_path)
 
         return CloudValidateResponse(
             valid=len(errors) == 0,
@@ -224,14 +216,6 @@ async def analyze_cloud(
                 loaded=True,
             ),
         )
-
-    except CloudDiagramError as e:
-        cleanup_files(input_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path)
-        logger.error(f"Cloud diagram analysis error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
 @router.get("/cloud/providers", response_model=CloudProvidersResponse, summary="List cloud providers")
@@ -258,7 +242,7 @@ async def list_cloud_icons(
     Use the `category` parameter to filter by service category
     (e.g., compute, database, network, storage).
     """
-    try:
+    with handle_errors(overrides=_NOT_INSTALLED, internal_detail="Failed to list icons"):
         icons_list = CloudDiagrams.list_icons(provider.value, category=category)
         icons = [
             CloudIconInfo(
@@ -270,13 +254,6 @@ async def list_cloud_icons(
             for icon in icons_list
         ]
         return CloudIconsListResponse(icons=icons, provider=provider.value, category=category, total=len(icons))
-    except DiagramsNotInstalledError as e:
-        raise HTTPException(
-            status_code=503, detail="Python diagrams library not installed. Run: pip install diagrams"
-        ) from e
-    except Exception as e:
-        logger.error(f"Error listing cloud icons: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to list icons") from e
 
 
 @router.get("/cloud/templates", response_model=CloudTemplateListResponse, summary="List cloud diagram templates")
@@ -290,7 +267,7 @@ async def list_cloud_templates(
 
     Templates are organized by category (aws, kubernetes, security, etc.)
     """
-    try:
+    with handle_errors(internal_detail="Failed to list templates"):
         categories = CloudDiagrams.list_template_categories()
         all_templates = CloudDiagrams.list_templates(category=category)
 
@@ -305,9 +282,6 @@ async def list_cloud_templates(
         ]
 
         return CloudTemplateListResponse(templates=templates, categories=categories, total=len(templates))
-    except Exception as e:
-        logger.error(f"Error listing cloud templates: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to list templates") from e
 
 
 @router.get(
@@ -322,7 +296,7 @@ async def get_cloud_template(request: Request, category: str, name: str):
 
     Returns the template content along with metadata.
     """
-    try:
+    with handle_errors(internal_detail="Failed to get template"):
         template_id = f"{category}/{name}"
 
         # SECURITY: Validate each path component to prevent path traversal
@@ -375,12 +349,6 @@ async def get_cloud_template(request: Request, category: str, name: str):
             providers=providers,
         )
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting cloud template: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="Failed to get template") from e
-
 
 @router.post("/cloud/generate-code", response_model=CloudPythonCodeResponse, summary="Generate Python code from config")
 @limiter.limit(RATE_LIMIT_ANALYZE)
@@ -394,14 +362,13 @@ async def generate_cloud_code(
     The generated code uses the `diagrams` library and can be executed
     standalone to produce the diagram.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         # Validate file extension
         validate_config_file_extension(file.filename)
 
         # Save uploaded file
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
 
         # Create CloudDiagrams instance
         cd = CloudDiagrams(validate_diagrams=False)
@@ -410,18 +377,8 @@ async def generate_cloud_code(
         # Generate Python code
         code = cd.to_python_code()
 
-        cleanup_files(input_path)
-
         # Generate suggested filename from config title
         title = cd.config.title if cd.config else "cloud_diagram"
         filename = f"{title.lower().replace(' ', '_')}.py"
 
         return CloudPythonCodeResponse(code=code, filename=filename)
-
-    except CloudDiagramError as e:
-        cleanup_files(input_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path)
-        logger.error(f"Cloud code generation error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e

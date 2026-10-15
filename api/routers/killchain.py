@@ -10,14 +10,13 @@
 import logging
 import os
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 
 from usecvislib.killchain import KillChain, KillChainError
 from usecvislib.utils import ConfigError, FileError
 
 from ..config import (
-    ENABLE_TRACEBACK_LOGGING,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_VISUALIZE,
     REQUEST_TIMEOUT_VISUALIZE,
@@ -25,8 +24,9 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
-    cleanup_files,
-    get_content_type,
+    TempFiles,
+    file_response,
+    handle_errors,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
@@ -42,6 +42,9 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["Kill Chain"])
+
+# Errors in the uploaded definition: reported to the client as 400
+_CLIENT_ERRORS = (KillChainError, FileError, ConfigError)
 
 # SVG engine defaults to sv_default when a Graphviz default style is requested.
 _SVG_STYLE_VALUES = {s.value for s in KillChainStyle if s.value.startswith("sv_")}
@@ -76,45 +79,24 @@ async def visualize_kill_chain(
     ``[techniques.*]`` table, and optional ``[[incidents]]`` paths. Coverage
     flags (``detected`` / ``mitigated``) drive the detection heat coloring.
     """
-    input_path = None
-    output_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
 
         styleid = style.value
         if render_engine == RenderEngine.SVG and style == KillChainStyle.DEFAULT:
             styleid = ""  # let the engine pick sv_default
 
         kc = KillChain(input_path, output_base, format=format.value, styleid=styleid, render_engine=render_engine.value)
-        await run_sync_with_timeout(kc.build, REQUEST_TIMEOUT_VISUALIZE, "kill chain visualization")
-
-        output_path = f"{output_base}.{format.value}"
-        if not os.path.exists(output_path):
-            cleanup_files(input_path)
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        background_tasks.add_task(cleanup_files, input_path, output_path)
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"kill_chain.{format.value}",
+        await run_sync_with_timeout(
+            kc.build, REQUEST_TIMEOUT_VISUALIZE, "kill chain visualization", on_abandon=temps.cleanup
         )
 
-    except KillChainError as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except HTTPException:
-        raise
-    except Exception as e:
-        cleanup_files(input_path, output_path)
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
+        return file_response(
+            f"{output_base}.{format.value}", format, f"kill_chain.{format.value}", temps, background_tasks
+        )
 
 
 @router.post("/analyze/kill-chain", response_model=KillChainStats, summary="Analyze kill chain coverage")
@@ -124,10 +106,10 @@ async def analyze_kill_chain(
     file: UploadFile = File(..., description="Config file with a [killchain] section and techniques"),
 ):
     """Return kill chain statistics and detection/mitigation coverage."""
-    input_path = None
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         kc = KillChain(input_path, "unused")
         stats = kc.get_stats()
 
@@ -146,16 +128,6 @@ async def analyze_kill_chain(
         )
         return KillChainStats(**stats)
 
-    except KillChainError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
-
 
 @router.post("/validate/kill-chain", summary="Validate kill chain structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
@@ -164,20 +136,10 @@ async def validate_kill_chain(
     file: UploadFile = File(..., description="Config file with a [killchain] section and techniques"),
 ):
     """Validate a kill chain configuration and return any errors/warnings."""
-    input_path = None
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         kc = KillChain(input_path, "unused")
         errors = kc.validate()
         return {"valid": len(errors) == 0, "errors": errors}
-
-    except KillChainError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)

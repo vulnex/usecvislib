@@ -20,11 +20,10 @@ from usecvislib.attackgraphs import AttackGraphError
 from usecvislib.attacktrees import AttackTreeError
 from usecvislib.customdiagrams import CustomDiagramError
 from usecvislib.shapes import ShapeRegistry
-from usecvislib.utils import ConfigError, FileError, ReadConfigFile
+from usecvislib.utils import ConfigError, FileError
 
 from ..config import (
     CUSTOM_DIAGRAMS_TEMPLATES_DIR,
-    ENABLE_TRACEBACK_LOGGING,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_DEFAULT,
     RATE_LIMIT_VISUALIZE,
@@ -33,14 +32,14 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
-    cleanup_files,
-    get_content_type,
-    resolve_image_references,
+    TempFiles,
+    file_response,
+    handle_errors,
+    resolve_images_to_temp,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
     validate_path_component,
-    write_config_file,
 )
 from ..schemas import (
     CustomDiagramLayout,
@@ -58,6 +57,9 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["Custom Diagrams"])
+
+# Errors in the uploaded definition: reported to the client as 400
+_CLIENT_ERRORS = (CustomDiagramError, FileError, ConfigError)
 
 
 def _apply_style(cd: CustomDiagrams, style: Optional[CustomDiagramStyle]) -> None:
@@ -348,28 +350,14 @@ async def visualize_custom_diagram(
     label = "connects"
     ```
     """
-    input_path = None
-    output_path = None
-    modified_input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
 
         # Read and parse config to resolve image_id references
-        try:
-            config_data = ReadConfigFile(input_path)
-            config_data = resolve_image_references(config_data)
-
-            # Keep a valid extension for the resolved file
-            base, ext = os.path.splitext(input_path)
-            modified_input_path = f"{base}_resolved{ext}"
-            write_config_file(modified_input_path, config_data, ext)
-            input_for_viz = modified_input_path
-        except Exception as e:
-            logger.debug(f"Image resolution skipped: {e}")
-            input_for_viz = input_path
+        input_for_viz = resolve_images_to_temp(input_path, temps)
 
         # Create CustomDiagrams instance and build visualization
         cd = CustomDiagrams()
@@ -383,32 +371,11 @@ async def visualize_custom_diagram(
             lambda: cd.BuildCustomDiagram(output=output_base, output_format=format.value, validate=True),
             REQUEST_TIMEOUT_VISUALIZE,
             "custom diagram visualization",
+            on_abandon=temps.cleanup,
         )
-        output_path = result.output_path
+        output_path = temps.add(result.output_path) or ""
 
-        if not output_path or not os.path.exists(output_path):
-            cleanup_files(input_path, modified_input_path)
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        background_tasks.add_task(cleanup_files, input_path, modified_input_path, output_path)
-
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"custom_diagram.{format.value}",
-        )
-
-    except CustomDiagramError as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        logger.error(f"Custom diagram visualization error: {e}")
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
+        return file_response(output_path, format, f"custom_diagram.{format.value}", temps, background_tasks)
 
 
 @router.post(
@@ -432,15 +399,25 @@ async def validate_custom_diagram(
 
     Returns validation result with any errors or warnings found.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, (FileError, ConfigError)):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
 
-        cd = CustomDiagrams()
-        cd.load(input_path)
-        result = cd.validate(raise_on_error=False)
+        # A definition that fails to load is a validation result, not an error
+        try:
+            cd = CustomDiagrams()
+            cd.load(input_path)
+            result = cd.validate(raise_on_error=False)
+        except CustomDiagramError as e:
+            return CustomDiagramValidateResponse(
+                valid=False,
+                errors=[str(e)],
+                warnings=[],
+                node_count=0,
+                edge_count=0,
+                cluster_count=0,
+            )
 
         return CustomDiagramValidateResponse(
             valid=result.get("valid", False),
@@ -450,24 +427,6 @@ async def validate_custom_diagram(
             edge_count=len(cd.edges),
             cluster_count=len(cd.clusters) if cd.clusters else 0,
         )
-
-    except CustomDiagramError as e:
-        return CustomDiagramValidateResponse(
-            valid=False,
-            errors=[str(e)],
-            warnings=[],
-            node_count=0,
-            edge_count=0,
-            cluster_count=0,
-        )
-    except (FileError, ConfigError) as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Custom diagram validation error: {e}")
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
 
 
 @router.post(
@@ -488,11 +447,10 @@ async def get_custom_diagram_stats(
     - Cluster information
     - Connectivity metrics
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
 
         cd = CustomDiagrams()
         cd.load(input_path)
@@ -509,17 +467,6 @@ async def get_custom_diagram_stats(
             layout=stats.get("layout", "hierarchical"),
             direction=stats.get("direction", "TB"),
         )
-
-    except CustomDiagramError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Custom diagram stats error: {e}")
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
 
 
 @router.post(
@@ -554,9 +501,8 @@ async def custom_diagram_from_template(
 
     Available templates can be listed using GET /custom-diagrams/templates
     """
-    output_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, (CustomDiagramError,)):
         # Parse template ID
         parts = template_id.split("/")
         if len(parts) != 2:
@@ -587,7 +533,7 @@ async def custom_diagram_from_template(
         if not resolved_path.exists():
             raise HTTPException(status_code=404, detail=f"Template '{template_id}' not found")
 
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
 
         # Create CustomDiagrams instance and build visualization
         cd = CustomDiagrams()
@@ -600,30 +546,11 @@ async def custom_diagram_from_template(
             lambda: cd.BuildCustomDiagram(output=output_base, output_format=format.value, validate=True),
             REQUEST_TIMEOUT_VISUALIZE,
             "custom diagram template visualization",
+            on_abandon=temps.cleanup,
         )
-        output_path = result.output_path
+        output_path = temps.add(result.output_path) or ""
 
-        if not output_path or not os.path.exists(output_path):
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        background_tasks.add_task(cleanup_files, output_path)
-
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"{template_name}.{format.value}",
-        )
-
-    except CustomDiagramError as e:
-        cleanup_files(output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except HTTPException:
-        raise
-    except Exception as e:
-        cleanup_files(output_path)
-        logger.error(f"Custom diagram from template error: {e}")
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
+        return file_response(output_path, format, f"{template_name}.{format.value}", temps, background_tasks)
 
 
 @router.post(
@@ -662,13 +589,11 @@ async def import_to_custom_diagram(
 
     This allows applying custom styling and schema to existing security models.
     """
-    input_path = None
-    output_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, (*_CLIENT_ERRORS, AttackTreeError, AttackGraphError)):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
 
         # Create CustomDiagrams from source type (classmethods taking the
         # config path; they were called on an instance with a loaded object,
@@ -689,37 +614,11 @@ async def import_to_custom_diagram(
             lambda: cd.BuildCustomDiagram(output=output_base, output_format=format.value, validate=True),
             REQUEST_TIMEOUT_VISUALIZE,
             "custom diagram import visualization",
+            on_abandon=temps.cleanup,
         )
-        output_path = result.output_path
+        output_path = temps.add(result.output_path) or ""
 
-        if not output_path or not os.path.exists(output_path):
-            cleanup_files(input_path)
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        background_tasks.add_task(cleanup_files, input_path, output_path)
-
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"imported_diagram.{format.value}",
-        )
-
-    except CustomDiagramError as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (AttackTreeError, AttackGraphError) as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        cleanup_files(input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except HTTPException:
-        raise
-    except Exception as e:
-        cleanup_files(input_path, output_path)
-        logger.error(f"Custom diagram import error: {e}")
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
+        return file_response(output_path, format, f"imported_diagram.{format.value}", temps, background_tasks)
 
 
 @router.get("/custom-diagrams/styles", summary="Get available custom diagram styles")

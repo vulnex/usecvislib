@@ -15,6 +15,7 @@ Covers security-critical helpers in api/helpers.py:
 - UUID format validation
 - Filename sanitization (log injection prevention)
 - Timeout enforcement (504 responses)
+- Request handling: temp-file tracking and HTTP error mapping
 - File upload helpers
 - Progress tracking
 - CORS validation (api/config.py)
@@ -38,10 +39,12 @@ os.environ["USECVISLIB_AUTH_ENABLED"] = "false"
 from fastapi import HTTPException
 
 from api.helpers import (
+    TempFiles,
     _cleanup_old_progress_entries,
     _progress_store,
     clear_progress,
     cleanup_files,
+    file_response,
     get_content_type,
     get_file_extension,
     get_image_content_type,
@@ -49,9 +52,11 @@ from api.helpers import (
     get_template_format,
     get_user_image_dir,
     get_user_namespace,
+    handle_errors,
     is_safe_symlink,
     is_valid_image,
     run_with_timeout,
+    resolve_images_to_temp,
     run_sync_with_timeout,
     sanitize_filename_for_log,
     update_progress,
@@ -275,6 +280,26 @@ class TestRunSyncWithTimeout:
         with pytest.raises(HTTPException) as exc_info:
             await run_sync_with_timeout(slow, timeout_seconds=0.1, operation_name="slow sync")
         assert exc_info.value.status_code == 504
+
+
+    @pytest.mark.asyncio
+    async def test_on_abandon_runs_after_timed_out_function_finishes(self):
+        import time
+        finished = []
+        def slow():
+            time.sleep(0.3)
+            finished.append("done")
+        with pytest.raises(HTTPException):
+            await run_sync_with_timeout(slow, 0.05, "slow sync", on_abandon=lambda: finished.append("hook"))
+        await asyncio.sleep(0.6)
+        assert finished == ["done", "hook"]
+
+    @pytest.mark.asyncio
+    async def test_on_abandon_not_called_without_timeout(self):
+        called = []
+        result = await run_sync_with_timeout(lambda x: x * 2, 5, "quick", 21, on_abandon=lambda: called.append(1))
+        assert result == 42
+        assert called == []
 
 
 class TestWithTimeoutDecorator:
@@ -673,3 +698,115 @@ class TestParseAllowedOrigins:
             origins = _parse_allowed_origins()
             assert len(origins) > 0
             assert any("localhost" in o for o in origins)
+
+
+# =============================================================================
+# Request handling: TempFiles, handle_errors, file_response
+# =============================================================================
+
+
+class LibraryError(Exception):
+    pass
+
+
+class LibrarySubError(LibraryError):
+    pass
+
+
+@pytest.fixture
+def workdir(tmp_path):
+    def make(name):
+        path = tmp_path / name
+        path.write_bytes(b"x")
+        return str(path)
+    make.dir = tmp_path
+    return make
+
+
+class TestTempFiles:
+    def test_cleanup_removes_paths_and_prefix_matches(self, workdir):
+        temps = TempFiles()
+        temps.add(workdir("upload.toml"))
+        temps.add_prefix(str(workdir.dir / "output_ab"))
+        workdir("output_ab_entropy.png")
+        workdir("output_ab.svg")
+        keep = workdir("output_cd.png")
+        temps.cleanup()
+        assert [str(p) for p in workdir.dir.iterdir()] == [keep]
+
+
+class TestHandleErrors:
+    def test_http_exception_passes_through(self):
+        with pytest.raises(HTTPException) as exc_info, handle_errors():
+            raise HTTPException(status_code=413, detail="too big")
+        assert exc_info.value.status_code == 413
+
+    def test_client_error_becomes_400_with_message(self):
+        with pytest.raises(HTTPException) as exc_info, handle_errors(client_errors=(LibraryError,)):
+            raise LibraryError("bad node")
+        assert (exc_info.value.status_code, exc_info.value.detail) == (400, "bad node")
+
+    def test_override_wins_over_client_error(self):
+        overrides = {LibrarySubError: (503, "tool missing")}
+        with pytest.raises(HTTPException) as exc_info, handle_errors(None, (LibraryError,), overrides):
+            raise LibrarySubError("internal path /x")
+        assert (exc_info.value.status_code, exc_info.value.detail) == (503, "tool missing")
+
+    def test_other_errors_become_500_without_message(self):
+        with pytest.raises(HTTPException) as exc_info, handle_errors(internal_detail="Export failed"):
+            raise RuntimeError("secret detail")
+        assert (exc_info.value.status_code, exc_info.value.detail) == (500, "Export failed")
+
+    def test_cleans_up_on_error(self, workdir):
+        temps = TempFiles()
+        temps.add(workdir("upload.toml"))
+        with pytest.raises(HTTPException), handle_errors(temps):
+            raise HTTPException(status_code=504, detail="timeout")
+        assert list(workdir.dir.iterdir()) == []
+
+    def test_cleans_up_on_success_unless_deferred(self, workdir):
+        temps = TempFiles()
+        temps.add(workdir("analyze.toml"))
+        with handle_errors(temps):
+            pass
+        assert list(workdir.dir.iterdir()) == []
+
+        deferred = TempFiles()
+        deferred.add(workdir("render.png"))
+        with handle_errors(deferred):
+            deferred.defer(MagicMock())
+        assert len(list(workdir.dir.iterdir())) == 1
+
+
+class TestFileResponse:
+    def test_missing_output_is_500(self, workdir):
+        with pytest.raises(HTTPException) as exc_info:
+            file_response(str(workdir.dir / "none.png"), OutputFormat.PNG, "x.png", TempFiles(), MagicMock())
+        assert exc_info.value.status_code == 500
+
+    def test_existing_output_defers_cleanup(self, workdir):
+        temps = TempFiles()
+        background = MagicMock()
+        response = file_response(workdir("out.png"), OutputFormat.PNG, "chart.png", temps, background)
+        assert response.media_type == "image/png"
+        assert temps.deferred
+        background.add_task.assert_called_once_with(temps.cleanup)
+
+
+class TestResolveImagesToTemp:
+    def test_unreadable_config_returns_input(self, workdir):
+        temps = TempFiles()
+        path = workdir("broken.toml")
+        with open(path, "w") as f:
+            f.write("not = [valid")
+        assert resolve_images_to_temp(path, temps) == path
+
+    def test_resolved_copy_is_tracked(self, workdir):
+        temps = TempFiles()
+        path = workdir("tree.toml")
+        with open(path, "w") as f:
+            f.write('[tree]\nname = "T"\nroot = "A"\n')
+        resolved = resolve_images_to_temp(path, temps)
+        assert resolved.endswith("tree_resolved.toml") and os.path.exists(resolved)
+        temps.cleanup()
+        assert not os.path.exists(resolved)

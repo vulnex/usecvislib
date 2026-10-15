@@ -15,10 +15,9 @@ from fastapi.responses import FileResponse
 
 from usecvislib import AttackGraphs
 from usecvislib.attackgraphs import AttackGraphError
-from usecvislib.utils import ConfigError, FileError, ReadConfigFile
+from usecvislib.utils import ConfigError, FileError
 
 from ..config import (
-    ENABLE_TRACEBACK_LOGGING,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_VISUALIZE,
     REQUEST_TIMEOUT_VISUALIZE,
@@ -26,13 +25,13 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
-    cleanup_files,
-    get_content_type,
-    resolve_image_references,
+    TempFiles,
+    file_response,
+    handle_errors,
+    resolve_images_to_temp,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
-    write_config_file,
 )
 from ..schemas import (
     AttackGraphStyle,
@@ -48,6 +47,9 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["Attack Graphs"])
+
+# Errors in the uploaded definition: reported to the client as 400
+_CLIENT_ERRORS = (AttackGraphError, FileError, ConfigError)
 
 
 @router.post(
@@ -117,28 +119,14 @@ async def visualize_attack_graph(
     internet = ["webserver"]
     ```
     """
-    input_path = None
-    output_path = None
-    modified_input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
 
-        # Read and parse config to resolve image_id references
-        try:
-            config_data = ReadConfigFile(input_path)
-            config_data = resolve_image_references(config_data)
-
-            # Keep a valid extension for the resolved file
-            base, ext = os.path.splitext(input_path)
-            modified_input_path = f"{base}_resolved{ext}"
-            write_config_file(modified_input_path, config_data, ext)
-            input_for_viz = modified_input_path
-        except Exception as e:
-            logger.debug(f"Image resolution skipped: {e}")
-            input_for_viz = input_path
+        # Resolve image_id references in the config
+        input_for_viz = resolve_images_to_temp(input_path, temps)
 
         styleid = style.value
         if render_engine == RenderEngine.SVG and style == AttackGraphStyle.DEFAULT:
@@ -149,32 +137,13 @@ async def visualize_attack_graph(
         ag = AttackGraphs(
             input_for_viz, output_base, format=format.value, styleid=styleid, render_engine=render_engine.value
         )
-        await run_sync_with_timeout(ag.BuildAttackGraph, REQUEST_TIMEOUT_VISUALIZE, "attack graph visualization")
-
-        output_path = f"{output_base}.{format.value}"
-
-        if not os.path.exists(output_path):
-            cleanup_files(input_path, modified_input_path)
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        background_tasks.add_task(cleanup_files, input_path, modified_input_path, output_path)
-
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"attack_graph.{format.value}",
+        await run_sync_with_timeout(
+            ag.BuildAttackGraph, REQUEST_TIMEOUT_VISUALIZE, "attack graph visualization", on_abandon=temps.cleanup
         )
 
-    except AttackGraphError as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
+        return file_response(
+            f"{output_base}.{format.value}", format, f"attack_graph.{format.value}", temps, background_tasks
+        )
 
 
 @router.post("/analyze/attack-graph", response_model=GraphStats, summary="Analyze attack graph structure")
@@ -188,11 +157,10 @@ async def analyze_attack_graph(
 
     Returns host counts, vulnerability counts, CVSS averages, and structural information.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         ag = AttackGraphs(input_path, "unused")
         stats = ag.get_graph_stats()
 
@@ -213,14 +181,6 @@ async def analyze_attack_graph(
 
         return GraphStats(**stats)
 
-    except AttackGraphError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
-
 
 @router.post("/analyze/attack-paths", response_model=AttackPathsResponse, summary="Find attack paths in graph")
 @limiter.limit(RATE_LIMIT_ANALYZE)
@@ -238,11 +198,10 @@ async def analyze_attack_paths(
 
     Example: Find paths from 'internet' to 'db_root' privilege.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         ag = AttackGraphs(input_path, "unused")
         ag.load()
 
@@ -263,14 +222,6 @@ async def analyze_attack_paths(
             shortest_path_length=len(shortest) if shortest else None,
         )
 
-    except AttackGraphError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
-
 
 @router.post("/analyze/critical-nodes", summary="Identify critical nodes in attack graph")
 @limiter.limit(RATE_LIMIT_ANALYZE)
@@ -287,25 +238,16 @@ async def analyze_critical_nodes(
 
     Returns nodes sorted by criticality score (total degree).
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         ag = AttackGraphs(input_path, "unused")
         ag.load()
 
         critical = ag.analyze_critical_nodes()[:limit]
 
         return {"critical_nodes": [CriticalNode(**node) for node in critical], "total_nodes": len(ag._adjacency)}
-
-    except AttackGraphError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
 
 
 @router.post("/analyze/centrality", summary="Calculate centrality metrics for attack graph nodes")
@@ -326,11 +268,10 @@ async def analyze_centrality(
 
     Use 'all' to calculate all three metrics at once.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         ag = AttackGraphs(input_path, "unused")
         ag.load()
 
@@ -385,14 +326,6 @@ async def analyze_centrality(
 
         return {"nodes": nodes[:limit], "algorithm": algorithm, "total_nodes": len(ag._adjacency)}
 
-    except AttackGraphError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
-
 
 @router.post("/analyze/graph-metrics", summary="Get comprehensive graph metrics")
 @limiter.limit(RATE_LIMIT_ANALYZE)
@@ -411,24 +344,15 @@ async def analyze_graph_metrics(
     - Cycle detection
     - Node type distribution
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         ag = AttackGraphs(input_path, "unused")
         ag.load()
 
         metrics = ag.get_graph_metrics()
         return metrics
-
-    except AttackGraphError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
 
 
 @router.post("/analyze/chokepoints", summary="Identify network chokepoints")
@@ -446,25 +370,16 @@ async def analyze_chokepoints(
 
     Returns nodes sorted by betweenness score with criticality assessment.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         ag = AttackGraphs(input_path, "unused")
         ag.load()
 
         chokepoints = ag.find_chokepoints(top_n=limit)
 
         return {"chokepoints": chokepoints, "total_analyzed": len(ag._adjacency)}
-
-    except AttackGraphError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
 
 
 @router.post("/analyze/attack-surface", summary="Identify attack surface entry points")
@@ -481,25 +396,16 @@ async def analyze_attack_surface(
 
     Returns entry points sorted by reachable nodes (attack surface size).
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         ag = AttackGraphs(input_path, "unused")
         ag.load()
 
         entry_points = ag.find_attack_surfaces()
 
         return {"entry_points": entry_points, "total_attack_surface": len(entry_points)}
-
-    except AttackGraphError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
 
 
 @router.post("/analyze/vulnerability-impact", summary="Calculate vulnerability impact score")
@@ -517,11 +423,10 @@ async def analyze_vulnerability_impact(
 
     Returns impact metrics including reachable nodes and privilege targets.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         ag = AttackGraphs(input_path, "unused")
         ag.load()
 
@@ -533,16 +438,6 @@ async def analyze_vulnerability_impact(
             raise HTTPException(status_code=404, detail="Vulnerability not found or cannot be analyzed")
 
         return impact
-
-    except AttackGraphError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
 
 
 @router.post("/validate/attack-graph", summary="Validate attack graph structure")
@@ -560,20 +455,11 @@ async def validate_attack_graph(
     - Invalid exploit preconditions/postconditions
     - Network connectivity issues
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         ag = AttackGraphs(input_path, "unused")
         errors = ag.validate()
 
         return {"valid": len(errors) == 0, "errors": errors}
-
-    except AttackGraphError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)

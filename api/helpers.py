@@ -8,18 +8,23 @@
 #
 
 import asyncio
+import glob
 import json
 import logging
 import os
+import threading
 import time
-from collections.abc import Callable, Coroutine
+from collections.abc import Callable, Coroutine, Iterator
+from contextlib import contextmanager
 from functools import wraps
 from pathlib import Path
 from typing import Any, Optional, TypeVar
 
-from fastapi import HTTPException, UploadFile
+from fastapi import BackgroundTasks, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 
 from .config import (
+    ENABLE_TRACEBACK_LOGGING,
     IMAGE_ALLOWED_TYPES,
     IMAGE_CLEANUP_AGE,
     IMAGE_MAGIC_BYTES,
@@ -69,17 +74,27 @@ async def run_with_timeout(coro: Coroutine[Any, Any, T], timeout_seconds: int, o
 
 
 async def run_sync_with_timeout(
-    func: Callable[..., T], timeout_seconds: int, operation_name: str = "operation", *args, **kwargs
+    func: Callable[..., T],
+    timeout_seconds: int,
+    operation_name: str = "operation",
+    *args,
+    on_abandon: Optional[Callable[[], None]] = None,
+    **kwargs,
 ) -> T:
     """Run a synchronous function in a thread pool with timeout.
 
     SECURITY: Prevents resource exhaustion from slow/complex synchronous operations.
+
+    A timeout stops the wait, not the thread: the function keeps running and
+    may still write its output. ``on_abandon`` runs once it finally returns
+    (typically ``TempFiles.cleanup``), so those late files are removed too.
 
     Args:
         func: The synchronous function to run
         timeout_seconds: Maximum time in seconds
         operation_name: Name for error messages
         *args: Positional arguments for func
+        on_abandon: Called after a timed-out function finishes
         **kwargs: Keyword arguments for func
 
     Returns:
@@ -88,13 +103,39 @@ async def run_sync_with_timeout(
     Raises:
         HTTPException: 504 Gateway Timeout if operation exceeds timeout
     """
+    lock = threading.Lock()
+    state = {"finished": False, "abandoned": False}
+
+    def runner() -> T:
+        try:
+            return func(*args, **kwargs)
+        finally:
+            with lock:
+                state["finished"] = True
+                abandoned = state["abandoned"]
+            if abandoned and on_abandon:
+                _run_abandon_hook(on_abandon, operation_name)
+
     try:
-        return await asyncio.wait_for(asyncio.to_thread(func, *args, **kwargs), timeout=timeout_seconds)
+        return await asyncio.wait_for(asyncio.to_thread(runner), timeout=timeout_seconds)
     except asyncio.TimeoutError:
+        with lock:
+            state["abandoned"] = True
+            finished = state["finished"]
+        if finished and on_abandon:
+            # Finished between the timeout and the flag: no hook will follow
+            _run_abandon_hook(on_abandon, operation_name)
         logger.warning(f"Request timeout: {operation_name} exceeded {timeout_seconds}s")
         raise HTTPException(
             status_code=504, detail=f"Request timeout: {operation_name} took too long (max {timeout_seconds}s)"
         ) from None
+
+
+def _run_abandon_hook(hook: Callable[[], None], operation_name: str) -> None:
+    try:
+        hook()
+    except Exception as e:
+        logger.warning(f"Cleanup after timed-out {operation_name} failed: {e}")
 
 
 def with_timeout(timeout_seconds: int, operation_name: str = "operation"):
@@ -537,6 +578,122 @@ def cleanup_files(*paths: str) -> None:
                 logger.debug(f"Cleaned up temp file: {path}")
             except OSError as e:
                 logger.warning(f"Failed to cleanup temp file {path}: {e}")
+
+
+# =============================================================================
+# Request Handling
+# =============================================================================
+
+
+class TempFiles:
+    """The temp files one request creates, removed together.
+
+    Register each upload/output path with ``add`` and each output base with
+    ``add_prefix`` (renderers append suffixes such as ``_entropy.png``).
+    ``handle_errors`` removes them when the request fails or, unless
+    ``defer`` handed them to a background task, when it ends.
+    """
+
+    def __init__(self) -> None:
+        self._paths: list[str] = []
+        self._prefixes: list[str] = []
+        self.deferred = False
+
+    def add(self, path: str) -> str:
+        self._paths.append(path)
+        return path
+
+    def add_prefix(self, prefix: str) -> str:
+        self._prefixes.append(prefix)
+        return prefix
+
+    def cleanup(self) -> None:
+        matches = [p for prefix in self._prefixes for p in glob.glob(glob.escape(prefix) + "*")]
+        cleanup_files(*self._paths, *matches)
+
+    def defer(self, background_tasks: BackgroundTasks) -> None:
+        """Remove the files after the response is sent instead of now."""
+        background_tasks.add_task(self.cleanup)
+        self.deferred = True
+
+
+INTERNAL_ERROR_DETAIL = "An internal error occurred"
+
+
+@contextmanager
+def handle_errors(
+    temps: Optional[TempFiles] = None,
+    client_errors: tuple[type[BaseException], ...] = (),
+    overrides: Optional[dict[type[BaseException], tuple[int, str]]] = None,
+    internal_detail: str = INTERNAL_ERROR_DETAIL,
+) -> Iterator[None]:
+    """Map an endpoint's exceptions to HTTP errors and clean up its temp files.
+
+    - ``HTTPException`` (400/413 from upload checks, 504 from timeouts, the
+      endpoint's own) passes through unchanged.
+    - ``overrides`` maps an exception type to a fixed (status, detail); the
+      first matching entry wins, so list subclasses before their bases.
+    - ``client_errors`` become 400 with the exception's message.
+    - Anything else is logged and becomes 500 with ``internal_detail``.
+
+    Temp files are removed on any error, and on success unless deferred.
+    """
+    failed = True
+    try:
+        yield
+        failed = False
+    except HTTPException:
+        raise
+    except Exception as e:
+        for exc_type, (status, detail) in (overrides or {}).items():
+            if isinstance(e, exc_type):
+                raise HTTPException(status_code=status, detail=detail) from e
+        if client_errors and isinstance(e, client_errors):
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
+        raise HTTPException(status_code=500, detail=internal_detail) from e
+    finally:
+        if temps is not None and (failed or not temps.deferred):
+            temps.cleanup()
+
+
+def file_response(
+    path: str,
+    format: OutputFormat,
+    filename: str,
+    temps: TempFiles,
+    background_tasks: BackgroundTasks,
+    missing_detail: str = "Failed to generate visualization",
+) -> FileResponse:
+    """Return a rendered file, removing the request's temp files once it is sent.
+
+    Raises:
+        HTTPException: 500 if the renderer produced no file at ``path``
+    """
+    if not os.path.exists(path):
+        raise HTTPException(status_code=500, detail=missing_detail)
+    temps.defer(background_tasks)
+    return FileResponse(path=path, media_type=get_content_type(format), filename=filename)
+
+
+def resolve_images_to_temp(input_path: str, temps: TempFiles) -> str:
+    """Copy of an uploaded config with image references resolved to local paths.
+
+    Returns the input path unchanged when the config cannot be resolved (the
+    renderer then reports any real problem with it).
+    """
+    from usecvislib.utils import ReadConfigFile
+
+    try:
+        config_data = resolve_image_references(ReadConfigFile(input_path))
+        # Keep a valid extension for the resolved file
+        base, ext = os.path.splitext(input_path)
+        resolved_path = temps.add(f"{base}_resolved{ext}")
+        write_config_file(resolved_path, config_data, ext)
+        return resolved_path
+    except Exception as e:
+        logger.debug(f"Image resolution skipped: {e}")
+        return input_path
 
 
 # =============================================================================

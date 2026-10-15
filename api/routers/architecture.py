@@ -10,16 +10,15 @@
 import logging
 import os
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Query, Request, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 
 from usecvislib import ComponentDiagram, DependencyGraph
 from usecvislib.componentdiagram import ComponentDiagramError
 from usecvislib.dependencygraph import DependencyGraphError
-from usecvislib.utils import ConfigError, FileError, ReadConfigFile
+from usecvislib.utils import ConfigError, FileError
 
 from ..config import (
-    ENABLE_TRACEBACK_LOGGING,
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_VISUALIZE,
     REQUEST_TIMEOUT_VISUALIZE,
@@ -27,13 +26,13 @@ from ..config import (
     limiter,
 )
 from ..helpers import (
-    cleanup_files,
-    get_content_type,
-    resolve_image_references,
+    TempFiles,
+    file_response,
+    handle_errors,
+    resolve_images_to_temp,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
-    write_config_file,
 )
 from ..schemas import (
     ComponentDiagramStats,
@@ -48,6 +47,10 @@ from ..schemas import (
 logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter(tags=["Architecture Diagrams"])
+
+# Errors in the uploaded definition: reported to the client as 400
+_COMPONENT_CLIENT_ERRORS = (ComponentDiagramError, FileError, ConfigError)
+_DEPENDENCY_CLIENT_ERRORS = (DependencyGraphError, FileError, ConfigError)
 
 
 # =============================================================================
@@ -90,25 +93,12 @@ async def visualize_component_diagram(
     - `layers[]` array with layer definitions containing components
     - `connections[]` array with connections between components
     """
-    input_path = None
-    output_path = None
-    modified_input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _COMPONENT_CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
-
-        try:
-            config_data = ReadConfigFile(input_path)
-            config_data = resolve_image_references(config_data)
-            base, ext = os.path.splitext(input_path)
-            modified_input_path = f"{base}_resolved{ext}"
-            write_config_file(modified_input_path, config_data, ext)
-            input_for_viz = modified_input_path
-        except Exception as e:
-            logger.debug(f"Image resolution skipped: {e}")
-            input_for_viz = input_path
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
+        input_for_viz = resolve_images_to_temp(input_path, temps)
 
         styleid = style.value
         if render_engine == RenderEngine.SVG and style == ComponentDiagramStyle.DEFAULT:
@@ -118,33 +108,15 @@ async def visualize_component_diagram(
             input_for_viz, output_base, format=format.value, styleid=styleid, render_engine=render_engine.value
         )
         await run_sync_with_timeout(
-            cd.BuildComponentDiagram, REQUEST_TIMEOUT_VISUALIZE, "component diagram visualization"
+            cd.BuildComponentDiagram,
+            REQUEST_TIMEOUT_VISUALIZE,
+            "component diagram visualization",
+            on_abandon=temps.cleanup,
         )
 
-        output_path = f"{output_base}.{format.value}"
-
-        if not os.path.exists(output_path):
-            cleanup_files(input_path, modified_input_path)
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        background_tasks.add_task(cleanup_files, input_path, modified_input_path, output_path)
-
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"component_diagram.{format.value}",
+        return file_response(
+            f"{output_base}.{format.value}", format, f"component_diagram.{format.value}", temps, background_tasks
         )
-
-    except ComponentDiagramError as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
 @router.post(
@@ -160,11 +132,10 @@ async def analyze_component_diagram(
 
     Returns layer counts, component counts, connection counts, and components per layer.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _COMPONENT_CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         cd = ComponentDiagram(input_path, "unused")
         stats = cd.get_stats()
 
@@ -184,14 +155,6 @@ async def analyze_component_diagram(
 
         return ComponentDiagramStats(**stats)
 
-    except ComponentDiagramError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
-
 
 @router.post("/validate/component-diagram", summary="Validate component diagram structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
@@ -207,23 +170,14 @@ async def validate_component_diagram(
     - Undefined component references in connections
     - Unknown component types or connection styles
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _COMPONENT_CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         cd = ComponentDiagram(input_path, "unused")
         errors = cd.validate()
 
         return {"valid": len(errors) == 0, "errors": errors}
-
-    except ComponentDiagramError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
 
 
 # =============================================================================
@@ -267,25 +221,12 @@ async def visualize_dependency_graph(
     - `dependencies[]` array with dependency edges
     - `circular[]` array with circular dependency cycles (optional)
     """
-    input_path = None
-    output_path = None
-    modified_input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _DEPENDENCY_CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
-        output_base = os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}")
-
-        try:
-            config_data = ReadConfigFile(input_path)
-            config_data = resolve_image_references(config_data)
-            base, ext = os.path.splitext(input_path)
-            modified_input_path = f"{base}_resolved{ext}"
-            write_config_file(modified_input_path, config_data, ext)
-            input_for_viz = modified_input_path
-        except Exception as e:
-            logger.debug(f"Image resolution skipped: {e}")
-            input_for_viz = input_path
+        input_path = temps.add(save_upload_file(file))
+        output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
+        input_for_viz = resolve_images_to_temp(input_path, temps)
 
         styleid = style.value
         if render_engine == RenderEngine.SVG and style == DependencyGraphStyle.DEFAULT:
@@ -295,33 +236,15 @@ async def visualize_dependency_graph(
             input_for_viz, output_base, format=format.value, styleid=styleid, render_engine=render_engine.value
         )
         await run_sync_with_timeout(
-            dg.BuildDependencyGraph, REQUEST_TIMEOUT_VISUALIZE, "dependency graph visualization"
+            dg.BuildDependencyGraph,
+            REQUEST_TIMEOUT_VISUALIZE,
+            "dependency graph visualization",
+            on_abandon=temps.cleanup,
         )
 
-        output_path = f"{output_base}.{format.value}"
-
-        if not os.path.exists(output_path):
-            cleanup_files(input_path, modified_input_path)
-            raise HTTPException(status_code=500, detail="Failed to generate visualization")
-
-        background_tasks.add_task(cleanup_files, input_path, modified_input_path, output_path)
-
-        return FileResponse(
-            path=output_path,
-            media_type=get_content_type(format),
-            filename=f"dependency_graph.{format.value}",
+        return file_response(
+            f"{output_base}.{format.value}", format, f"dependency_graph.{format.value}", temps, background_tasks
         )
-
-    except DependencyGraphError as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except (FileError, ConfigError) as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        cleanup_files(input_path, modified_input_path, output_path)
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
 
 
 @router.post(
@@ -337,11 +260,10 @@ async def analyze_dependency_graph(
 
     Returns module counts, dependency counts, circular dependency counts, and group info.
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _DEPENDENCY_CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         dg = DependencyGraph(input_path, "unused")
         stats = dg.get_stats()
 
@@ -361,14 +283,6 @@ async def analyze_dependency_graph(
 
         return DependencyGraphStats(**stats)
 
-    except DependencyGraphError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
-
 
 @router.post("/validate/dependency-graph", summary="Validate dependency graph structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
@@ -384,20 +298,11 @@ async def validate_dependency_graph(
     - Undefined module references in dependencies
     - Circular references that don't match defined dependencies
     """
-    input_path = None
-
-    try:
+    temps = TempFiles()
+    with handle_errors(temps, _DEPENDENCY_CLIENT_ERRORS):
         validate_config_file_extension(file.filename)
-        input_path = save_upload_file(file)
+        input_path = temps.add(save_upload_file(file))
         dg = DependencyGraph(input_path, "unused")
         errors = dg.validate()
 
         return {"valid": len(errors) == 0, "errors": errors}
-
-    except DependencyGraphError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Internal error: {e!s}", exc_info=ENABLE_TRACEBACK_LOGGING)
-        raise HTTPException(status_code=500, detail="An internal error occurred") from e
-    finally:
-        cleanup_files(input_path)
