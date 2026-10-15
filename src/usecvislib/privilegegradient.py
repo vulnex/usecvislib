@@ -26,7 +26,6 @@ Supports TOML, JSON, and YAML input formats.
 """
 
 from collections import deque
-from dataclasses import dataclass, field
 from typing import Any, Optional
 
 import networkx as nx
@@ -35,6 +34,11 @@ from graphviz import Digraph
 from . import utils
 from .base import VisualizationBase
 from .drift import DIFF_SIGNS, DriftStylingMixin, ElementMark, faded
+from .grouping import DEFAULT_MAX_NODES
+from .privilegegradient_view import SCHEMA_FIELDS, GradientView, apply_grouping, group_stats
+
+# The render view's former name (drift only), kept for callers that import it
+DriftView = GradientView
 
 
 def detect_inversions(
@@ -93,35 +97,6 @@ class PrivilegeGradientError(utils.RenderError):
     """Exception raised for privilege gradient graph generation errors."""
 
     pass
-
-
-@dataclass
-class DriftView:
-    """What the engines draw: the gradient's sections, after the drift view's filter."""
-
-    zones: dict[str, dict]
-    components: dict[str, dict]
-    influences: list[dict]
-    inversions: list[dict]
-    marks: dict[str, ElementMark] = field(default_factory=dict)  # "zone:<id>" or component id
-    edge_marks: dict[tuple, ElementMark] = field(default_factory=dict)  # (from, to, type)
-    inversion_status: dict[str, str] = field(default_factory=dict)  # "from->to:type" -> new/fixed/changed/unchanged
-    inversions_before: dict[str, dict] = field(default_factory=dict)  # changed ones: earlier severity, trust_gap
-
-    def influence_mark(self, influence: dict) -> Optional[ElementMark]:
-        key = (influence.get("from"), influence.get("to"), influence.get("type") or "data")
-        return self.edge_marks.get(key)
-
-    @staticmethod
-    def _key(influence: dict) -> str:
-        return f"{influence.get('from')}->{influence.get('to')}:{influence.get('type') or 'data'}"
-
-    def inversion_of(self, influence: dict) -> Optional[str]:
-        return self.inversion_status.get(self._key(influence))
-
-    def inversion_before(self, influence: dict) -> Optional[dict]:
-        """A changed inversion's earlier severity and trust gap."""
-        return self.inversions_before.get(self._key(influence))
 
 
 class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
@@ -227,7 +202,19 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         styleid: str = "",
         validate_paths: bool = True,
         render_engine: str = "graphviz",
+        group_by: Optional[str] = None,
+        collapse: Any = None,
+        max_nodes: Optional[int] = None,
     ) -> None:
+        """
+        Args:
+            group_by: Group components within their zone by this component field
+                (a component's own ``group`` wins). Overrides ``gradient.group_by``.
+            collapse: False / "none", True / "all", "auto", or group ids
+                (``<zone>/<value>``). Overrides ``gradient.collapse``.
+            max_nodes: Component target for ``collapse="auto"`` (default 300).
+                Overrides ``gradient.max_nodes``.
+        """
         if format == "":
             format = "png"
         if styleid == "":
@@ -252,6 +239,11 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         self._reverse_adjacency: dict[str, list[str]] = {}
         self._nx_graph: Optional[nx.DiGraph] = None
         self._temp_input: Optional[str] = None
+
+        # Grouping and collapse (render options; None falls back to the gradient section)
+        self.group_by = group_by
+        self.collapse = collapse
+        self.max_nodes = max_nodes
 
         # Drift view, set by render_diff(): change marks, colors, changes-only
         self.diff_marks: Optional[Any] = None
@@ -463,37 +455,54 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         """Detect privilege gradient inversions."""
         self._inversions = detect_inversions(self._zones, self._components, self._influences)
 
-    def drift_view(self) -> DriftView:
-        """The sections to draw and their change marks (both engines read this).
+    def _grouping_options(self) -> tuple[Optional[str], Any, int, dict[str, Any]]:
+        """group_by, collapse, max_nodes and per-group settings: render options, then the file."""
+        meta = self.inputdata.get("gradient", {}) if isinstance(self.inputdata, dict) else {}
+        meta = meta if isinstance(meta, dict) else {}
+        group_by = self.group_by if self.group_by is not None else meta.get("group_by")
+        collapse = self.collapse if self.collapse is not None else meta.get("collapse")
+        max_nodes = int(self.max_nodes if self.max_nodes is not None else meta.get("max_nodes", DEFAULT_MAX_NODES))
+        groups = self.inputdata.get("groups", {}) if isinstance(self.inputdata, dict) else {}
+        if isinstance(groups, list):  # [[groups]] tables with ids
+            groups = {g["id"]: g for g in groups if isinstance(g, dict) and g.get("id")}
+        return group_by, collapse, max_nodes, groups if isinstance(groups, dict) else {}
 
-        Without a drift (render_diff) it is the loaded data itself. With
-        ``show_unchanged=False`` it keeps changed zones, components and
-        influences (new, fixed and changed inversions count), their direct neighbours
-        and the zones holding what is kept; inversions are re-detected on that.
+    def render_view(self) -> GradientView:
+        """The sections to draw, with their groups and change marks (both engines read this).
+
+        Without grouping or a drift it is the loaded data itself. Grouping
+        (``group_by`` / ``collapse``) folds collapsed groups into summary
+        components. With a drift (``render_diff``) and ``show_unchanged=False``
+        it keeps changed zones, components and influences (new, fixed and
+        changed inversions count), their direct neighbours and the zones
+        holding what is kept; inversions are re-detected on that.
+
+        Raises:
+            ValueError: If what would be drawn exceeds the graph size limit.
         """
-        if self.diff_marks is None:
-            return DriftView(self._zones, self._components, self._influences, self._inversions)
-        marks = {
-            key: ElementMark(diff=status, changed=list(changed))
-            for key, (status, changed) in self.diff_marks.nodes.items()
-        }
-        edge_marks = {key: ElementMark(diff=status) for key, status in self.diff_marks.edges.items()}
-        view = DriftView(
-            self._zones,
-            self._components,
-            self._influences,
-            self._inversions,
-            marks,
-            edge_marks,
-            dict(self.diff_marks.extra.get("inversions", {})),
-            dict(self.diff_marks.extra.get("inversions_before", {})),
-        )
-        if not self.show_unchanged:
+        view = GradientView(self._zones, self._components, self._influences, self._inversions)
+        if self.diff_marks is not None:
+            view.marks = {
+                key: ElementMark(diff=status, changed=list(changed))
+                for key, (status, changed) in self.diff_marks.nodes.items()
+            }
+            view.edge_marks = {key: ElementMark(diff=status) for key, status in self.diff_marks.edges.items()}
+            view.inversion_status = dict(self.diff_marks.extra.get("inversions", {}))
+            view.inversions_before = dict(self.diff_marks.extra.get("inversions_before", {}))
+        group_by, collapse, max_nodes, groups = self._grouping_options()
+        apply_grouping(view, group_by, collapse, max_nodes, groups)
+        if self.diff_marks is not None and not self.show_unchanged:
             self._changes_only(view)
+        # The size limit applies to what is drawn, so a large gradient grouped and collapsed renders
+        utils.check_graph_complexity(len(view.components), len(view.influences))
         return view
 
+    def drift_view(self) -> GradientView:
+        """Former name of :meth:`render_view`."""
+        return self.render_view()
+
     @staticmethod
-    def _changes_only(view: DriftView) -> None:
+    def _changes_only(view: GradientView) -> None:
         def changed(mark: Optional[ElementMark]) -> bool:
             return mark is not None and mark.diff not in (None, "unchanged")
 
@@ -519,7 +528,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         view.inversions = detect_inversions(view.zones, view.components, view.influences)
 
     @staticmethod
-    def inversion_label(view: DriftView, influence: dict, severity: Optional[str]) -> Optional[str]:
+    def inversion_label(view: GradientView, influence: dict, severity: Optional[str]) -> Optional[str]:
         """An influence's inversion label in the drift view (None when it shows no inversion).
 
         ``severity`` is the inversion's in the drawn data, or None if it is not one there.
@@ -553,7 +562,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
             raise PrivilegeGradientError("Missing 'gradient' section in privilege gradient configuration")
 
         graph_meta = self.inputdata.get("gradient", {})
-        view = self.drift_view()
+        view = self.render_view()
         palette = self.diff_palette() if self.diff_marks is not None else {}
 
         # Get styles
@@ -662,7 +671,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
                         node_attrs = utils.stringify_dict(node_attrs)
                         label = node_attrs.pop("label", comp_id)
                         # Remove non-graphviz keys
-                        for key in ("id", "zone", "description", "type"):
+                        for key in SCHEMA_FIELDS:
                             node_attrs.pop(key, None)
                         label = self._style_diff_node(node_attrs, label, view.marks.get(comp_id))
                         sub.node(utils.sanitize_node_id(comp_id), label, **node_attrs)
@@ -892,7 +901,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
             if gap > max_trust_gap:
                 max_trust_gap = gap
 
-        return {
+        stats = {
             "name": graph_meta.get("name", "Unknown"),
             "total_zones": len(self._zones),
             "total_components": len(self._components),
@@ -902,6 +911,17 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
             "components_per_zone": components_per_zone,
             "max_trust_gap": max_trust_gap,
         }
+        # Per-group counts when components are grouped (render option or gradient.group_by)
+        group_by, _, _, groups_meta = self._grouping_options()
+        view = GradientView(self._zones, self._components, self._influences, self._inversions)
+        apply_grouping(view, group_by, False, DEFAULT_MAX_NODES, {})
+        if view.groups:
+            for group_id, info in view.groups.items():
+                meta = groups_meta.get(group_id)
+                if isinstance(meta, dict) and meta.get("label"):
+                    info.label = str(meta["label"])
+            stats["groups"] = group_stats(view)
+        return stats
 
     # Public analysis methods
 

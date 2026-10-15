@@ -94,7 +94,7 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
     name = viz.inputdata.get("gradient", {}).get("name", "Privilege Gradient Graph")
     scene = Scene(module=MODULE_SLUG, meta={"name": name})
 
-    view = viz.drift_view()
+    view = viz.render_view()
     zones = sorted(view.zones.items(), key=lambda item: item[1].get("trust_level", 0))
     anchors: list[str] = []
     for zone_id, zone in zones:

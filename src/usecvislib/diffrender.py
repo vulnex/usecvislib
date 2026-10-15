@@ -34,6 +34,7 @@ from typing import Any, Optional, Union
 from .attackgraph_view import NODE_SECTIONS, _exploit_conditions, _section_items, iter_edges
 from .diff import DiffResult, VisualizationDiff
 from .drift import DiffMarks
+from .privilegegradient_view import influence_key
 
 logger = logging.getLogger(__name__)
 
@@ -342,11 +343,6 @@ def _edge_ignored(key: tuple[str, str, str], merged: dict[str, Any], ignored) ->
 
 # --------------------------------------------------------------------------
 # Privilege gradient
-
-
-def influence_key(influence: dict[str, Any]) -> str:
-    """An influence's identity in a diff: ``from->to:type`` (influences have no ids)."""
-    return f"{influence.get('from')}->{influence.get('to')}:{influence.get('type') or 'data'}"
 
 
 def _privilege_gradient_data(version: Union[str, Any]) -> dict[str, Any]:
