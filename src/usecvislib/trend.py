@@ -280,6 +280,7 @@ class TrendChart(VisualizationBase):
 
     # ------------------------------------------------------------------ render
 
+    @utils.matplotlib_locked
     def _render_impl(self) -> None:
         import matplotlib
 
@@ -424,6 +425,7 @@ class TrendChart(VisualizationBase):
         ax.xaxis.set_major_formatter(mdates.ConciseDateFormatter(locator))
         ax.tick_params(axis="x", labelsize=cfg["axis"]["fontsize"], colors=cfg["axis"]["color"])
 
+    @utils.matplotlib_locked
     def _draw_impl(self, outputfile: str) -> None:
         if self._fig is None:
             raise TrendError("Trend chart not rendered; call render() first")

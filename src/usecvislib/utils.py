@@ -26,6 +26,7 @@ import logging
 import os
 import re
 import sys
+import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any, Literal, Optional, TypeVar, Union
@@ -66,6 +67,24 @@ SUPPORTED_EXTENSIONS = {
 
 
 T = TypeVar("T")
+
+
+# Matplotlib's pyplot keeps global state (the current figure, rcParams), so
+# figures from two threads (batch workers, API worker threads) can mix. Every
+# module that draws with Matplotlib holds this lock while it builds or saves
+# a figure. Reentrant: a chart method may call another one.
+MATPLOTLIB_LOCK = threading.RLock()
+
+
+def matplotlib_locked(func: Callable[..., T]) -> Callable[..., T]:
+    """Run ``func`` holding MATPLOTLIB_LOCK."""
+
+    @functools.wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> T:
+        with MATPLOTLIB_LOCK:
+            return func(*args, **kwargs)
+
+    return wrapper
 
 
 # =============================================================================

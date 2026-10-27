@@ -380,6 +380,7 @@ class IncidentTimeline(VisualizationBase):
 
     # ------------------------------------------------------------------ render
 
+    @utils.matplotlib_locked
     def _render_impl(self) -> None:
         """Build the Matplotlib figure for the selected mode."""
         # Local import keeps matplotlib off the import path for callers that
@@ -781,6 +782,7 @@ class IncidentTimeline(VisualizationBase):
         self._apply_time_axis(ax, style)
         return self._finish(fig, ax, style)
 
+    @utils.matplotlib_locked
     def _draw_impl(self, outputfile: str) -> None:
         if self._fig is None:
             raise TimelineError("Timeline not rendered; call render() first")

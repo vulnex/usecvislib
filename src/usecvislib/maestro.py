@@ -1424,6 +1424,7 @@ class MaestroThreatModel(VisualizationBase):
                     arrowhead="vee",
                 )
 
+    @utils.matplotlib_locked
     def _render_heatmap(self) -> None:
         """Render a Matplotlib heatmap: agents (rows) x layers (columns).
 
@@ -1527,11 +1528,12 @@ class MaestroThreatModel(VisualizationBase):
                 raise MaestroError("Heatmap not rendered. Call render() first.")
             output_path = f"{outputfile}.{self.format}"
             try:
-                self._fig.savefig(output_path, format=self.format, dpi=150, bbox_inches="tight")
-                # Close to free memory; subsequent draws would re-render.
-                import matplotlib.pyplot as plt
+                with utils.MATPLOTLIB_LOCK:
+                    self._fig.savefig(output_path, format=self.format, dpi=150, bbox_inches="tight")
+                    # Close to free memory; subsequent draws would re-render.
+                    import matplotlib.pyplot as plt
 
-                plt.close(self._fig)
+                    plt.close(self._fig)
                 self.logger.debug("Successfully wrote MAESTRO heatmap")
             except Exception as e:
                 self.logger.error(f"Failed to write heatmap to {output_path}: {e}")

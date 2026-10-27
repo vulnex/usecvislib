@@ -642,6 +642,7 @@ class BinVis:
         counts = np.bincount(np.frombuffer(self.data, dtype=np.uint8), minlength=256)
         return counts / len(self.data)
 
+    @utils.matplotlib_locked
     def visualize_entropy(
         self, window_size: Optional[int] = None, step: Optional[int] = None, output: Optional[str] = None
     ) -> None:
@@ -731,6 +732,7 @@ class BinVis:
 
         logger.info(f"Saved entropy visualization to {output}")
 
+    @utils.matplotlib_locked
     def visualize_distribution(self, output: Optional[str] = None) -> None:
         """Create byte frequency distribution visualization.
 
@@ -806,6 +808,7 @@ class BinVis:
         pairs = data[:-1].astype(np.uint32) * 256 + data[1:]
         return np.bincount(pairs, minlength=65536).reshape(256, 256)
 
+    @utils.matplotlib_locked
     def visualize_windrose(self, output: Optional[str] = None) -> None:
         """Create a wind rose: a polar histogram of byte values.
 
@@ -869,6 +872,7 @@ class BinVis:
 
         logger.info(f"Saved windrose visualization to {output}")
 
+    @utils.matplotlib_locked
     def visualize_heatmap(self, block_size: Optional[int] = None, output: Optional[str] = None) -> None:
         """Create a 2D heatmap visualization of the binary file.
 
@@ -944,6 +948,7 @@ class BinVis:
 
         logger.info(f"Saved heatmap visualization to {output}")
 
+    @utils.matplotlib_locked
     def visualize_digraph(self, output: Optional[str] = None) -> None:
         """Create a byte-pair (digraph) plot.
 
@@ -1007,6 +1012,7 @@ class BinVis:
 
         logger.info(f"Saved digraph visualization to {output}")
 
+    @utils.matplotlib_locked
     def visualize_all(self, output_prefix: Optional[str] = None) -> list[str]:
         """Generate all visualization types.
 
