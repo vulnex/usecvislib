@@ -3214,6 +3214,8 @@ print(result.summary)   # {"added": 3, "removed": 3, "modified": 1, "total": 7}
 
 #### Privilege gradient drift
 
+Example pair: `templates/drift/privilege_gradient_q1.tml` and `privilege_gradient_q2.tml` (attack graphs: `attack_graph_week1.tml` and `attack_graph_week2.tml`).
+
 ```python
 result = render_diff("tiers_q1.toml", "tiers_q2.toml", "privilege_gradient", output="tiers", format="svg")
 result.metadata["inversions"]

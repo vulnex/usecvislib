@@ -49,7 +49,8 @@ AT, TM, BV, AG = "01 Attack Trees", "02 Threat Modeling", "03 Binary Visualizati
 CD, CL, MM, PG = "05 Custom Diagrams", "06 Cloud Diagrams", "07 Mermaid", "08 Privilege Gradient"
 CO, DG, KC, TL = "09 Component Diagram", "10 Dependency Graph", "11 Kill Chain", "12 Incident Timeline"
 VT, MA, SH = "13 Vulnerability Tree", "14 MAESTRO", "15 Shine Pack"
-CATEGORIES = (AT, TM, BV, AG, CD, CL, MM, PG, CO, DG, KC, TL, VT, MA, SH)
+DR, TR = "16 Drift", "17 Trend Chart"
+CATEGORIES = (AT, TM, BV, AG, CD, CL, MM, PG, CO, DG, KC, TL, VT, MA, SH, DR, TR)
 STYLES_DIR = "_styles (all presets)"
 
 # category, CLI mode, template glob, SVG engine?, views (-v), style module, style template
@@ -79,6 +80,11 @@ BINVIS_INPUTS = {
     "png_file": str(REPO / "usecvislib_logo.png"),
     "text_readme": str(REPO / "README.md"),
 }
+# Drift pictures: name, CLI mode, earlier version, later version, extra options per variant
+DRIFT = [
+    ("attack-graph", 3, "drift/attack_graph_week1.tml", "drift/attack_graph_week2.tml", ("--group-by", "zone")),
+    ("privilege-gradient", 6, "drift/privilege_gradient_q1.tml", "drift/privilege_gradient_q2.tml", ()),
+]
 SHINE = [
     ("attack-trees", 0, "attack-trees/ransomware_attack.tml"),
     ("attack-graphs", 3, "attack-graphs/corporate_network.tml"),
@@ -223,6 +229,32 @@ def build_jobs(out: Path) -> list[tuple]:
         d = out / MM / tpl.parent.name / template_dir(tpl)
         jobs += [cli(d / theme, tpl, 4, f, "-t", theme) for theme in ("default", "dark") for f in SVG_FORMATS]
 
+    # Drift: the later version drawn with its changes from the earlier one
+    for name, mode, old, new, grouped in DRIFT:
+        d = out / DR / name
+        diff = ("--diff", str(TEMPLATES / old))
+        jobs += [cli(d / "graphviz", TEMPLATES / new, mode, f, *diff) for f in SVG_FORMATS]
+        engine = ("--render-engine", "svg")
+        jobs += [cli(d / "svg-engine", TEMPLATES / new, mode, f, *diff, *engine) for f in SVG_FORMATS]
+        jobs += [cli(d / "changes-only__svg-engine", TEMPLATES / new, mode, "svg", *diff, *engine, "--changes-only")]
+        if grouped:
+            jobs.append(
+                cli(d / f"grouped-{grouped[-1]}__svg-engine", TEMPLATES / new, mode, "svg", *diff, *engine, *grouped)
+            )
+
+    # Trend chart (library only, no CLI mode): every template, then every preset on one
+    for tpl in templates("trends/*"):
+        d = out / TR / template_dir(tpl)
+        jobs += [("trend", str(d / "trend"), {"tpl": str(tpl), "fmt": f}) for f in SVG_FORMATS]
+    for style in presets("trend"):
+        jobs.append(
+            (
+                "trend",
+                str(out / TR / STYLES_DIR / style),
+                {"tpl": str(TEMPLATES / "trends/engagement_metrics.toml"), "fmt": "png", "style": style},
+            )
+        )
+
     # Shine pack: Graphviz SVG post-processed with --shine
     for name, mode, tpl in SHINE:
         jobs.append(cli(out / SH / name, TEMPLATES / tpl, mode, "svg", "--shine"))
@@ -248,6 +280,10 @@ def run_job(job: tuple) -> tuple[str, str]:
                 code = main(params)
                 if code:
                     return base, f"exit {code}: {buf.getvalue()[-400:]}"
+            elif kind == "trend":
+                from usecvislib.trend import TrendChart
+
+                TrendChart(params["tpl"], base, format=params["fmt"], styleid=params.get("style")).build()
             elif kind == "pytm":
                 from usecvislib.threatmodeling import ThreatModeling
 

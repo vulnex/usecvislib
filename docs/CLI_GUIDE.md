@@ -558,6 +558,8 @@ usecvis -m 6 -i tiers_q2.toml --diff tiers_q1.toml -o tiers
 
 Added elements are outlined in pink-red with a `+`, removed ones faded and dashed with a `−`, modified ones outlined in violet with a `~`. The command prints the added / removed / modified counts and, for mode 6, each new, fixed or changed inversion (e.g. `Changed inversion: app -> db (high -> critical)`). See "Drift Picture" in the Python API guide.
 
+Two ready-made version pairs are in `templates/drift/`: `attack_graph_week1.tml` / `attack_graph_week2.tml` (a finding fixed, a VPN gateway exposed, a CVSS change, a segmented link) and `privilege_gradient_q1.tml` / `privilege_gradient_q2.tml` (one new, two fixed and one changed inversion). Each file's header has the command; the rendered results are in the [gallery](https://vulnex.github.io/usecvislib-gallery/#drift).
+
 #### Example Configuration (TOML)
 
 ```toml
