@@ -24,6 +24,10 @@ import os
 import sys
 from typing import NoReturn, Optional
 
+from . import registry
+
+_MODE_RANGE = f"{registry.modes()[0]}-{registry.modes()[-1]}"
+
 
 def Usage() -> None:
     """Display usage information."""
@@ -38,19 +42,8 @@ def Usage() -> None:
     print("  -o, --ofile <file>      Output file (required)")
     print("  -f, --format <format>   Output format: png, pdf, svg, dot (default: png)")
     print("  -m, --mode <mode>       Visualization mode:")
-    print("                            0 - Attack Trees (default)")
-    print("                            1 - Threat Modeling")
-    print("                            2 - Binary Visualization")
-    print("                            3 - Attack Graphs")
-    print("                            4 - Mermaid Diagrams")
-    print("                            5 - Cloud Diagrams")
-    print("                            6 - Privilege Gradient Graphs")
-    print("                            7 - Component Diagrams")
-    print("                            8 - Dependency Graphs")
-    print("                            9 - Kill Chain / MITRE ATT&CK")
-    print("                            10 - Incident Timeline")
-    print("                            11 - Vulnerability Dependency Tree")
-    print("                            12 - MAESTRO Agentic Threat Model")
+    for m in registry.MODULES:
+        print(f"                            {m.mode} - {m.label}{' (default)' if m.mode == 0 else ''}")
     print("  -s, --styleid <id>      Style ID (per mode; sv_* presets need --render-engine svg):")
     for line in _style_usage_lines():
         print(line)
@@ -76,11 +69,8 @@ def Usage() -> None:
     print("")
     print("  --render-engine <eng>   Rendering engine: graphviz (default) or svg")
     print("                          svg: modern hand-painted output with the mode's sv_* styles (see -s)")
-    print("                          Currently supported for modes 0 (Attack Trees), 1 (Threat Model/DFD),")
-    print("                          3 (Attack Graphs), 6 (Privilege Gradient), 7 (Component Diagram),")
-    print("                          8 (Dependency Graph),")
-    print("                          9 (Kill Chain), 10 (Incident Timeline), 11 (Vuln Dependency Tree),")
-    print("                          12 (MAESTRO, -v graph view only)")
+    svg_modes = ", ".join(str(m.mode) for m in registry.svg_modules())
+    print(f"                          Supported for modes {svg_modes} (MAESTRO: -v graph view only)")
     print("")
     print("  --group-by <field>      Attack graphs (mode 3): cluster hosts by a host field (e.g. zone),")
     print("                          or by network with ip/N (IPv4) or ip6/N (IPv6), e.g. ip/24")
@@ -230,7 +220,7 @@ def validate_mode(mode: int) -> bool:
     Returns:
         True if mode is valid, False otherwise.
     """
-    return mode in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    return mode in registry.modes()
 
 
 def error_exit(message: str, show_usage: bool = True) -> NoReturn:
@@ -335,7 +325,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             try:
                 mode = int(arg)
             except ValueError:
-                error_exit(f"Invalid mode: {arg}. Must be 0-12.")
+                error_exit(f"Invalid mode: {arg}. Must be {_MODE_RANGE}.")
         elif opt in ("-s", "--styleid"):
             styleid = arg
         elif opt in ("-S", "--stylefile"):
@@ -464,18 +454,17 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     # Validate mode
     if not validate_mode(mode):
-        error_exit(f"Invalid mode: {mode}. Must be 0-12.")
+        error_exit(f"Invalid mode: {mode}. Must be {_MODE_RANGE}.")
 
     # Validate render engine
     if render_engine not in ("graphviz", "svg"):
         error_exit(f"Invalid render engine: {render_engine}. Must be graphviz or svg.")
     if render_engine == "svg":
-        if mode not in (0, 1, 3, 6, 7, 8, 9, 10, 11, 12):
+        svg_modules = registry.svg_modules()
+        if mode not in [m.mode for m in svg_modules]:
+            supported = ", ".join(f"{m.mode} ({m.label})" for m in svg_modules)
             error_exit(
-                "Render engine 'svg' currently supports modes 0 (Attack Trees), 1 (Threat Model / DFD), "
-                "3 (Attack Graphs), 6 (Privilege Gradient), 7 (Component Diagram), 8 (Dependency Graph), 9 (Kill Chain), "
-                "10 (Incident Timeline), 11 (Vuln Dependency Tree), 12 (MAESTRO, graph view); "
-                f"got mode {mode}."
+                f"Render engine 'svg' currently supports modes {supported} (MAESTRO: graph view only); got mode {mode}."
             )
         if format == "dot":
             error_exit("Format 'dot' is Graphviz-specific. Use png, pdf, or svg with --render-engine svg.")

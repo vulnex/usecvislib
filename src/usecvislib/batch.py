@@ -137,31 +137,9 @@ class BatchProcessor:
     def _get_modules(cls) -> dict[str, type]:
         """Get module mapping, loading lazily to avoid circular imports."""
         if cls._MODULES is None:
-            from .attackgraphs import AttackGraphs
-            from .attacktrees import AttackTrees
-            from .binvis import BinVis
-            from .componentdiagram import ComponentDiagram
-            from .dependencygraph import DependencyGraph
-            from .killchain import KillChain
-            from .maestro import MaestroThreatModel
-            from .privilegegradient import PrivilegeGradient
-            from .threatmodeling import ThreatModeling
-            from .timeline import IncidentTimeline
-            from .vulntree import VulnDependencyTree
+            from . import registry
 
-            cls._MODULES = {
-                "attack_tree": AttackTrees,
-                "attack_graph": AttackGraphs,
-                "threat_model": ThreatModeling,
-                "binary": BinVis,
-                "privilege_gradient": PrivilegeGradient,
-                "component_diagram": ComponentDiagram,
-                "dependency_graph": DependencyGraph,
-                "kill_chain": KillChain,
-                "incident_timeline": IncidentTimeline,
-                "vuln_tree": VulnDependencyTree,
-                "maestro": MaestroThreatModel,
-            }
+            cls._MODULES = registry.file_module_classes()
         return cls._MODULES
 
     def __init__(
