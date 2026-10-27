@@ -229,6 +229,7 @@ class AsyncBatchProcessor:
         format: str = "png",
         style: Optional[str] = None,
         max_concurrent: int = 4,
+        render_engine: str = "graphviz",
     ):
         """Initialize async batch processor.
 
@@ -238,6 +239,7 @@ class AsyncBatchProcessor:
             format: Output format.
             style: Optional style ID.
             max_concurrent: Maximum concurrent operations.
+            render_engine: "graphviz" or "svg" (see BatchProcessor).
         """
         from .batch import BatchProcessor
 
@@ -247,6 +249,7 @@ class AsyncBatchProcessor:
             format=format,
             style=style,
             max_workers=1,  # Each task runs sequentially
+            render_engine=render_engine,
         )
         self._semaphore = asyncio.Semaphore(max_concurrent)
         self._executor = ThreadPoolExecutor(max_workers=max_concurrent)
@@ -272,13 +275,17 @@ class AsyncBatchProcessor:
         from .batch import BatchResult
 
         result = BatchResult()
+        names = self._sync_processor.output_names(input_files)
 
         async def process_one(filepath: str) -> tuple:
             async with self._semaphore:
                 loop = asyncio.get_event_loop()
                 try:
                     data = await loop.run_in_executor(
-                        self._executor, partial(self._sync_processor._process_single, filepath, collect_stats, validate)
+                        self._executor,
+                        partial(
+                            self._sync_processor._process_single, filepath, collect_stats, validate, names[filepath]
+                        ),
                     )
                     return filepath, True, data, None
                 except Exception as e:
@@ -306,7 +313,14 @@ class AsyncBatchProcessor:
 
 
 async def process_files_async(
-    module_type: str, input_files: list[str], output_dir: str, format: str = "png", max_concurrent: int = 4, **kwargs
+    module_type: str,
+    input_files: list[str],
+    output_dir: str,
+    format: str = "png",
+    max_concurrent: int = 4,
+    style: Optional[str] = None,
+    render_engine: str = "graphviz",
+    **kwargs,
 ) -> BatchResult:
     """Convenience function for async batch processing.
 
@@ -316,6 +330,8 @@ async def process_files_async(
         output_dir: Output directory.
         format: Output format.
         max_concurrent: Maximum concurrent operations.
+        style: Optional style ID.
+        render_engine: "graphviz" or "svg" (see BatchProcessor).
         **kwargs: Additional arguments for process_files.
 
     Returns:
@@ -328,7 +344,14 @@ async def process_files_async(
         ...     "/output"
         ... )
     """
-    processor = AsyncBatchProcessor(module_type, output_dir, format=format, max_concurrent=max_concurrent)
+    processor = AsyncBatchProcessor(
+        module_type,
+        output_dir,
+        format=format,
+        style=style,
+        max_concurrent=max_concurrent,
+        render_engine=render_engine,
+    )
     try:
         return await processor.process_files(input_files, **kwargs)
     finally:

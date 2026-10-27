@@ -16,6 +16,8 @@
 import os
 import sys
 import tempfile
+from pathlib import Path
+from unittest.mock import patch
 import pytest
 
 # Add src to path for testing
@@ -213,6 +215,71 @@ class TestBatchProcessor:
             assert stats["file_count"] == 2
             assert stats["total_nodes"] == 8  # 5 + 3
             assert stats["total_edges"] == 5  # 3 + 2
+
+    def test_aggregate_stats_attack_graph_totals_not_double_counted(self):
+        """Attack-graph totals already include hosts and network edges."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            processor = BatchProcessor("attack_graph", tmpdir)
+            result = BatchResult()
+            result.successes["a.toml"] = {"stats": {
+                "total_hosts": 2, "network_edges": 1, "total_nodes": 6, "total_edges": 4,
+                "total_vulnerabilities": 3, "average_cvss": 8.0,
+            }}
+            result.successes["b.toml"] = {"stats": {
+                "total_hosts": 1, "network_edges": 0, "total_nodes": 1, "total_edges": 0,
+                "total_vulnerabilities": 0, "average_cvss": 0,
+            }}
+
+            stats = processor.aggregate_stats(result)
+            assert stats["total_nodes"] == 7
+            assert stats["total_edges"] == 4
+            # A file without vulnerabilities does not pull the average down
+            assert stats["avg_cvss"] == 8.0
+
+
+class TestBatchOutputs:
+    """Output naming and engine forwarding."""
+
+    def test_same_stem_inputs_get_distinct_outputs(self):
+        names = BatchProcessor.output_names(["a/net.toml", "b/net.toml", "c/net.json", "x/other.toml"])
+        assert names == {
+            "a/net.toml": "net",
+            "b/net.toml": "net-2",
+            "c/net.json": "net-3",
+            "x/other.toml": "other",
+        }
+
+    def test_recursive_directory_outputs_do_not_overwrite(self):
+        template = Path(__file__).parent.parent / "templates" / "attack-trees" / "network_infrastructure.toml"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "in"
+            for sub in ("a", "b"):
+                (src / sub).mkdir(parents=True)
+                (src / sub / "tree.toml").write_bytes(template.read_bytes())
+            out = Path(tmpdir) / "out"
+            processor = BatchProcessor("attack_tree", str(out), format="svg", render_engine="svg", max_workers=2)
+            result = processor.process_directory(str(src), recursive=True)
+            assert result.failure_count == 0
+            outputs = sorted(d["output"] for d in result.successes.values())
+            assert [Path(o).name for o in outputs] == ["tree-2.svg", "tree.svg"]
+            assert all(Path(o).exists() for o in outputs)
+
+    def test_binary_ignores_render_engine(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data = Path(tmpdir) / "blob.bin"
+            data.write_bytes(bytes(range(256)) * 16)
+            result = process_batch(
+                "binary", [str(data)], str(Path(tmpdir) / "out"), format="png",
+                render_engine="svg", validate=False,
+            )
+            assert result.failure_count == 0, result.failures
+
+    def test_process_batch_forwards_render_engine(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.object(BatchProcessor, "process_files", return_value=BatchResult()):
+                with patch.object(BatchProcessor, "__init__", return_value=None) as init:
+                    process_batch("attack_tree", [], tmpdir, render_engine="svg")
+            assert init.call_args.kwargs["render_engine"] == "svg"
 
 
 class TestProcessBatchFunction:

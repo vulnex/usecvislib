@@ -184,6 +184,8 @@ class BatchProcessor:
             format: Output format (png, svg, pdf, dot).
             style: Optional style ID to apply.
             max_workers: Maximum number of parallel workers.
+            render_engine: "graphviz" or "svg". Ignored for "binary", whose
+                charts are drawn with Matplotlib in any format.
 
         Raises:
             ValueError: If module_type is not recognized.
@@ -240,9 +242,12 @@ class BatchProcessor:
 
         logger.info(f"Processing {len(input_files)} files with {self.max_workers} workers")
 
+        names = self.output_names(input_files)
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all tasks
-            futures = {executor.submit(self._process_single, f, collect_stats, validate): f for f in input_files}
+            futures = {
+                executor.submit(self._process_single, f, collect_stats, validate, names[f]): f for f in input_files
+            }
 
             # Collect results as they complete
             for future in as_completed(futures):
@@ -268,13 +273,37 @@ class BatchProcessor:
         logger.info(f"Batch processing complete: {result.success_count} succeeded, {result.failure_count} failed")
         return result
 
-    def _process_single(self, input_file: str, collect_stats: bool, validate: bool) -> dict[str, Any]:
+    @staticmethod
+    def output_names(input_files: list[str]) -> dict[str, str]:
+        """Output file name (without extension) for each input file.
+
+        The input's stem, with ``-2``, ``-3``, ... added in input order when
+        several inputs share a stem (e.g. ``a/net.toml`` and ``b/net.toml``
+        from a recursive directory scan), so no output overwrites another.
+        """
+        names: dict[str, str] = {}
+        used: set[str] = set()
+        for input_file in input_files:
+            stem = Path(input_file).stem
+            name, n = stem, 1
+            while name in used:
+                n += 1
+                name = f"{stem}-{n}"
+            used.add(name)
+            names[input_file] = name
+        return names
+
+    def _process_single(
+        self, input_file: str, collect_stats: bool, validate: bool, output_name: Optional[str] = None
+    ) -> dict[str, Any]:
         """Process a single file.
 
         Args:
             input_file: Path to input file.
             collect_stats: Whether to collect statistics.
             validate: Whether to validate before processing.
+            output_name: Output file name without extension (default: the
+                input's stem).
 
         Returns:
             Dictionary with processing results.
@@ -283,14 +312,13 @@ class BatchProcessor:
             ValueError: If validation fails.
             Exception: If processing fails.
         """
-        filename = Path(input_file).stem
-        output_path = str(self.output_dir / filename)
+        output_path = str(self.output_dir / (output_name or Path(input_file).stem))
 
         # Prepare kwargs for instance creation
         kwargs: dict[str, Any] = {"format": self.format}
         if self.style:
             kwargs["styleid"] = self.style
-        if self.render_engine != "graphviz":
+        if self.render_engine != "graphviz" and self.module_type != "binary":
             kwargs["render_engine"] = self.render_engine
 
         # Create instance
@@ -370,7 +398,8 @@ class BatchProcessor:
                 files.extend(input_path.glob(f"*{ext}"))
 
         logger.info(f"Found {len(files)} files in {input_dir}")
-        return self.process_files([str(f) for f in files], **kwargs)
+        # Sorted, so outputs for same-named files get the same names on every run
+        return self.process_files(sorted(str(f) for f in files), **kwargs)
 
     def aggregate_stats(self, result: BatchResult) -> dict[str, Any]:
         """Aggregate statistics from batch processing results.
@@ -402,28 +431,31 @@ class BatchProcessor:
             "by_file": {},
         }
 
-        cvss_values = []
+        cvss_sum = 0.0
+        cvss_weight = 0
 
         for filename, data in result.successes.items():
             stats = data.get("stats", {})
             aggregated["by_file"][filename] = stats
 
-            # Sum common metrics
-            aggregated["total_nodes"] += stats.get("total_nodes", 0)
-            aggregated["total_nodes"] += stats.get("total_hosts", 0)
-            aggregated["total_edges"] += stats.get("total_edges", 0)
-            aggregated["total_edges"] += stats.get("network_edges", 0)
+            # Sum common metrics. Attack-graph totals already include hosts and
+            # network edges, which only stand in when a module has no totals.
+            aggregated["total_nodes"] += stats.get("total_nodes", stats.get("total_hosts", 0))
+            aggregated["total_edges"] += stats.get("total_edges", stats.get("network_edges", 0))
             aggregated["total_vulnerabilities"] += stats.get("total_vulnerabilities", 0)
 
-            # Track CVSS scores
+            # Average CVSS over vulnerabilities, not files: weight each file's
+            # average by its vulnerability count when it reports one
             if "average_cvss" in stats:
-                cvss_values.append(stats["average_cvss"])
+                weight = stats.get("total_vulnerabilities", 1)
+                cvss_sum += stats["average_cvss"] * weight
+                cvss_weight += weight
             if "max_cvss" in stats:
                 aggregated["max_cvss"] = max(aggregated["max_cvss"], stats["max_cvss"])
 
         # Calculate average CVSS
-        if cvss_values:
-            aggregated["avg_cvss"] = sum(cvss_values) / len(cvss_values)
+        if cvss_weight:
+            aggregated["avg_cvss"] = cvss_sum / cvss_weight
 
         return aggregated
 
@@ -435,6 +467,7 @@ def process_batch(
     format: str = "png",
     style: Optional[str] = None,
     max_workers: int = 4,
+    render_engine: str = "graphviz",
     **kwargs,
 ) -> BatchResult:
     """Convenience function for batch processing.
@@ -448,6 +481,7 @@ def process_batch(
         format: Output format.
         style: Optional style ID.
         max_workers: Maximum parallel workers.
+        render_engine: "graphviz" or "svg" (see BatchProcessor).
         **kwargs: Additional arguments for process_files().
 
     Returns:
@@ -461,5 +495,7 @@ def process_batch(
         ...     "/output"
         ... )
     """
-    processor = BatchProcessor(module_type, output_dir, format=format, style=style, max_workers=max_workers)
+    processor = BatchProcessor(
+        module_type, output_dir, format=format, style=style, max_workers=max_workers, render_engine=render_engine
+    )
     return processor.process_files(input_files, **kwargs)

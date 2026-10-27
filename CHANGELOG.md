@@ -95,6 +95,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Batch processing (library) fixes.**
+  - `aggregate_stats()` counted attack-graph hosts and network edges twice (once in `total_nodes` / `total_edges`, which already include them, and once more on their own). It now uses the totals; hosts and network edges count only when a module reports no totals.
+  - `avg_cvss` is now weighted by each file's vulnerability count, so a file without vulnerabilities no longer pulls it toward 0.
+  - Inputs with the same stem (`a/net.toml` and `b/net.toml` from `process_directory(recursive=True)`) wrote the same output file. They now get `net`, `net-2`, … in input order (`BatchProcessor.output_names()`), and directory scans are sorted.
+  - `render_engine="svg"` failed every file in `binary` mode with a `TypeError`; it is now ignored there, since binary charts are Matplotlib in any format.
+  - `process_batch()`, `AsyncBatchProcessor` and `process_files_async()` take `render_engine` (and `process_files_async()` takes `style`) and pass it on.
 - **Slow renders and batches are no longer cut off by the dashboard.** The dashboard's nginx proxy and its default client timeout both stopped waiting after 60 s, before the API's own limits (120 s for renders, 300 s for batch), so a slow request failed with a proxy or network error instead of the API's result or 504. The proxy now waits 310 s and the client 130 s (batch already had 300 s).
 - **Dashboard client fixes.** Image previews were plain `<img>` URLs that cannot carry the API key, so with auth on every preview failed with 401; they are now fetched with the key and shown as object URLs (released when the image is deleted). The critical-nodes analysis sent `top_n`, which the API ignores (it reads `limit`), so it always returned 10. Compare sent each ignore path as its own `ignore_paths` parameter, and only the last one was applied; they are now sent comma-separated, as the API expects.
 - **The Export panel lists sections again.** The dashboard asked for them with `POST /export/sections` and a file, but the route was `GET` with a required `mode`, so the request failed and the section list was always empty. `POST /export/sections` now takes the file and detects its mode as `/export/data` does (`mode` can still be given). Both routes are now rate limited.
