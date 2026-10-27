@@ -14,6 +14,7 @@
  */
 
 import axios from 'axios'
+import { reactive } from 'vue'
 
 // API base URL - uses proxy in development
 const API_BASE = '/api'
@@ -816,7 +817,7 @@ export async function analyzeCriticalNodes(file, topN = 10) {
   formData.append('file', file)
 
   const response = await api.post(
-    `/analyze/critical-nodes?top_n=${topN}`,
+    `/analyze/critical-nodes?limit=${topN}`,
     formData,
     {
       headers: { 'Content-Type': 'multipart/form-data' }
@@ -1977,9 +1978,8 @@ export async function compareFiles(oldFile, newFile, ignorePaths = [], generateR
 
   let url = `/diff/compare?generate_report=${generateReport}`
   if (ignorePaths.length > 0) {
-    ignorePaths.forEach(path => {
-      url += `&ignore_paths=${encodeURIComponent(path)}`
-    })
+    // One comma-separated value: a repeated parameter keeps only the last path
+    url += `&ignore_paths=${encodeURIComponent(ignorePaths.join(','))}`
   }
 
   const response = await api.post(url, formData, {
@@ -2062,6 +2062,7 @@ export async function downloadImage(imageId) {
  */
 export async function deleteImage(imageId) {
   const response = await api.delete(`/images/${imageId}`)
+  releaseImagePreview(imageId)
   return response.data
 }
 
@@ -2074,16 +2075,33 @@ export async function listImages() {
   return response.data
 }
 
+// Preview URLs by image id. An <img> cannot send the API key header, so
+// previews are fetched through the api instance and shown as object URLs.
+const imagePreviewUrls = reactive({})
+
 /**
  * Get image thumbnail URL (for display)
+ *
+ * Returns null until the image has been fetched; the entry is reactive, so a
+ * template binding updates once it arrives. A failed fetch falls back to the
+ * plain download URL, which lets the <img> error handler show a placeholder.
  * @param {string} imageId - Image UUID
- * @returns {string} URL to fetch the image
+ * @returns {string|null} URL to show the image
  */
 export function getImageUrl(imageId) {
-  const apiKey = getApiKey()
-  const baseUrl = `${API_BASE}/images/${imageId}/download`
-  // Note: For authenticated requests, the image would need to be fetched via the api instance
-  return baseUrl
+  if (!(imageId in imagePreviewUrls)) {
+    imagePreviewUrls[imageId] = null
+    downloadImage(imageId)
+      .then(blob => { imagePreviewUrls[imageId] = URL.createObjectURL(blob) })
+      .catch(() => { imagePreviewUrls[imageId] = `${API_BASE}/images/${imageId}/download` })
+  }
+  return imagePreviewUrls[imageId]
+}
+
+function releaseImagePreview(imageId) {
+  const url = imagePreviewUrls[imageId]
+  if (url && url.startsWith('blob:')) URL.revokeObjectURL(url)
+  delete imagePreviewUrls[imageId]
 }
 
 
