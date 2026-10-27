@@ -94,6 +94,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `docs/MCP_TOOLS.md` describes usecvislib-mcp 0.5.0: 65 tools, 19 resources, 10 prompts (kill chain, incident timeline, vulnerability tree, MAESTRO, the drift tool `render_drift`, grouping / collapse / keep, `render_engine` and `shine`).
 - **One module table** (`usecvislib.registry`). It lists each visualization module's CLI mode, label, key and class. `BatchProcessor` (and through it `compare_files`, the API's batch / export / compare routes) and the CLI's mode list, mode check and SVG-engine check are built from it, and the SVG mode list comes from the registered painters instead of being copied by hand.
 - **matplotlib pinned to 3.10.8** (was `>=3.7.0`) so text metrics — and therefore SVG-engine layout and golden-file bytes — are identical across the Python 3.10–3.13 CI matrix and dev machines; the attack-tree SVG golden was regenerated against the pinned version.
 - Frontend main content now widens to fill the viewport (capped at 2200px) instead of a fixed narrow column, and the footer copyright reads 2025-2026 (release year through current year).
