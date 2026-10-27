@@ -148,7 +148,7 @@ def render_diff(
     fd, merged_path = tempfile.mkstemp(suffix=".json", prefix="usecvislib_drift_")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
-            json.dump(merged, f)
+            json.dump(merged, f, default=str)  # TOML dates load as date objects
         viz = adapter.make(
             merged_path,
             output,

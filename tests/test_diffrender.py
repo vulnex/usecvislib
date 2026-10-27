@@ -213,6 +213,30 @@ class TestRenderDiff:
         assert result.summary == {"added": 3, "removed": 3, "modified": 1, "total": 7}
 
     @requires_dot
+    def test_toml_dates(self, tmp_path):
+        """Unquoted TOML dates load as date objects; the merged graph must still serialize."""
+        body = """[graph]
+name = "Dated"
+[hosts.a]
+label = "a"
+[hosts.b]
+label = "b"
+[vulnerabilities.v]
+label = "v"
+host = "b"
+discovered = %s
+[network_edges.e]
+from = "a"
+to = "b"
+"""
+        old, new = tmp_path / "old.toml", tmp_path / "new.toml"
+        old.write_text(body % "2026-10-01", encoding="utf-8")
+        new.write_text(body % "2026-10-02", encoding="utf-8")
+        result = render_diff(str(old), str(new), output=str(tmp_path / "d"), format="svg", render_engine="svg")
+        assert result.summary["modified"] == 1
+        assert (tmp_path / "d.svg").exists()
+
+    @requires_dot
     def test_accepts_instances(self, versions, tmp_path):
         old = AttackGraphs(versions[0], "unused")
         result = render_diff(old, AttackGraphs(versions[1], "unused"), output=str(tmp_path / "d"), format="svg")

@@ -95,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`render_diff()` accepts TOML files with dates.** Unquoted TOML dates (`discovered = 2026-10-01`) load as date objects, and writing the merged graph failed with `TypeError: Object of type date is not JSON serializable`. They are now written as ISO strings.
 - **Batch processing (library) fixes.**
   - `aggregate_stats()` counted attack-graph hosts and network edges twice (once in `total_nodes` / `total_edges`, which already include them, and once more on their own). It now uses the totals; hosts and network edges count only when a module reports no totals.
   - `avg_cvss` is now weighted by each file's vulnerability count, so a file without vulnerabilities no longer pulls it toward 0.
