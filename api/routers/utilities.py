@@ -694,19 +694,7 @@ async def export_data(
 
         # Auto-detect mode if not specified
         if mode is None:
-            raw_data = ReadConfigFile(input_path)
-            mode = _detect_config_mode(raw_data)
-            if mode is None:
-                # Looser structural hints for configs the detector does not place
-                if "graph" in raw_data or "hosts" in raw_data or "vulnerabilities" in raw_data:
-                    mode = VisualizationMode.ATTACK_GRAPH
-                elif "model" in raw_data or "dataflows" in raw_data or "processes" in raw_data:
-                    mode = VisualizationMode.THREAT_MODEL
-                elif "tree" in raw_data or ("nodes" in raw_data and "edges" in raw_data):
-                    mode = VisualizationMode.ATTACK_TREE
-                else:
-                    # Default to attack tree for generic node/edge structures
-                    mode = VisualizationMode.ATTACK_TREE
+            mode = _export_mode(ReadConfigFile(input_path))
 
         if mode not in _CONFIG_MODES:
             raise HTTPException(status_code=400, detail=f"Export not supported for mode: {mode.value}")
@@ -785,41 +773,89 @@ async def export_data(
         return ExportResponse(content=content, format=format.value, filename=filename, rows=rows)
 
 
+# Sections /export/data accepts for each mode
+_EXPORT_SECTIONS = {
+    VisualizationMode.ATTACK_TREE: ["tree", "nodes", "edges"],
+    VisualizationMode.ATTACK_GRAPH: [
+        "graph",
+        "hosts",
+        "vulnerabilities",
+        "privileges",
+        "services",
+        "exploits",
+        "network_edges",
+    ],
+    VisualizationMode.THREAT_MODEL: ["model", "processes", "datastores", "externals", "dataflows", "boundaries"],
+    VisualizationMode.PRIVILEGE_GRADIENT: ["gradient", "zones", "components", "influences", "influence_types"],
+    VisualizationMode.COMPONENT_DIAGRAM: ["layers", "connections"],
+    VisualizationMode.DEPENDENCY_GRAPH: ["modules", "dependencies", "circular"],
+    VisualizationMode.KILL_CHAIN: ["killchain", "techniques", "incidents"],
+    VisualizationMode.INCIDENT_TIMELINE: ["incident", "events", "phases"],
+    VisualizationMode.VULN_TREE: ["vulntree", "dependencies"],
+    VisualizationMode.MAESTRO: [
+        "meta",
+        "architecture",
+        "agents",
+        "assets",
+        "threats",
+        "cross_layer_threats",
+        "mitigations",
+    ],
+    VisualizationMode.BINARY: [],
+}
+
+
+def _export_mode(raw_data: dict) -> VisualizationMode:
+    """The mode /export/data uses for a config when none is given."""
+    mode = _detect_config_mode(raw_data)
+    if mode is not None:
+        return mode
+    # Looser structural hints for configs the detector does not place
+    if "graph" in raw_data or "hosts" in raw_data or "vulnerabilities" in raw_data:
+        return VisualizationMode.ATTACK_GRAPH
+    if "model" in raw_data or "dataflows" in raw_data or "processes" in raw_data:
+        return VisualizationMode.THREAT_MODEL
+    # Default to attack tree for generic node/edge structures
+    return VisualizationMode.ATTACK_TREE
+
+
+def _sections_response(mode: VisualizationMode) -> dict:
+    return {
+        "mode": mode.value,
+        "sections": _EXPORT_SECTIONS.get(mode, []),
+        "note": "Use section=null to export all data",
+    }
+
+
 @router.get("/export/sections", tags=["Export"], summary="Get available export sections for a visualization mode")
-async def get_export_sections(mode: VisualizationMode = Query(..., description="Visualization mode")):
+@limiter.limit(RATE_LIMIT_ANALYZE)
+async def get_export_sections(request: Request, mode: VisualizationMode = Query(..., description="Visualization mode")):
     """
     Get the available sections that can be exported for each visualization mode.
     """
-    sections = {
-        VisualizationMode.ATTACK_TREE: ["tree", "nodes", "edges"],
-        VisualizationMode.ATTACK_GRAPH: [
-            "graph",
-            "hosts",
-            "vulnerabilities",
-            "privileges",
-            "services",
-            "exploits",
-            "network_edges",
-        ],
-        VisualizationMode.THREAT_MODEL: ["model", "processes", "datastores", "externals", "dataflows", "boundaries"],
-        VisualizationMode.PRIVILEGE_GRADIENT: ["gradient", "zones", "components", "influences", "influence_types"],
-        VisualizationMode.COMPONENT_DIAGRAM: ["layers", "connections"],
-        VisualizationMode.DEPENDENCY_GRAPH: ["modules", "dependencies", "circular"],
-        VisualizationMode.KILL_CHAIN: ["killchain", "techniques", "incidents"],
-        VisualizationMode.INCIDENT_TIMELINE: ["incident", "events", "phases"],
-        VisualizationMode.VULN_TREE: ["vulntree", "dependencies"],
-        VisualizationMode.MAESTRO: [
-            "meta",
-            "architecture",
-            "agents",
-            "assets",
-            "threats",
-            "cross_layer_threats",
-            "mitigations",
-        ],
-        VisualizationMode.BINARY: [],
-    }
-    return {"mode": mode.value, "sections": sections.get(mode, []), "note": "Use section=null to export all data"}
+    return _sections_response(mode)
+
+
+@router.post("/export/sections", tags=["Export"], summary="Get available export sections for a configuration file")
+@limiter.limit(RATE_LIMIT_ANALYZE)
+async def get_export_sections_for_file(
+    request: Request,
+    file: UploadFile = File(..., description="Configuration file"),
+    mode: Optional[VisualizationMode] = Query(
+        default=None, description="Visualization mode (auto-detected if not specified, as in /export/data)"
+    ),
+):
+    """
+    Get the sections /export/data can export from an uploaded configuration,
+    with the mode detected the same way /export/data detects it.
+    """
+    temps = TempFiles()
+    with handle_errors(temps, (USecVisLibError,), internal_detail="Section lookup failed"):
+        validate_config_file_extension(file.filename)
+        input_path = temps.add(save_upload_file(file))
+        if mode is None:
+            mode = _export_mode(ReadConfigFile(input_path))
+        return _sections_response(mode)
 
 
 # =============================================================================

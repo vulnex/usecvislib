@@ -267,6 +267,22 @@ class TestExportSections:
         assert "processes" in data["sections"]
         assert "dataflows" in data["sections"]
 
+    def test_sections_for_uploaded_file(self):
+        """POST detects the mode from the file, as /export/data does (the dashboard has no mode)."""
+        graph = (TEMPLATES_DIR / "attack-graphs" / "cloud.toml").read_bytes()
+        response = client.post("/export/sections", files=[("file", ("cloud.toml", io.BytesIO(graph), "application/octet-stream"))])
+        assert response.status_code == 200
+        data = response.json()
+        assert data["mode"] == "attack_graph"
+        assert "hosts" in data["sections"]
+
+    def test_sections_for_uploaded_file_with_mode(self):
+        response = client.post(
+            "/export/sections?mode=threat_model",
+            files=[_make_upload(MINIMAL_ATTACK_TREE_TOML, "tree.toml")],
+        )
+        assert response.json()["mode"] == "threat_model"
+
 
 # =============================================================================
 # Export Data
