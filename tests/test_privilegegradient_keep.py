@@ -291,3 +291,18 @@ class TestApi:
         )
         assert response.status_code == 200, response.text
         assert 'data-node-id="ws5"' in response.text and 'data-node-id="ws6"' not in response.text
+
+
+@requires_dot
+def test_svg_engine_kept_endpoint_without_group(tmp_path):
+    """keep="inversions" can keep a component that belongs to no group: drawn on its own."""
+    data = {**AD, "influences": [*AD["influences"], {"from": "kiosk", "to": "srv2", "type": "data"}]}
+    path = tmp_path / "ad.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    pg = PrivilegeGradient(
+        str(path), str(tmp_path / "o"), format="svg", render_engine="svg", styleid="sv_default",
+        group_by="role", collapse=True, keep="inversions",
+    )
+    pg.build()
+    svg = (tmp_path / "o.svg").read_text(encoding="utf-8")
+    assert 'data-node-id="kiosk"' in svg

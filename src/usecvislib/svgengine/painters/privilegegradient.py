@@ -139,9 +139,13 @@ def _build_scene(viz, theme: dict[str, Any]) -> Scene:
                 }
                 if facts["inversions"]:
                     card_border = pg["inversion"]
-            elif comp_id in view.kept and view.groups[view.group_of(comp_id)].collapsed:
+            elif (
+                comp_id in view.kept
+                and (group_id := view.group_of(comp_id)) is not None  # a kept endpoint may be in no group
+                and view.groups[group_id].collapsed
+            ):
                 # A12: drawn individually in its collapsed group's frame
-                group_data = {"kept": "true", "cluster-id": utils.sanitize_node_id(view.group_of(comp_id))}
+                group_data = {"kept": "true", "cluster-id": utils.sanitize_node_id(group_id)}
             scene.nodes.append(
                 SceneNode(
                     id=comp_id,
