@@ -404,7 +404,7 @@ def resolve_image_id(image_id: str, api_key: Optional[str] = None) -> str:
     return str(resolved_path)
 
 
-def resolve_image_references(data: dict) -> dict:
+def resolve_image_references(data: dict, api_key: Optional[str] = None) -> dict:
     """Replace image_id references with actual file paths in configuration data.
 
     Processes nodes in various configuration formats:
@@ -415,6 +415,7 @@ def resolve_image_references(data: dict) -> dict:
 
     Args:
         data: Configuration dictionary (modified in place)
+        api_key: API key whose image namespace the ids are looked up in
 
     Returns:
         Modified configuration dictionary
@@ -428,7 +429,7 @@ def resolve_image_references(data: dict) -> dict:
         if "image_id" in attrs:
             image_id = attrs.pop("image_id")
             try:
-                attrs["image"] = resolve_image_id(str(image_id))
+                attrs["image"] = resolve_image_id(str(image_id), api_key)
                 logger.debug(f"Resolved image_id {image_id}")
             except ValueError as e:
                 logger.warning(f"Could not resolve image_id: {e}")
@@ -689,16 +690,17 @@ def file_response(
     return FileResponse(path=path, media_type=get_content_type(format), filename=filename)
 
 
-def resolve_images_to_temp(input_path: str, temps: TempFiles) -> str:
+def resolve_images_to_temp(input_path: str, temps: TempFiles, api_key: Optional[str] = None) -> str:
     """Copy of an uploaded config with image references resolved to local paths.
 
     Returns the input path unchanged when the config cannot be resolved (the
-    renderer then reports any real problem with it).
+    renderer then reports any real problem with it). Image ids are looked up
+    in ``api_key``'s namespace, where ``POST /images/upload`` stored them.
     """
     from usecvislib.utils import ReadConfigFile
 
     try:
-        config_data = resolve_image_references(ReadConfigFile(input_path))
+        config_data = resolve_image_references(ReadConfigFile(input_path), api_key)
         # Keep a valid extension for the resolved file
         base, ext = os.path.splitext(input_path)
         resolved_path = temps.add(f"{base}_resolved{ext}")

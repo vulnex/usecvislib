@@ -18,6 +18,7 @@ from usecvislib import AttackGraphs
 from usecvislib.attackgraphs import AttackGraphError
 from usecvislib.utils import ConfigError, FileError
 
+from ..auth import request_api_key
 from ..config import (
     RATE_LIMIT_ANALYZE,
     RATE_LIMIT_VISUALIZE,
@@ -144,7 +145,7 @@ async def visualize_attack_graph(
         output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
 
         # Resolve image_id references in the config
-        input_for_viz = resolve_images_to_temp(input_path, temps)
+        input_for_viz = resolve_images_to_temp(input_path, temps, request_api_key(request))
 
         styleid = style.value
         if render_engine == RenderEngine.SVG and style == AttackGraphStyle.DEFAULT:

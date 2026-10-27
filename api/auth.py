@@ -273,7 +273,14 @@ async def verify_api_key(request: Request, api_key: Optional[str] = Security(api
     key_id = f"key_{matched_key_index}" if matched_key_index >= 0 else "unknown"
     logger.debug(f"Auth successful | path={path} | client={client_ip} | key_id={key_id}")
     logger.info(f"API access | path={path} | client={client_ip} | key_id={key_id}")
+    # Per-key resources (uploaded images) are looked up under this key
+    request.state.api_key = api_key
     return api_key
+
+
+def request_api_key(request: Request) -> Optional[str]:
+    """The API key verified for this request, or None when auth did not apply."""
+    return getattr(request.state, "api_key", None)
 
 
 # Dependency for protected routes - use this in endpoint definitions

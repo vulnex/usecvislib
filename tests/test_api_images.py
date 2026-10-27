@@ -350,6 +350,57 @@ class TestImageReferenceResolution:
         # image_id should be removed (since image doesn't exist)
         assert "image_id" not in result["nodes"][0]
 
+    def test_resolve_image_references_uses_key_namespace(self, sample_png_content):
+        """An image uploaded under an API key resolves only with that key."""
+        import uuid
+        from api.helpers import get_user_image_dir, resolve_image_references
+
+        image_id = str(uuid.uuid4())
+        user_dir = get_user_image_dir("namespace-test-key")
+        os.makedirs(user_dir, exist_ok=True)
+        path = os.path.join(user_dir, f"{image_id}.png")
+        with open(path, "wb") as f:
+            f.write(sample_png_content)
+        try:
+            with_key = resolve_image_references({"nodes": [{"id": "n", "image_id": image_id}]}, "namespace-test-key")
+            assert with_key["nodes"][0]["image"] == os.path.realpath(path)
+            without_key = resolve_image_references({"nodes": [{"id": "n", "image_id": image_id}]})
+            assert "image" not in without_key["nodes"][0]
+        finally:
+            os.remove(path)
+
+    def test_visualize_resolves_images_with_request_key(self):
+        """Render endpoints look up image ids under the request's verified API key."""
+        from fastapi.testclient import TestClient
+
+        with patch.dict(os.environ, {
+            "USECVISLIB_AUTH_ENABLED": "true",
+            "USECVISLIB_API_KEY": "test-api-key-12345",
+            "USECVISLIB_API_KEYS": ""
+        }, clear=False):
+            import importlib
+            import api.auth
+            import api.main
+            importlib.reload(api.auth)
+            importlib.reload(api.main)
+            import api.routers.attack_trees as at
+
+            seen = []
+
+            def spy(input_path, temps, api_key=None):
+                seen.append(api_key)
+                return input_path
+
+            template = os.path.join(os.path.dirname(__file__), "..", "templates", "attack-trees",
+                                    "network_infrastructure.toml")
+            with open(template, "rb") as f, patch.object(at, "resolve_images_to_temp", spy):
+                TestClient(api.main.app).post(
+                    "/visualize/attack-tree",
+                    files={"file": ("tree.toml", f, "application/octet-stream")},
+                    headers={"X-API-Key": "test-api-key-12345"},
+                )
+        assert seen == ["test-api-key-12345"]
+
 
 # =============================================================================
 # Image Helper Function Tests

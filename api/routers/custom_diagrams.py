@@ -22,6 +22,7 @@ from usecvislib.customdiagrams import CustomDiagramError
 from usecvislib.shapes import ShapeRegistry
 from usecvislib.utils import ConfigError, FileError
 
+from ..auth import request_api_key
 from ..config import (
     CUSTOM_DIAGRAMS_TEMPLATES_DIR,
     RATE_LIMIT_ANALYZE,
@@ -357,7 +358,7 @@ async def visualize_custom_diagram(
         output_base = temps.add_prefix(os.path.join(TEMP_DIR, f"output_{os.urandom(8).hex()}"))
 
         # Read and parse config to resolve image_id references
-        input_for_viz = resolve_images_to_temp(input_path, temps)
+        input_for_viz = resolve_images_to_temp(input_path, temps, request_api_key(request))
 
         # Create CustomDiagrams instance and build visualization
         cd = CustomDiagrams()
