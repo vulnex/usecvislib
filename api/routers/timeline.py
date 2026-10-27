@@ -27,6 +27,7 @@ from ..helpers import (
     TempFiles,
     file_response,
     handle_errors,
+    in_worker,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
@@ -109,7 +110,8 @@ async def visualize_timeline(
 
 @router.post("/analyze/timeline", response_model=TimelineStats, summary="Analyze incident timeline")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_timeline(
+@in_worker
+def analyze_timeline(
     request: Request,
     file: UploadFile = File(
         ..., description="Config file with an [incident] section, [[events]] and optional [[phases]]"
@@ -141,7 +143,8 @@ async def analyze_timeline(
 
 @router.post("/validate/timeline", summary="Validate incident timeline structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def validate_timeline(
+@in_worker
+def validate_timeline(
     request: Request,
     file: UploadFile = File(
         ..., description="Config file with an [incident] section, [[events]] and optional [[phases]]"

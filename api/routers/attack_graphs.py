@@ -31,6 +31,7 @@ from ..helpers import (
     collapse_option,
     file_response,
     handle_errors,
+    in_worker,
     resolve_images_to_temp,
     run_sync_with_timeout,
     save_upload_file,
@@ -174,7 +175,8 @@ async def visualize_attack_graph(
 
 @router.post("/analyze/attack-graph", response_model=GraphStats, summary="Analyze attack graph structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_attack_graph(
+@in_worker
+def analyze_attack_graph(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing attack graph definition"),
     group_by: Optional[str] = Query(
@@ -213,7 +215,8 @@ async def analyze_attack_graph(
 
 @router.post("/analyze/attack-paths", response_model=AttackPathsResponse, summary="Find attack paths in graph")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_attack_paths(
+@in_worker
+def analyze_attack_paths(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing attack graph definition"),
     source: str = Query(..., description="Source node ID (e.g., 'internet' or a host)"),
@@ -254,7 +257,8 @@ async def analyze_attack_paths(
 
 @router.post("/analyze/critical-nodes", summary="Identify critical nodes in attack graph")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_critical_nodes(
+@in_worker
+def analyze_critical_nodes(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing attack graph definition"),
     limit: int = Query(10, ge=1, le=50, description="Number of top critical nodes to return"),
@@ -281,7 +285,8 @@ async def analyze_critical_nodes(
 
 @router.post("/analyze/centrality", summary="Calculate centrality metrics for attack graph nodes")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_centrality(
+@in_worker
+def analyze_centrality(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing attack graph definition"),
     algorithm: str = Query("all", description="Centrality algorithm: betweenness, closeness, pagerank, or all"),
@@ -358,7 +363,8 @@ async def analyze_centrality(
 
 @router.post("/analyze/graph-metrics", summary="Get comprehensive graph metrics")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_graph_metrics(
+@in_worker
+def analyze_graph_metrics(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing attack graph definition"),
 ):
@@ -386,7 +392,8 @@ async def analyze_graph_metrics(
 
 @router.post("/analyze/chokepoints", summary="Identify network chokepoints")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_chokepoints(
+@in_worker
+def analyze_chokepoints(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing attack graph definition"),
     limit: int = Query(10, ge=1, le=50, description="Number of top chokepoints to return"),
@@ -413,7 +420,8 @@ async def analyze_chokepoints(
 
 @router.post("/analyze/attack-surface", summary="Identify attack surface entry points")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_attack_surface(
+@in_worker
+def analyze_attack_surface(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing attack graph definition"),
 ):
@@ -439,7 +447,8 @@ async def analyze_attack_surface(
 
 @router.post("/analyze/vulnerability-impact", summary="Calculate vulnerability impact score")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_vulnerability_impact(
+@in_worker
+def analyze_vulnerability_impact(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing attack graph definition"),
     vulnerability_id: str = Query(..., description="Vulnerability node ID to analyze"),
@@ -471,7 +480,8 @@ async def analyze_vulnerability_impact(
 
 @router.post("/validate/attack-graph", summary="Validate attack graph structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def validate_attack_graph(
+@in_worker
+def validate_attack_graph(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing attack graph definition"),
 ):

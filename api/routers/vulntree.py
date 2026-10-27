@@ -27,6 +27,7 @@ from ..helpers import (
     TempFiles,
     file_response,
     handle_errors,
+    in_worker,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
@@ -108,7 +109,8 @@ async def visualize_vuln_tree(
 
 @router.post("/analyze/vuln-tree", response_model=VulnTreeStats, summary="Analyze vulnerability dependency tree")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_vuln_tree(
+@in_worker
+def analyze_vuln_tree(
     request: Request,
     file: UploadFile = File(..., description="Config file with a [dependencies] table and optional [vulntree] section"),
 ):
@@ -138,7 +140,8 @@ async def analyze_vuln_tree(
 
 @router.post("/validate/vuln-tree", summary="Validate vulnerability dependency tree structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def validate_vuln_tree(
+@in_worker
+def validate_vuln_tree(
     request: Request,
     file: UploadFile = File(..., description="Config file with a [dependencies] table and optional [vulntree] section"),
 ):

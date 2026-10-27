@@ -32,6 +32,7 @@ from ..helpers import (
     file_response,
     get_content_type,
     handle_errors,
+    in_worker,
     run_sync_with_timeout,
     save_upload_file,
 )
@@ -215,7 +216,8 @@ async def visualize_binary(
 
 @router.post("/analyze/binary", response_model=FileStats, summary="Analyze binary file statistics")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_binary(
+@in_worker
+def analyze_binary(
     request: Request,
     file: UploadFile = File(..., description="Binary file to analyze"),
 ):

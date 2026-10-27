@@ -31,6 +31,7 @@ from ..helpers import (
     collapse_option,
     file_response,
     handle_errors,
+    in_worker,
     resolve_images_to_temp,
     run_sync_with_timeout,
     save_upload_file,
@@ -155,7 +156,8 @@ async def visualize_privilege_gradient(
     "/analyze/privilege-gradient", response_model=GradientStats, summary="Analyze privilege gradient graph structure"
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_privilege_gradient(
+@in_worker
+def analyze_privilege_gradient(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing privilege gradient definition"),
     group_by: Optional[str] = Query(
@@ -194,7 +196,8 @@ async def analyze_privilege_gradient(
 
 @router.post("/analyze/inversions", response_model=InversionsResponse, summary="Detect privilege gradient inversions")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_inversions(
+@in_worker
+def analyze_inversions(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing privilege gradient definition"),
 ):
@@ -225,7 +228,8 @@ async def analyze_inversions(
 
 @router.post("/validate/privilege-gradient", summary="Validate privilege gradient graph structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def validate_privilege_gradient(
+@in_worker
+def validate_privilege_gradient(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing privilege gradient definition"),
 ):

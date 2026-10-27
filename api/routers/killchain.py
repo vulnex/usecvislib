@@ -27,6 +27,7 @@ from ..helpers import (
     TempFiles,
     file_response,
     handle_errors,
+    in_worker,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
@@ -101,7 +102,8 @@ async def visualize_kill_chain(
 
 @router.post("/analyze/kill-chain", response_model=KillChainStats, summary="Analyze kill chain coverage")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_kill_chain(
+@in_worker
+def analyze_kill_chain(
     request: Request,
     file: UploadFile = File(..., description="Config file with a [killchain] section and techniques"),
 ):
@@ -131,7 +133,8 @@ async def analyze_kill_chain(
 
 @router.post("/validate/kill-chain", summary="Validate kill chain structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def validate_kill_chain(
+@in_worker
+def validate_kill_chain(
     request: Request,
     file: UploadFile = File(..., description="Config file with a [killchain] section and techniques"),
 ):

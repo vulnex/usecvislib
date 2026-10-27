@@ -54,6 +54,7 @@ from ..helpers import (
     get_progress,
     get_template_format,
     handle_errors,
+    in_worker,
     run_sync_with_timeout,
     sanitize_filename_for_log,
     save_upload_file,
@@ -255,7 +256,8 @@ async def get_available_engines(request: Request):
     summary="Convert configuration file between formats",
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def convert_config_format(
+@in_worker
+def convert_config_format(
     request: Request,
     file: UploadFile = File(..., description="Configuration file to convert (TOML, JSON, or YAML)"),
     target_format: ConfigFormat = Query(..., description="Target format to convert to"),
@@ -321,7 +323,8 @@ async def convert_config_format(
     "/report/threat-model", response_model=ReportResponse, tags=["Reports"], summary="Generate threat model report"
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def generate_threat_model_report(
+@in_worker
+def generate_threat_model_report(
     request: Request,
     file: UploadFile = File(..., description="Threat model configuration file (TOML, JSON, or YAML)"),
     format: ReportFormat = Query(ReportFormat.MARKDOWN, description="Report output format"),
@@ -659,7 +662,8 @@ async def batch_visualize(
     summary="Export visualization data to various formats",
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def export_data(
+@in_worker
+def export_data(
     request: Request,
     file: UploadFile = File(..., description="Configuration file to export data from"),
     mode: Optional[VisualizationMode] = Query(
@@ -830,7 +834,8 @@ def _sections_response(mode: VisualizationMode) -> dict:
 
 @router.get("/export/sections", tags=["Export"], summary="Get available export sections for a visualization mode")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def get_export_sections(request: Request, mode: VisualizationMode = Query(..., description="Visualization mode")):
+@in_worker
+def get_export_sections(request: Request, mode: VisualizationMode = Query(..., description="Visualization mode")):
     """
     Get the available sections that can be exported for each visualization mode.
     """
@@ -839,7 +844,8 @@ async def get_export_sections(request: Request, mode: VisualizationMode = Query(
 
 @router.post("/export/sections", tags=["Export"], summary="Get available export sections for a configuration file")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def get_export_sections_for_file(
+@in_worker
+def get_export_sections_for_file(
     request: Request,
     file: UploadFile = File(..., description="Configuration file"),
     mode: Optional[VisualizationMode] = Query(
@@ -868,7 +874,8 @@ async def get_export_sections_for_file(
     "/diff/compare", response_model=DiffResponse, tags=["Comparison"], summary="Compare two configuration files"
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def compare_configs(
+@in_worker
+def compare_configs(
     request: Request,
     old_file: UploadFile = File(..., description="Old/baseline configuration file"),
     new_file: UploadFile = File(..., description="New/updated configuration file"),

@@ -29,6 +29,7 @@ from ..helpers import (
     TempFiles,
     file_response,
     handle_errors,
+    in_worker,
     resolve_images_to_temp,
     run_sync_with_timeout,
     save_upload_file,
@@ -123,7 +124,8 @@ async def visualize_attack_tree(
 
 @router.post("/analyze/attack-tree", response_model=TreeStats, summary="Analyze attack tree structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_attack_tree(
+@in_worker
+def analyze_attack_tree(
     request: Request,
     file: UploadFile = File(..., description="TOML file containing attack tree definition"),
 ):
@@ -159,7 +161,8 @@ async def analyze_attack_tree(
 
 @router.post("/validate/attack-tree", summary="Validate attack tree structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def validate_attack_tree(
+@in_worker
+def validate_attack_tree(
     request: Request,
     file: UploadFile = File(..., description="TOML file containing attack tree definition"),
 ):

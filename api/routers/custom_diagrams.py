@@ -36,6 +36,7 @@ from ..helpers import (
     TempFiles,
     file_response,
     handle_errors,
+    in_worker,
     resolve_images_to_temp,
     run_sync_with_timeout,
     save_upload_file,
@@ -385,7 +386,8 @@ async def visualize_custom_diagram(
     summary="Validate custom diagram configuration",
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def validate_custom_diagram(
+@in_worker
+def validate_custom_diagram(
     request: Request,
     file: UploadFile = File(..., description="TOML/JSON/YAML file containing custom diagram definition"),
 ):
@@ -434,7 +436,8 @@ async def validate_custom_diagram(
     "/custom-diagrams/stats", response_model=CustomDiagramStatsResponse, summary="Get custom diagram statistics"
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def get_custom_diagram_stats(
+@in_worker
+def get_custom_diagram_stats(
     request: Request,
     file: UploadFile = File(..., description="TOML/JSON/YAML file containing custom diagram definition"),
 ):

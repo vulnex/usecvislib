@@ -28,6 +28,7 @@ from ..helpers import (
     TempFiles,
     file_response,
     handle_errors,
+    in_worker,
     resolve_images_to_temp,
     run_sync_with_timeout,
     save_upload_file,
@@ -130,7 +131,8 @@ async def visualize_threat_model(
 
 @router.post("/analyze/threat-model", response_model=ModelStats, summary="Analyze threat model structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_threat_model(
+@in_worker
+def analyze_threat_model(
     request: Request,
     file: UploadFile = File(..., description="TOML file containing threat model definition"),
 ):
@@ -165,7 +167,8 @@ async def analyze_threat_model(
 
 @router.post("/analyze/stride", response_model=StrideReport, summary="Perform STRIDE threat analysis")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_stride(
+@in_worker
+def analyze_stride(
     request: Request,
     file: UploadFile = File(..., description="TOML file containing threat model definition"),
 ):

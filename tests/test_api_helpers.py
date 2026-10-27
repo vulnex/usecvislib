@@ -323,6 +323,57 @@ class TestWithTimeoutDecorator:
         assert exc_info.value.status_code == 504
 
 
+class TestInWorker:
+    """@in_worker: blocking routes run off the event loop, with the analyze limit."""
+
+    @pytest.mark.asyncio
+    async def test_runs_in_another_thread(self):
+        import threading
+
+        import api.helpers
+
+        @api.helpers.in_worker
+        def blocking(x, y=1):
+            return threading.get_ident(), x + y
+
+        thread, value = await blocking(1, y=2)
+        assert value == 3 and thread != threading.get_ident()
+
+    @pytest.mark.asyncio
+    async def test_raises_504_past_the_limit(self, monkeypatch):
+        import time as _time
+
+        import api.helpers
+
+        monkeypatch.setattr(api.helpers, "REQUEST_TIMEOUT_ANALYZE", 0.1)
+
+        @api.helpers.in_worker
+        def slow_analysis():
+            _time.sleep(1)
+
+        with pytest.raises(HTTPException) as exc_info:
+            await slow_analysis()
+        assert exc_info.value.status_code == 504
+        assert "slow analysis" in exc_info.value.detail
+
+    def test_slow_analyze_route_returns_504(self, monkeypatch):
+        import time as _time
+        from pathlib import Path
+
+        from fastapi.testclient import TestClient
+
+        import api.helpers
+        from api.main import app
+        from usecvislib.attackgraphs import AttackGraphs
+
+        monkeypatch.setattr(api.helpers, "REQUEST_TIMEOUT_ANALYZE", 0.2)
+        monkeypatch.setattr(AttackGraphs, "get_graph_metrics", lambda self: _time.sleep(1))
+        graph = Path(__file__).parent.parent / "templates" / "attack-graphs" / "cloud.toml"
+        with open(graph, "rb") as f:
+            response = TestClient(app).post("/analyze/graph-metrics", files={"file": ("g.toml", f)})
+        assert response.status_code == 504
+
+
 # =============================================================================
 # File Helpers
 # =============================================================================

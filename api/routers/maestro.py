@@ -29,6 +29,7 @@ from ..helpers import (
     TempFiles,
     file_response,
     handle_errors,
+    in_worker,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
@@ -157,7 +158,8 @@ async def visualize_maestro(
     summary="Analyze MAESTRO threat model",
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_maestro(
+@in_worker
+def analyze_maestro(
     request: Request,
     file: UploadFile = File(..., description="MAESTRO configuration file"),
 ):
@@ -202,7 +204,8 @@ async def analyze_maestro(
     summary="List MAESTRO threats with optional filtering",
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def list_maestro_threats(
+@in_worker
+def list_maestro_threats(
     request: Request,
     file: UploadFile = File(..., description="MAESTRO configuration file"),
     layer: Optional[str] = Query(default=None, description="Filter by MAESTRO layer key"),
@@ -278,7 +281,8 @@ async def list_maestro_threats(
     summary="Validate MAESTRO threat model configuration",
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def validate_maestro(
+@in_worker
+def validate_maestro(
     request: Request,
     file: UploadFile = File(..., description="MAESTRO configuration file"),
 ):
@@ -310,7 +314,8 @@ async def validate_maestro(
     summary="Get the full MAESTRO threat catalog",
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def get_maestro_catalog(request: Request):
+@in_worker
+def get_maestro_catalog(request: Request):
     """Return the built-in MAESTRO threat catalog (versioned, immutable IDs)."""
     with handle_errors(internal_detail="Failed to load catalog"):
         mm = MaestroThreatModel("unused.toml", "unused", validate_paths=False)
@@ -324,7 +329,8 @@ async def get_maestro_catalog(request: Request):
     summary="Get catalog threats for a single MAESTRO layer",
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def get_maestro_catalog_for_layer(request: Request, layer: str):
+@in_worker
+def get_maestro_catalog_for_layer(request: Request, layer: str):
     """Return catalog threats scoped to one of the seven MAESTRO layers."""
     valid_layers = {ml.value for ml in MaestroLayer}
     if layer not in valid_layers:
@@ -357,7 +363,8 @@ async def get_maestro_catalog_for_layer(request: Request, layer: str):
     summary="Export MAESTRO model to a sibling framework",
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def export_maestro(
+@in_worker
+def export_maestro(
     request: Request,
     target: MaestroExportFormat,
     file: UploadFile = File(..., description="MAESTRO configuration file"),

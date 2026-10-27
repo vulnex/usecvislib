@@ -28,6 +28,7 @@ from ..config import (
 from ..helpers import (
     TempFiles,
     handle_errors,
+    in_worker,
     run_sync_with_timeout,
     save_upload_file,
     validate_path_component,
@@ -153,7 +154,8 @@ async def visualize_mermaid(
 
 @router.post("/analyze/mermaid", response_model=MermaidValidateResponse, summary="Validate Mermaid diagram")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_mermaid(
+@in_worker
+def analyze_mermaid(
     request: Request,
     file: UploadFile = File(..., description="Mermaid source file (.mmd, .toml, .json, .yaml)"),
 ):

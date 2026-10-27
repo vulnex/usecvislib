@@ -28,6 +28,7 @@ from ..config import (
 from ..helpers import (
     TempFiles,
     handle_errors,
+    in_worker,
     run_sync_with_timeout,
     save_upload_file,
     validate_config_file_extension,
@@ -177,7 +178,8 @@ async def visualize_cloud(
 
 @router.post("/analyze/cloud", response_model=CloudValidateResponse, summary="Validate cloud diagram")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_cloud(
+@in_worker
+def analyze_cloud(
     request: Request,
     file: UploadFile = File(..., description="Cloud diagram config file (.toml, .json, .yaml)"),
 ):
@@ -352,7 +354,8 @@ async def get_cloud_template(request: Request, category: str, name: str):
 
 @router.post("/cloud/generate-code", response_model=CloudPythonCodeResponse, summary="Generate Python code from config")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def generate_cloud_code(
+@in_worker
+def generate_cloud_code(
     request: Request,
     file: UploadFile = File(..., description="Cloud diagram config file (.toml, .json, .yaml)"),
 ):

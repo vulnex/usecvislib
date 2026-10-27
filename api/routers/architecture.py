@@ -30,6 +30,7 @@ from ..helpers import (
     TempFiles,
     file_response,
     handle_errors,
+    in_worker,
     resolve_images_to_temp,
     run_sync_with_timeout,
     save_upload_file,
@@ -124,7 +125,8 @@ async def visualize_component_diagram(
     "/analyze/component-diagram", response_model=ComponentDiagramStats, summary="Analyze component diagram structure"
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_component_diagram(
+@in_worker
+def analyze_component_diagram(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing component diagram definition"),
 ):
@@ -159,7 +161,8 @@ async def analyze_component_diagram(
 
 @router.post("/validate/component-diagram", summary="Validate component diagram structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def validate_component_diagram(
+@in_worker
+def validate_component_diagram(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing component diagram definition"),
 ):
@@ -252,7 +255,8 @@ async def visualize_dependency_graph(
     "/analyze/dependency-graph", response_model=DependencyGraphStats, summary="Analyze dependency graph structure"
 )
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def analyze_dependency_graph(
+@in_worker
+def analyze_dependency_graph(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing dependency graph definition"),
 ):
@@ -287,7 +291,8 @@ async def analyze_dependency_graph(
 
 @router.post("/validate/dependency-graph", summary="Validate dependency graph structure")
 @limiter.limit(RATE_LIMIT_ANALYZE)
-async def validate_dependency_graph(
+@in_worker
+def validate_dependency_graph(
     request: Request,
     file: UploadFile = File(..., description="Configuration file containing dependency graph definition"),
 ):

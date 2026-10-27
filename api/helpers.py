@@ -16,7 +16,7 @@ import threading
 import time
 from collections.abc import Callable, Coroutine, Iterator
 from contextlib import contextmanager
-from functools import wraps
+from functools import partial, wraps
 from pathlib import Path
 from typing import Any, Optional, TypeVar
 
@@ -32,6 +32,7 @@ from .config import (
     MAX_CONFIG_FILE_SIZE,
     PROGRESS_ENTRY_TTL,
     PROGRESS_MAX_ENTRIES,
+    REQUEST_TIMEOUT_ANALYZE,
     SUPPORTED_CONFIG_EXTENSIONS,
     TEMP_DIR,
     UPLOAD_CHUNK_SIZE,
@@ -166,6 +167,24 @@ def with_timeout(timeout_seconds: int, operation_name: str = "operation"):
         return wrapper
 
     return decorator
+
+
+def in_worker(func: Callable[..., T]) -> Callable[..., Coroutine[Any, Any, T]]:
+    """Run a blocking route in the worker pool, limited to REQUEST_TIMEOUT_ANALYZE.
+
+    The route is written as a plain function; the decorated route is async, so
+    the event loop keeps serving other requests while it runs. Past the limit
+    the client gets 504 and the thread finishes on its own (its
+    ``handle_errors`` block still removes its temp files). Goes below the
+    rate-limit decorator.
+    """
+    operation_name = func.__name__.replace("_", " ")
+
+    @wraps(func)
+    async def wrapper(*args, **kwargs) -> T:
+        return await run_sync_with_timeout(partial(func, *args, **kwargs), REQUEST_TIMEOUT_ANALYZE, operation_name)
+
+    return wrapper
 
 
 # =============================================================================
