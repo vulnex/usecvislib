@@ -8,9 +8,14 @@ services:
       dockerfile: Dockerfile
     container_name: usecvislib-api
     ports:
-      - "8003:8000"
+      # Loopback only by default: the dashboard reaches the API through nginx.
+      # Set API_BIND_ADDRESS=0.0.0.0 to expose the API to other hosts.
+      - "${API_BIND_ADDRESS:-127.0.0.1}:8003:8000"
     environment:
       - PYTHONUNBUFFERED=1
+      # Client addresses (rate limiting, logs) come from X-Forwarded-For only
+      # when the request comes from the dashboard's nginx (fixed address below)
+      - FORWARDED_ALLOW_IPS=${FORWARDED_ALLOW_IPS:-172.28.10.10}
       # Authentication settings (disabled by default for easy local setup)
       # For production: set USECVISLIB_AUTH_ENABLED=true and an API key in .env
       - USECVISLIB_AUTH_ENABLED=${USECVISLIB_AUTH_ENABLED:-false}
@@ -70,7 +75,9 @@ services:
       retries: 3
       start_period: 10s
     networks:
-      - frontend
+      frontend:
+        # Fixed, so the API can trust this proxy's X-Forwarded-For (FORWARDED_ALLOW_IPS)
+        ipv4_address: 172.28.10.10
 
   # =============================================================================
   # USecVisLib CLI Service (for one-off commands)
@@ -144,6 +151,9 @@ networks:
     driver: bridge
   frontend:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.10.0/24
 
 # =============================================================================
 # Volumes
