@@ -95,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Attack-graph cycle analysis no longer hangs on dense graphs.** `find_cycles()` and `get_graph_metrics()` (`POST /analyze/graph-metrics`) listed every simple cycle, a number that grows exponentially with density: a 12-host fully connected network did not finish. `find_cycles()` now returns at most `MAX_CYCLES` (1000; `limit=` changes it, `None` lists all). Metrics count up to 1000 and set the new `cycles_truncated` when there are more; the dashboard shows "1000+".
 - **Builder temp files are cleaned up for every module.**
   - The temp JSON a builder writes is now removed by `VisualizationBase` when the instance is garbage collected. Before, `KillChain`, `IncidentTimeline` and `VulnDependencyTree` had no cleanup, so every `to_kill_chain()` / `to_timeline()` / `to_vuln_tree()` left a file in the temp directory. A constructor that raises no longer leaves its file behind either.
   - `TrendChart` deleted its builder input after the first `load()`, so a second `load()` or `build()` failed; the input now lives as long as the chart.

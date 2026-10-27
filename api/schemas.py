@@ -1187,7 +1187,8 @@ class GraphMetricsResponse(BaseModel):
     diameter: Optional[int] = Field(default=None, description="Graph diameter (longest shortest path)")
     num_strongly_connected_components: int = Field(description="Number of SCCs")
     largest_scc_size: int = Field(description="Size of largest SCC")
-    num_cycles: int = Field(description="Number of simple cycles")
+    num_cycles: int = Field(description="Number of simple cycles (at most 1000)")
+    cycles_truncated: bool = Field(default=False, description="More cycles exist than num_cycles counts")
     is_dag: bool = Field(description="Whether graph is a DAG (no cycles)")
     node_types: dict[str, int] = Field(description="Count of nodes by type")
 
@@ -1201,6 +1202,7 @@ class GraphMetricsResponse(BaseModel):
                 "num_strongly_connected_components": 3,
                 "largest_scc_size": 8,
                 "num_cycles": 2,
+                "cycles_truncated": False,
                 "is_dag": False,
                 "node_types": {"host": 4, "vulnerability": 6, "privilege": 3, "service": 2},
             }

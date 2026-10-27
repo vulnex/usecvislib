@@ -871,6 +871,27 @@ class TestNetworkXGraphStructure:
             finally:
                 os.unlink(f.name)
 
+    def test_cycle_search_is_bounded(self):
+        """A dense graph has billions of cycles; the search stops at MAX_CYCLES."""
+        from usecvislib.attackgraphs import MAX_CYCLES
+
+        hosts = [f"h{i}" for i in range(12)]
+        edges = "\n".join(
+            f'[[network_edges]]\nfrom = "{a}"\nto = "{b}"' for a in hosts for b in hosts if a != b
+        )
+        config = '[graph]\nname = "dense"\n' + "".join(f'[[hosts]]\nid = "{h}"\nlabel = "{h}"\n' for h in hosts) + edges
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.toml', delete=False) as f:
+            f.write(config)
+        try:
+            ag = AttackGraphs(f.name, "output", validate_paths=False)
+            ag.load()
+            assert len(ag.find_cycles()) == MAX_CYCLES
+            assert len(ag.find_cycles(limit=5)) == 5
+            metrics = ag.get_graph_metrics()
+            assert metrics["num_cycles"] == MAX_CYCLES and metrics["cycles_truncated"] is True
+        finally:
+            os.unlink(f.name)
+
     def test_strongly_connected_components(self):
         """Test SCC detection."""
         with tempfile.NamedTemporaryFile(mode='w', suffix='.tml', delete=False) as f:

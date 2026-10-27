@@ -304,7 +304,7 @@
             <span class="metric-label">Diameter</span>
           </div>
           <div class="metric-item">
-            <span class="metric-value">{{ graphMetrics.num_cycles ?? 0 }}</span>
+            <span class="metric-value">{{ graphMetrics.num_cycles ?? 0 }}{{ graphMetrics.cycles_truncated ? '+' : '' }}</span>
             <span class="metric-label">Cycles</span>
           </div>
           <div class="metric-item">

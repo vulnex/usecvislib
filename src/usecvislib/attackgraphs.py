@@ -38,6 +38,7 @@ if TYPE_CHECKING:
     from .clouddiagrams import CloudDiagrams
     from .mermaiddiagrams import MermaidDiagrams
 import heapq
+import itertools
 
 import networkx as nx
 from graphviz import Digraph
@@ -59,6 +60,10 @@ _CLUSTER_TEXT = "#334155"
 
 # Inferred elements (hypotheses): dashed and muted, marked "(inferred)"; inferred
 # edges also get a hollow arrowhead, since some presets already dash network edges
+# Simple cycles listed or counted at most: their number grows exponentially
+# with graph density, so an unbounded search can run for hours
+MAX_CYCLES = 1000
+
 _INFERRED_MARKER = "(inferred)"
 _INFERRED_NODE_ATTRS = {
     "style": "dashed,filled",
@@ -1448,22 +1453,21 @@ class AttackGraphs(DriftStylingMixin, VisualizationBase):
 
         yield from nx.all_simple_paths(self._nx_graph, source, target, cutoff=cutoff)
 
-    def find_cycles(self) -> list[list[str]]:
-        """Find all simple cycles in the attack graph.
+    def find_cycles(self, limit: Optional[int] = MAX_CYCLES) -> list[list[str]]:
+        """Find simple cycles in the attack graph.
 
         Cycles may indicate feedback loops or circular dependencies
         in attack paths.
+
+        Args:
+            limit: Return at most this many cycles (None: all of them, which
+                can take exponential time on dense graphs).
 
         Returns:
             List of cycles, each cycle is a list of node IDs.
         """
         self._ensure_nx_graph()
-
-        try:
-            cycles = list(nx.simple_cycles(self._nx_graph))
-            return cycles
-        except Exception:
-            return []
+        return list(itertools.islice(nx.simple_cycles(self._nx_graph), limit))
 
     def strongly_connected_components(self) -> list[set[str]]:
         """Find strongly connected components in the graph.
@@ -1653,12 +1657,9 @@ class AttackGraphs(DriftStylingMixin, VisualizationBase):
         # Get SCCs
         sccs = list(nx.strongly_connected_components(self._nx_graph))
 
-        # Get cycles (limit for performance)
-        try:
-            cycles = list(nx.simple_cycles(self._nx_graph))
-            num_cycles = len(cycles)
-        except Exception:
-            num_cycles = 0
+        # Count cycles up to MAX_CYCLES + 1, to tell whether the count was cut
+        num_cycles = sum(1 for _ in itertools.islice(nx.simple_cycles(self._nx_graph), MAX_CYCLES + 1))
+        cycles_truncated = num_cycles > MAX_CYCLES
 
         return {
             "num_nodes": num_nodes,
@@ -1667,7 +1668,8 @@ class AttackGraphs(DriftStylingMixin, VisualizationBase):
             "diameter": self.diameter(),
             "num_strongly_connected_components": len(sccs),
             "largest_scc_size": len(max(sccs, key=len)) if sccs else 0,
-            "num_cycles": num_cycles,
+            "num_cycles": min(num_cycles, MAX_CYCLES),
+            "cycles_truncated": cycles_truncated,
             "is_dag": nx.is_directed_acyclic_graph(self._nx_graph),
             "node_types": type_counts,
         }
