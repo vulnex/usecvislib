@@ -77,7 +77,7 @@ export function hasApiKey() {
 // Create axios instance with defaults
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 60000, // 60 seconds for large file processing
+  timeout: 130000, // longer than the API's render limit (120 s), so its 504 arrives
 })
 
 // Request interceptor - add API key to all requests
