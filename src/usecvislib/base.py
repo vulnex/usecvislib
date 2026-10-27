@@ -17,7 +17,9 @@ This module provides abstract base classes that define the common interface
 and shared functionality for all visualization modules.
 """
 
+import contextlib
 import logging
+import os
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar
 
@@ -61,6 +63,9 @@ class VisualizationBase(ABC, Generic[T]):
     SVG_DEFAULT_STYLE_ID: str = "sv_default"
     ALLOWED_EXTENSIONS: list[str] = [".toml", ".tml", ".json", ".yaml", ".yml"]
     MAX_INPUT_SIZE: int = 10 * 1024 * 1024  # 10 MB
+
+    # Input file a builder wrote for this instance; removed with the instance
+    _temp_input: Optional[str] = None
 
     def __init__(
         self,
@@ -139,6 +144,12 @@ class VisualizationBase(ABC, Generic[T]):
         # Load style if not disabled
         if self.styleid != "0":
             self._load_style()
+
+    def __del__(self) -> None:
+        """SECURITY: Remove a builder's temp input file with the instance."""
+        if self._temp_input:
+            with contextlib.suppress(OSError):
+                os.remove(self._temp_input)
 
     def _load_style(self) -> None:
         """Load style configuration from file."""

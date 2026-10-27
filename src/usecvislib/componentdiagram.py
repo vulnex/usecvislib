@@ -94,17 +94,6 @@ class ComponentDiagram(VisualizationBase):
         self._layers: list[dict[str, Any]] = []
         self._components: dict[str, dict[str, Any]] = {}
         self._connections: list[dict[str, Any]] = []
-        self._temp_input: Optional[str] = None
-
-    def __del__(self):
-        if hasattr(self, "_temp_input") and self._temp_input:
-            try:
-                import os
-
-                if os.path.exists(self._temp_input):
-                    os.remove(self._temp_input)
-            except Exception:
-                pass
 
     def _default_style(self) -> dict[str, Any]:
         return {

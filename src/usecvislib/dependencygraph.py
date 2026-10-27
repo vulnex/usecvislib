@@ -102,17 +102,6 @@ class DependencyGraph(VisualizationBase):
         self._dependencies: list[dict[str, Any]] = []
         self._circular: list[list[str]] = []
         self._circular_edges: set = set()
-        self._temp_input: Optional[str] = None
-
-    def __del__(self):
-        if hasattr(self, "_temp_input") and self._temp_input:
-            try:
-                import os
-
-                if os.path.exists(self._temp_input):
-                    os.remove(self._temp_input)
-            except Exception:
-                pass
 
     def _default_style(self) -> dict[str, Any]:
         return {

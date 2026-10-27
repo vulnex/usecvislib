@@ -10,6 +10,7 @@
 
 import hashlib
 import json
+import gc
 import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -207,8 +208,11 @@ class TestBuilder:
         temp_input = chart._temp_input
         chart.build()
         assert (tmp_path / "b.svg").exists()
-        assert not os.path.exists(temp_input)  # removed once loaded
         assert chart.panels[1].stacked
+        chart.load()  # the input stays while the chart lives
+        del chart
+        gc.collect()
+        assert not os.path.exists(temp_input)  # removed with the chart
 
     def test_unloaded_chart_removes_its_temp_input(self, tmp_path):
         chart = TrendBuilder("x").add_series("A", [("2026-10-01", 1)]).to_trend_chart(str(tmp_path / "x"))

@@ -251,7 +251,6 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         self._adjacency: dict[str, list[str]] = {}
         self._reverse_adjacency: dict[str, list[str]] = {}
         self._nx_graph: Optional[nx.DiGraph] = None
-        self._temp_input: Optional[str] = None
 
         # Grouping and collapse (render options; None falls back to the gradient section)
         self.group_by = group_by
@@ -264,16 +263,6 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         self.diff_marks: Optional[Any] = None
         self.diff_colors: Optional[dict[str, str]] = None
         self.show_unchanged = True
-
-    def __del__(self):
-        if hasattr(self, "_temp_input") and self._temp_input:
-            try:
-                import os
-
-                if os.path.exists(self._temp_input):
-                    os.remove(self._temp_input)
-            except Exception:
-                pass
 
     def _default_style(self) -> dict[str, Any]:
         return {

@@ -34,13 +34,16 @@ Example:
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
 import tempfile
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, TypeVar
 
 if TYPE_CHECKING:
     from .attackgraphs import AttackGraphs
     from .attacktrees import AttackTrees
+    from .base import VisualizationBase
     from .componentdiagram import ComponentDiagram
     from .dependencygraph import DependencyGraph
     from .killchain import KillChain
@@ -49,6 +52,28 @@ if TYPE_CHECKING:
     from .timeline import IncidentTimeline
     from .trend import TrendChart
     from .vulntree import VulnDependencyTree
+
+
+V = TypeVar("V", bound="VisualizationBase")
+
+
+def _from_data(cls: type[V], data: dict[str, Any], outputfile: str, **kwargs: Any) -> V:
+    """Instance of ``cls`` on a temp JSON copy of a builder's data.
+
+    The instance owns the temp file and removes it when it is garbage
+    collected; if the constructor fails, the file is removed here.
+    """
+    fd, temp_path = tempfile.mkstemp(suffix=".json", prefix="usecvislib_builder_")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, default=str)  # dates and datetimes as ISO strings
+        instance = cls(temp_path, outputfile, **kwargs)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            os.remove(temp_path)
+        raise
+    instance._temp_input = temp_path
+    return instance
 
 
 class AttackTreeBuilder:
@@ -258,14 +283,9 @@ class AttackTreeBuilder:
         """
         from .attacktrees import AttackTrees
 
-        # Create a temporary file with the data
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(self._data, f)
-            temp_path = f.name
-
-        at = AttackTrees(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
-        at._temp_input = temp_path  # Mark for cleanup
-        return at
+        return _from_data(
+            AttackTrees, self._data, outputfile, format=format, styleid=styleid, render_engine=render_engine
+        )
 
 
 class AttackGraphBuilder:
@@ -521,14 +541,9 @@ class AttackGraphBuilder:
         """
         from .attackgraphs import AttackGraphs
 
-        # Create a temporary file with the data
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(self._data, f)
-            temp_path = f.name
-
-        ag = AttackGraphs(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
-        ag._temp_input = temp_path  # Mark for cleanup
-        return ag
+        return _from_data(
+            AttackGraphs, self._data, outputfile, format=format, styleid=styleid, render_engine=render_engine
+        )
 
 
 class ThreatModelBuilder:
@@ -710,14 +725,9 @@ class ThreatModelBuilder:
         """
         from .threatmodeling import ThreatModeling
 
-        # Create a temporary file with the data
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(self._data, f)
-            temp_path = f.name
-
-        tm = ThreatModeling(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
-        tm._temp_input = temp_path  # Mark for cleanup
-        return tm
+        return _from_data(
+            ThreatModeling, self._data, outputfile, format=format, styleid=styleid, render_engine=render_engine
+        )
 
 
 class PrivilegeGradientBuilder:
@@ -1086,13 +1096,9 @@ class PrivilegeGradientBuilder:
         """
         from .privilegegradient import PrivilegeGradient
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(self._data, f)
-            temp_path = f.name
-
-        pg = PrivilegeGradient(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
-        pg._temp_input = temp_path
-        return pg
+        return _from_data(
+            PrivilegeGradient, self._data, outputfile, format=format, styleid=styleid, render_engine=render_engine
+        )
 
 
 class ComponentDiagramBuilder:
@@ -1212,13 +1218,9 @@ class ComponentDiagramBuilder:
         """Create ComponentDiagram instance from builder data."""
         from .componentdiagram import ComponentDiagram
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(self._data, f)
-            temp_path = f.name
-
-        cd = ComponentDiagram(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
-        cd._temp_input = temp_path
-        return cd
+        return _from_data(
+            ComponentDiagram, self._data, outputfile, format=format, styleid=styleid, render_engine=render_engine
+        )
 
 
 class DependencyGraphBuilder:
@@ -1339,13 +1341,9 @@ class DependencyGraphBuilder:
         """Create DependencyGraph instance from builder data."""
         from .dependencygraph import DependencyGraph
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(self._data, f)
-            temp_path = f.name
-
-        dg = DependencyGraph(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
-        dg._temp_input = temp_path
-        return dg
+        return _from_data(
+            DependencyGraph, self._data, outputfile, format=format, styleid=styleid, render_engine=render_engine
+        )
 
 
 class KillChainBuilder:
@@ -1440,13 +1438,9 @@ class KillChainBuilder:
         """Create a KillChain instance from the builder data."""
         from .killchain import KillChain
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(self._data, f)
-            temp_path = f.name
-
-        kc = KillChain(temp_path, outputfile, format=format, styleid=styleid, render_engine=render_engine)
-        kc._temp_input = temp_path
-        return kc
+        return _from_data(
+            KillChain, self._data, outputfile, format=format, styleid=styleid, render_engine=render_engine
+        )
 
 
 class TimelineBuilder:
@@ -1545,18 +1539,25 @@ class TimelineBuilder:
         return json.dumps(self._data, indent=2) if pretty else json.dumps(self._data)
 
     def to_timeline(
-        self, outputfile: str, format: str = "png", styleid: str = "", mode: str = "swimlane"
+        self,
+        outputfile: str,
+        format: str = "png",
+        styleid: str = "",
+        mode: str = "swimlane",
+        render_engine: str = "graphviz",
     ) -> IncidentTimeline:
         """Create an IncidentTimeline instance from the builder data."""
         from .timeline import IncidentTimeline
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(self._data, f)
-            temp_path = f.name
-
-        tl = IncidentTimeline(temp_path, outputfile, format=format, styleid=styleid, mode=mode)
-        tl._temp_input = temp_path
-        return tl
+        return _from_data(
+            IncidentTimeline,
+            self._data,
+            outputfile,
+            format=format,
+            styleid=styleid,
+            mode=mode,
+            render_engine=render_engine,
+        )
 
 
 class VulnTreeBuilder:
@@ -1649,18 +1650,25 @@ class VulnTreeBuilder:
         return json.dumps(self._data, indent=2) if pretty else json.dumps(self._data)
 
     def to_vuln_tree(
-        self, outputfile: str, format: str = "png", styleid: str = "", mode: str = "tree"
+        self,
+        outputfile: str,
+        format: str = "png",
+        styleid: str = "",
+        mode: str = "tree",
+        render_engine: str = "graphviz",
     ) -> VulnDependencyTree:
         """Create a VulnDependencyTree instance from the builder data."""
         from .vulntree import VulnDependencyTree
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(self._data, f)
-            temp_path = f.name
-
-        vt = VulnDependencyTree(temp_path, outputfile, format=format, styleid=styleid, mode=mode)
-        vt._temp_input = temp_path
-        return vt
+        return _from_data(
+            VulnDependencyTree,
+            self._data,
+            outputfile,
+            format=format,
+            styleid=styleid,
+            mode=mode,
+            render_engine=render_engine,
+        )
 
 
 class TrendBuilder:
@@ -1741,13 +1749,7 @@ class TrendBuilder:
         return self._data
 
     def to_trend_chart(self, outputfile: str, format: str = "png", styleid: str = "") -> TrendChart:
-        """Create a TrendChart from the builder data (its temp input is removed once loaded)."""
+        """Create a TrendChart from the builder data (its temp input is removed with it)."""
         from .trend import TrendChart
 
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-            json.dump(self._data, f)
-            temp_path = f.name
-
-        chart = TrendChart(temp_path, outputfile, format=format, styleid=styleid or None)
-        chart._temp_input = temp_path
-        return chart
+        return _from_data(TrendChart, self._data, outputfile, format=format, styleid=styleid or None)

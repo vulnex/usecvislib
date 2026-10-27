@@ -95,6 +95,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Builder temp files are cleaned up for every module.**
+  - The temp JSON a builder writes is now removed by `VisualizationBase` when the instance is garbage collected. Before, `KillChain`, `IncidentTimeline` and `VulnDependencyTree` had no cleanup, so every `to_kill_chain()` / `to_timeline()` / `to_vuln_tree()` left a file in the temp directory. A constructor that raises no longer leaves its file behind either.
+  - `TrendChart` deleted its builder input after the first `load()`, so a second `load()` or `build()` failed; the input now lives as long as the chart.
+  - `TimelineBuilder.to_timeline()` and `VulnTreeBuilder.to_vuln_tree()` take `render_engine`, as the other builders do (both modules have SVG painters).
+  - Builder data is written with dates as ISO strings.
 - **`render_diff()` accepts TOML files with dates.** Unquoted TOML dates (`discovered = 2026-10-01`) load as date objects, and writing the merged graph failed with `TypeError: Object of type date is not JSON serializable`. They are now written as ISO strings.
 - **Batch processing (library) fixes.**
   - `aggregate_stats()` counted attack-graph hosts and network edges twice (once in `total_nodes` / `total_edges`, which already include them, and once more on their own). It now uses the totals; hosts and network edges count only when a module reports no totals.

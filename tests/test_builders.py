@@ -443,3 +443,61 @@ class TestBuilderIntegration:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+
+class TestBuilderTempInput:
+    """The temp JSON a builder writes belongs to the instance it creates."""
+
+    @staticmethod
+    def _builders():
+        from usecvislib.builders import KillChainBuilder, TimelineBuilder, TrendBuilder, VulnTreeBuilder
+
+        return {
+            "kill_chain": lambda out: KillChainBuilder("k").add_technique("T1", "One", "Delivery").to_kill_chain(out),
+            "timeline": lambda out: TimelineBuilder("t")
+            .add_event("E1", "2026-10-01T10:00:00Z", "First")
+            .to_timeline(out),
+            "vuln_tree": lambda out: VulnTreeBuilder("v").add_dependency("app", "app", "1.0").to_vuln_tree(out),
+            "trend": lambda out: TrendBuilder("tr").add_series("m", [("2026-10-01", 1), ("2026-10-02", 2)]).to_trend_chart(out),
+        }
+
+    @pytest.mark.parametrize("kind", ["kill_chain", "timeline", "vuln_tree", "trend"])
+    def test_removed_with_instance(self, kind, tmp_path):
+        import gc
+
+        viz = self._builders()[kind](str(tmp_path / "out"))
+        temp = viz._temp_input
+        assert temp and os.path.exists(temp)
+        del viz
+        gc.collect()
+        assert not os.path.exists(temp)
+
+    def test_removed_when_constructor_fails(self, tmp_path, monkeypatch):
+        import tempfile as tf
+
+        from usecvislib.builders import AttackTreeBuilder
+
+        monkeypatch.setattr(tf, "tempdir", str(tmp_path))
+        with pytest.raises(Exception):
+            AttackTreeBuilder("t", "root").to_attack_tree(str(tmp_path / "out"), render_engine="bogus")
+        assert not list(tmp_path.glob("*.json"))
+
+    def test_trend_loads_twice(self, tmp_path):
+        chart = self._builders()["trend"](str(tmp_path / "out"))
+        chart.load()
+        chart.load()
+
+    @pytest.mark.parametrize("kind", ["timeline", "vuln_tree"])
+    def test_svg_engine(self, kind, tmp_path):
+        from usecvislib.builders import TimelineBuilder, VulnTreeBuilder
+
+        out = str(tmp_path / "out")
+        if kind == "timeline":
+            viz = TimelineBuilder("t").add_event("E1", "2026-10-01T10:00:00Z", "First").to_timeline(
+                out, format="svg", styleid="sv_default", render_engine="svg"
+            )
+        else:
+            viz = VulnTreeBuilder("v").add_dependency("app", "app", "1.0").to_vuln_tree(
+                out, format="svg", styleid="sv_default", render_engine="svg"
+            )
+        assert viz.render_engine == "svg"

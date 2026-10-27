@@ -48,7 +48,6 @@ Input schema (TOML/JSON/YAML)::
     value = 3
 """
 
-import contextlib
 import math
 import re
 from dataclasses import dataclass, field
@@ -154,7 +153,6 @@ class TrendChart(VisualizationBase):
         self.series: list[TrendSeries] = []
         self.panels: list[TrendPanel] = []
         self.warnings: list[str] = []
-        self._temp_input: Optional[str] = None
 
     # --------------------------------------------------------- VisualizationBase
 
@@ -172,12 +170,6 @@ class TrendChart(VisualizationBase):
 
     def _load_impl(self) -> dict[str, Any]:
         data = utils.ReadConfigFile(self.inputfile)
-        if self._temp_input:  # builder input: loaded, no longer needed
-            import os
-
-            with contextlib.suppress(OSError):
-                os.unlink(self._temp_input)
-            self._temp_input = None
         if not isinstance(data, dict):
             raise TrendError("Trend input must be a mapping")
 
@@ -494,11 +486,3 @@ class TrendChart(VisualizationBase):
 
     def _get_metadata_root_key(self) -> str:
         return "trend"
-
-    def __del__(self):
-        """Remove a builder's temp input if the chart was never loaded."""
-        if getattr(self, "_temp_input", None):
-            import os
-
-            with contextlib.suppress(OSError):
-                os.unlink(self._temp_input)
