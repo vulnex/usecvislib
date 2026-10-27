@@ -98,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Progress streams work with API auth on.** `EventSource` cannot send the `X-API-Key` header, so `GET /progress/{job_id}` always failed with 401 when auth was enabled. Starting a job (`POST /jobs/start-demo`) now returns a `progress_token`, and `progress_url` includes it as `?token=`. The token opens only that job's stream, expires after `JOB_TOKEN_TTL` seconds (default 600), is revoked when the job's progress is cleared, and is stored only as a hash. The API key never goes in a URL.
 - **Attack-graph cycle analysis no longer hangs on dense graphs.** `find_cycles()` and `get_graph_metrics()` (`POST /analyze/graph-metrics`) listed every simple cycle, a number that grows exponentially with density: a 12-host fully connected network did not finish. `find_cycles()` now returns at most `MAX_CYCLES` (1000; `limit=` changes it, `None` lists all). Metrics count up to 1000 and set the new `cycles_truncated` when there are more; the dashboard shows "1000+".
 - **Builder temp files are cleaned up for every module.**
   - The temp JSON a builder writes is now removed by `VisualizationBase` when the instance is garbage collected. Before, `KillChain`, `IncidentTimeline` and `VulnDependencyTree` had no cleanup, so every `to_kill_chain()` / `to_timeline()` / `to_vuln_tree()` left a file in the temp directory. A constructor that raises no longer leaves its file behind either.

@@ -779,8 +779,11 @@ def get_progress(job_id: str) -> Optional[dict]:
 
 
 def clear_progress(job_id: str):
-    """Clear progress for a completed job."""
+    """Clear progress for a completed job (and its progress-stream token)."""
+    from .auth import revoke_job_token
+
     _progress_store.pop(job_id, None)
+    revoke_job_token(job_id)
 
 
 # =============================================================================

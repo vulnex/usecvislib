@@ -23,6 +23,7 @@ import hashlib
 import logging
 import os
 import secrets
+import time
 from typing import Optional
 
 from fastapi import HTTPException, Request, Security
@@ -60,6 +61,41 @@ AUTH_EXCLUDED_PATHS = {
 AUTH_EXCLUDED_PREFIXES = (
     "/icons/",  # Icon file serving - required for <img> tags in gallery
 )
+
+# Job tokens: EventSource cannot send the API key header, so starting a job
+# returns a token that authenticates its progress stream (and nothing else)
+JOB_TOKEN_TTL = int(os.getenv("JOB_TOKEN_TTL", "600"))  # seconds
+JOB_TOKEN_MAX = 1000
+PROGRESS_PATH_PREFIX = "/progress/"
+_job_tokens: dict[str, tuple[str, float]] = {}  # job_id -> (token hash, expiry)
+
+
+def issue_job_token(job_id: str) -> str:
+    """A new token for ``job_id``'s progress stream, valid for JOB_TOKEN_TTL seconds."""
+    now = time.time()
+    if len(_job_tokens) >= JOB_TOKEN_MAX:
+        for expired in [j for j, (_, exp) in _job_tokens.items() if exp <= now]:
+            _job_tokens.pop(expired, None)
+        if len(_job_tokens) >= JOB_TOKEN_MAX:
+            _job_tokens.pop(min(_job_tokens, key=lambda j: _job_tokens[j][1]))
+    token = secrets.token_urlsafe(32)
+    _job_tokens[job_id] = (_hash_key(token), now + JOB_TOKEN_TTL)
+    return token
+
+
+def revoke_job_token(job_id: str) -> None:
+    """Invalidate ``job_id``'s token (when its progress is cleared)."""
+    _job_tokens.pop(job_id, None)
+
+
+def job_token_valid(job_id: str, token: Optional[str]) -> bool:
+    """Whether ``token`` was issued for ``job_id`` and has not expired."""
+    entry = _job_tokens.get(job_id)
+    if not entry or not token:
+        return False
+    token_hash, expiry = entry
+    return time.time() < expiry and secrets.compare_digest(_hash_key(token), token_hash)
+
 
 # Multiple keys support: comma-separated list
 # Example: USECVISLIB_API_KEYS="key1,key2,key3"
@@ -234,6 +270,12 @@ async def verify_api_key(request: Request, api_key: Optional[str] = Security(api
 
     # Skip auth if disabled globally (use dynamic check for testing flexibility)
     if not is_auth_enabled():
+        return None
+
+    # A progress stream may authenticate with its job's token instead of the key
+    if path.startswith(PROGRESS_PATH_PREFIX) and job_token_valid(
+        path[len(PROGRESS_PATH_PREFIX) :], request.query_params.get("token")
+    ):
         return None
 
     client_ip = request.client.host if request.client else "unknown"

@@ -31,6 +31,7 @@ from usecvislib.threatmodeling import PyTMWrapper
 from usecvislib.utils import ConfigError, FileError, ReadConfigFile, USecVisLibError, detect_format
 from usecvislib.utils import convert_format as utils_convert_format
 
+from ..auth import issue_job_token
 from ..config import (
     ENABLE_TRACEBACK_LOGGING,
     FORMAT_EXTENSIONS,
@@ -1256,9 +1257,13 @@ async def stream_progress(request: Request, job_id: str):
 
     Connect to this endpoint with an EventSource to receive real-time progress updates.
 
+    EventSource cannot send the X-API-Key header: when auth is on, pass the
+    job's token (returned when the job starts) as ``?token=``. It is valid
+    for this job's stream only, for JOB_TOKEN_TTL seconds (default 10 min).
+
     Example JavaScript:
     ```javascript
-    const eventSource = new EventSource('/progress/job-123');
+    const eventSource = new EventSource(`/progress/${job_id}?token=${progress_token}`);
     eventSource.onmessage = (event) => {
         const progress = JSON.parse(event.data);
         console.log(`${progress.step}: ${progress.percentage}%`);
@@ -1307,4 +1312,5 @@ async def start_demo_job(request: Request, background_tasks: BackgroundTasks):
     asyncio.create_task(demo_job())  # noqa: RUF006
 
     logger.info(f"Started demo job: {job_id}")
-    return {"job_id": job_id, "progress_url": f"/progress/{job_id}"}
+    token = issue_job_token(job_id)
+    return {"job_id": job_id, "progress_url": f"/progress/{job_id}?token={token}", "progress_token": token}

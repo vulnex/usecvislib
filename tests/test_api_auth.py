@@ -232,6 +232,51 @@ class TestAuthEnabled:
             self.valid_key = "test-api-key-12345"
             yield
 
+    def _finished_job(self, job_id):
+        """A job whose progress is complete, so its stream ends at once."""
+        from api.auth import issue_job_token
+        from api.helpers import update_progress
+
+        update_progress(job_id, "Done", 100, 100, "completed")
+        return issue_job_token(job_id)
+
+    def test_progress_stream_with_job_token(self):
+        """EventSource cannot send X-API-Key: the job's token opens its stream."""
+        token = self._finished_job("job-token-ok")
+        response = self.client.get(f"/progress/job-token-ok?token={token}")
+        assert response.status_code == 200
+        assert '"status": "completed"' in response.text
+
+    def test_progress_stream_rejects_missing_wrong_or_foreign_token(self):
+        self._finished_job("job-a")
+        token_b = self._finished_job("job-b")
+        assert self.client.get("/progress/job-a").status_code == 401
+        assert self.client.get("/progress/job-a?token=nope").status_code == 401
+        assert self.client.get(f"/progress/job-a?token={token_b}").status_code == 401
+
+    def test_job_token_opens_nothing_else(self):
+        token = self._finished_job("job-c")
+        assert self.client.get(f"/styles?token={token}").status_code == 401
+
+    def test_job_token_expires_and_is_revoked(self, monkeypatch):
+        import api.auth
+        from api.helpers import clear_progress
+
+        token = self._finished_job("job-d")
+        clear_progress("job-d")
+        assert not api.auth.job_token_valid("job-d", token)
+        token = self._finished_job("job-e")
+        monkeypatch.setattr(api.auth.time, "time", lambda: 2**40)
+        assert not api.auth.job_token_valid("job-e", token)
+
+    def test_start_demo_returns_progress_token(self):
+        assert self.client.post("/jobs/start-demo").status_code == 401
+        data = self.client.post("/jobs/start-demo", headers={"X-API-Key": self.valid_key}).json()
+        assert data["progress_url"] == f"/progress/{data['job_id']}?token={data['progress_token']}"
+        import api.auth
+
+        assert api.auth.job_token_valid(data["job_id"], data["progress_token"])
+
     def test_health_excluded_from_auth(self):
         """Health endpoint is excluded from auth (needed for orchestrator probes)."""
         response = self.client.get("/health")
