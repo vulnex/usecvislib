@@ -15,7 +15,7 @@ services:
       - PYTHONUNBUFFERED=1
       # Client addresses (rate limiting, logs) come from X-Forwarded-For only
       # when the request comes from the dashboard's nginx (fixed address below)
-      - FORWARDED_ALLOW_IPS=${FORWARDED_ALLOW_IPS:-172.28.10.10}
+      - FORWARDED_ALLOW_IPS=${FRONTEND_PROXY_IP:-10.231.10.10}
       # Authentication settings (disabled by default for easy local setup)
       # For production: set USECVISLIB_AUTH_ENABLED=true and an API key in .env
       - USECVISLIB_AUTH_ENABLED=${USECVISLIB_AUTH_ENABLED:-false}
@@ -77,7 +77,7 @@ services:
     networks:
       frontend:
         # Fixed, so the API can trust this proxy's X-Forwarded-For (FORWARDED_ALLOW_IPS)
-        ipv4_address: 172.28.10.10
+        ipv4_address: ${FRONTEND_PROXY_IP:-10.231.10.10}
 
   # =============================================================================
   # USecVisLib CLI Service (for one-off commands)
@@ -151,9 +151,12 @@ networks:
     driver: bridge
   frontend:
     driver: bridge
+    # Outside Docker's default address pools (172.17-31.x, 192.168.x), so it does
+    # not collide with networks Docker allocates; FRONTEND_SUBNET and
+    # FRONTEND_PROXY_IP move it if 10.231.10.0/24 is in use on this host
     ipam:
       config:
-        - subnet: 172.28.10.0/24
+        - subnet: ${FRONTEND_SUBNET:-10.231.10.0/24}
 
 # =============================================================================
 # Volumes

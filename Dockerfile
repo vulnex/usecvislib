@@ -76,8 +76,10 @@ COPY puppeteer-config.json .
 # Install the package
 RUN pip install --no-cache-dir .
 
-# Create directory for temporary files and fix ownership
-RUN mkdir -p /app/tmp && \
+# Create directories for temporary files and uploaded images, and fix ownership.
+# /app/images must exist in the image: a new named volume mounted there takes
+# its owner from it (otherwise root, and appuser cannot store uploads).
+RUN mkdir -p /app/tmp /app/images && \
     chown -R appuser:appuser /app
 
 # Switch to non-root user
