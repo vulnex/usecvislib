@@ -496,6 +496,26 @@ class TestBatchProcessing:
         # The individual file should have failed
         assert data["failure_count"] >= 1
 
+    def test_batch_filename_never_reaches_file_system(self, tmp_path):
+        """A path in the upload's name must not move the output or its cleanup out of the batch directory."""
+        sentinel = tmp_path / "victim_keep.txt"
+        sentinel.write_text("keep")
+        tree = (AT_TEMPLATES_DIR / "network_infrastructure.toml").read_bytes()
+        names = [str(tmp_path / "victim.toml"), "../../victim.toml", "victim.toml", "victim.toml"]
+        files = [
+            ("files", (name, io.BytesIO(tree), "application/octet-stream"))
+            for name in names
+        ]
+        response = client.post("/batch/visualize?mode=attack_tree&format=svg", files=files)
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success_count"] == len(names)
+        # Display names keep the stem only; same-named files each get their own output
+        assert [r["output_file"] for r in data["results"]] == ["victim.svg"] * len(names)
+        assert all(r["image_data"] for r in data["results"])
+        assert sentinel.exists()
+        assert not (tmp_path / "victim.svg").exists()
+
 
 # =============================================================================
 # Report Generation

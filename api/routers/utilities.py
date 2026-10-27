@@ -100,6 +100,13 @@ logger = logging.getLogger("usecvislib.api")
 
 router = APIRouter()
 
+
+def _upload_stem(filename: Optional[str]) -> str:
+    """The stem of an uploaded file's name, without any directory part (for display names)."""
+    base = os.path.basename((filename or "").replace("\\", "/"))
+    return os.path.splitext(base)[0] or "file"
+
+
 # Config-file modes that batch, export and compare handle through the
 # library's module registry (the same one usecvislib.batch and .diff use).
 # Mode values are the registry keys.
@@ -289,7 +296,7 @@ async def convert_config_format(
         converted_content = utils_convert_format(content, source_format, target_format.value)
 
         # Generate suggested filename
-        base_name = os.path.splitext(file.filename)[0]
+        base_name = _upload_stem(file.filename)
         suggested_filename = f"{base_name}{FORMAT_EXTENSIONS[target_format.value]}"
 
         logger.info(
@@ -347,7 +354,7 @@ async def generate_threat_model_report(
             content = wrapper.generate_html_report()
             ext = ".html"
 
-        base_name = os.path.splitext(file.filename)[0]
+        base_name = _upload_stem(file.filename)
         suggested_filename = f"{base_name}_report{ext}"
 
         logger.info(f"Generated {format.value} report for {sanitize_filename_for_log(file.filename)}")
@@ -516,9 +523,12 @@ async def batch_visualize(
 
             # Process each file with per-item timeout
             # SECURITY: Prevents single slow file from blocking entire batch
-            for filename, input_path in input_paths:
+            for index, (filename, input_path) in enumerate(input_paths):
                 try:
-                    output_base = temps.add_prefix(os.path.join(batch_output_dir, os.path.splitext(filename)[0]))
+                    # SECURITY: the upload's filename is client-controlled (it can
+                    # hold "../" or an absolute path), so it never reaches the
+                    # file system; the index also keeps same-named files apart
+                    output_base = temps.add_prefix(os.path.join(batch_output_dir, f"item_{index:02d}"))
                     # A timed-out item's late output is its own to remove: the
                     # batch's other inputs are still in use by later items
                     item_temps = TempFiles()
@@ -574,7 +584,7 @@ async def batch_visualize(
                         )
                         stats = viz.get_stats() if collect_stats else None
 
-                    output_file = f"{os.path.splitext(filename)[0]}{os.path.basename(output_path)[len(os.path.basename(output_base)) :]}"
+                    output_file = _upload_stem(filename) + output_path[len(output_base) :]
 
                     # Read the generated file and encode as base64 for download
                     image_data = None
@@ -718,7 +728,7 @@ async def export_data(
                 export_data_content["stats"] = stats
 
         # Generate filename
-        base_name = os.path.splitext(file.filename)[0]
+        base_name = _upload_stem(file.filename)
         section_suffix = f"_{section}" if section else ""
 
         # Export based on format

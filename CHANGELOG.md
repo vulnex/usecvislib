@@ -84,6 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- **Batch upload filenames no longer reach the file system** (`POST /batch/visualize`). Each item's output path was built from the upload's own filename, so a name holding `../` or an absolute path wrote the output outside the batch directory, and the request's cleanup then removed files there matching that name. Outputs are now named by position in the batch, and the filename is used only for display, without any directory part. Same-named files in one batch no longer overwrite each other. The suggested download names from `/convert`, `/report/*` and `/export/data` also drop any directory part.
+
 - **Graph-complexity limit enforced on the SVG general-graph path** — the SVG engine bypasses `_render_impl`, so the Graphviz path's `utils.check_graph_complexity` DoS guard did not apply to it. The check now runs in the shared `render_graph_svg` before the Graphviz layout oracle is invoked, bounding every general-graph painter the same way as the Graphviz path and the attack-tree SVG painter.
 
 ### Changed
