@@ -30,7 +30,7 @@ node-kind semantics live in the caller; none leak here.
 from typing import Any, Optional
 
 from ... import utils
-from .. import images, metrics, shapes
+from .. import images, metrics, shapes, themes
 from ..canvas import SvgCanvas
 from ..layout import GraphvizJsonLayout
 from ..scene import Scene
@@ -262,6 +262,9 @@ def _paint_clusters(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any]) -> N
     label_size = float(cfg.get("label_size", 12))
     radius = float(cfg.get("radius", 10))
     diff_cfg = theme.get("diff", {})
+    font_family = theme["font"]["family"]
+    page_bg = theme["page"]["background"]
+    obstacles = _edge_obstacles(scene)
 
     # Outer clusters first so nested ones paint on top of their parent
     depth = {}
@@ -298,12 +301,78 @@ def _paint_clusters(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any]) -> N
         if grp.dashed or grp.diff == "removed":
             rect.set("stroke-dasharray", "7 4")
         group.append(rect)
-        if label:
-            # Label sits in the band Graphviz reserved at the cluster's top.
-            group.append(
-                shapes.anchored_text(grp.x + radius, grp.y + label_size + 2, label, label_size, text_color, bold=True)
-            )
         canvas.add("groups", group)
+        if label:
+            # The title sits in the band Graphviz reserved at the cluster's
+            # top, on the side edges cross least. Edges route through that
+            # band, so it paints above them with a halo in the cluster fill.
+            label_w = metrics.measure_text(label, font_family, label_size, bold=True)
+            x = _cluster_label_x(grp, label_w, label_size, radius, obstacles)
+            baseline = grp.y + label_size + 2
+            title = shapes.group(["usv-label", "usv-label--cluster"], {"cluster-id": grp.id})
+            if grp.diff == "removed":
+                title.set("opacity", shapes.fmt(float(diff_cfg.get("removed_opacity", 0.35))))
+            halo_color = fill if themes.parse_fill(fill)[0] != "gradient" and fill != "none" else page_bg
+            if halo_color:
+                halo = shapes.anchored_text(x, baseline, label, label_size, halo_color, bold=True)
+                halo.set("stroke", halo_color)
+                halo.set("stroke-width", shapes.fmt(label_size * 0.4))
+                halo.set("stroke-linejoin", "round")
+                title.append(halo)
+            title.append(shapes.anchored_text(x, baseline, label, label_size, text_color, bold=True))
+            canvas.add("labels", title)
+
+
+def _edge_obstacles(scene: Scene) -> tuple[list[tuple[float, float]], list[tuple[float, float, float, float]]]:
+    """Points along every drawn edge, and every edge label's box."""
+    points: list[tuple[float, float]] = []
+    boxes: list[tuple[float, float, float, float]] = []
+    for edge in scene.edges:
+        if edge.layout_only:
+            continue
+        pts = edge.points or []
+        i = 1
+        path = pts[:1]
+        while i + 2 < len(pts):  # cubic triples, as spline_path_d draws them
+            p0, c1, c2, p1 = path[-1], pts[i], pts[i + 1], pts[i + 2]
+            for k in range(1, 11):
+                t = k / 10
+                u = 1 - t
+                path.append(
+                    (
+                        u**3 * p0[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t**3 * p1[0],
+                        u**3 * p0[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t**3 * p1[1],
+                    )
+                )
+            i += 3
+        path.extend(pts[i:])
+        for a, b in zip(path, path[1:]):
+            steps = max(1, int(max(abs(b[0] - a[0]), abs(b[1] - a[1])) / 3))
+            points.extend((a[0] + (b[0] - a[0]) * k / steps, a[1] + (b[1] - a[1]) * k / steps) for k in range(steps))
+        points.extend(path[-1:])
+        if edge.label and edge.label_pos:
+            lx, ly = edge.label_pos
+            w, h = edge.label_width / 2, edge.label_height / 2
+            boxes.append((lx - w, ly - h, lx + w, ly + h))
+    return points, boxes
+
+
+def _cluster_label_x(grp, label_w: float, label_size: float, radius: float, obstacles) -> float:
+    """Left x of a cluster title: left, center or right of the top band, whichever edges cross least."""
+    left = grp.x + radius
+    if grp.width < label_w + 2 * radius + 12:
+        return left
+    points, boxes = obstacles
+    top, bottom = grp.y + 1, grp.y + label_size + 6
+
+    def crossings(x0: float) -> int:
+        x1 = x0 + label_w
+        hit = sum(1 for px, py in points if x0 - 3 <= px <= x1 + 3 and top <= py <= bottom)
+        return hit + 50 * sum(1 for b in boxes if b[0] < x1 and x0 < b[2] and b[1] < bottom and top < b[3])
+
+    candidates = [left, grp.x + (grp.width - label_w) / 2, grp.x + grp.width - radius - label_w]
+    scores = [crossings(x) for x in candidates]
+    return candidates[scores.index(min(scores))]  # the first (left) on a tie
 
 
 def _paint_edges(scene: Scene, canvas: SvgCanvas, theme: dict[str, Any], edge_cfg: dict) -> None:

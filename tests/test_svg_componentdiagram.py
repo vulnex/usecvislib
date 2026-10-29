@@ -159,7 +159,9 @@ class TestClusters:
         root = ET.fromstring(_render(FIXTURE, tmp_path))
         cluster = _by_class(root, "usv-cluster")[0]
         assert cluster.find(f"{SVG_NS}rect") is not None
-        assert cluster.find(f"{SVG_NS}text") is not None  # painted layer label
+        # The layer title paints above the edges, linked by the cluster id
+        titles = [t for t in _by_class(root, "usv-label--cluster") if t.get("data-cluster-id") == cluster.get("data-cluster-id")]
+        assert len(titles) == 1 and titles[0].find(f"{SVG_NS}text") is not None
 
     def test_cluster_labels_match_layers(self, tmp_path):
         root = ET.fromstring(_render(FIXTURE, tmp_path))
