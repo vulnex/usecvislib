@@ -261,7 +261,7 @@ class TestChangedInversions:
         assert changed.get("data-old-severity") == "high" and changed.get("data-old-trust-gap") == "2"
         assert edges[("x", "y")].get("data-inversion") == "unchanged"
         assert "data-old-severity" not in edges[("x", "y")].attrib
-        text = " ".join(t.text or "" for t in root.iter(f"{SVG_NS}text"))
+        text = " ".join("".join(t.itertext()) for t in root.iter(f"{SVG_NS}text"))
         assert "~ INVERSION (high \u2192 critical) · admin" in text
 
     @requires_dot
@@ -416,7 +416,7 @@ class TestRenderDiff:
         assert edges[("a", "b", "data")].get("data-diff") == "modified"
         assert edges[("c", "d", "control")].get("data-diff") == "removed"
         assert edges[("c", "d", "resource")].get("data-diff") == "added"
-        text = " ".join(t.text or "" for t in root.iter(f"{SVG_NS}text"))
+        text = " ".join("".join(t.itertext()) for t in root.iter(f"{SVG_NS}text"))
         assert "NEW INVERSION" in text and "FIXED INVERSION" in text and "+ added" in text
 
 

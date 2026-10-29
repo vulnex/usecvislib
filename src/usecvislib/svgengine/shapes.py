@@ -19,11 +19,30 @@ string-interpolated markup), so escaping is structural. Shapes never
 carry behavior — no event attributes, no links.
 """
 
+import re
 import xml.etree.ElementTree as ET
 from typing import Optional
 
 from .canvas import fmt
 from .metrics import LINE_HEIGHT
+
+# Arrows, math operators, technical symbols, geometric shapes, misc symbols,
+# dingbats: glyphs many text fonts lack (Carlito has no U+26A0). cairosvg does
+# no per-glyph font fallback, so these get a symbol-capable font of their own.
+_SYMBOL_RUN = re.compile(r"[\u2190-\u23ff\u25a0-\u27bf\u2b00-\u2bff]+")
+SYMBOL_FONT = "DejaVu Sans, Segoe UI Symbol, Apple Symbols, sans-serif"
+
+
+def set_text(element: ET.Element, text: str) -> ET.Element:
+    """Set ``element``'s text, putting symbol runs in <tspan>s with :data:`SYMBOL_FONT`."""
+    parts = _SYMBOL_RUN.split(text)
+    symbols = _SYMBOL_RUN.findall(text)
+    element.text = parts[0]
+    for symbol, tail in zip(symbols, parts[1:]):
+        tspan = ET.SubElement(element, "tspan", {"font-family": SYMBOL_FONT})
+        tspan.text = symbol
+        tspan.tail = tail
+    return element
 
 
 def group(classes: list[str], data: Optional[dict[str, str]] = None) -> ET.Element:
@@ -211,7 +230,7 @@ def anchored_text(
     if bold:
         attrs["font-weight"] = "bold"
     element = ET.Element("text", attrs)
-    element.text = text
+    set_text(element, text)
     return element
 
 
@@ -240,7 +259,7 @@ def text_lines(
         if bold:
             attrs["font-weight"] = "bold"
         text = ET.Element("text", attrs)
-        text.text = line
+        set_text(text, line)
         elements.append(text)
     return elements
 
@@ -289,7 +308,7 @@ def badge(
             "fill": text_color,
         },
     )
-    text.text = label
+    set_text(text, label)
     g.append(text)
     return g
 
@@ -323,10 +342,10 @@ def edge_label(x: float, y: float, text: str, size: float, fill: str, halo: str)
             }
         )
         halo_text = ET.Element("text", halo_attrs)
-        halo_text.text = text
+        set_text(halo_text, text)
         g.append(halo_text)
     element = ET.Element("text", dict(base, fill=fill))
-    element.text = text
+    set_text(element, text)
     g.append(element)
     return g
 
@@ -346,7 +365,7 @@ def title_text(x: float, baseline_y: float, text: str, size: float, fill: str) -
             "letter-spacing": "0.4",
         },
     )
-    element.text = text
+    set_text(element, text)
     return element
 
 
