@@ -41,8 +41,28 @@ MODULE_SLUG = "dfd"
 _ELEMENT_KINDS = (
     ("externals", "external", "card"),
     ("processes", "process", "pill"),
-    ("datastores", "datastore", "chamfer"),
+    ("datastores", "datastore", "cylinder"),
 )
+
+_KIND_LABELS = {"external": "External entity", "process": "Process", "datastore": "Data store"}
+
+
+def _legend(scene: Scene, theme: dict[str, Any]) -> list:
+    """Legend items for what the DFD draws: element types, trust boundaries, data flows."""
+    dfd = theme["dfd"]
+    kinds = {n.data.get("kind") for n in scene.nodes}
+    items: list = [
+        (_KIND_LABELS[kind], dfd["border"], {"swatch": "box", "fill": dfd[kind]})
+        for _section, kind, _shape in _ELEMENT_KINDS
+        if kind in kinds
+    ]
+    if scene.groups:
+        items.append(
+            ("Trust boundary", dfd["boundary_border"], {"swatch": "box", "fill": dfd["boundary_fill"], "dashed": True})
+        )
+    if scene.edges:
+        items.append(("Data flow", dfd["dataflow"], {"width": float(theme["edge"]["width"])}))
+    return items
 
 
 def _items(section: Any):
@@ -151,5 +171,6 @@ def render_svg(viz) -> str:
     """Render a threat-model DFD visualization instance to SVG text."""
     theme = themes.resolve(viz.style)
     scene = _build_scene(viz, theme)
+    scene.meta["legend"] = _legend(scene, theme)
     rankdir = str(theme["dfd"].get("rankdir", "LR"))
     return render_graph_svg(viz, scene, theme, MODULE_SLUG, rankdir=rankdir)

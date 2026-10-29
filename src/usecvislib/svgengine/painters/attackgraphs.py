@@ -28,6 +28,7 @@ attack-graph-specific semantics so the shared renderer stays module-agnostic.
 """
 
 import logging
+import re
 from typing import Any
 
 from ... import utils
@@ -346,6 +347,42 @@ def _items(section: Any):
     return []
 
 
+# A score in each band, for the legend's severity swatches
+_SEVERITY_SAMPLES = (("critical", "Critical", 9.5), ("high", "High", 8.0), ("medium", "Medium", 5.5), ("low", "Low", 2.0))
+
+
+def _legend(scene: Scene, theme: dict[str, Any]) -> list:
+    """Legend items for what the graph draws: node kinds, severities, edge kinds, notes."""
+    ag = theme["attackgraph"]
+    kinds = {n.data.get("kind") for n in scene.nodes}
+    severities = {n.severity for n in scene.nodes if n.data.get("kind") == "vulnerability"}
+    items: list = []
+    for kind, label in (("host", "Host"), ("service", "Service"), ("privilege", "Privilege"), ("exploit", "Exploit")):
+        if kind in kinds:
+            items.append((label, ag["border"], {"swatch": "box", "fill": ag[kind]}))
+    if "vulnerability" in kinds:
+        colored = [s for s in _SEVERITY_SAMPLES if s[0] in severities and is_cvss_enabled("attack_graph")]
+        if colored and bool(theme.get("severity", {}).get("use_cvss_colors", True)):
+            for _key, label, score in colored:
+                items.append((f"{label} vulnerability", ag["border"], {"swatch": "box", "fill": cvss_to_color(score)}))
+        else:
+            items.append(("Vulnerability", ag["border"], {"swatch": "box", "fill": ag["vulnerability"]}))
+    edge_kinds = {e.kind for e in scene.edges if not e.layout_only}
+    width = float(theme["edge"]["width"])
+    if "exploit" in edge_kinds:
+        items.append(("Attack step", ag["exploit_edge"], {"width": float(ag.get("exploit_edge_width", 2.4))}))
+    if "network" in edge_kinds:
+        items.append(("Network path", ag["network_edge"], {"width": width}))
+    if "structural" in edge_kinds:
+        items.append(("Runs on host", ag["structural_edge"], {"width": width, "dashed": True}))
+    if any(n.inferred for n in scene.nodes):
+        inf = theme["inferred"]
+        items.append(("Inferred", inf["border"], {"swatch": "box", "fill": inf["fill"], "dashed": True}))
+    if any(re.search(r"CVSS [0-9.]+\*", line) for n in scene.nodes for line in n.lines):
+        items.append(("* CVSS computed from the vector", theme["page"]["text"], {"swatch": "text"}))
+    return items
+
+
 def render_svg(viz) -> str:
     """Render an attack graph visualization instance to SVG text."""
     theme = themes.resolve(viz.style)
@@ -359,5 +396,7 @@ def render_svg(viz) -> str:
             ("\u2212 removed", diff["removed"]),
             ("~ modified", diff["modified"]),
         ]
+    else:
+        scene.meta["legend"] = _legend(scene, theme)
     rankdir = str(theme["attackgraph"].get("rankdir", "LR"))
     return render_graph_svg(viz, scene, theme, MODULE_SLUG, rankdir=rankdir)

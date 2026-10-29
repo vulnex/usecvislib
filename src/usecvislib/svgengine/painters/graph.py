@@ -187,10 +187,11 @@ def render_graph_svg(
     min_y = min(ys_lo) - pad
     max_x = max(xs_hi) + pad
     max_y = max(ys_hi) + pad
-    legend = scene.meta.get("legend") or []
+    legend = (scene.meta.get("legend") or []) if theme.get("legend", {}).get("show", True) else []
     legend_y = max_y + size * 0.6
-    if legend:
-        max_y = legend_y + size * 1.4 + pad * 0.5
+    legend_rows = wrap_legend(theme, legend, max(max_x - min_x - 2 * pad, 480.0)) if legend else []
+    if legend_rows:
+        max_y = legend_y + size * 1.4 * len(legend_rows) + pad * 0.5
     canvas.finalize(min_x, min_y, max_x - min_x, max_y - min_y)
     canvas.add(
         "groups",
@@ -211,8 +212,8 @@ def render_graph_svg(
 
     _paint_edges(scene, canvas, theme, edge_cfg)
     _paint_nodes(scene, canvas, theme, node_cfg, size, radius, border_width, shadow_url)
-    if legend:
-        _paint_legend(canvas, theme, legend, min_x + pad, legend_y + size)
+    for row, items in enumerate(legend_rows):
+        paint_legend(canvas, theme, items, min_x + pad, legend_y + size + row * size * 1.4)
 
     return canvas.to_string()
 
@@ -220,11 +221,39 @@ def render_graph_svg(
 _DIFF_CHIPS = {"added": "+", "removed": "\u2212", "modified": "~"}
 
 
-def _paint_legend(canvas: SvgCanvas, theme: dict[str, Any], items: list, x: float, y: float) -> None:
+def _legend_item_width(theme: dict[str, Any], item: tuple) -> float:
+    """Width of one legend item: swatch, gap, label and the gap to the next item."""
+    size = float(theme["font"]["size"]) * 0.85
+    spec = item[2] if len(item) > 2 else None
+    label_w = metrics.measure_text(item[0], theme["font"]["family"], size)
+    if spec is not None and spec.get("swatch") == "text":
+        return label_w + 24.0
+    swatch_w = size * 2.6 if spec is not None and spec.get("swatch") != "box" else size * 1.6
+    return swatch_w + size * 0.5 + label_w + 24.0
+
+
+def wrap_legend(theme: dict[str, Any], items: list, max_width: float) -> list[list]:
+    """Legend items split into rows no wider than ``max_width`` (at least one item per row)."""
+    rows: list[list] = [[]]
+    used = 0.0
+    for item in items:
+        w = _legend_item_width(theme, item)
+        if rows[-1] and used + w > max_width:
+            rows.append([])
+            used = 0.0
+        rows[-1].append(item)
+        used += w
+    return [row for row in rows if row]
+
+
+def paint_legend(canvas: SvgCanvas, theme: dict[str, Any], items: list, x: float, y: float) -> None:
     """One legend row: a swatch and a label per item.
 
-    An item is (label, color) for an outlined box, or (label, color, line) for a
-    short line in an edge style, where ``line`` is {"width", "dashed", "dash"}.
+    An item is (label, color) for an outlined box, (label, color, line) for a
+    short line in an edge style, where ``line`` is {"width", "dashed", "dash"},
+    (label, color, {"swatch": "box", "fill", "dashed"}) for a filled (or
+    dashed) box, or (label, color, {"swatch": "text"}) for a note without a
+    swatch.
     """
     font = theme["font"]
     size = float(font["size"]) * 0.85
@@ -232,18 +261,27 @@ def _paint_legend(canvas: SvgCanvas, theme: dict[str, Any], items: list, x: floa
     g = shapes.group(["usv-legend"])
     for item in items:
         label, color = item[0], item[1]
-        line = item[2] if len(item) > 2 else None
-        if line is not None:
+        spec = item[2] if len(item) > 2 else None
+        kind = spec.get("swatch") if spec is not None else None
+        if kind == "text":
+            swatch_w = -size * 0.5
+        elif kind == "box":
+            box = shapes.card(x, y - size * 0.85, size * 1.6, size, 3.0, spec.get("fill", "none"), color, 1.2)
+            if spec.get("dashed"):
+                box.set("stroke-dasharray", "4 2")
+            g.append(box)
+            swatch_w = size * 1.6
+        elif spec is not None:
             mid = y - size * 0.35
             d = f"M {shapes.fmt(x)} {shapes.fmt(mid)} L {shapes.fmt(x + size * 2.6)} {shapes.fmt(mid)}"
-            width = float(line.get("width", 2.0))
-            g.append(shapes.edge_path(d, color, width, dashed=bool(line.get("dashed")), dash=line.get("dash")))
+            width = float(spec.get("width", 2.0))
+            g.append(shapes.edge_path(d, color, width, dashed=bool(spec.get("dashed")), dash=spec.get("dash")))
             swatch_w = size * 2.6
         else:
             g.append(shapes.card(x, y - size * 0.85, size * 1.6, size, 3.0, "none", color, 2.0))
             swatch_w = size * 1.6
         g.append(shapes.anchored_text(x + swatch_w + size * 0.5, y, label, size, text_color, anchor="start"))
-        x += swatch_w + size * 0.5 + metrics.measure_text(label, font["family"], size) + 24.0
+        x += _legend_item_width(theme, item)
     canvas.add("labels", g)
 
 
@@ -502,10 +540,7 @@ def _paint_nodes(
 
         lines = node.lines or [node.label]
         text_h = len(lines) * size * metrics.LINE_HEIGHT
-        if node.shape == "cylinder":
-            # Keep the label below the lid's front rim
-            text_top = node.y - text_h / 2 + min(8.0, node.height * 0.16) / 2
-        elif node.image_href:
+        if node.image_href:
             # Icon centered at the top, label block below it
             img = float(theme["images"]["size"])
             img_top = node.y - (img + _IMAGE_TEXT_GAP + text_h) / 2
@@ -514,6 +549,9 @@ def _paint_nodes(
                 icon.set("opacity", shapes.fmt(float(diff_cfg.get("removed_opacity", 0.35))))
             group.append(icon)
             text_top = img_top + img + _IMAGE_TEXT_GAP
+        elif node.shape == "cylinder":
+            # Keep the label below the lid's front rim
+            text_top = node.y - text_h / 2 + min(8.0, node.height * 0.16) / 2
         else:
             text_top = node.y - text_h / 2
         group.extend(shapes.text_lines(node.x, text_top, lines, size, text_color))

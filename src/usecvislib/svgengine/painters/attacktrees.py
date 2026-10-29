@@ -34,6 +34,7 @@ from .. import images, metrics, shapes, themes
 from ..canvas import SvgCanvas
 from ..layout import TidyTreeLayout
 from ..scene import Scene, SceneEdge, SceneNode
+from .graph import paint_legend, wrap_legend
 
 logger = logging.getLogger(__name__)
 
@@ -797,6 +798,28 @@ def _respace_rows(scene: Scene, requirements: dict[float, float], horizontal: bo
         prev_bottom = new_top + row_size
 
 
+# A score in each band, for the legend's severity swatches
+_SEVERITY_SAMPLES = (("critical", "Critical", 9.5), ("high", "High", 8.0), ("medium", "Medium", 5.5), ("low", "Low", 2.0))
+
+
+def _legend(scene: Scene, theme: dict[str, Any]) -> list:
+    """Legend items for what the tree draws: CVSS severity fills, gates, the derived-score mark."""
+    items: list = []
+    severities = {n.severity for n in scene.nodes if n.severity}
+    if severities and theme.get("severity", {}).get("use_cvss_colors", True):
+        border = theme["node"]["border"]
+        items += [
+            (f"{label} (CVSS)", border, {"swatch": "box", "fill": cvss_to_color(score)})
+            for key, label, score in _SEVERITY_SAMPLES
+            if key in severities
+        ]
+    if any(n.data.get("gate") for n in scene.nodes):
+        items.append(("AND: every child needed · OR: any one child", theme["page"]["text"], {"swatch": "text"}))
+    if any(line.endswith(")*") for n in scene.nodes for line in n.lines):
+        items.append(("* CVSS computed from the vector", theme["page"]["text"], {"swatch": "text"}))
+    return items
+
+
 def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str, Any]) -> str:
     """Lay out and paint a scene; returns SVG text."""
     layout_cfg = theme["layout"]
@@ -834,11 +857,17 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
     if requirements is not None:
         _respace_rows(scene, requirements, horizontal)
 
-    # Page background sized to content + padding
+    # Page background sized to content + padding (+ the legend rows)
     pad = float(page["padding"])
     min_x, min_y, max_x, max_y = scene.bounds()
     min_x, min_y = min_x - pad, min_y - pad
     width, height = (max_x + pad) - min_x, (max_y + pad) - min_y
+    legend = _legend(scene, theme) if theme.get("legend", {}).get("show", True) else []
+    legend_rows = wrap_legend(theme, legend, max(width - 2 * pad, 480.0)) if legend else []
+    legend_size = float(font["size"])
+    legend_top = max_y + legend_size * 1.6
+    if legend_rows:
+        height = legend_top + legend_size * 1.4 * len(legend_rows) + pad * 0.5 - min_y
     canvas.finalize(min_x, min_y, width, height)
     canvas.add(
         "groups",
@@ -855,6 +884,8 @@ def _paint_scene(viz, scene: Scene, root_id: str, rankdir: str, theme: dict[str,
         )
 
     _paint_edges(scene, canvas, edge_cfg, horizontal, page_bg=page["background"])
+    for row, items in enumerate(legend_rows):
+        paint_legend(canvas, theme, items, min_x + pad, legend_top + legend_size + row * legend_size * 1.4)
 
     # Nodes: card/pill/diamond/plain body + centered label block
     for node in scene.nodes:
