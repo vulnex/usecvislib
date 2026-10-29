@@ -790,9 +790,12 @@ class AttackGraphs(DriftStylingMixin, VisualizationBase):
         if isinstance(self.style.get("exploit"), dict):
             return utils.stringify_dict({"shape": "hexagon", **self.style["exploit"]})
         base = {"shape": "hexagon", "style": "filled", "fillcolor": "#9b59b6", "fontcolor": "white"}
-        if self.styleid == self.DEFAULT_STYLE_ID:
-            return base
         privilege = self.style.get("privilege", {})
+        if self.styleid == self.DEFAULT_STYLE_ID:
+            # Purple stays, but the text matches the other nodes; without a
+            # font Graphviz falls back to a larger Times.
+            fonts = {k: v for k, v in privilege.items() if k in ("fontname", "fontsize", "margin")}
+            return utils.stringify_dict({**base, **fonts})
         attrs = {**base, **privilege, "shape": "hexagon"}
         if exploit_edge_style.get("color"):
             attrs["color"] = exploit_edge_style["color"]
