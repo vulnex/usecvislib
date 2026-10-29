@@ -11,6 +11,7 @@
 import copy
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -188,6 +189,9 @@ class TestGraphviz:
         assert '"+ web03"' in line and "penwidth=3" in line and "#d6336c" in line
         removed = next(line for line in source.splitlines() if line.strip().startswith("siem01 "))
         assert "dashed" in removed and "\u2212 siem01" in removed
+        # The fill fades; the label does not (white on the faded fill was unreadable)
+        assert re.search(r'fillcolor="#[0-9a-f]{6}59"', removed)
+        assert "fontcolor=\"#1f2937\"" in removed
         assert "+ added" in source and "~ modified" in source  # legend in the title
 
     def test_diff_colors_override(self, versions, tmp_path):

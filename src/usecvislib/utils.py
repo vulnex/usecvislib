@@ -1739,11 +1739,14 @@ def element_sources(element: Any) -> tuple[int, list[str]]:
 def blend_color(fill: Any, background: Any, opacity: float) -> Optional[str]:
     """The ``#rrggbb`` a ``fill`` drawn at ``opacity`` shows over ``background``.
 
-    Returns None unless both are plain ``#rrggbb`` / ``#rgb`` colors.
+    Returns None unless both are plain ``#rrggbb`` / ``#rgb`` colors (or
+    white / black; a transparent background counts as white).
     """
+    names = {"white": "#ffffff", "black": "#000000", "transparent": "#ffffff", "none": "#ffffff"}
 
     def rgb(color: Any) -> Optional[list[int]]:
         value = str(color or "").strip()
+        value = names.get(value.lower(), value)
         if not re.fullmatch(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})", value):
             return None
         hexval = value[1:] if len(value) == 7 else "".join(c * 2 for c in value[1:])

@@ -43,6 +43,23 @@ def test_readable_text_color_ignores_non_hex(fill):
     assert utils.readable_text_color(fill) is None
 
 
+@pytest.mark.parametrize(
+    "fill,background,opacity,expected",
+    [
+        ("#e74c3c", "#ffffff", 0.5, "#f3a69e"),
+        ("#e74c3c", "white", 0.5, "#f3a69e"),  # named page colors
+        ("#000", "#fff", 0.0, "#ffffff"),
+        ("#123456", "transparent", 1.0, "#123456"),
+    ],
+)
+def test_blend_color(fill, background, opacity, expected):
+    assert utils.blend_color(fill, background, opacity) == expected
+
+
+def test_blend_color_ignores_other_forms():
+    assert utils.blend_color("gradient:#000>#fff", "#ffffff", 0.5) is None
+
+
 def test_icon_nodes_keep_their_font():
     attrs = {"label": "Server", "image": "bundled:aws/ec2", "fontname": "Consolas", "fontsize": "11"}
     utils.process_node_image(attrs, "srv")
@@ -145,3 +162,13 @@ def test_middle_child_centred_under_parent():
     assert abs((b.x - a.x) - (c.x - b.x)) < 1.0
     xs = sorted(n.x for n in scene.nodes if n.y == b.y)
     assert all(x2 - x1 >= 120 for x1, x2 in itertools.pairwise(xs))  # no overlap
+
+
+def test_svg_symbol_lines_get_a_symbol_font():
+    from usecvislib.svgengine import shapes
+
+    # cairosvg has no per-glyph fallback: Carlito lacks U+26A0 and drew a box
+    warn = shapes.anchored_text(0, 0, "⚠ circular", 10, "#000", anchor="middle")
+    assert shapes.SYMBOL_FONT in warn.get("style", "")
+    assert warn.text == "⚠ circular" and len(warn) == 0
+    assert shapes.anchored_text(0, 0, "plain ×2 · text", 10, "#000").get("style") is None
