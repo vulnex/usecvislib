@@ -103,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Render gallery review (2026-10-29).** Every gallery image was reviewed by eye. Fixes:
   - **Cluster titles struck by edges.** Graphviz routes edges through a cluster's title band. `render_graph` now moves a struck title to the left, center or right of its band, wherever fewer edges and edge labels cross it (`labeljust`; nodes and edges do not move). The SVG engine makes the same choice and paints titles above the edges with a halo in the cluster's fill. A title is now its own `usv-label--cluster` group with the cluster's `data-cluster-id`. Struck titles across the gallery: 192 → 110, and the SVG-engine titles still crossed are drawn over the edge.
+  - **SVG timeline:** side-by-side labels keep a 12px gap (two labels read as one string), labels pushed away from their marker get a leader line where it crosses no other label, and swimlane markers keep half a lane of room on each side instead of sitting on the band's edge.
   - **Attack-graph exploit nodes** in the default style use the preset font (they fell back to a larger Times).
   - **Mermaid:** the theme chosen with `-t` or on `POST /visualize/mermaid` wins over a config file's theme (dark renders of the templates came out in the default theme).
   - **Readable labels.**
