@@ -34,6 +34,9 @@ dpi = 150
 # Show region highlights for control/printable/extended bytes
 show_regions = true
 
+# Frequency axis: "auto" (log when one byte value dominates), "log" or "linear"
+y_scale = "auto"
+
 # Define custom byte regions to highlight
 # Each region has: start, end (byte values 0-255), color, alpha, label
 [[byte_distribution.regions]]

@@ -42,6 +42,19 @@ from . import utils
 logger = logging.getLogger(__name__)
 
 
+def _byte_offset_formatter():
+    """Axis formatter for file offsets: B, KB, MB, GB (not 1e6 offset notation)."""
+    from matplotlib.ticker import FuncFormatter
+
+    def fmt(value: float, _pos: Any = None) -> str:
+        for unit, size in (("GB", 1 << 30), ("MB", 1 << 20), ("KB", 1 << 10)):
+            if abs(value) >= size:
+                return f"{value / size:.3g} {unit}"
+        return f"{value:.0f} B"
+
+    return FuncFormatter(fmt)
+
+
 class BinVis:
     """Binary file visualization class.
 
@@ -702,10 +715,13 @@ class BinVis:
         else:
             ax.plot(positions, entropies, linewidth=style.get("linewidth", 1.0), color=cmap(0.5))
 
-        ax.set_xlabel("File Offset (bytes)")
+        ax.set_xlabel("File Offset")
+        ax.xaxis.set_major_formatter(_byte_offset_formatter())
         ax.set_ylabel("Entropy (bits)")
         ax.set_title(self._title("Entropy Analysis"))
-        ax.set_ylim(0, 8)
+        # A little room below 0: zero-entropy runs (padding) drew on the axis
+        # spine and looked like missing data
+        ax.set_ylim(-0.25, 8.25)
 
         # Use config for grid
         if config.get("show_grid", True):
@@ -767,18 +783,31 @@ class BinVis:
             width=config.get("bar_width", 1.0),
         )
 
-        ax.set_xlabel("Byte Value (0-255)")
-        ax.set_ylabel("Frequency")
+        ax.set_xlabel("Byte Value")
+        ax.set_xticks([*range(0, 256, 32), 255])
+        ax.set_xticklabels([f"0x{t:02X}" for t in [*range(0, 256, 32), 255]], fontsize="small")
         ax.set_title(self._title("Byte Distribution"))
         ax.set_xlim(-1, 256)
+        # One dominant value (0x00 is often a third of a binary) flattened
+        # every other bar into a strip at the bottom: switch to a log scale
+        scale = str(config.get("y_scale", "auto")).lower()
+        nonzero = np.asarray(distribution, dtype=float)
+        nonzero = nonzero[nonzero > 0]
+        if scale == "log" or (scale == "auto" and nonzero.size and nonzero.max() > 20 * np.median(nonzero)):
+            ax.set_yscale("log")
+            ax.set_ylabel("Frequency (log scale)")
+        else:
+            ax.set_ylabel("Frequency")
 
         # Highlight special regions from config
         if config.get("show_regions", True):
             regions = config.get("regions", [])
             for region in regions:
+                # Bars are centered on their value: cover each bar whole, so
+                # adjacent regions (31 / 32) meet without a gap
                 ax.axvspan(
-                    region.get("start", 0),
-                    region.get("end", 0),
+                    region.get("start", 0) - 0.5,
+                    region.get("end", 0) + 0.5,
                     alpha=region.get("alpha", 0.1),
                     color=region.get("color", "gray"),
                     label=region.get("label", ""),
@@ -854,16 +883,31 @@ class BinVis:
 
         # Color by magnitude, skipping each colormap's extreme ends (several
         # presets' maps start at white, which made the bars invisible).
+        # On dark presets the low end starts higher: the dark end of most maps
+        # vanished on the dark plot background
         cmap = plt.get_cmap(style.get("colormap", "plasma"))
+        low = 0.45 if self._dark_theme() else 0.25
         for value, bar in zip(directions, bars, strict=True):
-            bar.set_facecolor(cmap(0.25 + 0.65 * value))
+            bar.set_facecolor(cmap(low + (0.9 - low) * value))
 
         ax.set_title(self._title("Byte Value Wind Rose (log scale)"))
 
+        # Byte values clockwise from 0x00 at the top (degrees meant nothing here)
+        ax.set_theta_zero_location("N")
+        ax.set_theta_direction(-1)
+        angle_ticks = range(0, 256, 32)
+        ax.set_xticks([t * 2 * np.pi / 256 for t in angle_ticks])
+        ax.set_xticklabels([f"0x{t:02X}" for t in angle_ticks])
+
         # Use config for rticks and rlabel position
         ax.set_rticks(config.get("rticks", [0.25, 0.5, 0.75, 1.0]))
-        # Off 0 deg, where the "1.00" radial label collided with the "0°" angle label
+        # Off 0x00, where the outer ring label collided with the angle label
         ax.set_rlabel_position(config.get("rlabel_position", 22.5))
+        # Ring labels sit over the bars: give them a backing so they read
+        ring_bg = (self.style.get("theme") or {}).get("plot_background", "white") if isinstance(self.style, dict) else "white"
+        for label in ax.get_yticklabels():
+            label.set_fontsize("small")
+            label.set_bbox({"facecolor": ring_bg, "edgecolor": "none", "alpha": 0.75, "pad": 1.5})
 
         self._apply_theme(fig, [ax])
         plt.tight_layout()

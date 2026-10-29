@@ -774,3 +774,35 @@ def test_matplotlib_backend_is_agg():
     import usecvislib.binvis  # noqa: F401  (selects the backend on import)
 
     assert matplotlib.get_backend().lower() == "agg"
+
+
+def test_offsets_read_in_byte_units():
+    from usecvislib.binvis import _byte_offset_formatter
+
+    fmt = _byte_offset_formatter()
+    assert fmt(0) == "0 B" and fmt(512) == "512 B"
+    assert fmt(24 * 1024) == "24 KB" and fmt(3 * 1024 * 1024) == "3 MB"
+
+
+def test_distribution_switches_to_log_when_one_byte_dominates(tmp_path):
+    import matplotlib.pyplot as plt
+
+    from usecvislib.binvis import BinVis
+
+    sample = tmp_path / "padded.bin"
+    sample.write_bytes(b"\x00" * 50000 + bytes(range(256)) * 4)
+    bv = BinVis(str(sample), str(tmp_path / "out"), format="png")
+    bv.load()
+    seen = {}
+    real_close = plt.close
+
+    def capture(*args, **kwargs):
+        seen["scale"] = plt.gca().get_yscale()
+        return real_close(*args, **kwargs)
+
+    plt.close = capture
+    try:
+        bv.visualize_distribution()
+    finally:
+        plt.close = real_close
+    assert seen["scale"] == "log"
