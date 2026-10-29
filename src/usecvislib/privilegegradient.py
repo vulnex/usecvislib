@@ -472,7 +472,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
         return group_by, collapse, max_nodes, groups if isinstance(groups, dict) else {}
 
     def _keep_options(self) -> tuple[Optional[str], list[str]]:
-        """keep and keep_ids (Atajo A12): render options, then the gradient section."""
+        """keep and keep_ids: render options, then the gradient section."""
         meta = self.inputdata.get("gradient", {}) if isinstance(self.inputdata, dict) else {}
         meta = meta if isinstance(meta, dict) else {}
         keep = self.keep if self.keep is not None else meta.get("keep")
@@ -653,7 +653,7 @@ class PrivilegeGradient(DriftStylingMixin, VisualizationBase):
 
                 # Add components in this zone; members of an expanded group go into
                 # its cluster, nested in the zone's, and so do a collapsed group's
-                # summary card and its kept members (A12)
+                # summary card and its kept members
                 nested: dict[str, list[tuple[str, str, dict]]] = {}
                 for comp_id, comp_data in view.components.items():
                     if comp_data.get("zone") == zone_id:

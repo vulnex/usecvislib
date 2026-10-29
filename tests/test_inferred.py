@@ -6,7 +6,7 @@
 # Copyright (c) 2026 VULNEX. All rights reserved.
 #
 
-"""Inferred (hypothesis) elements are drawn so they never read as observed (Atajo A4).
+"""Inferred (hypothesis) elements are drawn so they never read as observed.
 
 An element is inferred when ``inferred = true`` or ``confidence = "hypothesis"``
 (for a timeline event's technique tag: ``technique_inferred`` /

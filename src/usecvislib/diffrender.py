@@ -116,7 +116,7 @@ def render_diff(
         group_by, collapse, max_nodes: Grouping/collapse of the merged graph.
         keep, keep_ids: Privilege gradient: components kept drawn in collapsed
             groups; ``keep="inversions"`` also keeps the endpoints of new, fixed
-            and changed inversions (Atajo A12).
+            and changed inversions.
 
     Returns:
         The DiffResult between the two versions, computed on the same
@@ -418,7 +418,7 @@ def _inversion_keys(data: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def _inversion_changed(before: dict[str, Any], after: dict[str, Any]) -> bool:
-    """An inversion in both versions whose severity or trust gap differs (Atajo A10)."""
+    """An inversion in both versions whose severity or trust gap differs."""
     return before["severity"] != after["severity"] or before["trust_gap"] != after["trust_gap"]
 
 
@@ -466,7 +466,7 @@ def merge_privilege_gradients(
     marks = DiffMarks()
     merged: dict[str, Any] = {"gradient": copy.deepcopy(new.get("gradient") or old.get("gradient") or {})}
     merged["gradient"].setdefault("name", "Privilege Gradient Graph")
-    # Group settings (A11) of the later version, else the earlier one's
+    # Group settings of the later version, else the earlier one's
     merged["groups"] = copy.deepcopy(new.get("groups") or old.get("groups") or {})
 
     zones, zone_statuses = _merge_elements("zones", old["zones"], new["zones"], ignore)
@@ -504,7 +504,7 @@ def merge_privilege_gradients(
 def _make_privilege_gradient(path: str, output: str, **options: Any) -> Any:
     from .privilegegradient import PrivilegeGradient
 
-    # group_by / collapse / max_nodes group the merged gradient (Atajo A11)
+    # group_by / collapse / max_nodes group the merged gradient
     return PrivilegeGradient(path, output, **options)
 
 

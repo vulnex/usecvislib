@@ -6,7 +6,7 @@
 # Copyright (c) 2026 VULNEX. All rights reserved.
 #
 
-"""Shared grouping and collapse pieces (attack graph A6, privilege gradient A11)."""
+"""Shared grouping and collapse pieces (attack graph and privilege gradient)."""
 
 import pytest
 

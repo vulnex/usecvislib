@@ -6,7 +6,7 @@
 # Copyright (c) 2026 VULNEX. All rights reserved.
 #
 
-"""Grouping and collapse for the Privilege Gradient (Atajo A11): the render view."""
+"""Grouping and collapse for the Privilege Gradient: the render view."""
 
 import json
 import shutil
@@ -296,7 +296,7 @@ def test_template_svg_contract(tmp_path):
     root = ET.fromstring((tmp_path / "o.svg").read_text(encoding="utf-8"))
     groups = list(root.iter(f"{SVG_NS}g"))
     summary = next(g for g in groups if "usv-node--group" in g.get("class", ""))
-    # 5 workstations: WS-0103 kept by keep_ids (A12), 4 folded
+    # 5 workstations: WS-0103 kept by keep_ids, 4 folded
     assert summary.get("data-collapsed") == "true" and summary.get("data-member-count") == "4"
     assert summary.get("data-kept-count") == "1"
     assert summary.get("data-cluster-id") == "tier2_workstation"
@@ -387,7 +387,7 @@ class TestApi:
         assert 'data-collapsed="true"' in response.text and 'data-edge-count="2"' in response.text
 
 
-# Drift with grouping (A11 step 5): ws3 removed (fixes ws3 -> srv2), ws4 added (a new
+# Drift with grouping: ws3 removed (fixes ws3 -> srv2), ws4 added (a new
 # inversion merged with two unchanged ones), the RDP label changed, a new kiosk inversion.
 AD_NEW = {
     **AD,

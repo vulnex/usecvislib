@@ -15,7 +15,7 @@ The Graphviz path (``PrivilegeGradient._render_impl``) and the SVG painter
 (``svgengine/painters/privilegegradient.py``) both draw from a
 :class:`GradientView`: the zones, components, influences and inversions to
 draw, plus marks for the drift view (``render_diff``) and the groups of
-components (Atajo A11).
+components.
 
 **Grouping.** Components are grouped by a component field (``group_by``) or
 their own ``group`` field. A group never spans zones: the same value in two
@@ -67,7 +67,7 @@ class GradientView:
     group_zone: dict[str, str] = field(default_factory=dict)  # group id -> its zone
     merged_from: dict[tuple, list[str]] = field(default_factory=dict)  # merged edge -> member influence keys
     inversion_counts: dict[str, dict[str, int]] = field(default_factory=dict)  # merged edge -> {status: count}
-    kept: set[str] = field(default_factory=set)  # members drawn individually in a collapsed group (A12)
+    kept: set[str] = field(default_factory=set)  # members drawn individually in a collapsed group
 
     def influence_mark(self, influence: dict) -> Optional[ElementMark]:
         key = (influence.get("from"), influence.get("to"), influence.get("type") or "data")
@@ -132,7 +132,7 @@ def apply_grouping(
         max_nodes: Target component count for "auto".
         meta: Per-group settings by group id: ``label``, ``color``, ``collapsed``.
         keep: "inversions" keeps the members taking part in an inversion drawn
-            individually inside a collapsed group (Atajo A12).
+            individually inside a collapsed group.
         keep_ids: Members kept the same way, by component id.
     """
     membership = component_groups(view.components, group_by)
@@ -171,7 +171,7 @@ def apply_grouping(
 
 
 def kept_components(view: GradientView, keep: Optional[str], keep_ids: Optional[list[str]]) -> set[str]:
-    """Components drawn individually even when their group collapses (Atajo A12).
+    """Components drawn individually even when their group collapses.
 
     ``keep = "inversions"`` keeps every endpoint of an inversion, and in the drift
     view every endpoint of a new, fixed or changed one (a fixed violation stays
@@ -204,7 +204,7 @@ def _collapse(view: GradientView, collapsed: list[str]) -> None:
     """Replace each collapsed group's members by one summary component; re-point and merge influences."""
     from .privilegegradient import detect_inversions
 
-    # Kept members (A12) are not folded: they stay drawn, with their own influences
+    # Kept members are not folded: they stay drawn, with their own influences
     folded_of = {gid: [m for m in view.groups[gid].members if m not in view.kept] for gid in collapsed}
     summary_of = {member: SUMMARY_PREFIX + gid for gid in collapsed for member in folded_of[gid]}
 
@@ -337,7 +337,7 @@ def summary_label_lines(facts: dict[str, Any]) -> list[str]:
     """
     members = facts.get("members", 0)
     lines = [str(facts.get("label", "")), f"{members} component{'' if members == 1 else 's'}"]
-    if facts.get("kept"):  # A12: members drawn next to the card
+    if facts.get("kept"):  # Members drawn next to the card
         lines.append(f"{facts['kept']} shown separately")
     count = facts.get("inversions") or 0
     if count:

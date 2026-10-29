@@ -6,7 +6,7 @@
 # Copyright (c) 2026 VULNEX. All rights reserved.
 #
 
-"""Drift renderer: draw what changed between two attack-graph versions (Atajo A5)."""
+"""Drift renderer: draw what changed between two attack-graph versions."""
 
 import copy
 import json

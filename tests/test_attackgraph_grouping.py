@@ -6,7 +6,7 @@
 # Copyright (c) 2026 VULNEX. All rights reserved.
 #
 
-"""Attack-graph grouping and collapse (Atajo request A6).
+"""Attack-graph grouping and collapse.
 
 Grouping is opt-in (graph.group_by or the group_by render option): hosts are
 clustered, and collapsed groups are drawn as one summary node with their

@@ -6,7 +6,7 @@
 # Copyright (c) 2026 VULNEX. All rights reserved.
 #
 
-"""Kept components in collapsed Privilege-Gradient groups (Atajo A12): the render view."""
+"""Kept components in collapsed Privilege-Gradient groups: the render view."""
 
 import json
 import shutil

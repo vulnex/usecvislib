@@ -205,7 +205,7 @@ def _add_group_clusters(
     scene: Scene, view, zone_id: str, zone: dict, pg: dict[str, Any], border: str, drawn: set[str]
 ) -> None:
     """Expanded groups of a zone: dashed clusters nested in the zone's. A collapsed group
-    with kept members (A12) gets the same frame around its summary card and those members."""
+    with kept members gets the same frame around its summary card and those members."""
     for group_id, info in view.groups.items():
         if view.group_zone.get(group_id) != zone_id:
             continue

@@ -8,7 +8,7 @@
 
 """Byte-exact golden output for the Privilege Gradient (mode 6).
 
-Guards the Graphviz render path while the drift renderer (Atajo A9) and the
+Guards the Graphviz render path while the drift renderer and the
 SVG-engine painter are added: with no new options set, the output must not
 change at all. The Graphviz goldens are the generated DOT source, compared
 without running ``dot``.

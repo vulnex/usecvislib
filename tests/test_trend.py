@@ -6,7 +6,7 @@
 # Copyright (c) 2026 VULNEX. All rights reserved.
 #
 
-"""Trend chart: metric-over-time small multiples (Atajo request A1)."""
+"""Trend chart: metric-over-time small multiples."""
 
 import hashlib
 import json

@@ -6,7 +6,7 @@
 # Copyright (c) 2026 VULNEX. All rights reserved.
 #
 
-"""Drift renderer for the Privilege Gradient (Atajo A9): zones, components,
+"""Drift renderer for the Privilege Gradient: zones, components,
 influences and the inversions (tiering violations) that appeared or were fixed."""
 
 import copy
@@ -163,7 +163,7 @@ def test_inversion_metadata():
     assert changes["changed"] == []  # a -> b keeps its gap
 
 
-# Atajo A10: inversions that persist with another severity or trust gap. Raising
+# Inversions that persist with another severity or trust gap. Raising
 # the top zone from trust 3 to 4 turns y -> w from high (gap 2) into critical
 # (gap 3), and x -> w from gap 3 into gap 4 (critical both times).
 RETIER_OLD = {
@@ -386,7 +386,7 @@ class TestRenderDiff:
 
     @requires_dot
     def test_grouping_options_group_the_merged_gradient(self, versions, tmp_path):
-        # Grouped by their zone field, the mid zone's b, c, d collapse into one card (A11)
+        # Grouped by their zone field, the mid zone's b, c, d collapse into one card
         render_diff(
             *versions, "privilege_gradient", output=str(tmp_path / "d"), format="svg", render_engine="svg",
             group_by="zone", collapse=True,
