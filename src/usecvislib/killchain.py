@@ -630,6 +630,10 @@ class KillChain(VisualizationBase):
             fill = str(base.get("fillcolor", ""))
             if re.fullmatch(r"#[0-9a-fA-F]{6}", fill):
                 base["fillcolor"] = fill + INFERRED_FILL_ALPHA
+                # The label stays opaque: re-pick its color for the faded fill
+                page = style.get("graph", {}).get("bgcolor", "#ffffff")
+                shown = utils.blend_color(fill, page, int(INFERRED_FILL_ALPHA, 16) / 255)
+                base["fontcolor"] = utils.readable_text_color(shown) or base.get("fontcolor", "")
         return utils.stringify_dict(base)
 
     def _draw_impl(self, outputfile: str) -> None:

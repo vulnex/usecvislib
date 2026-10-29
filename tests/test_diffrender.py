@@ -249,7 +249,11 @@ to = "b"
         groups = list(root.iter(f"{SVG_NS}g"))
         nodes = {g.get("data-node-id"): g for g in groups if "usv-node" in g.get("class", "").split()}
         assert "usv-diff--added" in nodes["web03"].get("class")
-        assert nodes["siem01"].get("opacity") == "0.35" and nodes["siem01"].get("data-diff") == "removed"
+        siem = nodes["siem01"]
+        assert siem.get("data-diff") == "removed"
+        # The body fades, the label stays opaque and readable
+        assert siem[0].get("opacity") == "0.35" and siem.get("opacity") is None
+        assert siem.find(f"{SVG_NS}text").get("fill") == "#1f2937"
         assert nodes["f1"].get("data-changed") == "cvss"
         assert nodes["web01"].get("data-diff") == "unchanged"
         assert sorted(g.get("data-value") for g in groups if "usv-badge--diff" in g.get("class", "")) == [

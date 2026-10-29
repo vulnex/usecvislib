@@ -349,11 +349,16 @@ def render_svg(viz) -> str:
             classes.append("usv-node--inferred")
             shapes.dash_outline(body, str(theme["inferred"]["dash"]))
         g = shapes.group(classes, node.data)
+        text_color = _COVERAGE_TEXT[cover]
         if node.inferred:
-            g.set("opacity", shapes.fmt(float(theme["inferred"]["opacity"])))
+            # Fade the card only: faded text on a faded fill is unreadable
+            opacity = float(theme["inferred"]["opacity"])
+            body.set("opacity", shapes.fmt(opacity))
+            shown = utils.blend_color(fill, page["background"], opacity)
+            text_color = utils.readable_text_color(shown) or text_color
         g.append(body)
         text_h = len(node.lines) * size * metrics.LINE_HEIGHT
-        g.extend(shapes.text_lines(node.x, node.y - text_h / 2, node.lines, size, _COVERAGE_TEXT[cover]))
+        g.extend(shapes.text_lines(node.x, node.y - text_h / 2, node.lines, size, text_color))
         canvas.add("nodes", g)
 
         if tech is not None and theme["badges"].get("coverage", True):

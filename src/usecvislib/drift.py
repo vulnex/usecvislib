@@ -24,6 +24,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from . import utils
+
 # (source id, target id, kind); the kinds are module-specific
 EdgeKey = tuple[str, str, str]
 
@@ -128,9 +130,19 @@ class DriftStylingMixin:
         if status == "removed":
             attrs["style"] = f"{attrs.get('style', 'filled')},dashed"
             attrs["color"] = palette["removed"]
-            for key in ("fillcolor", "fontcolor"):
-                if key in attrs:
-                    attrs[key] = faded(str(attrs[key]))
+            fill = str(attrs.get("fillcolor", ""))
+            if fill:
+                attrs["fillcolor"] = faded(fill)
+            # The label is not faded with the fill: faded text on a faded
+            # fill was close to invisible. Pick a color that reads on it.
+            style = getattr(self, "style", None)
+            page = style.get("graph", {}).get("bgcolor", "#ffffff") if isinstance(style, dict) else "#ffffff"
+            shown = utils.blend_color(fill, page, int(REMOVED_ALPHA, 16) / 255)
+            text = utils.readable_text_color(shown)
+            if text:
+                attrs["fontcolor"] = text
+            elif "fontcolor" in attrs:
+                attrs["fontcolor"] = faded(str(attrs["fontcolor"]))
         else:
             attrs["color"] = palette[status]
             attrs["penwidth"] = "3"

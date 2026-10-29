@@ -155,8 +155,12 @@ class TestKillChain:
         cards = [g for g in root.iter(f"{SVG_NS}g") if "usv-node--inferred" in g.get("class", "").split()]
         assert [g.get("data-node-id") for g in cards] == ["AML_T0080"]
         card = cards[0]
-        assert card.get("opacity") == "0.6" and card.get("data-confidence") == "hypothesis"
-        assert card.find(f"{SVG_NS}rect").get("stroke-dasharray")
+        assert card.get("data-confidence") == "hypothesis"
+        body = card.find(f"{SVG_NS}rect")
+        # The card fades, its label stays opaque in a color that reads on it
+        assert body.get("opacity") == "0.6" and card.get("opacity") is None
+        assert body.get("stroke-dasharray")
+        assert card.find(f"{SVG_NS}text").get("fill") == "#1f2937"
         assert "(inferred)" in "".join(card.itertext())
         assert "usv-cover--gap" in card.get("class")  # coverage color kept
 

@@ -423,7 +423,12 @@ def _paint_nodes(
                 shapes.dash_outline(body, "6 3")
         group = shapes.group(classes, data)
         if node.diff == "removed":
-            group.set("opacity", shapes.fmt(float(diff_cfg.get("removed_opacity", 0.35))))
+            # Fade the body only; the label stays opaque in a color that
+            # reads on the faded fill (faded text was close to invisible).
+            opacity = float(diff_cfg.get("removed_opacity", 0.35))
+            body.set("opacity", shapes.fmt(opacity))
+            shown = utils.blend_color(fill, page["background"], opacity)
+            text_color = utils.readable_text_color(shown) or text_color
         group.append(body)
 
         lines = node.lines or [node.label]
@@ -435,7 +440,10 @@ def _paint_nodes(
             # Icon centered at the top, label block below it
             img = float(theme["images"]["size"])
             img_top = node.y - (img + _IMAGE_TEXT_GAP + text_h) / 2
-            group.append(shapes.image(node.x - img / 2, img_top, img, img, node.image_href))
+            icon = shapes.image(node.x - img / 2, img_top, img, img, node.image_href)
+            if node.diff == "removed":
+                icon.set("opacity", shapes.fmt(float(diff_cfg.get("removed_opacity", 0.35))))
+            group.append(icon)
             text_top = img_top + img + _IMAGE_TEXT_GAP
         else:
             text_top = node.y - text_h / 2

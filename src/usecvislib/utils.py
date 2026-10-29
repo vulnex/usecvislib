@@ -1736,6 +1736,26 @@ def element_sources(element: Any) -> tuple[int, list[str]]:
     return max(len(names), declared), names
 
 
+def blend_color(fill: Any, background: Any, opacity: float) -> Optional[str]:
+    """The ``#rrggbb`` a ``fill`` drawn at ``opacity`` shows over ``background``.
+
+    Returns None unless both are plain ``#rrggbb`` / ``#rgb`` colors.
+    """
+
+    def rgb(color: Any) -> Optional[list[int]]:
+        value = str(color or "").strip()
+        if not re.fullmatch(r"#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})", value):
+            return None
+        hexval = value[1:] if len(value) == 7 else "".join(c * 2 for c in value[1:])
+        return [int(hexval[i : i + 2], 16) for i in (0, 2, 4)]
+
+    fg, bg = rgb(fill), rgb(background)
+    if fg is None or bg is None:
+        return None
+    mixed = (round(f * opacity + b * (1 - opacity)) for f, b in zip(fg, bg))
+    return "#" + "".join(f"{v:02x}" for v in mixed)
+
+
 def readable_text_color(fill: Any, light: str = "#ffffff", dark: str = "#1f2937") -> Optional[str]:
     """Pick the label color (light or dark) with the better contrast on ``fill``.
 
