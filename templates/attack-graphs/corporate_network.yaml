@@ -202,11 +202,14 @@ exploits:
   postcondition: priv_db_admin
 network_edges:
 - from: attacker
+  to: firewall
+  label: Internet Access
+- from: firewall
   to: webserver
-  label: Internet Access
-- from: attacker
+  label: HTTPS
+- from: firewall
   to: mailserver
-  label: Internet Access
+  label: SMTP
 - from: webserver
   to: dbserver
   label: App to DB

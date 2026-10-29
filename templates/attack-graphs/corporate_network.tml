@@ -299,13 +299,18 @@ postcondition = "priv_db_admin"
 
 [[network_edges]]
 from = "attacker"
-to = "webserver"
+to = "firewall"
 label = "Internet Access"
 
 [[network_edges]]
-from = "attacker"
+from = "firewall"
+to = "webserver"
+label = "HTTPS"
+
+[[network_edges]]
+from = "firewall"
 to = "mailserver"
-label = "Internet Access"
+label = "SMTP"
 
 [[network_edges]]
 from = "webserver"

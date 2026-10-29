@@ -278,13 +278,18 @@
   "network_edges": [
     {
       "from": "attacker",
-      "to": "webserver",
+      "to": "firewall",
       "label": "Internet Access"
     },
     {
-      "from": "attacker",
+      "from": "firewall",
+      "to": "webserver",
+      "label": "HTTPS"
+    },
+    {
+      "from": "firewall",
       "to": "mailserver",
-      "label": "Internet Access"
+      "label": "SMTP"
     },
     {
       "from": "webserver",
