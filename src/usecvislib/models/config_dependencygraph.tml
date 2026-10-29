@@ -277,7 +277,7 @@ dependencygraph = {internal = "#2f5f8a", external_fill = "#f1f4f7", external_bor
 [sv_minimal]
 meta = {engine = "svg"}
 cluster = {fill = "#f4f6f8", border = "#e2e8f0", text = "#64748b", label_size = 12, radius = 4}
-title = {show = false, size = 14}
+title = {show = true, size = 14}
 page = {background = "#ffffff", padding = 40, text = "#475569"}
 font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 15}
 card = {radius = 4, padding_x = 14, padding_y = 9, border_width = 1.0, min_width = 112, max_label_width = 210}

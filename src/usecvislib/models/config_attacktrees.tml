@@ -213,7 +213,7 @@ layout = {h_gap = 44, v_gap = 82}
 # SVG Minimal - Flat outline style, no depth effects
 [sv_minimal]
 meta = {engine = "svg"}
-title = {show = false, size = 14}
+title = {show = true, size = 14}
 page = {background = "#ffffff", padding = 40, text = "#111111"}
 font = {family = "Helvetica Neue, Helvetica, Arial, sans-serif", size = 13, root_size = 15}
 card = {radius = 4, padding_x = 14, padding_y = 10, border_width = 1.2, min_width = 96, max_label_width = 260}
