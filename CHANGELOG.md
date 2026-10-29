@@ -98,6 +98,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **MAESTRO layers in stack order.** The layered view and the heatmap now run L7 down to L1 (they used L7, L3, L1, L2, L4, L5, L6).
   - **Legends in the SVG engine.** Attack trees, attack graphs and threat-model DFDs end with a legend of what they draw: severity fills, node kinds, line styles, AND / OR gates, inferred nodes, the "*" on derived CVSS scores. `legend.show = false` in a theme turns them off. Legends wrap onto several rows when wider than the diagram.
   - **DFD data stores are cylinders** in the SVG engine (were octagons).
+  - **Minor review findings:**
+    - Binary charts: wind rose angles are byte values; distribution on a log axis when one value dominates (`y_scale`); zero entropy above the axis; offsets in KB / MB; one figure size for every preset; `bv_cyber` dark; distinct sunset and rainbow palettes.
+    - Graphviz attack-graph presets show severity: critical in the preset's color, with a double border; lower severities faded.
+    - MAESTRO: dark notes on dark presets in the preset's font; graph count colors follow the node fill; one self-loop per agent for single-agent chains; `sv_dark` agents themed.
+    - Templates:
+      - kubernetes: a users icon for external traffic, fewer edges;
+      - zero-trust: spacing, and monitoring connected;
+      - risk-matrix: risks clustered by category, spline edges.
+    - Wording: "2 CVEs"; MAESTRO heatmap title and agent rows; trend count panels with whole-number ticks and a zero above the axis.
   - **Graphviz bitmaps at 192 dpi** (PNG and other raster formats; was 96). SVG and PDF are unchanged; a graph's own `dpi` wins.
 - `docs/MCP_TOOLS.md` describes usecvislib-mcp 0.5.0: 65 tools, 19 resources, 10 prompts (kill chain, incident timeline, vulnerability tree, MAESTRO, the drift tool `render_drift`, grouping / collapse / keep, `render_engine` and `shine`).
 - **One module table** (`usecvislib.registry`). It lists each visualization module's CLI mode, label, key and class. `BatchProcessor` (and through it `compare_files`, the API's batch / export / compare routes) and the CLI's mode list, mode check and SVG-engine check are built from it, and the SVG mode list comes from the registered painters instead of being copied by hand.
