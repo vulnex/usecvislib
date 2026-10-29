@@ -699,7 +699,7 @@ def _trunk_detour(nodes, member, sink, cross_of, start_of, bbox_top, horizontal)
     for node in nodes:
         if node is member or node is sink:
             continue
-        c_lo, c_hi, m_lo, m_hi = extent(node)
+        c_lo, c_hi, m_lo, _m_hi = extent(node)
         if m_lo > top and m_lo < bottom and c_lo - clearance / 2 < cross < c_hi + clearance / 2:
             blockers.append((c_lo, c_hi, m_lo))
     if not blockers:
@@ -799,7 +799,12 @@ def _respace_rows(scene: Scene, requirements: dict[float, float], horizontal: bo
 
 
 # A score in each band, for the legend's severity swatches
-_SEVERITY_SAMPLES = (("critical", "Critical", 9.5), ("high", "High", 8.0), ("medium", "Medium", 5.5), ("low", "Low", 2.0))
+_SEVERITY_SAMPLES = (
+    ("critical", "Critical", 9.5),
+    ("high", "High", 8.0),
+    ("medium", "Medium", 5.5),
+    ("low", "Low", 2.0),
+)
 
 
 def _legend(scene: Scene, theme: dict[str, Any]) -> list:

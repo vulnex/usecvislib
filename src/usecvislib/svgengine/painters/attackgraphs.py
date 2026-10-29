@@ -348,7 +348,12 @@ def _items(section: Any):
 
 
 # A score in each band, for the legend's severity swatches
-_SEVERITY_SAMPLES = (("critical", "Critical", 9.5), ("high", "High", 8.0), ("medium", "Medium", 5.5), ("low", "Low", 2.0))
+_SEVERITY_SAMPLES = (
+    ("critical", "Critical", 9.5),
+    ("high", "High", 8.0),
+    ("medium", "Medium", 5.5),
+    ("low", "Low", 2.0),
+)
 
 
 def _legend(scene: Scene, theme: dict[str, Any]) -> list:

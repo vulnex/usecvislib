@@ -112,7 +112,7 @@ class _LabelPlacer:
         p = _LABEL_PAD
         return all(
             x1 + gap <= a0 or x0 - gap >= a1 or y1 + p <= b0 or y0 - p >= b1
-            for (a0, b0, a1, b1), gap in zip(self.rects, self.gaps)
+            for (a0, b0, a1, b1), gap in zip(self.rects, self.gaps, strict=True)
         )
 
     def place(self, x: float, w: float, h: float) -> float:

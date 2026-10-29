@@ -28,6 +28,7 @@ import re
 import sys
 import threading
 from collections.abc import Callable
+from itertools import pairwise
 from pathlib import Path
 from typing import Any, Literal, Optional, TypeVar, Union
 
@@ -1694,9 +1695,11 @@ def _xdot_points(ops: Any) -> list[tuple[float, float]]:
                     )
         else:
             closed = pts + pts[:1] if op.get("op") in ("P", "p") else pts
-            for a, b in zip(closed, closed[1:]):
+            for a, b in pairwise(closed):
                 steps = max(1, int(max(abs(b[0] - a[0]), abs(b[1] - a[1])) / 3))
-                points.extend((a[0] + (b[0] - a[0]) * k / steps, a[1] + (b[1] - a[1]) * k / steps) for k in range(steps))
+                points.extend(
+                    (a[0] + (b[0] - a[0]) * k / steps, a[1] + (b[1] - a[1]) * k / steps) for k in range(steps)
+                )
             points.append(closed[-1])
     return points
 
@@ -1757,10 +1760,8 @@ def cluster_label_positions(layout: dict) -> dict[str, str]:
         candidates = {"l": bx0 + 8 + width / 2, "c": (bx0 + bx1) / 2, "r": bx1 - 8 - width / 2}
         current = min(candidates, key=lambda k: abs(candidates[k] - lx))
 
-        def box(cx: float) -> tuple[float, float, float, float]:
-            return (cx - width / 2, ly - height / 2, cx + width / 2, ly + height / 2)
-
-        scores = {k: crossings(box(cx)) for k, cx in candidates.items()}
+        top, bottom = ly - height / 2, ly + height / 2
+        scores = {k: crossings((cx - width / 2, top, cx + width / 2, bottom)) for k, cx in candidates.items()}
         if scores[current] == 0:
             continue
         best = min(scores, key=lambda k: (scores[k], k != current))
@@ -1784,14 +1785,14 @@ def place_cluster_labels(graph: Any) -> Any:
         import graphviz
 
         layout = json.loads(graph.pipe(format="json").decode("utf-8"))
-    except Exception:  # noqa: BLE001 - the real render reports layout errors
+    except Exception:  # the real render reports layout errors
         return graph
     moves = cluster_label_positions(layout)
     if not moves:
         return graph
     lines = source.split("\n")
     for name, just in moves.items():
-        opening = re.compile(r'^\s*subgraph\s+("?)' + re.escape(name) + r'\1\s*\{\s*$')
+        opening = re.compile(r'^\s*subgraph\s+("?)' + re.escape(name) + r"\1\s*\{\s*$")
         for i, line in enumerate(lines):
             if opening.match(line):
                 # After the cluster's own attribute line ("graph [...]" or
@@ -1909,7 +1910,7 @@ def blend_color(fill: Any, background: Any, opacity: float) -> Optional[str]:
     fg, bg = rgb(fill), rgb(background)
     if fg is None or bg is None:
         return None
-    mixed = (round(f * opacity + b * (1 - opacity)) for f, b in zip(fg, bg))
+    mixed = (round(f * opacity + b * (1 - opacity)) for f, b in zip(fg, bg, strict=True))
     return "#" + "".join(f"{v:02x}" for v in mixed)
 
 

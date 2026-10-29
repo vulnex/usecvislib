@@ -904,7 +904,9 @@ class BinVis:
         # Off 0x00, where the outer ring label collided with the angle label
         ax.set_rlabel_position(config.get("rlabel_position", 22.5))
         # Ring labels sit over the bars: give them a backing so they read
-        ring_bg = (self.style.get("theme") or {}).get("plot_background", "white") if isinstance(self.style, dict) else "white"
+        ring_bg = (
+            (self.style.get("theme") or {}).get("plot_background", "white") if isinstance(self.style, dict) else "white"
+        )
         for label in ax.get_yticklabels():
             label.set_fontsize("small")
             label.set_bbox({"facecolor": ring_bg, "edgecolor": "none", "alpha": 0.75, "pad": 1.5})

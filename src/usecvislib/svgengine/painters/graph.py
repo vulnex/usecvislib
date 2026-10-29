@@ -27,6 +27,7 @@ badges, and the title — emitting the standard interactivity contract. All
 node-kind semantics live in the caller; none leak here.
 """
 
+from itertools import pairwise
 from typing import Any, Optional
 
 from ... import utils
@@ -384,7 +385,7 @@ def _edge_obstacles(scene: Scene) -> tuple[list[tuple[float, float]], list[tuple
                 )
             i += 3
         path.extend(pts[i:])
-        for a, b in zip(path, path[1:]):
+        for a, b in pairwise(path):
             steps = max(1, int(max(abs(b[0] - a[0]), abs(b[1] - a[1])) / 3))
             points.extend((a[0] + (b[0] - a[0]) * k / steps, a[1] + (b[1] - a[1]) * k / steps) for k in range(steps))
         points.extend(path[-1:])

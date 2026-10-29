@@ -598,7 +598,9 @@ class AttackGraphs(DriftStylingMixin, VisualizationBase):
                     if shaded:
                         node_attrs["fillcolor"] = shaded
                         if "fontcolor" not in vuln_data:
-                            node_attrs["fontcolor"] = utils.readable_text_color(shaded) or node_attrs.get("fontcolor", "")
+                            node_attrs["fontcolor"] = utils.readable_text_color(shaded) or node_attrs.get(
+                                "fontcolor", ""
+                            )
                     if severity.lower() == "critical" and "peripheries" not in vuln_data:
                         # Outline presets (fill close to the page) show it in the border
                         node_attrs["peripheries"] = "2"
