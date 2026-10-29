@@ -114,3 +114,6 @@ secrets/
 
 # gstack skill runtime artifacts
 .gstack/
+
+# Local working outputs (never committed)
+Claude outputs/
