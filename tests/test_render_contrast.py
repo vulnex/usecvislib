@@ -210,3 +210,15 @@ def test_place_cluster_labels_sets_labeljust(monkeypatch):
     placed.pipe(format="json")  # still valid DOT
     monkeypatch.setattr(utils, "cluster_label_positions", lambda layout: {})
     assert utils.place_cluster_labels(g) is g
+
+
+def test_raster_output_gets_a_higher_dpi():
+    graphviz = pytest.importorskip("graphviz")
+    g = graphviz.Digraph(format="png")
+    g.edge("a", "b")
+    assert "dpi=192" in utils.with_raster_dpi(g).source
+    g.format = "svg"
+    assert utils.with_raster_dpi(g) is g  # vector output keeps its coordinates
+    g.format = "png"
+    g.attr(dpi="72")
+    assert utils.with_raster_dpi(g) is g  # a graph's own dpi wins

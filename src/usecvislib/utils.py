@@ -1805,14 +1805,34 @@ def place_cluster_labels(graph: Any) -> Any:
     )
 
 
+# Graphviz draws bitmaps at 96 dpi by default: soft next to the SVG engine's
+# PNGs. Vector output is unaffected (and must be: dpi rescales SVG coordinates).
+RASTER_DPI = 192
+_RASTER_FORMATS = frozenset({"png", "jpg", "jpeg", "gif", "bmp", "tif", "tiff", "webp"})
+
+
+def with_raster_dpi(graph: Any, dpi: int = RASTER_DPI) -> Any:
+    """``graph`` set to render bitmaps at ``dpi``, unless it sets a dpi itself."""
+    fmt = str(getattr(graph, "format", "") or "").lower()
+    source = getattr(graph, "source", "")
+    if fmt not in _RASTER_FORMATS or not source or re.search(r"\b(dpi|resolution)\s*=", source):
+        return graph
+    import graphviz
+
+    first, brace, rest = source.partition("{")
+    if not brace:
+        return graph
+    return graphviz.Source(f"{first}{{\n\tdpi={int(dpi)}{rest}", engine=getattr(graph, "engine", "dot"), format=fmt)
+
+
 def render_graph(graph: Any, outputfile: str, **kwargs: Any) -> str:
     """Render a ``graphviz`` graph to ``outputfile`` and make SVG output self-contained.
 
     Same as ``graph.render(outputfile, cleanup=True)``, after
-    :func:`place_cluster_labels`, plus :func:`embed_svg_images` when the
-    output is SVG.
+    :func:`place_cluster_labels` and :func:`with_raster_dpi`, plus
+    :func:`embed_svg_images` when the output is SVG.
     """
-    graph = place_cluster_labels(graph)
+    graph = with_raster_dpi(place_cluster_labels(graph))
     rendered = graph.render(outputfile, cleanup=True, **kwargs)
     if str(rendered).lower().endswith(".svg"):
         embed_svg_images(rendered)
