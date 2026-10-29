@@ -82,7 +82,7 @@
     </main>
 
     <footer class="footer">
-      <p>USecVisLib v0.6.0 |
+      <p>USecVisLib v0.6.1 |
         <a href="http://localhost:8000/docs" target="_blank">API Docs</a> |
         <a href="https://github.com/vulnex/usecvislib" target="_blank">GitHub</a>
       </p>

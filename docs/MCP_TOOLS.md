@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-Reference for the 65 tools, 19 resources (16 fixed URIs and 3 URI templates) and 10 prompt templates provided by the `usecvislib-mcp` server (v0.5.0, requires usecvislib 0.6.0).
+Reference for the 65 tools, 19 resources (16 fixed URIs and 3 URI templates) and 10 prompt templates provided by the `usecvislib-mcp` server (v0.5.0, requires usecvislib 0.6.1).
 
 To see what each visualization looks like before picking one, browse the [render gallery](https://vulnex.github.io/usecvislib-gallery/): every bundled template rendered with every engine, view and style preset.
 

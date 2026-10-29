@@ -1222,4 +1222,4 @@ cd = CustomDiagrams()
 
 ---
 
-**USecVisLib** v0.6.0 - Universal Security Visualization Library
+**USecVisLib** v0.6.1 - Universal Security Visualization Library

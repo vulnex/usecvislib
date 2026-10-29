@@ -5,6 +5,12 @@ All notable changes to USecVisLib will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-10-29
+
+### Fixed
+
+- **pip installs ship the shape gallery.** `shapes/gallery/*.toml` was missing from the package data, so a usecvislib installed with pip (rather than run from the source tree) had no built-in shapes and custom diagrams failed with "unknown shape". A test now checks that the package data covers every data file in the library.
+
 ## [0.6.0] - 2026-10-29
 
 ### Added

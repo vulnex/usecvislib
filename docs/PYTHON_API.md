@@ -53,7 +53,7 @@ pip install -r requirements.txt
 
 ```python
 import usecvislib
-print(usecvislib.__version__)  # 0.6.0
+print(usecvislib.__version__)  # 0.6.1
 ```
 
 ---
@@ -3927,4 +3927,4 @@ generate_security_report("threat_model.toml", "./reports")
 
 ---
 
-**USecVisLib** v0.6.0 - Universal Security Visualization Library
+**USecVisLib** v0.6.1 - Universal Security Visualization Library
