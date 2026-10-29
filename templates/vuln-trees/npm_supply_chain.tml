@@ -14,13 +14,13 @@ root_packages = ["web-app"]
 name = "web-app"
 version = "2.3.0"
 direct = true
-dependencies = ["express", "lodash", "axios"]
+dependencies = ["express", "lodash", "axios", "dotenv"]
 
 [dependencies."express"]
 name = "express"
 version = "4.17.1"
 direct = true
-dependencies = ["qs", "body-parser"]
+dependencies = ["qs", "body-parser", "debug", "cookie"]
 
 [dependencies."lodash"]
 name = "lodash"
@@ -82,3 +82,38 @@ description = "Exposure of sensitive information via cookies on redirect"
 fixed_version = "1.14.7"
 exploited = true
 cwe = "CWE-200"
+
+# Clean and medium-only branches, so the three render modes differ:
+# vulnerable_only drops dotenv and cookie; critical_path also drops the
+# medium-only debug -> ms chain.
+[dependencies."dotenv"]
+name = "dotenv"
+version = "16.0.3"
+direct = true
+dependencies = []
+
+[dependencies."cookie"]
+name = "cookie"
+version = "0.4.0"
+direct = false
+dependencies = []
+
+[dependencies."debug"]
+name = "debug"
+version = "2.2.0"
+direct = false
+dependencies = ["ms"]
+
+[dependencies."ms"]
+name = "ms"
+version = "0.7.1"
+direct = false
+dependencies = []
+
+[[dependencies."ms".vulnerabilities]]
+id = "CVE-2017-20162"
+severity = "medium"
+cvss = 5.3
+description = "Regular expression denial of service in parse()"
+fixed_version = "2.0.0"
+cwe = "CWE-1333"

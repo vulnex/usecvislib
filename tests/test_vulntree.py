@@ -74,7 +74,7 @@ class TestLoad:
     def test_load_npm(self):
         vt = VulnDependencyTree(NPM, "unused")
         vt.load()
-        assert len(vt.dependencies) == 7
+        assert len(vt.dependencies) == 11
         assert vt.root_packages == ["web-app"]
 
     def test_missing_dependencies_errors(self, tmp_path):
@@ -147,13 +147,13 @@ class TestStats:
     def test_stats_shape(self):
         vt = VulnDependencyTree(NPM, "unused")
         s = vt.get_stats()
-        assert s["total_dependencies"] == 7
-        assert s["vulnerable_dependencies"] == 4
-        assert s["total_vulnerabilities"] == 4
+        assert s["total_dependencies"] == 11
+        assert s["vulnerable_dependencies"] == 5
+        assert s["total_vulnerabilities"] == 5
         assert s["exploited_vulnerabilities"] == 1
         assert s["max_cvss"] == 9.1
         assert s["severity_distribution"]["critical"] == 1
-        assert s["remediation_available"] == 4
+        assert s["remediation_available"] == 5
 
     def test_impact_propagation(self):
         vt = VulnDependencyTree(NPM, "unused")
@@ -166,7 +166,7 @@ class TestStats:
         vt = VulnDependencyTree(NPM, "unused")
         vt.load()
         fixes = vt.remediation()
-        assert len(fixes) == 4
+        assert len(fixes) == 5
         assert all("fixed_version" in f for f in fixes)
 
 
