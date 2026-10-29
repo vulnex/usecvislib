@@ -11,6 +11,9 @@
 #   API:  Pass as JSON in config_json parameter
 #
 # All sections and parameters are optional. Missing values use defaults.
+# The values below differ from the defaults on purpose (letters highlighted,
+# a smoother entropy curve with a packed-code line, a finer heatmap), so
+# rendering with and without this file shows what each setting does.
 #
 
 # =============================================================================
@@ -34,25 +37,25 @@ show_regions = true
 # Define custom byte regions to highlight
 # Each region has: start, end (byte values 0-255), color, alpha, label
 [[byte_distribution.regions]]
-start = 0
-end = 31
-color = "red"
-alpha = 0.1
-label = "Control chars"
+start = 48
+end = 57
+color = "orange"
+alpha = 0.15
+label = "Digits 0-9"
 
 [[byte_distribution.regions]]
-start = 32
-end = 126
-color = "green"
-alpha = 0.1
-label = "Printable ASCII"
+start = 65
+end = 90
+color = "purple"
+alpha = 0.15
+label = "Uppercase A-Z"
 
 [[byte_distribution.regions]]
-start = 127
-end = 255
-color = "blue"
-alpha = 0.1
-label = "Extended"
+start = 97
+end = 122
+color = "teal"
+alpha = 0.15
+label = "Lowercase a-z"
 
 # =============================================================================
 # Entropy Analysis Configuration
@@ -61,10 +64,10 @@ label = "Extended"
 
 [entropy_analysis]
 # Sliding window size in bytes (larger = smoother, less detail)
-window_size = 256
+window_size = 1024
 
 # Step size for sliding window (larger = faster, less resolution)
-step = 64
+step = 128
 
 # Output image DPI
 dpi = 150
@@ -95,6 +98,13 @@ alpha = 0.5
 label = "High entropy (compressed/encrypted)"
 
 [[entropy_analysis.thresholds]]
+value = 6.0
+color = "#d97706"
+style = ":"
+alpha = 0.7
+label = "Packed / obfuscated code"
+
+[[entropy_analysis.thresholds]]
 value = 4.0
 color = "g"
 style = "--"
@@ -121,10 +131,10 @@ bar_alpha = 0.7
 dpi = 150
 
 # Radial tick positions (normalized 0-1)
-rticks = [0.25, 0.5, 0.75, 1.0]
+rticks = [0.5, 1.0]
 
 # Radial label position in degrees
-rlabel_position = 22.5
+rlabel_position = 67.5
 
 # =============================================================================
 # Heatmap Configuration
@@ -134,7 +144,7 @@ rlabel_position = 22.5
 [heatmap]
 # Block size (width of heatmap in bytes)
 # Smaller values show more detail, larger values show overall structure
-block_size = 256
+block_size = 64
 
 # Output image DPI
 dpi = 150
@@ -163,7 +173,7 @@ colorbar_label = "Byte Value"
 dpi = 150
 
 # Dashed guides at the printable ASCII range (0x20-0x7E)
-show_ascii_guides = true
+show_ascii_guides = false
 
 # Show colorbar legend
 show_colorbar = true
