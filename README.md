@@ -9,7 +9,7 @@
 [![Vue.js](https://img.shields.io/badge/Vue.js-3.x-brightgreen.svg)](https://vuejs.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-teal.svg)](https://fastapi.tiangolo.com)
 
-A comprehensive Python library and web application for creating security visualizations including attack trees, attack graphs, threat models, binary analysis diagrams, custom diagrams, Mermaid diagrams, cloud architecture diagrams, privilege gradient graphs, component diagrams, and dependency graphs.
+A comprehensive Python library, REST API and web application for creating security visualizations: attack trees, attack graphs, threat models (including MAESTRO for agentic AI), kill chains and MITRE ATT&CK / ATLAS matrices, incident timelines, vulnerability dependency trees, privilege gradients, binary analysis charts, trend charts, custom, Mermaid and cloud architecture diagrams, component diagrams and dependency graphs.
 
 ![USecVisLib](docs/images/ui-main.png)
 
@@ -19,24 +19,29 @@ A comprehensive Python library and web application for creating security visuali
 
 | Module | Description | Key Features |
 |--------|-------------|--------------|
-| **Attack Trees** | Hierarchical attack scenario diagrams | AND/OR gates, leaf nodes, 18 style presets, CVSS scoring |
-| **Attack Graphs** | Network attack path visualization | Path finding, critical node analysis, CVSS 3.x/4.0 scoring |
-| **Threat Modeling** | Data Flow Diagrams with STRIDE analysis | PyTM integration, report generation, trust boundaries |
-| **Custom Diagrams** | Flexible schema-driven diagrams | 100+ shapes, 20+ templates, custom schemas |
+| **Attack Trees** | Hierarchical attack scenario diagrams | AND/OR gates, leaf nodes, CVSS scoring, icons, 23 style presets |
+| **Attack Graphs** | Network attack path visualization | Path finding, critical node analysis, CVSS 3.x/4.0 scoring, grouping and collapse by zone or subnet, inferred (hypothesis) steps, "confirmed by N sources" markers, drift between versions, 21 style presets |
+| **Threat Modeling** | Data Flow Diagrams with STRIDE analysis | PyTM integration, report generation, trust boundaries, 19 style presets |
+| **Custom Diagrams** | Flexible schema-driven diagrams | 100+ shapes, 20+ templates, custom schemas, 14 style presets |
 | **Mermaid Diagrams** | Render Mermaid syntax to images | Flowcharts, sequence, class, state, ER, Gantt, pie charts |
 | **Cloud Diagrams** | Cloud architecture visualization | AWS, Azure, GCP, Kubernetes icons, clusters, templates |
-| **Privilege Gradient** | Trust zone and privilege level visualization | Zone inversion detection, escalation pathways, 5 styles |
-| **Component Diagrams** | Software component architecture diagrams | Layered architecture, connection types (sync/async/event), 4 styles |
-| **Dependency Graphs** | Module/package dependency visualization | SLOC-based sizing, circular dependency detection, 4 styles |
-| **MAESTRO Agentic Threat Models** | Threat modeling for agentic AI systems ([guide](docs/MAESTRO_GUIDE.md)) | 7-layer MAESTRO framework, 50-threat catalog, layered + heatmap views, STRIDE / AttackGraph / PrivilegeGradient cross-references, 5 style presets |
+| **Privilege Gradient** | Trust zone and privilege level visualization | Zone inversion detection, escalation pathways, grouping and collapse, drift with new / fixed / changed inversions, 10 style presets |
+| **Component Diagrams** | Software component architecture diagrams | Layered architecture, connection types (sync/async/event), 9 style presets |
+| **Dependency Graphs** | Module/package dependency visualization | SLOC-based sizing, circular dependency detection, coupling heat map, 9 style presets |
+| **MAESTRO Agentic Threat Models** | Threat modeling for agentic AI systems ([guide](docs/MAESTRO_GUIDE.md)) | 7-layer MAESTRO framework, catalog of 55 threats, 6 cross-layer chains and 93 mitigations, layered / heatmap / agent-graph views, STRIDE / AttackGraph / PrivilegeGradient exports, 10 style presets |
 | **Kill Chain / MITRE ATT&CK** | Attack progression through a standardized framework | Cyber Kill Chain / ATT&CK / MITRE ATLAS / custom axes, detection-gap coverage heat, incident paths, Graphviz + SVG engines, 8 style presets |
-| **Incident Timeline** | Chronology of a security incident for IR | Swimlane / gantt / vertical / compact modes, severity markers, response-phase bands, MTTD/MTTC/MTTR metrics, ATT&CK tagging, 6 style presets |
-| **Vulnerability Dependency Tree** | Software supply-chain / SCA analysis | Dependency tree with CVE annotations, severity heat, exploited-edge highlighting, tree / vulnerable-only / critical-path modes, impact propagation + remediation, 5 style presets |
-| **Binary Analysis** | Binary file pattern visualization | Entropy, byte distribution, wind rose, heatmap, byte-pair digraph |
+| **Incident Timeline** | Chronology of a security incident for IR | Swimlane / gantt / vertical / compact modes, severity markers, response-phase bands, MTTD/MTTC/MTTR metrics, ATT&CK tagging, 11 style presets |
+| **Vulnerability Dependency Tree** | Software supply-chain / SCA analysis | Dependency tree with CVE annotations, severity heat, exploited-edge highlighting, tree / vulnerable-only / critical-path modes, impact propagation + remediation, 10 style presets |
+| **Binary Analysis** | Binary file pattern visualization | Entropy, byte distribution, wind rose, heatmap, byte-pair digraph, 12 style presets |
+| **Trend Chart** | Metrics over time (library) | Small multiples on a shared time axis, line / area / step / bar and stacked panels, per-series statistics, 6 style presets |
 
 ### Platform Features
 
-- **REST API** - FastAPI-based API with OpenAPI documentation
+- **Two rendering engines** - Graphviz, or the built-in SVG engine (`--render-engine svg`) for attack trees, attack graphs, threat-model DFDs, privilege gradients, component and dependency diagrams, kill chains, timelines, vulnerability trees and the MAESTRO agent graph: crisp output, legends, and `data-*` attributes on every element for interactive use
+- **Drift and comparison** - `render_diff()` draws what changed between two versions of an attack graph or privilege gradient (added / removed / modified, new and fixed inversions); `compare_files()` and `compare_series()` diff any module
+- **Batch processing** - Render many files at once, from the library, CLI, API or web UI
+- **MCP server** - [usecvislib-mcp](https://github.com/vulnex/usecvislib-mcp) exposes the library to AI assistants (65 tools, see [MCP tools](docs/MCP_TOOLS.md))
+- **REST API** - FastAPI-based API (100 routes) with OpenAPI documentation
 - **Web Frontend** - Vue.js 3 application with dark theme UI ([UI Guide](docs/UI_GUIDE.md))
 - **Multi-Format Support** - TOML, JSON, and YAML configuration files
 - **Format Conversion** - Convert between configuration formats (including Mermaid export)
@@ -103,15 +108,15 @@ The images live in a separate repository, [vulnex/usecvislib-gallery](https://gi
 The web interface provides an intuitive way to create visualizations:
 
 ### Navigation
-- **Primary Tabs**: Attack Trees, Attack Graphs, Threat Modeling, Custom Diagrams, Mermaid, Cloud, Architecture (Component Diagrams & Dependency Graphs), Privilege Gradient, Binary Analysis
-- **Tools Menu**: CVSS Calculator, Format Converter, Batch Processing, Export, Compare
+- **Primary Tabs**: Attack Trees, Attack Graphs, Threat Modeling (with MAESTRO), Kill Chain, Timeline, Vuln Tree, Custom Diagrams, Mermaid, Cloud, Architecture (Component Diagrams & Dependency Graphs), Privilege Gradient, Binary Analysis
+- **Tools Menu**: CVSS Calculator, Format Converter, Batch Processing, Data Export, File Compare
 - **Header Actions**: Documentation, Settings, Clean/Reset
 
 ### Key Features
 - Drag-and-drop file upload
 - Live code editor with syntax highlighting
 - Real-time configuration validation
-- Zoomable visualization output
+- Zoomable visualization output; interactive SVG output from the SVG engine
 - CVSS display controls (toggle per visualization type)
 - Responsive design for mobile devices
 
@@ -225,8 +230,9 @@ usecvis -m 1 -i threat.toml -o diagram -f png -r
 # Binary Analysis (all visualizations)
 usecvis -m 2 -i binary.exe -o analysis -v all
 
-# Custom Diagram
-usecvis -m 4 -i diagram.toml -o output -f png -s cd_default
+# Mermaid and cloud diagrams
+usecvis -m 4 -i flowchart.toml -o output -f png -t dark
+usecvis -m 5 -i architecture.toml -o output -f png -d LR
 
 # Privilege Gradient Graph
 usecvis -m 6 -i gradient.toml -o output -f png -s pg_default
@@ -237,10 +243,27 @@ usecvis -m 7 -i components.toml -o output -f png -s cd_default
 # Dependency Graph
 usecvis -m 8 -i dependencies.toml -o output -f png -s dg_default
 
+# Kill Chain, Incident Timeline, Vulnerability Tree, MAESTRO
+usecvis -m 9 -i apt.tml -o killchain -f png
+usecvis -m 10 -i incident.tml -o timeline -f png -v swimlane
+usecvis -m 11 -i deps.tml -o vulntree -f png -v critical_path
+usecvis -m 12 -i agents.toml -o maestro -f png -v layered
+
+# The SVG engine (any sv_* preset)
+usecvis -m 3 -i network.toml -o graph -f svg --render-engine svg -s sv_dark
+
+# Drift between two versions (attack graphs, privilege gradients)
+usecvis -m 3 -i week2.tml --diff week1.tml -o drift -f png --changes-only
+
+# Group a large attack graph by zone and collapse it
+usecvis -m 3 -i scan.toml -o graph -f png --group-by zone --collapse auto
+
 # Format Conversion (including Mermaid export)
 usecvis -i attack.toml -o output --convert json
 usecvis -i threat.yaml -o diagram --convert mermaid
 ```
+
+Custom diagrams have no CLI mode: use the Python API, the REST API or the web UI. Every option is described in the [CLI Guide](docs/CLI_GUIDE.md).
 
 ### Python API
 
@@ -274,7 +297,7 @@ stats = bv.get_file_stats()
 # Custom Diagrams
 cd = CustomDiagrams()
 cd.load("diagram.toml")
-result = cd.BuildCustomDiagram(output="diagram", format="png")
+result = cd.BuildCustomDiagram(output="diagram", output_format="png")
 stats = cd.get_stats()
 
 # Privilege Gradient
@@ -288,6 +311,25 @@ comp.build()
 # Dependency Graph
 dg = DependencyGraph("dependencies.toml", "output", format="png", styleid="dg_default")
 dg.build()
+
+# Kill Chain, Incident Timeline, Vulnerability Tree, MAESTRO
+from usecvislib import IncidentTimeline, KillChain, MaestroThreatModel, VulnDependencyTree
+
+KillChain("apt.tml", "killchain", format="png").build()
+IncidentTimeline("incident.tml", "timeline", format="png").build()
+VulnDependencyTree("deps.tml", "vulntree", format="png", mode="critical_path").build()
+MaestroThreatModel("agents.toml", "maestro", format="png", view="graph", render_engine="svg").build()
+
+# Drift between two versions, drawn as one image
+from usecvislib import render_diff
+
+result = render_diff("week1.tml", "week2.tml", "attack_graph", output="drift", format="svg")
+print(result.summary)
+
+# Trend chart (metrics over time)
+from usecvislib import TrendChart
+
+TrendChart("engagement_metrics.toml", "trend", format="png").build()
 
 # Mermaid Diagrams (render Mermaid syntax to images)
 from usecvislib import MermaidDiagrams
@@ -524,29 +566,46 @@ label = "SQL"
 
 ## Available Styles
 
-### Attack Trees (18 styles)
-`at_default`, `at_white_black`, `at_black_white`, `at_corporate`, `at_neon`, `at_pastel`, `at_forest`, `at_fire`, `at_blueprint`, `at_sunset`, `at_hacker`, `at_minimal`, `at_plain`, `at_nordic`, `at_amethyst`, `at_steel`, `at_glacier`, `at_terra`
+Presets prefixed `sv_` belong to the built-in SVG engine (`--render-engine svg`); the others to Graphviz (or Matplotlib for binary, timeline and trend charts). See them all in the [gallery](https://vulnex.github.io/usecvislib-gallery/).
 
-### Attack Graphs (16 styles)
-`ag_default`, `ag_dark`, `ag_security`, `ag_network`, `ag_minimal`, `ag_neon`, `ag_corporate`, `ag_hacker`, `ag_blueprint`, `ag_plain`, `ag_nordic`, `ag_amethyst`, `ag_steel`, `ag_glacier`, `ag_terra`, `ag_doc_light`
+### Attack Trees (23 styles)
+`at_default`, `at_white_black`, `at_black_white`, `at_corporate`, `at_neon`, `at_pastel`, `at_forest`, `at_fire`, `at_blueprint`, `at_sunset`, `at_hacker`, `at_minimal`, `at_plain`, `at_nordic`, `at_amethyst`, `at_steel`, `at_glacier`, `at_terra`, `sv_default`, `sv_dark`, `sv_neon`, `sv_corporate`, `sv_minimal`
 
-### Threat Models (14 styles)
-`tm_default`, `tm_stride`, `tm_dark`, `tm_corporate`, `tm_neon`, `tm_minimal`, `tm_ocean`, `tm_sunset`, `tm_forest`, `tm_blueprint`, `tm_hacker`, `tm_plain`, `tm_doc_light`, `tm_doc_clean`
+### Attack Graphs (21 styles)
+`ag_default`, `ag_dark`, `ag_security`, `ag_network`, `ag_minimal`, `ag_neon`, `ag_corporate`, `ag_hacker`, `ag_blueprint`, `ag_plain`, `ag_nordic`, `ag_amethyst`, `ag_steel`, `ag_glacier`, `ag_terra`, `ag_doc_light`, `sv_default`, `sv_dark`, `sv_security`, `sv_corporate`, `sv_minimal`
 
-### Privilege Gradient (5 styles)
-`pg_default`, `pg_dark`, `pg_security`, `pg_neon`, `pg_corporate`
+### Threat Models (19 styles)
+`tm_default`, `tm_stride`, `tm_dark`, `tm_corporate`, `tm_neon`, `tm_minimal`, `tm_ocean`, `tm_sunset`, `tm_forest`, `tm_blueprint`, `tm_hacker`, `tm_plain`, `tm_doc_light`, `tm_doc_clean`, `sv_default`, `sv_dark`, `sv_security`, `sv_corporate`, `sv_minimal`
 
-### Component Diagrams (4 styles)
-`cd_default`, `cd_blueprint`, `cd_minimal`, `cd_dark`
+### Privilege Gradient (10 styles)
+`pg_default`, `pg_dark`, `pg_security`, `pg_neon`, `pg_corporate`, `sv_default`, `sv_dark`, `sv_security`, `sv_corporate`, `sv_minimal`
 
-### Dependency Graphs (4 styles)
-`dg_default`, `dg_dark`, `dg_minimal`, `dg_coupling`
+### Component Diagrams (9 styles)
+`cd_default`, `cd_blueprint`, `cd_minimal`, `cd_dark`, `sv_default`, `sv_dark`, `sv_security`, `sv_corporate`, `sv_minimal`
+
+### Dependency Graphs (9 styles)
+`dg_default`, `dg_dark`, `dg_minimal`, `dg_coupling`, `sv_default`, `sv_dark`, `sv_security`, `sv_corporate`, `sv_minimal`
+
+### Kill Chain (8 styles)
+`kc_default`, `kc_light`, `kc_coverage`, `sv_default`, `sv_dark`, `sv_neon`, `sv_corporate`, `sv_minimal`
+
+### Incident Timeline (11 styles)
+`tl_default`, `tl_light`, `tl_dark`, `tl_print`, `tl_minimal`, `tl_corporate`, `sv_default`, `sv_dark`, `sv_print`, `sv_corporate`, `sv_minimal`
+
+### Vulnerability Tree (10 styles)
+`vt_default`, `vt_dark`, `vt_security`, `vt_corporate`, `vt_minimal`, `sv_default`, `sv_dark`, `sv_security`, `sv_corporate`, `sv_minimal`
+
+### MAESTRO (10 styles)
+`ma_default`, `ma_dark`, `ma_blueprint`, `ma_severity`, `ma_compact`, `sv_default`, `sv_dark`, `sv_security`, `sv_corporate`, `sv_minimal`
 
 ### Binary Visualization (12 styles)
 `bv_default`, `bv_dark`, `bv_security`, `bv_ocean`, `bv_forest`, `bv_sunset`, `bv_cyber`, `bv_minimal`, `bv_corporate`, `bv_fire`, `bv_purple`, `bv_rainbow`
 
-### Custom Diagrams (9 styles)
-`cd_default`, `cd_dark`, `cd_corporate`, `cd_neon`, `cd_minimal`, `cd_blueprint`, `cd_hacker`, `cd_pastel`, `cd_plain`
+### Custom Diagrams (14 styles)
+`cd_default`, `cd_dark`, `cd_light`, `cd_colorful`, `cd_blueprint`, `cd_sketch`, `cd_corporate`, `cd_neon`, `cd_pastel`, `cd_minimal`, `cd_monochrome`, `cd_security`, `cd_nature`, `cd_ocean`
+
+### Trend Chart (6 styles)
+`tr_default`, `tr_light`, `tr_dark`, `tr_print`, `tr_minimal`, `tr_corporate`
 
 ## REST API
 
@@ -554,42 +613,28 @@ The FastAPI-based REST API provides programmatic access to all features.
 
 ### Endpoints
 
-| Category | Endpoint | Method | Description |
-|----------|----------|--------|-------------|
-| **Health** | `/health` | GET | API status and version |
-| **Attack Trees** | `/visualize/attack-tree` | POST | Generate visualization |
-| | `/analyze/attack-tree` | POST | Get statistics |
-| | `/validate/attack-tree` | POST | Validate structure |
-| **Attack Graphs** | `/visualize/attack-graph` | POST | Generate visualization |
-| | `/analyze/attack-graph` | POST | Get statistics |
-| | `/analyze/attack-paths` | POST | Find attack paths |
-| | `/analyze/critical-nodes` | POST | Identify critical nodes |
-| **Threat Models** | `/visualize/threat-model` | POST | Generate DFD |
-| | `/analyze/stride` | POST | STRIDE analysis |
-| | `/report/threat-model` | POST | Generate report |
-| **Binary** | `/visualize/binary` | POST | Generate visualization |
-| | `/analyze/binary` | POST | Get file statistics |
-| **Custom Diagrams** | `/visualize/custom-diagram` | POST | Generate custom diagram |
-| | `/analyze/custom-diagram` | POST | Get diagram statistics |
-| | `/custom-diagrams/shapes` | GET | List available shapes |
-| | `/custom-diagrams/templates` | GET | List available templates |
-| **Mermaid** | `/visualize/mermaid` | POST | Render Mermaid to image |
-| | `/mermaid/templates` | GET | List Mermaid templates |
-| | `/mermaid/template/{category}/{name}` | GET | Get template content |
-| **Cloud** | `/visualize/cloud` | POST | Generate cloud diagram |
-| | `/cloud/templates` | GET | List cloud templates |
-| | `/cloud/template/{category}/{name}` | GET | Get template content |
-| | `/cloud/icons` | GET | List available cloud icons |
-| | `/cloud/providers` | GET | List supported providers |
-| **Privilege Gradient** | `/visualize/privilege-gradient` | POST | Generate privilege gradient |
-| | `/analyze/privilege-gradient` | POST | Analyze trust zones |
-| **Architecture** | `/visualize/component-diagram` | POST | Generate component diagram |
-| | `/analyze/component-diagram` | POST | Get component statistics |
-| | `/visualize/dependency-graph` | POST | Generate dependency graph |
-| | `/analyze/dependency-graph` | POST | Get dependency statistics |
-| **Utilities** | `/convert` | POST | Convert formats |
-| | `/styles` | GET | List available styles |
-| | `/templates` | GET | List templates |
+100 routes in all; the main ones by module (each `visualize` route takes an uploaded file plus `format`, `style` and, where supported, `render_engine`):
+
+| Category | Endpoints |
+|----------|-----------|
+| **Health** | `GET /health`, `GET /engines`, `GET /formats` |
+| **Attack Trees** | `POST /visualize/attack-tree`, `/analyze/attack-tree`, `/validate/attack-tree` |
+| **Attack Graphs** | `POST /visualize/attack-graph` (grouping: `group_by`, `collapse`, `max_nodes`), `/analyze/attack-graph`, `/analyze/attack-paths`, `/analyze/critical-nodes`, `/analyze/centrality`, `/analyze/chokepoints`, `/analyze/attack-surface`, `/analyze/vulnerability-impact`, `/analyze/graph-metrics`, `/validate/attack-graph` |
+| **Threat Models** | `POST /visualize/threat-model`, `/analyze/threat-model`, `/analyze/stride`, `/report/threat-model`; `GET /threats/library`, `/threats/element-types` |
+| **MAESTRO** | `POST /visualize/maestro`, `/analyze/maestro`, `/analyze/maestro/threats`, `/validate/maestro`, `/maestro/export/{target}`; `GET /maestro/catalog`, `/maestro/catalog/{layer}` |
+| **Kill Chain** | `POST /visualize/kill-chain`, `/analyze/kill-chain`, `/validate/kill-chain` |
+| **Incident Timeline** | `POST /visualize/timeline`, `/analyze/timeline`, `/validate/timeline` |
+| **Vulnerability Tree** | `POST /visualize/vuln-tree`, `/analyze/vuln-tree`, `/validate/vuln-tree` |
+| **Privilege Gradient** | `POST /visualize/privilege-gradient`, `/analyze/privilege-gradient`, `/analyze/inversions`, `/validate/privilege-gradient` |
+| **Architecture** | `POST /visualize/component-diagram`, `/analyze/component-diagram`, `/validate/component-diagram`, `/visualize/dependency-graph`, `/analyze/dependency-graph`, `/validate/dependency-graph` |
+| **Binary** | `POST /visualize/binary`, `/analyze/binary` |
+| **Custom Diagrams** | `POST /custom-diagrams/visualize`, `/custom-diagrams/validate`, `/custom-diagrams/stats`, `/custom-diagrams/import`, `/custom-diagrams/from-template`; `GET /custom-diagrams/shapes`, `/custom-diagrams/templates`, `/custom-diagrams/layouts`, `/custom-diagrams/styles` |
+| **Mermaid** | `POST /visualize/mermaid`, `/analyze/mermaid`; `GET /mermaid/templates`, `/mermaid/template/{category}/{name}`, `/mermaid/themes`, `/mermaid/types` |
+| **Cloud** | `POST /visualize/cloud`, `/analyze/cloud`, `/cloud/generate-code`; `GET /cloud/templates`, `/cloud/template/{category}/{name}`, `/cloud/icons`, `/cloud/providers` |
+| **Drift and comparison** | `POST /diff/compare`, `/diff/render` (drift picture; summary in `X-Diff-Summary`, inversions in `X-Diff-Inversions`) |
+| **Batch, export, convert** | `POST /batch/visualize`, `/export/data`, `/export/sections`, `/convert` |
+| **Images and icons** | `POST /images/upload`; `GET /images`, `/images/{image_id}`, `/icons`, `/icons/categories` |
+| **Settings and styles** | `GET`/`PUT /settings`, `GET /styles`, `GET /templates`, `GET /progress/{job_id}` |
 
 ### API Documentation
 
@@ -614,13 +659,24 @@ usecvislib/
 │   ├── privilegegradient.py  # Privilege gradient graphs
 │   ├── componentdiagram.py   # Component architecture diagrams
 │   ├── dependencygraph.py    # Dependency graph visualization
+│   ├── killchain.py          # Kill chain / MITRE ATT&CK / ATLAS
+│   ├── timeline.py           # Incident timeline
+│   ├── vulntree.py           # Vulnerability dependency tree
+│   ├── maestro.py            # MAESTRO agentic threat models
+│   ├── trend.py              # Trend charts (metrics over time)
+│   ├── diff.py, diffrender.py, drift.py  # Comparison and drift pictures
+│   ├── grouping.py           # Grouping and collapse
+│   ├── registry.py           # Table of modules (CLI modes, keys, classes)
+│   ├── batch.py              # Batch processing
 │   ├── builders.py           # Builder pattern classes
+│   ├── svgengine/            # Built-in SVG rendering engine (painters per module)
 │   ├── shapes/               # Shape gallery system
 │   ├── schema/               # Schema validation
 │   ├── utils.py              # Utility functions
-│   └── models/               # Style configurations
+│   └── models/               # Style presets and the MAESTRO threat catalog
 ├── api/                      # FastAPI REST API
 │   ├── main.py               # API application
+│   ├── routers/              # Endpoints, one router per module
 │   └── schemas.py            # Pydantic models
 ├── frontend/                 # Vue.js web application
 │   ├── src/
@@ -638,10 +694,16 @@ usecvislib/
 │   ├── cloud/                # Cloud architecture templates
 │   ├── privilege-gradient/   # Privilege gradient templates
 │   ├── architecture/         # Component diagram & dependency graph templates
-│   └── maestro/              # MAESTRO agentic threat model templates
+│   ├── kill-chains/          # Kill chain and ATLAS templates
+│   ├── timelines/            # Incident timeline templates
+│   ├── vuln-trees/           # Vulnerability dependency tree templates
+│   ├── maestro/              # MAESTRO agentic threat model templates
+│   ├── drift/                # Two versions each, for drift pictures
+│   └── trends/               # Trend chart data
 ├── scripts/
 │   └── build_gallery.py      # Regenerates the render gallery (vulnex/usecvislib-gallery)
-├── tests/                    # Unit tests (1500+ tests)
+├── docs/                     # Guides: CLI, Python API, templates, UI, MAESTRO, MCP tools
+├── tests/                    # Test suite (3,200+ tests, byte-exact SVG goldens)
 ├── docker-compose.yml        # Docker Compose config
 ├── Dockerfile                # Docker image
 ├── requirements.txt          # Python dependencies
@@ -660,6 +722,8 @@ pytest tests/ --cov=usecvislib --cov-report=html
 # Run specific module tests
 pytest tests/test_attackgraphs.py -v
 ```
+
+Rendering tests need the Graphviz `dot` binary. The SVG golden files are byte-exact against the Graphviz build in Debian / Ubuntu (the Docker image and CI); with another Graphviz version (e.g. Homebrew) those golden tests fail while the rest pass, so run the suite in the container when they matter.
 
 ## Docker Deployment
 
@@ -693,6 +757,10 @@ docker-compose down
 | `RATE_LIMIT_VISUALIZE` | 10/minute | Visualization rate limit |
 | `RATE_LIMIT_ANALYZE` | 20/minute | Analysis rate limit |
 | `API_ROOT_PATH` | "" | API root path for proxies |
+| `REQUEST_TIMEOUT_VISUALIZE` / `_ANALYZE` / `_BATCH` | 120 / 60 / 300 | Seconds before a request is abandoned |
+| `FORWARDED_ALLOW_IPS` | dashboard proxy | Proxies whose `X-Forwarded-For` is trusted (rate limiting per client) |
+| `IMAGE_UPLOAD_DIR` | temp dir | Where uploaded images (for icons) are kept |
+| `API_BIND_ADDRESS` | 127.0.0.1 | Docker Compose: the host address the API port (8003) is published on; `0.0.0.0` exposes it to other hosts |
 
 ## API Authentication
 
