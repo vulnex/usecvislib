@@ -127,9 +127,11 @@ async def visualize_mermaid(
         # Load the file
         md.load(input_path)
 
-        # Render with timeout protection (pass width/height/background to render)
+        # Render with timeout protection; the chosen theme wins over a config wrapper's
         await run_sync_with_timeout(
-            lambda: md.render(output_base, format=format.value, width=width, height=height, background=background),
+            lambda: md.render(
+                output_base, format=format.value, width=width, height=height, theme=theme.value, background=background
+            ),
             REQUEST_TIMEOUT_VISUALIZE,
             "mermaid rendering",
             on_abandon=temps.cleanup,

@@ -259,7 +259,7 @@ def main(argv: Optional[list[str]] = None) -> int:
     generate_report = False
     attack_paths = ""  # source,target for attack graph path analysis
     analyze_critical = False
-    theme = "default"  # Mermaid theme
+    theme = None  # Mermaid theme (None: the input file's own, else default)
     direction = "TB"  # Cloud diagram direction
     shine = False  # Post-process SVG output with shine styling
     render_engine = "graphviz"  # Rendering engine: graphviz or svg
@@ -645,7 +645,7 @@ def main(argv: Optional[list[str]] = None) -> int:
 
             # Validate theme
             valid_themes = ["default", "dark", "forest", "neutral", "base"]
-            if theme not in valid_themes:
+            if theme is not None and theme not in valid_themes:
                 error_exit(f"Invalid theme: {theme}. Must be one of: {', '.join(valid_themes)}")
 
             # Validate format for Mermaid
@@ -653,9 +653,10 @@ def main(argv: Optional[list[str]] = None) -> int:
             if format not in valid_mermaid_formats:
                 error_exit(f"Invalid format for Mermaid: {format}. Must be one of: {', '.join(valid_mermaid_formats)}")
 
-            md = mermaiddiagrams.MermaidDiagrams(theme=theme, validate_cli=True)
+            md = mermaiddiagrams.MermaidDiagrams(validate_cli=True)
             md.load(inputfile)
-            result = md.render(outputfile, format=format)
+            # An explicit -t wins over the theme a config wrapper sets
+            result = md.render(outputfile, format=format, theme=theme)
             print(f"Mermaid diagram generated: {result.output_path}")
 
             # Print diagram statistics

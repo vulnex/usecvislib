@@ -4,7 +4,7 @@
 [mermaid]
 title = "Attack Flow"
 theme = "dark"
-background = "transparent"
+background = "white"
 width = 1200
 height = 800
 
