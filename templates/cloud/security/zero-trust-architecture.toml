@@ -6,6 +6,8 @@ title = "Zero Trust Architecture"
 direction = "TB"
 outformat = "png"
 show = false
+# Room for the edge labels (they ran into node labels at the default spacing)
+graph_attr = {nodesep = "0.9", ranksep = "1.3"}
 
 # Identity Cluster
 [[clusters]]
@@ -136,6 +138,19 @@ label = "Encrypt"
 from = "apps"
 to = "secrets"
 label = "Fetch secrets"
+
+# Monitoring watches the request path
+[[edges]]
+from = "firewall"
+to = "guardduty"
+label = "Flow logs"
+style = "dashed"
+
+[[edges]]
+from = "apps"
+to = "cloudtrail"
+label = "API activity"
+style = "dashed"
 
 [[edges]]
 from = "guardduty"
