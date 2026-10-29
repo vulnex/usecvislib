@@ -507,7 +507,7 @@ group = "dmz"              # or set the group directly (wins over group_by)
 - The size limit (10,000 nodes / 50,000 edges) applies to what is drawn, so a large scan grouped by subnet and collapsed renders instead of being rejected.
 - Path analysis and statistics always use the full graph. With grouping on, statistics add per-group counts (`groups`).
 - The same options exist as render parameters (`AttackGraphs(..., group_by=, collapse=, max_nodes=)`, `--group-by` / `--collapse` / `--max-nodes`, and API query parameters), which override the file.
-- SVG output: clusters are `usv-cluster` groups with `data-cluster-id` and `data-collapsed="false"`; summary nodes have class `usv-node--group` with `data-collapsed="true"`, `data-cluster-id`, `data-member-count`, `data-hosts`, `data-vulnerabilities`, `data-max-cvss`; merged edges carry `data-edge-count`.
+- SVG output: clusters are `usv-cluster` groups with `data-cluster-id` and `data-collapsed="false"` (a cluster's title is a separate `usv-label--cluster` group with the same `data-cluster-id`, painted above the edges); summary nodes have class `usv-node--group` with `data-collapsed="true"`, `data-cluster-id`, `data-member-count`, `data-hosts`, `data-vulnerabilities`, `data-max-cvss`; merged edges carry `data-edge-count`.
 
 Example: `templates/attack-graphs/segmented_enterprise.toml`.
 

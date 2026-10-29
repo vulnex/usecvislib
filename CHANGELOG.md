@@ -101,6 +101,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Render gallery review (2026-10-29).** Every gallery image was reviewed by eye. Fixes:
+  - **Cluster titles struck by edges.** Graphviz routes edges through a cluster's title band. `render_graph` now moves a struck title to the left, center or right of its band, wherever fewer edges and edge labels cross it (`labeljust`; nodes and edges do not move). The SVG engine makes the same choice and paints titles above the edges with a halo in the cluster's fill. A title is now its own `usv-label--cluster` group with the cluster's `data-cluster-id`. Struck titles across the gallery: 192 → 110, and the SVG-engine titles still crossed are drawn over the edge.
+  - **Attack-graph exploit nodes** in the default style use the preset font (they fell back to a larger Times).
+  - **Mermaid:** the theme chosen with `-t` or on `POST /visualize/mermaid` wins over a config file's theme (dark renders of the templates came out in the default theme).
+  - **Readable labels.**
+    - Light fills with white text (1.9–2.7:1) get dark text: `at_sunset`, `at_steel`, `ag_steel` services, the kill-chain technique base, the `tm_default` / `tm_stride` data stores and externals, and custom-diagram template node types.
+    - The ransomware tree's coral root and goal turn `#e03131`.
+    - The attack-tree SVG engine picks label color by contrast when a template sets only a fill.
+    - Removed drift elements and inferred kill-chain techniques fade the fill only; the label stays opaque in a readable color (`utils.blend_color`).
+  - **`sv_minimal` shows the diagram title,** like the Graphviz minimal presets.
+  - **Symbols in SVG-engine PNG / PDF:** a line with an arrow, math or misc symbol (e.g. "⚠ circular") is set in DejaVu Sans, because cairosvg has no per-glyph font fallback and Carlito has no ⚠.
+  - **Templates:**
+    - AWS attack-tree edge severities match their CVSS.
+    - The corporate network routes Internet traffic through its firewall.
+    - `binvis_config.toml` differs from the defaults.
+    - The npm vulnerability tree has clean and medium-only branches, so its three modes differ.
 - **Privilege Gradient SVG engine: kept components without a group.** With `render_engine="svg"`, grouping, `collapse` and `keep="inversions"`, an inversion endpoint that belongs to no group crashed the render (`KeyError: None`). It is now drawn on its own, as the Graphviz engine already did. Found by the MCP server's tests.
 - **Image uploads work in the Docker image.** The image had no `/app/images` directory, so the `image_uploads` volume mounted there was owned by root and `POST /images/upload` failed with 500 (`PermissionError`) for the non-root API user. The Dockerfile now creates it, owned by `appuser`. An existing volume keeps its old owner; fix it once with `docker compose exec -u root usecvislib-api chown appuser:appuser /app/images`.
 - **Matplotlib charts are safe to draw from several threads.** pyplot keeps global state: binary charts saved and closed whichever figure was current, and the trend chart changes `rcParams` while saving. Concurrent draws (the batch thread pool, API worker threads) could therefore mix figures or settings. Binary charts, the incident timeline, the trend chart and the MAESTRO heatmap now hold one shared lock (`utils.MATPLOTLIB_LOCK`) while they build or save a figure. Graphviz and SVG-engine renders are not affected and still run in parallel.
