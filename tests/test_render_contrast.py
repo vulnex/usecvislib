@@ -172,3 +172,41 @@ def test_svg_symbol_lines_get_a_symbol_font():
     assert shapes.SYMBOL_FONT in warn.get("style", "")
     assert warn.text == "⚠ circular" and len(warn) == 0
     assert shapes.anchored_text(0, 0, "plain ×2 · text", 10, "#000").get("style") is None
+
+
+def _cluster_layout(edge_x):
+    """A -Tjson-like layout: one cluster titled at the left of its top band, one vertical edge at ``edge_x``."""
+    return {
+        "objects": [{"name": "cluster_a", "label": "Zone", "bb": "0,0,300,100", "lp": "28,90", "lwidth": "0.5", "lheight": "0.25"}],
+        "edges": [{"_draw_": [{"op": "b", "points": [[edge_x, 0], [edge_x, 40], [edge_x, 80], [edge_x, 120]]}]}],
+    }
+
+
+def test_cluster_title_moves_off_a_crossing_edge():
+    assert utils.cluster_label_positions(_cluster_layout(28)) == {"cluster_a": "c"}
+    assert utils.cluster_label_positions(_cluster_layout(150)) == {}  # nothing crosses: stays
+    layout = _cluster_layout(28)
+    layout["objects"][0]["bb"] = "0,0,50,100"  # the title fills the band: nowhere to go
+    assert utils.cluster_label_positions(layout) == {}
+
+
+def test_place_cluster_labels_sets_labeljust(monkeypatch):
+    graphviz = pytest.importorskip("graphviz")
+    import shutil
+
+    if not shutil.which("dot"):
+        pytest.skip("Graphviz dot not installed")
+    g = graphviz.Digraph()
+    with g.subgraph(name="cluster_z") as c:
+        c.attr(label="Zone", labeljust="l")
+        c.node("a")
+    g.node("b")
+    monkeypatch.setattr(utils, "cluster_label_positions", lambda layout: {"cluster_z": "r"})
+    placed = utils.place_cluster_labels(g)
+    lines = placed.source.split("\n")
+    at = next(i for i, line in enumerate(lines) if line.strip().startswith("subgraph cluster_z"))
+    # after the cluster's own attributes, so it overrides their labeljust=l
+    assert "labeljust=l" in lines[at + 1] and lines[at + 2].strip() == "labeljust=r"
+    placed.pipe(format="json")  # still valid DOT
+    monkeypatch.setattr(utils, "cluster_label_positions", lambda layout: {})
+    assert utils.place_cluster_labels(g) is g

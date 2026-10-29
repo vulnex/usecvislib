@@ -1673,12 +1673,146 @@ def embed_svg_images(svg_path: Union[str, Path]) -> int:
     return embedded
 
 
+def _xdot_points(ops: Any) -> list[tuple[float, float]]:
+    """Points along the lines an xdot draw-op list paints (beziers sampled)."""
+    points: list[tuple[float, float]] = []
+    for op in ops or []:
+        pts = [(float(p[0]), float(p[1])) for p in op.get("points", [])]
+        if not pts:
+            continue
+        if op.get("op") in ("b", "B") and (len(pts) - 1) % 3 == 0:
+            for i in range(0, len(pts) - 1, 3):
+                p0, c1, c2, p1 = pts[i : i + 4]
+                for k in range(11):
+                    t = k / 10
+                    u = 1 - t
+                    points.append(
+                        (
+                            u**3 * p0[0] + 3 * u * u * t * c1[0] + 3 * u * t * t * c2[0] + t**3 * p1[0],
+                            u**3 * p0[1] + 3 * u * u * t * c1[1] + 3 * u * t * t * c2[1] + t**3 * p1[1],
+                        )
+                    )
+        else:
+            closed = pts + pts[:1] if op.get("op") in ("P", "p") else pts
+            for a, b in zip(closed, closed[1:]):
+                steps = max(1, int(max(abs(b[0] - a[0]), abs(b[1] - a[1])) / 3))
+                points.extend((a[0] + (b[0] - a[0]) * k / steps, a[1] + (b[1] - a[1]) * k / steps) for k in range(steps))
+            points.append(closed[-1])
+    return points
+
+
+def _xdot_text_boxes(ops: Any) -> list[tuple[float, float, float, float]]:
+    """Boxes (x0, y0, x1, y1) of the text an xdot draw-op list paints."""
+    boxes = []
+    size = 14.0
+    for op in ops or []:
+        if op.get("op") == "F":
+            size = float(op.get("size", size))
+        elif op.get("op") == "T":
+            x, y = (float(v) for v in op["pt"])
+            width = float(op.get("width", 0))
+            x0 = {"l": x, "r": x - width}.get(op.get("align"), x - width / 2)
+            boxes.append((x0, y - size * 0.3, x0 + width, y + size * 0.9))
+    return boxes
+
+
+def cluster_label_positions(layout: dict) -> dict[str, str]:
+    """Clusters whose title an edge or edge label crosses, and a clearer side.
+
+    ``layout`` is Graphviz ``-Tjson`` output. Each labelled cluster's title is
+    tried at its current place, then left, center and right of the cluster's
+    top band; the one with the fewest crossings wins, the current place on a
+    tie. Returns ``{cluster name: "l" | "c" | "r"}`` for the titles to move.
+    Moving a title does not move nodes or edges (Graphviz reserves the band
+    for the title's width, wherever it sits).
+    """
+    edges = layout.get("edges", [])
+    lines: list[tuple[float, float]] = []
+    labels: list[tuple[float, float, float, float]] = []
+    for edge in edges:
+        for key in ("_draw_", "_hdraw_", "_tdraw_"):
+            lines.extend(_xdot_points(edge.get(key)))
+        for key, ops in edge.items():
+            if key.endswith("ldraw_"):
+                labels.extend(_xdot_text_boxes(ops))
+
+    def crossings(box: tuple[float, float, float, float]) -> int:
+        x0, y0, x1, y1 = box
+        hit = sum(1 for px, py in lines if x0 - 2 <= px <= x1 + 2 and y0 - 2 <= py <= y1 + 2)
+        return hit + 50 * sum(1 for b in labels if b[0] < x1 and x0 < b[2] and b[1] < y1 and y0 < b[3])
+
+    moves: dict[str, str] = {}
+    for obj in layout.get("objects", []):
+        name = str(obj.get("name", ""))
+        if not name.startswith("cluster") or not obj.get("label") or not obj.get("lp") or not obj.get("bb"):
+            continue
+        try:
+            bx0, _, bx1, _ = (float(v) for v in obj["bb"].split(","))
+            lx, ly = (float(v) for v in obj["lp"].split(","))
+            width, height = float(obj.get("lwidth", 0)) * 72, float(obj.get("lheight", 0)) * 72
+        except (ValueError, TypeError):
+            continue
+        if width <= 0 or bx1 - bx0 < width + 24:
+            continue  # the title fills the band: nowhere else to go
+        candidates = {"l": bx0 + 8 + width / 2, "c": (bx0 + bx1) / 2, "r": bx1 - 8 - width / 2}
+        current = min(candidates, key=lambda k: abs(candidates[k] - lx))
+
+        def box(cx: float) -> tuple[float, float, float, float]:
+            return (cx - width / 2, ly - height / 2, cx + width / 2, ly + height / 2)
+
+        scores = {k: crossings(box(cx)) for k, cx in candidates.items()}
+        if scores[current] == 0:
+            continue
+        best = min(scores, key=lambda k: (scores[k], k != current))
+        if best != current:
+            moves[name] = best
+    return moves
+
+
+def place_cluster_labels(graph: Any) -> Any:
+    """``graph``, with cluster titles moved off the edges that cross them.
+
+    Lays the graph out once (``-Tjson``), asks :func:`cluster_label_positions`
+    which titles to move and sets ``labeljust`` on those clusters. Returns the
+    graph unchanged when it has no clusters, nothing to move, or the layout
+    fails (the render then reports the error).
+    """
+    source = getattr(graph, "source", "")
+    if "subgraph" not in source or "cluster" not in source:
+        return graph
+    try:
+        import graphviz
+
+        layout = json.loads(graph.pipe(format="json").decode("utf-8"))
+    except Exception:  # noqa: BLE001 - the real render reports layout errors
+        return graph
+    moves = cluster_label_positions(layout)
+    if not moves:
+        return graph
+    lines = source.split("\n")
+    for name, just in moves.items():
+        opening = re.compile(r'^\s*subgraph\s+("?)' + re.escape(name) + r'\1\s*\{\s*$')
+        for i, line in enumerate(lines):
+            if opening.match(line):
+                # After the cluster's own attribute line ("graph [...]" or
+                # "key=value ..."), so it wins over a labeljust set there
+                own_attrs = i + 1 < len(lines) and re.match(r"\s*(graph\s*\[|\w+\s*=)", lines[i + 1])
+                at = i + 2 if own_attrs else i + 1
+                lines.insert(at, f"\t\tlabeljust={just}")
+                break
+    return graphviz.Source(
+        "\n".join(lines), engine=getattr(graph, "engine", "dot"), format=getattr(graph, "format", "svg")
+    )
+
+
 def render_graph(graph: Any, outputfile: str, **kwargs: Any) -> str:
     """Render a ``graphviz`` graph to ``outputfile`` and make SVG output self-contained.
 
-    Same as ``graph.render(outputfile, cleanup=True)``, plus
-    :func:`embed_svg_images` when the output is SVG.
+    Same as ``graph.render(outputfile, cleanup=True)``, after
+    :func:`place_cluster_labels`, plus :func:`embed_svg_images` when the
+    output is SVG.
     """
+    graph = place_cluster_labels(graph)
     rendered = graph.render(outputfile, cleanup=True, **kwargs)
     if str(rendered).lower().endswith(".svg"):
         embed_svg_images(rendered)
