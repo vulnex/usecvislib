@@ -28,20 +28,18 @@ from .metrics import LINE_HEIGHT
 
 # Arrows, math operators, technical symbols, geometric shapes, misc symbols,
 # dingbats: glyphs many text fonts lack (Carlito has no U+26A0). cairosvg does
-# no per-glyph font fallback, so these get a symbol-capable font of their own.
-_SYMBOL_RUN = re.compile(r"[\u2190-\u23ff\u25a0-\u27bf\u2b00-\u2bff]+")
+# no per-glyph font fallback and misplaces a <tspan> in centered text, so a
+# line holding one is set in a symbol-capable font as a whole.
+_SYMBOL = re.compile(r"[\u2190-\u23ff\u25a0-\u27bf\u2b00-\u2bff]")
 SYMBOL_FONT = "DejaVu Sans, Segoe UI Symbol, Apple Symbols, sans-serif"
 
 
 def set_text(element: ET.Element, text: str) -> ET.Element:
-    """Set ``element``'s text, putting symbol runs in <tspan>s with :data:`SYMBOL_FONT`."""
-    parts = _SYMBOL_RUN.split(text)
-    symbols = _SYMBOL_RUN.findall(text)
-    element.text = parts[0]
-    for symbol, tail in zip(symbols, parts[1:]):
-        tspan = ET.SubElement(element, "tspan", {"font-family": SYMBOL_FONT})
-        tspan.text = symbol
-        tspan.tail = tail
+    """Set ``element``'s text; a line with a symbol gets :data:`SYMBOL_FONT`."""
+    element.text = text
+    if _SYMBOL.search(text):
+        # Inline style: it outranks the painters' ``.usv-* text`` font rule
+        element.set("style", f"font-family: {SYMBOL_FONT}")
     return element
 
 
