@@ -55,19 +55,21 @@ class MaestroLayer(Enum):
     AGENT_ECOSYSTEM = "agent-ecosystem"
 
 
-# Display order for the layered render (top to bottom).
+# Display order for the layered render (top to bottom) and the heatmap
+# columns: the MAESTRO stack, L7 down to L1. A custom order (user surface,
+# then frameworks and models, security last) read as scrambled.
 # L6 (Security) was originally intended as a vertical gutter cutting across
 # all bands, but a true sidebar doesn't translate cleanly to Graphviz' TB
 # layout. We render it as a regular band styled distinctly to flag its
 # "cross-cutting" nature, and keep a small summary note alongside.
 LAYER_DISPLAY_ORDER = [
-    MaestroLayer.AGENT_ECOSYSTEM,
-    MaestroLayer.AGENT_FRAMEWORKS,
-    MaestroLayer.FOUNDATION_MODELS,
-    MaestroLayer.DATA_OPERATIONS,
-    MaestroLayer.INFRASTRUCTURE,
-    MaestroLayer.OBSERVABILITY,
-    MaestroLayer.SECURITY,
+    MaestroLayer.AGENT_ECOSYSTEM,  # L7
+    MaestroLayer.SECURITY,  # L6
+    MaestroLayer.OBSERVABILITY,  # L5
+    MaestroLayer.INFRASTRUCTURE,  # L4
+    MaestroLayer.AGENT_FRAMEWORKS,  # L3
+    MaestroLayer.DATA_OPERATIONS,  # L2
+    MaestroLayer.FOUNDATION_MODELS,  # L1
 ]
 
 

@@ -300,7 +300,7 @@ The chain steps must reference threats targeting concrete agents (either auto-po
 
 ### Layered Architecture (default, `view = "layered"`)
 
-Seven horizontal bands stacked top-to-bottom (L7 → L3 → L1 → L2 → L4 → L5 → L6). Each agent appears in **every layer it declares**, with a per-layer severity badge showing the count of open unmitigated threats targeting that agent on that layer. Cross-layer attack chains appear as dashed red edges between the appropriate `(agent, layer)` nodes.
+Seven horizontal bands stacked top-to-bottom in MAESTRO order, L7 → L1. Each agent appears in **every layer it declares**, with a per-layer severity badge showing the count of open unmitigated threats targeting that agent on that layer. Cross-layer attack chains appear as dashed red edges between the appropriate `(agent, layer)` nodes.
 
 **Best for:** architecture analysis, security review, walkthroughs.
 
@@ -367,7 +367,7 @@ Select via `-s <preset_id>` on the CLI, `style=` query param on the API, or the 
 
 | Element | What it means |
 |---|---|
-| **Horizontal band** | One MAESTRO layer (L1–L7). Band order top-to-bottom is L7, L3, L1, L2, L4, L5, L6 — user surface to security cross-cut. |
+| **Horizontal band** | One MAESTRO layer (L1–L7). Band order top-to-bottom is L7 down to L1, as in the MAESTRO stack. The heatmap columns follow the same order. |
 | **Blue rounded box** | An agent, in one of the layers it declares. The same agent appears in every layer in its `layers` list. |
 | **Purple cylinder** | An asset (data store), in its owning layer. |
 | **Tiny red text under agent name** | Per-layer open-threat count and worst severity: `13 open (critical)` means 13 unmitigated threats target this agent on this layer, with at least one critical. |
