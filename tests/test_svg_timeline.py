@@ -211,3 +211,15 @@ class TestLabelLayout:
         assert 4 <= len(ticks) <= 8
         for t, _ in ticks:
             assert t.second == 0 and t.minute == 0  # hourly or coarser for an 11h span
+
+
+def test_side_by_side_labels_keep_a_word_gap():
+    from usecvislib.svgengine.painters import timeline as tl
+
+    placer = tl._LabelPlacer()
+    first = placer.place(100.0, 100.0, 20.0)
+    # 3px apart read as one string: the second label moves to another slot
+    second = placer.place(100.0 + 100.0 + tl._LABEL_GAP_X - 2.0, 100.0, 20.0)
+    assert second != first
+    third = placer.place(100.0 + 100.0 + tl._LABEL_GAP_X + 2.0, 100.0, 20.0)
+    assert third == first

@@ -52,6 +52,8 @@ _LABEL_STEP = 14.0
 _LABEL_BASE = 12.0
 _LABEL_LEVELS = 14
 _LABEL_PAD = 3.0
+# Side by side, labels a few px apart read as one string ("...OAuth Inbox rule...")
+_LABEL_GAP_X = 12.0
 
 
 class _Bounds:
@@ -97,16 +99,21 @@ class _LabelPlacer:
 
     def __init__(self) -> None:
         self.rects: list[tuple[float, float, float, float]] = []
+        self.gaps: list[float] = []  # horizontal clearance each rect asks for
         self.up = 0.0  # extent above the marker row
         self.down = 0.0  # extent below
 
     def block(self, x0: float, y0: float, x1: float, y1: float) -> None:
         self.rects.append((x0, y0, x1, y1))
+        self.gaps.append(_LABEL_PAD)
 
     def _free(self, r: tuple[float, float, float, float]) -> bool:
         x0, y0, x1, y1 = r
         p = _LABEL_PAD
-        return all(x1 + p <= a0 or x0 - p >= a1 or y1 + p <= b0 or y0 - p >= b1 for a0, b0, a1, b1 in self.rects)
+        return all(
+            x1 + gap <= a0 or x0 - gap >= a1 or y1 + p <= b0 or y0 - p >= b1
+            for (a0, b0, a1, b1), gap in zip(self.rects, self.gaps)
+        )
 
     def place(self, x: float, w: float, h: float) -> float:
         """Return the label's top y (lane-local) and reserve its box."""
@@ -121,6 +128,7 @@ class _LabelPlacer:
                 top = cand
                 break
         self.rects.append((x - w / 2, top, x + w / 2, top + h))
+        self.gaps.append(_LABEL_GAP_X)
         self.up = max(self.up, -top)
         self.down = max(self.down, top + h)
         return top
@@ -209,6 +217,29 @@ def _centered_label(
     group.extend(shapes.text_lines(cx, top_y, lines, size, color))
     w = max((metrics.measure_text(line, family, size) for line in lines), default=0.0)
     bounds.rect(cx - w / 2, top_y, w, len(lines) * size * metrics.LINE_HEIGHT)
+
+
+def _leader(group, placer: _LabelPlacer, x: float, cy: float, top: float, h: float, radius: float, color: str) -> None:
+    """A thin line from a marker to its label when the label was pushed away from the marker row.
+
+    Drawn only where it crosses no other label, so it never strikes text.
+    """
+    if top < 0:
+        y0, y1 = -radius - 1.0, top + h + 1.0
+    else:
+        y0, y1 = radius + 1.0, top - 1.0
+    if abs(y1 - y0) <= _LABEL_BASE + 2.0:
+        return  # next to the marker: no ambiguity
+    lo, hi = min(y0, y1), max(y0, y1)
+    own = (x, top)
+    for a0, b0, a1, b1 in placer.rects:
+        if ((a0 + a1) / 2, b0) == own:
+            continue
+        if a0 - 2 <= x <= a1 + 2 and b0 < hi and lo < b1:
+            return
+    group.append(
+        shapes.edge_path(f"M {shapes.fmt(x)} {shapes.fmt(cy + y0)} L {shapes.fmt(x)} {shapes.fmt(cy + y1)}", color, 0.8)
+    )
 
 
 def _anchored_label(
@@ -316,9 +347,13 @@ def _render_swimlane(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
     lane_tops, lane_heights, centers = [], [], []
     y = content_top
     for placer, _items in plans:
-        height = max(lane_h, placer.up + placer.down + 2 * lane_pad)
-        # Marker row sits so the label stack is centered in the lane.
-        cy = y + height / 2 + (placer.up - placer.down) / 2
+        # The marker row keeps at least half a lane of room on each side, so
+        # with every label above it the markers no longer sit on the band's
+        # bottom edge, against the next lane.
+        above = max(placer.up + lane_pad, lane_h / 2)
+        below = max(placer.down + lane_pad, lane_h / 2)
+        height = max(lane_h, above + below)
+        cy = y + above + (height - above - below) / 2
         lane_tops.append(y)
         lane_heights.append(height)
         centers.append(cy)
@@ -350,7 +385,7 @@ def _render_swimlane(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
     _time_axis_bottom(x_of, ticks, content_top, content_bottom, theme, ops, bounds, float(font["size"]) * 0.85, family)
 
     dur_alpha = float(tl["duration_alpha"])
-    for row, (_placer, items) in enumerate(plans):
+    for row, (placer, items) in enumerate(plans):
         cy = centers[row]
         for ev, x, lines, top in items:
             if ev.duration:
@@ -361,6 +396,8 @@ def _render_swimlane(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
                 )
                 bounds.rect(x, cy - 3.0, max(x_end - x, 2.0), 6.0)
             group = _marker(ev, x, cy, theme, ops, bounds)
+            h = len(lines) * size * metrics.LINE_HEIGHT
+            _leader(group, placer, x, cy, top, h, radius, tl["connector"])
             _centered_label(group, bounds, x, cy + top, lines, size, family, theme["event_text"])
 
     _legend(viz, theme, ops, bounds, axis_length + 24.0, content_top + 4.0, float(font["size"]) * 0.85, family)
@@ -539,6 +576,8 @@ def _render_compact(viz, theme, ops: _Ops, bounds: _Bounds) -> None:
 
     for ev, x, lines, top in placed:
         group = _marker(ev, x, cy, theme, ops, bounds)
+        h = len(lines) * size * metrics.LINE_HEIGHT
+        _leader(group, placer, x, cy, top, h, radius, tl["connector"])
         _centered_label(group, bounds, x, cy + top, lines, size, family, theme["event_text"])
 
     _time_axis_bottom(x_of, ticks, band_bottom, band_bottom, theme, ops, bounds, float(font["size"]) * 0.85, family)
