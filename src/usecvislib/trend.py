@@ -378,12 +378,14 @@ class TrendChart(VisualizationBase):
         if not value.get("show", True):
             return
         text = f"{y:g}" if abs(y) < 1e6 else f"{y:.3g}"
+        # A zero sits on the x axis: centered there, the axis line struck it through
+        on_axis = y == 0
         ax.annotate(
             text,
             (x, y),
-            xytext=(6, 0),
+            xytext=(6, 3 if on_axis else 0),
             textcoords="offset points",
-            va="center",
+            va="bottom" if on_axis else "center",
             fontsize=value["fontsize"],
             color=color,
             fontweight="bold",
@@ -397,6 +399,11 @@ class TrendChart(VisualizationBase):
         )
         if panel.unit:
             ax.set_ylabel(panel.unit, fontsize=axis["fontsize"], color=axis["color"])
+        if all(float(v).is_integer() for series in panel.series for _, v in series.points):
+            # Counts: no 0.5 / 1.5 ticks
+            from matplotlib.ticker import MaxNLocator
+
+            ax.yaxis.set_major_locator(MaxNLocator(integer=True))
         ax.grid(True, color=axis["gridcolor"], linewidth=0.8)
         ax.set_axisbelow(True)
         ax.tick_params(colors=axis["color"], labelsize=axis["fontsize"])
