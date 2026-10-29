@@ -729,12 +729,8 @@ class MaestroThreatModel(VisualizationBase):
                     sub.node(
                         utils.sanitize_node_id("security_summary"),
                         self._security_gutter_label(),
-                        shape="note",
-                        fillcolor="#ffe0b2",
-                        fontname="Arial",
                         fontsize="10",
-                        fontcolor="#bf360c",
-                        style="filled",
+                        **self._note_style("security"),
                     )
 
                 self._render_layer_contents(sub, layer_key, agent_style, asset_style)
@@ -771,12 +767,8 @@ class MaestroThreatModel(VisualizationBase):
             self.graph.node(
                 utils.sanitize_node_id("cross_layer_legend"),
                 f"Cross-layer threats\\l{rows}",
-                shape="note",
-                style="filled",
-                fillcolor="#ffebee",
-                fontname=str(cross_style.get("fontname", "Arial")),
                 fontsize="9",
-                fontcolor="#b71c1c",
+                **self._note_style("cross_layer"),
             )
 
         self.logger.debug(
@@ -784,6 +776,30 @@ class MaestroThreatModel(VisualizationBase):
             f"{len(self.threats)} threats, "
             f"{len(self.cross_layer_threats)} cross-layer threats"
         )
+
+    # Note colors (fill, text) on light and on dark pages
+    _NOTE_COLORS = {
+        "security": (("#ffe0b2", "#bf360c"), ("#3e2c1c", "#ffcc80")),
+        "cross_layer": (("#ffebee", "#b71c1c"), ("#3b1d24", "#ff8a80")),
+    }
+
+    def _note_style(self, kind: str) -> dict[str, str]:
+        """Graphviz attributes for a summary note, following the preset.
+
+        Dark presets get dark notes (light ones glared on the page) and every
+        preset its own font (blueprint is monospace).
+        """
+        graph_style = self.style.get("graph", {}) if isinstance(self.style, dict) else {}
+        dark = utils.is_dark_color(str(graph_style.get("bgcolor", "white")))
+        fill, text = self._NOTE_COLORS[kind][1 if dark else 0]
+        return {
+            "shape": "note",
+            "style": "filled",
+            "fillcolor": fill,
+            "fontcolor": text,
+            "color": text,
+            "fontname": str(graph_style.get("fontname", "Arial")),
+        }
 
     def _layer_display_name(self, layer_key: str) -> str:
         catalog = self._load_catalog()
@@ -1104,7 +1120,7 @@ class MaestroThreatModel(VisualizationBase):
         """The primary layer used to place an agent in graph-view clusters."""
         return agent.layers[0] if agent.layers else MaestroLayer.AGENT_FRAMEWORKS.value
 
-    def _agent_graph_label(self, agent: Agent) -> str:
+    def _agent_graph_label(self, agent: Agent, fill: Optional[str] = None) -> str:
         """Graph-view node label: name + type/autonomy + severity counts row.
 
         Aggregates threats across all layers (the graph view collapses layer
@@ -1133,7 +1149,10 @@ class MaestroThreatModel(VisualizationBase):
                 ("low", counts["low"]),
             ):
                 if n > 0:
-                    palette = SEVERITY_COLORS if self._graph_dark else SEVERITY_TEXT_ON_LIGHT
+                    # By the node's own fill, not the page: blueprint puts
+                    # pale nodes on a dark page (bright orange on pale blue)
+                    light_fill = utils.readable_text_color(fill) == "#1f2937" if fill else not self._graph_dark
+                    palette = SEVERITY_TEXT_ON_LIGHT if light_fill else SEVERITY_COLORS
                     color = palette.get(sev, "#9e9e9e")
                     parts.append(f"<FONT COLOR='{color}'>{sev[0].upper()}:{n}</FONT>")
             sev_row = f"<BR/><FONT POINT-SIZE='9'>{' '.join(parts)}</FONT>"
@@ -1252,12 +1271,8 @@ class MaestroThreatModel(VisualizationBase):
             self.graph.node(
                 utils.sanitize_node_id("security_summary_graph"),
                 self._security_gutter_label(),
-                shape="note",
-                fillcolor="#ffe0b2",
-                fontname="Arial",
                 fontsize="10",
-                fontcolor="#bf360c",
-                style="filled",
+                **self._note_style("security"),
             )
 
         # Cross-layer threats: chain edges (colored per chain) or single dashed.
@@ -1278,7 +1293,6 @@ class MaestroThreatModel(VisualizationBase):
     ) -> None:
         """Place a single agent node inside its primary-layer cluster."""
         node_id = utils.sanitize_node_id(f"graph_agent_{agent.id}")
-        label = self._agent_graph_label(agent)
         # Light presets: per-agent fill from the primary layer (a darker
         # variant of the cluster fill). Dark presets: the preset's own fill,
         # with the layer color carried by the border.
@@ -1293,6 +1307,7 @@ class MaestroThreatModel(VisualizationBase):
         if getattr(self, "_graph_color_by", None) == "severity":
             node_fill = self._SEVERITY_TINTS.get(worst, self._SEVERITY_TINTS["unknown"])
             border_color = SEVERITY_COLORS.get(worst, "#9e9e9e")
+        label = self._agent_graph_label(agent, node_fill)
         sub.node(
             node_id,
             label,
@@ -1363,6 +1378,7 @@ class MaestroThreatModel(VisualizationBase):
                 None,
             )
 
+        self_loops: dict[str, list] = {}
         for clt in self.cross_layer_threats.values():
             node_ids: list[str] = []
             for layer_value in clt.layers:
@@ -1385,25 +1401,9 @@ class MaestroThreatModel(VisualizationBase):
 
             if len(cleaned) == 1:
                 # Entire chain runs through a single agent that spans the
-                # declared layers. Draw a self-loop so the chain still
-                # surfaces visually rather than being silently dropped.
-                self.graph.edge(
-                    cleaned[0],
-                    cleaned[0],
-                    label=f" {clt.id} ({len(clt.layers)} layers)",
-                    color=color,
-                    fontcolor=color,
-                    fontname="Arial",
-                    fontsize="9",
-                    penwidth="1.5",
-                    arrowhead="vee",
-                    style="dashed",
-                    # Loop on the west side: on top it ran through the cluster
-                    # title, underneath it hung onto the agent card below, and
-                    # east it crossed the left-to-right chain edges
-                    tailport="w",
-                    headport="w",
-                )
+                # declared layers: a self-loop, so the chain still surfaces
+                # rather than being dropped. Drawn after the loop, one per agent.
+                self_loops.setdefault(cleaned[0], []).append((clt, color))
                 continue
 
             # Multi-agent chain: solid colored edges per hop.
@@ -1425,6 +1425,37 @@ class MaestroThreatModel(VisualizationBase):
                     penwidth="1.5",
                     arrowhead="vee",
                 )
+
+        # One loop per agent, labelled with each chain in its color: several
+        # loops on the same side stacked their labels over each other
+        for node_id, chains in self_loops.items():
+            if len(chains) == 1:
+                clt, color = chains[0]
+                label: str = f" {clt.id} ({len(clt.layers)} layers)"
+            else:
+                color = str(cross_style.get("color", "#78909c"))
+                rows = "".join(
+                    f'<FONT COLOR="{c}">{utils.escape_dot_label(t.id)} ({len(t.layers)} layers)</FONT><BR ALIGN="LEFT"/>'
+                    for t, c in chains
+                )
+                label = f"<{rows}>"
+            self.graph.edge(
+                node_id,
+                node_id,
+                label=label,
+                color=color,
+                fontcolor=color,
+                fontname="Arial",
+                fontsize="9",
+                penwidth="1.5",
+                arrowhead="vee",
+                style="dashed",
+                # Loop on the west side: on top it ran through the cluster
+                # title, underneath it hung onto the agent card below, and
+                # east it crossed the left-to-right chain edges
+                tailport="w",
+                headport="w",
+            )
 
     @utils.matplotlib_locked
     def _render_heatmap(self) -> None:

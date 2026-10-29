@@ -354,26 +354,37 @@ critical_border = "#ff6b6b"
 layer_border = "#475569"
 layer_text = "#cbd5e1"
 chain_fallback = "#64748b"
-text = "#1f2937"
+text = "#f8fafc"
+note_fill = "#3e2c1c"
+note_border = "#ffb74d"
+note_text = "#ffcc80"
 rankdir = "LR"
 nodesep = 0.5
 ranksep = 0.9
 
-# Dark-tinted layer clusters: the default pastels left the light layer titles unreadable
+# Dark-tinted layer clusters (the default pastels left the light layer titles
+# unreadable) and mid-tone agents with light text (pastel agents looked unthemed)
 [sv_dark.maestro.layers.agent-ecosystem]
 cluster = "#1e3a5f"
+agent = "#2b6cb0"
 [sv_dark.maestro.layers.agent-frameworks]
 cluster = "#3b2450"
+agent = "#7b3fa0"
 [sv_dark.maestro.layers.foundation-models]
 cluster = "#1f3d2b"
+agent = "#2f855a"
 [sv_dark.maestro.layers.data-operations]
 cluster = "#4a3418"
+agent = "#a8620f"
 [sv_dark.maestro.layers.infrastructure]
 cluster = "#4a1f33"
+agent = "#b83280"
 [sv_dark.maestro.layers.observability]
 cluster = "#163f45"
+agent = "#2c7a7b"
 [sv_dark.maestro.layers.security]
 cluster = "#4a3f12"
+agent = "#8a6d0b"
 
 # SVG Security - high-contrast
 [sv_security]
