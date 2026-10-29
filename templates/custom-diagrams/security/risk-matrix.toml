@@ -9,7 +9,8 @@ description = "Likelihood vs Impact risk visualization"
 layout = "hierarchical"
 direction = "TB"
 style = "cd_default"
-splines = "ortho"
+# Spline routing: ortho detached the edge labels from their edges
+splines = "spline"
 nodesep = 0.6
 ranksep = 0.8
 
@@ -90,26 +91,6 @@ arrowhead = "none"
 # =============================================================================
 # Example Data - Web Application Risk Assessment
 # =============================================================================
-
-[[nodes]]
-id = "cat_injection"
-type = "category"
-name = "Injection"
-
-[[nodes]]
-id = "cat_auth"
-type = "category"
-name = "Authentication"
-
-[[nodes]]
-id = "cat_data"
-type = "category"
-name = "Data Exposure"
-
-[[nodes]]
-id = "cat_config"
-type = "category"
-name = "Misconfiguration"
 
 [[nodes]]
 id = "sql_injection"
@@ -231,56 +212,6 @@ status = "Active"
 effectiveness = "Medium"
 
 [[edges]]
-from = "cat_injection"
-to = "sql_injection"
-type = "categorized"
-
-[[edges]]
-from = "cat_injection"
-to = "cmd_injection"
-type = "categorized"
-
-[[edges]]
-from = "cat_injection"
-to = "xss"
-type = "categorized"
-
-[[edges]]
-from = "cat_auth"
-to = "weak_password"
-type = "categorized"
-
-[[edges]]
-from = "cat_auth"
-to = "brute_force"
-type = "categorized"
-
-[[edges]]
-from = "cat_auth"
-to = "session_hijack"
-type = "categorized"
-
-[[edges]]
-from = "cat_data"
-to = "pii_exposure"
-type = "categorized"
-
-[[edges]]
-from = "cat_data"
-to = "api_keys_exposed"
-type = "categorized"
-
-[[edges]]
-from = "cat_config"
-to = "debug_enabled"
-type = "categorized"
-
-[[edges]]
-from = "cat_config"
-to = "outdated_deps"
-type = "categorized"
-
-[[edges]]
 from = "waf"
 to = "sql_injection"
 type = "mitigates"
@@ -311,23 +242,41 @@ type = "mitigates"
 effectiveness = "60%"
 
 [[edges]]
+from = "audit_logs"
+to = "api_keys_exposed"
+type = "mitigates"
+effectiveness = "50%"
+
+[[edges]]
 from = "weak_password"
 to = "brute_force"
 type = "escalates"
 condition = "enables"
 
-# Risk groupings
+# Risks grouped by category; the fill color gives the severity
 [[clusters]]
-id = "critical_risks"
-label = "Critical Risks"
-nodes = ["sql_injection", "pii_exposure"]
-style = { color = "#C0392B", style = "bold" }
+id = "injection"
+label = "Injection"
+nodes = ["sql_injection", "cmd_injection", "xss"]
+style = { color = "#7F8C8D", style = "rounded" }
 
 [[clusters]]
-id = "high_risks"
-label = "High Risks"
-nodes = ["cmd_injection", "xss", "session_hijack", "api_keys_exposed"]
-style = { color = "#E74C3C", style = "dashed" }
+id = "authentication"
+label = "Authentication"
+nodes = ["weak_password", "brute_force", "session_hijack"]
+style = { color = "#7F8C8D", style = "rounded" }
+
+[[clusters]]
+id = "data_exposure"
+label = "Data Exposure"
+nodes = ["pii_exposure", "api_keys_exposed"]
+style = { color = "#7F8C8D", style = "rounded" }
+
+[[clusters]]
+id = "misconfiguration"
+label = "Misconfiguration"
+nodes = ["debug_enabled", "outdated_deps"]
+style = { color = "#7F8C8D", style = "rounded" }
 
 [[clusters]]
 id = "controls"
