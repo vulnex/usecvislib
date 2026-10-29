@@ -50,7 +50,8 @@ def _node_lines(dep, font, size, max_w) -> list[str]:
     lines = metrics.wrap_text(title, font["family"], size, max_w) or [dep.name]
     if dep.vulnerabilities:
         worst = dep.highest_severity.value
-        lines.append(f"{len(dep.vulnerabilities)} CVE · {worst} {dep.max_cvss:.1f}")
+        n = len(dep.vulnerabilities)
+        lines.append(f"{n} CVE{'s' if n != 1 else ''} · {worst} {dep.max_cvss:.1f}")
     else:
         lines.append("no known CVEs")  # as the Graphviz path labels clean packages
     return lines

@@ -1531,7 +1531,8 @@ class MaestroThreatModel(VisualizationBase):
             for layer in layers
         ]
         ax.set_xticklabels(layer_short, rotation=30, ha="right", fontsize=9)
-        ax.set_yticklabels([f"{a.name} ({a.autonomy})" for a in agents], fontsize=9)
+        # "\u00b7" not parentheses: "Portfolio Manager (Human) (reactive)" doubled them
+        ax.set_yticklabels([f"{a.name} \u00b7 {a.autonomy}" for a in agents], fontsize=9)
 
         # Count badges
         for i in range(len(agents)):
@@ -1547,7 +1548,7 @@ class MaestroThreatModel(VisualizationBase):
         cbar.set_label("Max unmitigated severity", fontsize=10)
 
         title = self.inputdata.get("meta", {}).get("name", "MAESTRO Threat Heatmap")
-        ax.set_title(f"{title} -- Threats by Agent x Layer", fontsize=12, pad=12)
+        ax.set_title(f"{title} \u2014 Threats by Agent \u00d7 Layer", fontsize=12, pad=12)
         ax.set_xlabel("MAESTRO Layer", fontsize=10)
         ax.set_ylabel("Agent", fontsize=10)
         fig.tight_layout()
