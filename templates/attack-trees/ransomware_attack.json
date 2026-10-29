@@ -18,7 +18,7 @@
   "nodes": {
     "Deploy Ransomware": {
       "style": "filled",
-      "fillcolor": "#ff6b6b",
+      "fillcolor": "#e03131",
       "fontcolor": "white",
       "shape": "oval"
     },
@@ -89,7 +89,7 @@
     },
     "Demand Ransom": {
       "style": "filled",
-      "fillcolor": "#ff6b6b",
+      "fillcolor": "#e03131",
       "fontcolor": "white",
       "shape": "octagon"
     }

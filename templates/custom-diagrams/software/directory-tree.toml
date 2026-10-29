@@ -40,7 +40,7 @@ label_template = "{name}"
 [schema.nodes.config_file]
 shape = "note"
 required_fields = ["name"]
-style = { fillcolor = "#F39C12", fontcolor = "white" }
+style = { fillcolor = "#F39C12", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.code_file]
@@ -65,7 +65,7 @@ label_template = "{name}"
 [schema.nodes.data_file]
 shape = "note"
 required_fields = ["name"]
-style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+style = { fillcolor = "#1ABC9C", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.edges.contains]

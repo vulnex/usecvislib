@@ -33,7 +33,7 @@ label_template = ""
 [schema.nodes.port]
 shape = "square"
 required_fields = ["name"]
-style = { fillcolor = "#F39C12", fontcolor = "white", width = "0.2", height = "0.2" }
+style = { fillcolor = "#F39C12", fontcolor = "#1f2937", width = "0.2", height = "0.2" }
 label_template = ""
 
 [schema.nodes.package]
@@ -52,7 +52,7 @@ label_template = "<<subsystem>>\n{name}"
 shape = "note"
 required_fields = ["name"]
 optional_fields = ["type"]
-style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+style = { fillcolor = "#1ABC9C", fontcolor = "#1f2937" }
 label_template = "<<artifact>>\n{name}"
 
 [schema.edges.dependency]

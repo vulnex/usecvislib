@@ -146,6 +146,10 @@ def _build_scene(viz, theme: dict[str, Any]) -> tuple[Scene, str, str]:
                 border = str(attrs["color"])
             if attrs.get("fontcolor"):
                 text_color = str(attrs["fontcolor"])
+            elif fill:
+                # A template fill without a font color: the theme's card text
+                # (white) can be unreadable on it, so pick by contrast.
+                text_color = utils.readable_text_color(fill)
 
         # CVSS handling (root nodes are exempt, as on the Graphviz path)
         if kind != "root":

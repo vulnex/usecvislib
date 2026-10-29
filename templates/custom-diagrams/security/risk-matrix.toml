@@ -35,7 +35,7 @@ label_template = "{name}"
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["description", "mitigation", "likelihood", "impact"]
-style = { fillcolor = "#F39C12", fontcolor = "white" }
+style = { fillcolor = "#F39C12", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.risk_low]
@@ -62,7 +62,7 @@ label_template = "{name}"
 shape = "octagon"
 required_fields = ["name"]
 optional_fields = ["status", "effectiveness"]
-style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+style = { fillcolor = "#1ABC9C", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.edges.mitigates]

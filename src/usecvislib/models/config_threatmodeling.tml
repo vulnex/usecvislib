@@ -22,14 +22,14 @@ fontname = "Arial"
 shape = "cylinder"
 style = "filled"
 fillcolor = "#2ecc71"
-fontcolor = "white"
+fontcolor = "#1f2937"
 fontname = "Arial"
 
 [tm_default.external]
 shape = "rectangle"
 style = "filled,dashed"
 fillcolor = "#95a5a6"
-fontcolor = "white"
+fontcolor = "#1f2937"
 fontname = "Arial"
 
 [tm_default.dataflow]
@@ -64,7 +64,7 @@ fontname = "Helvetica"
 shape = "cylinder"
 style = "filled"
 fillcolor = "#00b894"
-fontcolor = "white"
+fontcolor = "#1f2937"
 fontname = "Helvetica"
 
 [tm_stride.external]

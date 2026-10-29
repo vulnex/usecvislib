@@ -74,7 +74,7 @@ edge = {color = "#90e0ef", style = "dashed", penwidth = "1.5", arrowsize = "0.8"
 # =============================================================================
 [at_sunset]
 root = {margin = 0.15, fontcolor = "white", fillcolor = "#7b2cbf", shape = "rectangle", style = "filled,rounded", fontname = "Trebuchet MS", fontsize = "14"}
-node = {margin = 0.12, fontcolor = "white", fillcolor = "#c77dff", shape = "rectangle", style = "filled,rounded", fontname = "Trebuchet MS", fontsize = "11"}
+node = {margin = 0.12, fontcolor = "#1f2937", fillcolor = "#c77dff", shape = "rectangle", style = "filled,rounded", fontname = "Trebuchet MS", fontsize = "11"}
 edge = {color = "#e0aaff", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
 
 # =============================================================================
@@ -123,7 +123,7 @@ edge = {color = "#9D4EDD", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
 # =============================================================================
 [at_steel]
 root = {margin = 0.15, fontcolor = "white", fillcolor = "#2B2D42", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica", fontsize = "14"}
-node = {margin = 0.12, fontcolor = "white", fillcolor = "#8D99AE", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica", fontsize = "11"}
+node = {margin = 0.12, fontcolor = "#1f2937", fillcolor = "#8D99AE", shape = "rectangle", style = "filled,rounded", fontname = "Helvetica", fontsize = "11"}
 edge = {color = "#6C757D", style = "solid", penwidth = "1.5", arrowsize = "0.8"}
 
 # =============================================================================

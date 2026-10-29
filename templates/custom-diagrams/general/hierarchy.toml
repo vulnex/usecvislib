@@ -42,7 +42,7 @@ label_template = "{name}"
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["description"]
-style = { fillcolor = "#F39C12", fontcolor = "white" }
+style = { fillcolor = "#F39C12", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.leaf]

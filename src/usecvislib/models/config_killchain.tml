@@ -19,7 +19,7 @@
 [kc_default]
 graph = {rankdir = "LR", bgcolor = "#f8fafc", fontname = "Helvetica", fontcolor = "#334155", fontsize = "16", pad = "0.4", nodesep = "0.28", ranksep = "0.6", labelloc = "t"}
 phase = {style = "filled,rounded", fillcolor = "#eef2f7", color = "#cbd5e1", fontcolor = "#1e3a5f", fontname = "Helvetica-Bold", fontsize = "13", penwidth = "1"}
-technique = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", fillcolor = "#e0a53f", color = "#64748b", fontsize = "10", penwidth = "1"}
+technique = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#1f2937", fillcolor = "#e0a53f", color = "#64748b", fontsize = "10", penwidth = "1"}
 edge = {color = "#94a3b8", penwidth = "1.6", arrowhead = "vee", arrowsize = "0.7"}
 detected = {fillcolor = "#27ae60", fontcolor = "#ffffff"}
 partial = {fillcolor = "#e0a53f", fontcolor = "#1a2733"}
@@ -29,7 +29,7 @@ not_detected = {fillcolor = "#e74c3c", fontcolor = "#ffffff"}
 [kc_light]
 graph = {rankdir = "LR", bgcolor = "#ffffff", fontname = "Helvetica", fontcolor = "#475569", fontsize = "16", pad = "0.4", nodesep = "0.26", ranksep = "0.58", labelloc = "t"}
 phase = {style = "rounded,dashed", fillcolor = "#ffffff", color = "#cbd5e1", fontcolor = "#64748b", fontname = "Helvetica", fontsize = "13", penwidth = "1"}
-technique = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#ffffff", fillcolor = "#e0a53f", color = "#cbd5e1", fontsize = "10", penwidth = "1"}
+technique = {shape = "box", style = "rounded,filled", fontname = "Helvetica", fontcolor = "#1f2937", fillcolor = "#e0a53f", color = "#cbd5e1", fontsize = "10", penwidth = "1"}
 edge = {color = "#8a9bb0", penwidth = "1.5", arrowhead = "vee", arrowsize = "0.7"}
 detected = {fillcolor = "#2fa84f", fontcolor = "#ffffff"}
 partial = {fillcolor = "#eab24a", fontcolor = "#1a2733"}
@@ -39,7 +39,7 @@ not_detected = {fillcolor = "#e15b4c", fontcolor = "#ffffff"}
 [kc_coverage]
 graph = {rankdir = "LR", bgcolor = "#f5f7fa", fontname = "Helvetica", fontcolor = "#1e293b", fontsize = "16", pad = "0.4", nodesep = "0.3", ranksep = "0.68", labelloc = "t"}
 phase = {style = "filled,rounded", fillcolor = "#334155", color = "#1e293b", fontcolor = "#f8fafc", fontname = "Helvetica-Bold", fontsize = "13", penwidth = "1"}
-technique = {shape = "box", style = "rounded,filled,bold", fontname = "Helvetica-Bold", fontcolor = "#ffffff", fillcolor = "#e0a53f", color = "#0f172a", fontsize = "10", penwidth = "2"}
+technique = {shape = "box", style = "rounded,filled,bold", fontname = "Helvetica-Bold", fontcolor = "#1f2937", fillcolor = "#e0a53f", color = "#0f172a", fontsize = "10", penwidth = "2"}
 edge = {color = "#64748b", penwidth = "1.8", arrowhead = "vee", arrowsize = "0.7"}
 detected = {fillcolor = "#1f9d4d", fontcolor = "#ffffff"}
 partial = {fillcolor = "#f0a92e", fontcolor = "#1a2733"}

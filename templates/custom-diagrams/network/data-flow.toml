@@ -21,7 +21,7 @@ ranksep = 1.0
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["description"]
-style = { fillcolor = "#95A5A6", fontcolor = "white" }
+style = { fillcolor = "#95A5A6", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.process]

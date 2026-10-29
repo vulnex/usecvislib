@@ -42,14 +42,14 @@ label_template = "{name}"
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["owner"]
-style = { fillcolor = "#95A5A6", fontcolor = "white" }
+style = { fillcolor = "#95A5A6", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.task_done]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["owner"]
-style = { fillcolor = "#2ECC71", fontcolor = "white" }
+style = { fillcolor = "#2ECC71", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.deadline]

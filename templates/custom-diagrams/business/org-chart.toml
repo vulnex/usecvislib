@@ -42,7 +42,7 @@ label_template = "{name}\n{title}"
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["title", "team"]
-style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+style = { fillcolor = "#1ABC9C", fontcolor = "#1f2937" }
 label_template = "{name}\n{title}"
 
 [schema.nodes.employee]
@@ -56,7 +56,7 @@ label_template = "{name}\n{title}"
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["title", "company"]
-style = { fillcolor = "#95A5A6", fontcolor = "white", style = "filled,dashed" }
+style = { fillcolor = "#95A5A6", fontcolor = "#1f2937", style = "filled,dashed" }
 label_template = "{name}\n{title}"
 
 [schema.nodes.vacant]

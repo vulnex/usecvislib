@@ -27,7 +27,7 @@ label_template = "{name}"
 shape = "diamond"
 required_fields = ["name"]
 optional_fields = ["ip", "model"]
-style = { fillcolor = "#F39C12", fontcolor = "white" }
+style = { fillcolor = "#F39C12", fontcolor = "#1f2937" }
 label_template = "{name}\n{ip}"
 
 [schema.nodes.switch]
@@ -62,14 +62,14 @@ label_template = "{name}\n{ip}"
 shape = "ellipse"
 required_fields = ["name"]
 optional_fields = ["ssid", "security"]
-style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+style = { fillcolor = "#1ABC9C", fontcolor = "#1f2937" }
 label_template = "{name}\n{ssid}"
 
 [schema.nodes.printer]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["ip"]
-style = { fillcolor = "#95A5A6", fontcolor = "white" }
+style = { fillcolor = "#95A5A6", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.storage]

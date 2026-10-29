@@ -177,7 +177,7 @@ graph = {rankdir = "LR", bgcolor = "white", fontname = "Helvetica", splines = "o
 host = {shape = "box3d", style = "filled", fillcolor = "#2B2D42", fontcolor = "white", fontname = "Helvetica", fontsize = "11", margin = "0.15"}
 vulnerability = {shape = "diamond", style = "filled", fillcolor = "#EF233C", fontcolor = "white", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
 privilege = {shape = "ellipse", style = "filled", fillcolor = "#FCBF49", fontcolor = "#2B2D42", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
-service = {shape = "component", style = "filled", fillcolor = "#8D99AE", fontcolor = "white", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
+service = {shape = "component", style = "filled", fillcolor = "#8D99AE", fontcolor = "#1f2937", fontname = "Helvetica", fontsize = "10", margin = "0.1"}
 edge = {color = "#6C757D", fontname = "Helvetica", fontsize = "9"}
 network_edge = {color = "#ADB5BD", style = "dashed", fontname = "Helvetica", fontsize = "9", penwidth = "1.5"}
 exploit_edge = {color = "#EF233C", style = "bold", fontname = "Helvetica", fontsize = "9", penwidth = "2"}

@@ -28,7 +28,7 @@ label_template = "{name}"
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["location"]
-style = { fillcolor = "#1ABC9C", fontcolor = "white", style = "filled,rounded" }
+style = { fillcolor = "#1ABC9C", fontcolor = "#1f2937", style = "filled,rounded" }
 label_template = "{name}\n{location}"
 
 [schema.nodes.vpc]
@@ -49,7 +49,7 @@ label_template = "{name}\n{cidr}"
 shape = "artifact"
 required_fields = ["name"]
 optional_fields = ["type", "os"]
-style = { fillcolor = "#F39C12", fontcolor = "white" }
+style = { fillcolor = "#F39C12", fontcolor = "#1f2937" }
 label_template = "{name}\n{type}"
 
 [schema.nodes.rds]
@@ -83,7 +83,7 @@ label_template = "{name}"
 [schema.nodes.cloudfront]
 shape = "ellipse"
 required_fields = ["name"]
-style = { fillcolor = "#95A5A6", fontcolor = "white" }
+style = { fillcolor = "#95A5A6", fontcolor = "#1f2937" }
 label_template = "CDN\n{name}"
 
 [schema.nodes.route53]

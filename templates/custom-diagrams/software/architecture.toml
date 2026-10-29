@@ -35,7 +35,7 @@ label_template = "{name}"
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["protocol", "version"]
-style = { fillcolor = "#1ABC9C", fontcolor = "white", style = "filled,bold" }
+style = { fillcolor = "#1ABC9C", fontcolor = "#1f2937", style = "filled,bold" }
 label_template = "{name}"
 
 [schema.nodes.database]
@@ -49,7 +49,7 @@ label_template = "{name}\n({type})"
 shape = "hexagon"
 required_fields = ["name"]
 optional_fields = ["type"]
-style = { fillcolor = "#F39C12", fontcolor = "white" }
+style = { fillcolor = "#F39C12", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.queue]
@@ -63,7 +63,7 @@ label_template = "{name}"
 shape = "ellipse"
 required_fields = ["name"]
 optional_fields = ["provider"]
-style = { fillcolor = "#95A5A6", fontcolor = "white", style = "filled,dashed" }
+style = { fillcolor = "#95A5A6", fontcolor = "#1f2937", style = "filled,dashed" }
 label_template = "{name}"
 
 [schema.nodes.loadbalancer]

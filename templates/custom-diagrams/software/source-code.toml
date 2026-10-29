@@ -55,7 +55,7 @@ label_template = "{name}"
 [schema.nodes.decorator]
 shape = "hexagon"
 required_fields = ["name"]
-style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+style = { fillcolor = "#1ABC9C", fontcolor = "#1f2937" }
 label_template = "@{name}"
 
 [schema.edges.contains]

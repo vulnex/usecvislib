@@ -35,7 +35,7 @@ label_template = "{name}"
 shape = "diamond"
 required_fields = ["name"]
 optional_fields = ["criteria"]
-style = { fillcolor = "#F39C12", fontcolor = "white" }
+style = { fillcolor = "#F39C12", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.trigger]
@@ -54,7 +54,7 @@ label_template = "{name}"
 [schema.nodes.document]
 shape = "note"
 required_fields = ["name"]
-style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+style = { fillcolor = "#1ABC9C", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.team]

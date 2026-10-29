@@ -16,7 +16,7 @@ tree:
 nodes:
   Deploy Ransomware:
     style: filled
-    fillcolor: '#ff6b6b'
+    fillcolor: '#e03131'
     fontcolor: white
     shape: oval
   Initial Access:
@@ -73,7 +73,7 @@ nodes:
     cvss_vector: CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:C/C:N/I:H/A:H
   Demand Ransom:
     style: filled
-    fillcolor: '#ff6b6b'
+    fillcolor: '#e03131'
     fontcolor: white
     shape: octagon
 edges:

@@ -39,7 +39,7 @@ label_template = "<<boundary>>\n{name}"
 [schema.nodes.control]
 shape = "circle"
 required_fields = ["name"]
-style = { fillcolor = "#F39C12", fontcolor = "white" }
+style = { fillcolor = "#F39C12", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.entity]
@@ -51,7 +51,7 @@ label_template = "<<entity>>\n{name}"
 [schema.nodes.database]
 shape = "database"
 required_fields = ["name"]
-style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+style = { fillcolor = "#1ABC9C", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.edges.sync_call]

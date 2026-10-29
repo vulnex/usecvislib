@@ -21,7 +21,7 @@ params = { rankdir = "TB" }
 # Nodes with CVSS will be color-coded by severity
 
 [nodes]
-"Deploy Ransomware" = {style="filled", fillcolor="#ff6b6b", fontcolor="white", shape="oval"}
+"Deploy Ransomware" = {style="filled", fillcolor="#e03131", fontcolor="white", shape="oval"}
 "Initial Access" = {style="filled", fillcolor="#ffa94d", shape="rectangle"}
 # Phishing - requires user interaction
 "Phishing Email" = {style="filled", shape="rectangle", cvss_vector="CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N"}
@@ -40,7 +40,7 @@ params = { rankdir = "TB" }
 "Data Exfiltration" = {style="filled", shape="rectangle", cvss=8.5}
 # Critical impact nodes
 "Encrypt Files" = {style="filled", shape="octagon", cvss_vector="CVSS:3.1/AV:L/AC:L/PR:H/UI:N/S:C/C:N/I:H/A:H"}
-"Demand Ransom" = {style="filled", fillcolor="#ff6b6b", fontcolor="white", shape="octagon"}
+"Demand Ransom" = {style="filled", fillcolor="#e03131", fontcolor="white", shape="octagon"}
 
 [edges]
 "Deploy Ransomware" = [{to = "Initial Access"}]

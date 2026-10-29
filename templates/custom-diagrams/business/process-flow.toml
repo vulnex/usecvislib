@@ -40,7 +40,7 @@ label_template = "{name}"
 shape = "diamond"
 required_fields = ["name"]
 optional_fields = ["condition"]
-style = { fillcolor = "#F39C12", fontcolor = "white" }
+style = { fillcolor = "#F39C12", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.parallel]
@@ -53,7 +53,7 @@ label_template = "{name}"
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["reference"]
-style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+style = { fillcolor = "#1ABC9C", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.timer]
@@ -67,7 +67,7 @@ label_template = "{name}"
 shape = "note"
 required_fields = ["name"]
 optional_fields = ["channel"]
-style = { fillcolor = "#95A5A6", fontcolor = "white" }
+style = { fillcolor = "#95A5A6", fontcolor = "#1f2937" }
 label_template = "{name}"
 
 [schema.nodes.data]

@@ -35,14 +35,14 @@ label_template = "<<executionEnvironment>>\n{name}"
 shape = "note"
 required_fields = ["name"]
 optional_fields = ["version"]
-style = { fillcolor = "#F39C12", fontcolor = "white" }
+style = { fillcolor = "#F39C12", fontcolor = "#1f2937" }
 label_template = "<<artifact>>\n{name}\n{version}"
 
 [schema.nodes.container]
 shape = "rectangle"
 required_fields = ["name"]
 optional_fields = ["container_image"]
-style = { fillcolor = "#1ABC9C", fontcolor = "white" }
+style = { fillcolor = "#1ABC9C", fontcolor = "#1f2937" }
 label_template = "<<container>>\n{name}"
 
 [schema.nodes.database]
@@ -62,7 +62,7 @@ label_template = "{name}"
 [schema.nodes.cdn]
 shape = "ellipse"
 required_fields = ["name"]
-style = { fillcolor = "#95A5A6", fontcolor = "white", style = "filled,dashed" }
+style = { fillcolor = "#95A5A6", fontcolor = "#1f2937", style = "filled,dashed" }
 label_template = "<<CDN>>\n{name}"
 
 [schema.edges.deploys]
