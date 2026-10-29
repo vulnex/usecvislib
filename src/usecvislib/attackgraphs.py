@@ -65,6 +65,10 @@ _CLUSTER_TEXT = "#334155"
 MAX_CYCLES = 1000
 
 _INFERRED_MARKER = "(inferred)"
+
+# Non-default presets: how much of the preset's vulnerability color a severity
+# keeps over the page (critical full strength, lower severities fade)
+_SEVERITY_STRENGTH = {"critical": 1.0, "high": 0.75, "medium": 0.5, "low": 0.3, "none": 0.3}
 _INFERRED_NODE_ATTRS = {
     "style": "dashed,filled",
     "fillcolor": "#e2e8f0",
@@ -583,6 +587,21 @@ class AttackGraphs(DriftStylingMixin, VisualizationBase):
                     # (only if user hasn't explicitly set fontcolor)
                     if "fontcolor" not in vuln_data:
                         node_attrs["fontcolor"] = cvss_to_text_color(resolved_score)
+                elif not has_image and "fillcolor" not in vuln_data:
+                    # Other presets keep their palette, but severity still
+                    # shows: critical in the preset's color, lower severities
+                    # fading toward the page (High and Critical looked alike)
+                    page = self.style.get("graph", {}).get("bgcolor", "white")
+                    shaded = utils.blend_color(
+                        node_attrs.get("fillcolor"), page, _SEVERITY_STRENGTH.get(severity.lower(), 1.0)
+                    )
+                    if shaded:
+                        node_attrs["fillcolor"] = shaded
+                        if "fontcolor" not in vuln_data:
+                            node_attrs["fontcolor"] = utils.readable_text_color(shaded) or node_attrs.get("fontcolor", "")
+                    if severity.lower() == "critical" and "peripheries" not in vuln_data:
+                        # Outline presets (fill close to the page) show it in the border
+                        node_attrs["peripheries"] = "2"
 
             # For nodes with icons, set fontcolor to black for readability
             if has_image and "fontcolor" not in vuln_data:
