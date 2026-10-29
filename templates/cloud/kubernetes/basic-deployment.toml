@@ -75,7 +75,7 @@ label = "Storage"
 # External
 [[nodes]]
 id = "users"
-icon = "k8s.others.CRD"
+icon = "onprem.client.Users"
 label = "External Traffic"
 
 # Edges
@@ -103,12 +103,14 @@ to = "pvc"
 from = "pvc"
 to = "pv"
 
+# The Deployment's pod template mounts the ConfigMap and the Secret
+# (one edge each, rather than three per pod)
 [[edges]]
-from = ["pod1", "pod2", "pod3"]
+from = "deploy"
 to = "cm"
 style = "dashed"
 
 [[edges]]
-from = ["pod1", "pod2", "pod3"]
+from = "deploy"
 to = "secret"
 style = "dashed"
