@@ -55,6 +55,6 @@ params = { rankdir = "TB", splines = "polyline", nodesep = "1.2" }
 
 [edges]
 "Compromise AWS Infrastructure" = [{to="Attack IAM", label="OR"}, {to="Attack Network Layer", label="OR"}, {to="Attack Data Storage", label="OR"}]
-"Attack IAM" = [{to="Credential Theft", label="HIGH"}, {to="Privilege Escalation", label="CRITICAL"}, {to="Access Key Exposure", label="HIGH"}]
-"Attack Network Layer" = [{to="VPC Misconfiguration", label="MEDIUM"}, {to="Security Group Bypass", label="MEDIUM"}, {to="WAF Evasion", label="HIGH"}]
-"Attack Data Storage" = [{to="S3 Bucket Exposure", label="CRITICAL"}, {to="RDS Injection", label="HIGH"}, {to="DynamoDB Access", label="MEDIUM"}]
+"Attack IAM" = [{to="Credential Theft", label="HIGH"}, {to="Privilege Escalation", label="HIGH"}, {to="Access Key Exposure", label="CRITICAL"}]
+"Attack Network Layer" = [{to="VPC Misconfiguration", label="HIGH"}, {to="Security Group Bypass", label="MEDIUM"}, {to="WAF Evasion", label="HIGH"}]
+"Attack Data Storage" = [{to="S3 Bucket Exposure", label="CRITICAL"}, {to="RDS Injection", label="HIGH"}, {to="DynamoDB Access", label="HIGH"}]
