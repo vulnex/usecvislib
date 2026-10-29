@@ -555,7 +555,7 @@ class TestStylePresets:
 
     @staticmethod
     def _config_presets():
-        import tomllib
+        from usecvislib.utils import tomllib  # tomli on Python 3.10
 
         from usecvislib import customdiagrams
 

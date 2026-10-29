@@ -305,7 +305,7 @@ async def get_mermaid_template(request: Request, category: str, name: str):
         else:
             # TOML file - try to extract mermaid source and detect type
             try:
-                import tomllib
+                from usecvislib.utils import tomllib  # tomli on Python 3.10
 
                 data = tomllib.loads(content)
                 source = data.get("mermaid", {}).get("source", "")

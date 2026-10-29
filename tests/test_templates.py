@@ -327,7 +327,7 @@ class TestAttackTreeEdgeSeverity:
 
     @pytest.mark.parametrize("name", ["network_infrastructure", "network_infrastructure_with_icons"])
     def test_edge_labels_match_cvss(self, name):
-        import tomllib
+        from usecvislib.utils import tomllib  # tomli on Python 3.10
 
         from usecvislib.constants import cvss_to_severity_label
 

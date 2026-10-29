@@ -97,7 +97,7 @@ def test_coupling_preset_has_a_legend(tmp_path):
 
 
 def test_svg_dependency_presets_have_distinct_group_palettes():
-    import tomllib
+    from usecvislib.utils import tomllib  # tomli on Python 3.10
 
     from usecvislib import dependencygraph
 
