@@ -126,6 +126,8 @@ For Custom Diagrams, see the [Custom Diagrams Guide](docs/CUSTOM_DIAGRAMS_GUIDE.
 
 ## Installation
 
+> **⚠️ Security Warning:** Authentication is **DISABLED by default** (`USECVISLIB_AUTH_ENABLED=false` in `.env.example`). You **must** enable authentication (`USECVISLIB_AUTH_ENABLED=true`) and configure API keys before exposing this service on any network or using it in production. See [API Authentication](#api-authentication) for setup instructions.
+
 ### Quick Start with Docker
 
 ```bash
