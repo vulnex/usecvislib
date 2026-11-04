@@ -24,6 +24,7 @@ with the repo mounted:
 
 import argparse
 import contextlib
+import hashlib
 import html
 import io
 import json
@@ -31,6 +32,8 @@ import multiprocessing
 import os
 import re
 import shutil
+import struct
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -325,8 +328,9 @@ def anchor(category: str) -> str:
     return category.split(" ", 1)[1].lower().replace(" ", "-")
 
 
-def write_index(out: Path, version: str) -> int:
+def write_index(out: Path, version: str, canonicals: dict[Path, Path]) -> int:
     def href(p: Path) -> str:
+        p = canonicals.get(p, p)
         return html.escape(quote(p.relative_to(out).as_posix()), quote=True)
 
     parts, cards = [], 0
@@ -338,7 +342,7 @@ def write_index(out: Path, version: str) -> int:
         parts.append(f"<h2 id='{anchor(cat)}'>{html.escape(cat)}</h2>")
         groups = sorted(
             {p.parent for p in root.rglob("*") if p.is_file()},
-            key=lambda d: (d.name != STYLES_DIR, d.relative_to(root).as_posix()),
+            key=lambda d: (d.name != STYLES_DIR, d.relative_to(out).as_posix()),
         )
         for group in groups:
             title = group.relative_to(out / cat).as_posix()
@@ -399,6 +403,117 @@ def scan_private_data(out: Path) -> list[str]:
     return hits
 
 
+def strip_png_metadata(data: bytes) -> bytes:
+    """Remove PNG tIME and tEXt/zTXt/iTXt chunks for byte-stable output."""
+    if not data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return data
+    out, pos = bytearray(data[:8]), 8
+    while pos < len(data):
+        if pos + 8 > len(data):
+            break
+        length = struct.unpack(">I", data[pos : pos + 4])[0]
+        chunk_type = data[pos + 4 : pos + 8]
+        if chunk_type in (b"tIME", b"tEXt", b"zTXt", b"iTXt"):
+            pos += 12 + length
+            continue
+        out.extend(data[pos : pos + 12 + length])
+        pos += 12 + length
+        if chunk_type == b"IEND":
+            break
+    return bytes(out)
+
+
+def strip_pdf_metadata(data: bytes) -> bytes:
+    """Remove PDF CreationDate, ModDate, and ID for byte-stable output."""
+    data = re.sub(rb"/CreationDate\s*\([^)]*\)", b"", data)
+    data = re.sub(rb"/ModDate\s*\([^)]*\)", b"", data)
+    data = re.sub(rb"/ID\s*\[[^\]]*\]", b"", data)
+    return data
+
+
+def strip_svg_metadata(data: bytes) -> bytes:
+    """Remove SVG generator comments for byte-stable output."""
+    data = re.sub(rb"<!--\s*[Gg]enerated by.*?-->", b"", data)
+    data = re.sub(rb"<!--\s*[Cc]reated with.*?-->", b"", data)
+    return data
+
+
+def file_hash(path: Path) -> str:
+    """Return SHA256 hash of file content."""
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def write_stable(path: Path, data: bytes, skip_unchanged: bool = True) -> bool:
+    """Write data with metadata stripped, skip if unchanged. Returns True if written."""
+    if path.suffix == ".png":
+        data = strip_png_metadata(data)
+    elif path.suffix == ".pdf":
+        data = strip_pdf_metadata(data)
+    elif path.suffix == ".svg":
+        data = strip_svg_metadata(data)
+    if skip_unchanged and path.exists() and path.read_bytes() == data:
+        return False
+    path.write_bytes(data)
+    return True
+
+
+def deduplicate_outputs(out: Path) -> tuple[dict[Path, Path], int]:
+    """Find byte-identical output files and deduplicate them.
+    Returns (mapping of deleted path -> canonical path, count of bytes saved)."""
+    from collections import defaultdict
+
+    hash_to_files: dict[str, list[Path]] = defaultdict(list)
+    for p in sorted(out.rglob("*")):
+        if not p.is_file() or p.name in KEEP or any(part.startswith(".") for part in p.parts):
+            continue
+        if p.suffix not in (".png", ".svg", ".pdf", ".dot"):
+            continue
+        h = file_hash(p)
+        hash_to_files[h].append(p)
+
+    canonicals: dict[Path, Path] = {}
+    saved_bytes = 0
+    for _h, files in hash_to_files.items():
+        if len(files) <= 1:
+            continue
+
+        def canonical_priority(p: Path) -> tuple:
+            rel = p.relative_to(out)
+            has_yaml = any(
+                ".yaml" in f.name or ".yml" in f.name
+                for f in p.parent.glob(f"{p.stem}.*")
+                if f.suffix in (".yaml", ".yml")
+            )
+            return (not has_yaml, rel.as_posix())
+
+        files_sorted = sorted(files, key=canonical_priority)
+        canonical = files_sorted[0]
+        for f in files_sorted[1:]:
+            canonicals[f] = canonical
+            saved_bytes += f.stat().st_size
+            f.unlink()
+
+    return canonicals, saved_bytes
+
+
+def optimize_pngs(out: Path) -> int:
+    """Run oxipng losslessly on all PNGs if available. Returns count optimized."""
+    if shutil.which("oxipng") is None:
+        return 0
+    pngs = [p for p in out.rglob("*.png") if p.is_file()]
+    if not pngs:
+        return 0
+    try:
+        subprocess.run(
+            ["oxipng", "--opt", "max", "--strip", "safe", "--quiet"] + [str(p) for p in pngs],
+            check=False,
+            capture_output=True,
+        )
+        return len(pngs)
+    except Exception:
+        return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=(__doc__ or "").split("\n\n")[0])
     ap.add_argument("out", type=Path, help="output directory (emptied first, except dotfiles, README.md and LICENSE)")
@@ -433,7 +548,29 @@ def main() -> int:
 
     from usecvislib import __version__
 
-    cards = write_index(out, __version__)
+    print("post-processing: stripping metadata...", flush=True)
+    stripped, unchanged = 0, 0
+    for p in sorted(out.rglob("*")):
+        if not p.is_file() or p.suffix not in (".png", ".svg", ".pdf"):
+            continue
+        data = p.read_bytes()
+        if write_stable(p, data, skip_unchanged=False):
+            stripped += 1
+        else:
+            unchanged += 1
+
+    print("deduplicating identical outputs...", flush=True)
+    canonicals, saved = deduplicate_outputs(out)
+    print(f"  removed {len(canonicals)} duplicates, saved {saved:,} bytes", flush=True)
+
+    print("optimizing PNGs with oxipng...", flush=True)
+    optimized = optimize_pngs(out)
+    if optimized:
+        print(f"  optimized {optimized} PNGs", flush=True)
+    else:
+        print("  oxipng not found, skipping", flush=True)
+
+    cards = write_index(out, __version__, canonicals)
     files = [p for p in out.rglob("*") if p.is_file() and not p.relative_to(out).parts[0].startswith(".")]
     (out / "errors.json").write_text(json.dumps(errors, indent=2)) if errors else None
     print(f"done in {time.time() - start:.0f}s: {len(files)} files, {cards} cards, {len(errors)} errors", flush=True)
