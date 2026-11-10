@@ -182,6 +182,20 @@ _LEGEND_ITEMS = (
 )
 
 
+def _legend_width(theme: dict[str, Any]) -> float:
+    """Total pixel width of the coverage legend row, mirroring _paint_legend's advance,
+    so the canvas can be grown to contain it — a narrow diagram (few techniques) must
+    not clip a wider legend row."""
+    font = theme["font"]
+    size = float(font["size"]) * 0.8
+    x = 0.0
+    for _cover, label in _LEGEND_ITEMS:
+        x += size * 2.0 + metrics.measure_text(label, font["family"], size) + 22.0
+    x += metrics.measure_text("Chips: D = detected, M = mitigated, · = no",
+                              font["family"], size)
+    return x
+
+
 def _paint_legend(canvas: SvgCanvas, theme: dict[str, Any], x: float, y: float) -> None:
     """Coverage legend row: card colors plus what the D/M chips mean.
 
@@ -237,6 +251,9 @@ def render_svg(viz) -> str:
     pad = float(page["padding"])
     min_x = min(cx - w / 2 for cx, w, _ in boxes.values()) - pad
     max_x = max(cx + w / 2 for cx, w, _ in boxes.values()) + pad
+    # The legend row (painted from min_x + pad) can be wider than a narrow diagram;
+    # grow the canvas so the SVG viewBox contains it instead of clipping it.
+    max_x = max(max_x, min_x + pad + _legend_width(theme) + pad)
     content_bottom = max((b for _, _, b in boxes.values()), default=header_h)
     legend_y = content_bottom + 26.0
     max_y = legend_y + float(font["size"]) + pad
