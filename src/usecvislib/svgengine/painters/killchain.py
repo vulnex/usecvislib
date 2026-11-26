@@ -191,8 +191,7 @@ def _legend_width(theme: dict[str, Any]) -> float:
     x = 0.0
     for _cover, label in _LEGEND_ITEMS:
         x += size * 2.0 + metrics.measure_text(label, font["family"], size) + 22.0
-    x += metrics.measure_text("Chips: D = detected, M = mitigated, · = no",
-                              font["family"], size)
+    x += metrics.measure_text("Chips: D = detected, M = mitigated, · = no", font["family"], size)
     return x
 
 
