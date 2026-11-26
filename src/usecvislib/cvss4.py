@@ -740,10 +740,9 @@ class CVSSVector4:
                 adjustment += 0.1
             if va != "H":
                 adjustment += 0.1
-        elif eq3 == 2:
+        elif eq3 == 2 and va == "N":
             # Already at lowest level
-            if va == "N":
-                adjustment += 0.1
+            adjustment += 0.1
 
         # EQ4 adjustments (subsequent system impact)
         eq4 = int(macrovector[3])
