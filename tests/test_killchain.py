@@ -443,3 +443,26 @@ class TestSvgCardText:
         for g in partial:
             fills = {t.get("fill") for t in g.iter(f"{ns}text")}
             assert fills == {"#1f2937"}
+
+
+def test_single_technique_legend_fits_viewbox(tmp_path):
+    """Regression: a narrow (single-technique) kill chain must size its SVG canvas to
+    contain the coverage legend row, not clip it at the technique-box width."""
+    import re
+    from usecvislib import KillChainBuilder
+    from usecvislib.svgengine import themes
+    from usecvislib.svgengine.painters.killchain import _legend_width
+    b = KillChainBuilder("KC legend fit", framework="attack")
+    b.add_technique("T1190", "Exploit Public-Facing Application", "initial-access")
+    kc = b.to_kill_chain(str(tmp_path / "kc"), format="svg", render_engine="svg")
+    kc.render(); kc.draw()
+    svg = (tmp_path / "kc.svg").read_text()
+    m = re.search(r'viewBox="[-\d.]+ [-\d.]+ ([-\d.]+) [-\d.]+"', svg)
+    assert m, "no viewBox in rendered SVG"
+    vb_w = float(m.group(1))
+    theme = themes.resolve(getattr(kc, "style", None))
+    pad = float(theme["page"]["padding"])
+    assert vb_w >= _legend_width(theme) + 2 * pad - 1, (
+        f"viewBox width {vb_w:.0f} too narrow for legend "
+        f"{_legend_width(theme):.0f} — the legend is clipped")
+    assert "Partial coverage" in svg and "Chips:" in svg
