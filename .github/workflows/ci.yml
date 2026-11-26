@@ -51,6 +51,10 @@ jobs:
         run: pip-audit --ignore-vuln PYSEC-2024-270
 
   test:
+    # Pinned for Graphviz 2.42: ubuntu-latest (26.04) ships Graphviz 14, whose
+    # layout breaks the byte-exact SVG goldens. Stopgap — when GitHub retires
+    # ubuntu-24.04, regenerate goldens with USECVISLIB_UPDATE_GOLDEN=1 under
+    # Graphviz 14 and move back to ubuntu-latest.
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
